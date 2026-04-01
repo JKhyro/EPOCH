@@ -10,6 +10,13 @@ proves product ownership before broader suite integrations are attempted.
 The first slice should support a user creating, viewing, and updating a simple
 scheduled item with explicit time boundaries and timezone-aware behavior.
 
+## Implementation stance for v1
+
+- native C owns the scheduling model and mutation logic
+- the Avalonia desktop shell consumes the native core through explicit interop
+- C# stays limited to host, UI, and interop glue unless a documented exception
+  is required
+
 ## Minimum contract
 
 - title
@@ -46,5 +53,6 @@ dependencies.
 The execution issue for this slice should only move into implementation after:
 
 - the product boundary is accepted
+- the runtime and packaging stance is explicit
 - the minimum contract is not disputed
 - deferred integrations stay deferred
