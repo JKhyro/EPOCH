@@ -20,6 +20,8 @@
     "leads",
     "opportunities",
     "engagements",
+    "workPlans",
+    "agentHandoffs",
     "notificationEvents",
     "customers",
     "cohorts",
@@ -261,6 +263,11 @@
   function findSchedulableRequest(data) {
     return data.assignments.find((assignment) => assignment.externalVisible && assignment.status !== "returned")
       || data.assignments[0];
+  }
+
+  function findHandoffEligibleEngagement(data) {
+    return data.engagements.find((engagement) => engagement.status === "active" || engagement.status === "planned")
+      || data.engagements[0];
   }
 
   function trackForOffer(offerKind) {
@@ -905,6 +912,103 @@
     };
   }
 
+  function createAgentHandoffRecords(currentData, input, options) {
+    const nextData = cloneData(currentData);
+    ensureCollections(nextData);
+
+    const now = options && options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const requestStamp = stamp(now);
+    const engagementId = clean(input.engagementId) || findHandoffEligibleEngagement(nextData)?.id;
+    const sourceSystem = clean(input.sourceSystem) || "SYMBIOSIS";
+    const targetSystem = clean(input.targetSystem) || "ANVIL";
+    const owner = clean(input.owner) || "Jack";
+    const title = clean(input.title) || "Agent-created revenue work plan";
+    const summary = clean(input.summary) || "Proposed agent-created work requires operator approval before any customer-visible action.";
+    const nextActionAt = withTimezone(input.nextActionAt || input.dueAt, timezone) || withTimezone(now.toISOString(), timezone);
+    const createdAt = withTimezone(now.toISOString(), timezone);
+
+    if (!engagementId) throw new Error("engagementId is required");
+
+    const engagement = nextData.engagements.find((item) => item.id === engagementId);
+    if (!engagement) throw new Error("engagement not found");
+    if (!["active", "planned"].includes(engagement.status)) {
+      throw new Error("engagement must be active or planned for agent handoff");
+    }
+    if (nextData.agentHandoffs.some((item) => item.engagementId === engagement.id && !["canceled", "rejected", "complete"].includes(item.status))) {
+      throw new Error("engagement already has an active agent handoff");
+    }
+
+    const customer = customerById(nextData, engagement.customerId);
+    const workPlan = {
+      id: `workplan-agent-${requestStamp}`,
+      engagementId: engagement.id,
+      opportunityId: engagement.opportunityId || null,
+      customerId: engagement.customerId || null,
+      packageId: engagement.packageId || null,
+      sourceSystem,
+      targetSystem,
+      title,
+      summary,
+      status: "proposed",
+      approvalStatus: "pending-operator-approval",
+      owner,
+      createdAt,
+      dueAt: nextActionAt,
+      monitorVisible: true,
+      customerVisible: false,
+      rollbackRule: "Rejecting or canceling the handoff leaves customer-visible records unchanged."
+    };
+    const handoff = {
+      id: `handoff-agent-${requestStamp}`,
+      workPlanId: workPlan.id,
+      engagementId: engagement.id,
+      customerId: engagement.customerId || null,
+      sourceSystem,
+      targetSystem,
+      title: `${sourceSystem} to ${targetSystem}: ${title}`,
+      status: "waiting",
+      approvalStatus: "pending-operator-approval",
+      createdAt,
+      nextActionAt,
+      monitorVisible: true,
+      customerVisible: false,
+      rollbackRule: workPlan.rollbackRule
+    };
+    const followup = {
+      id: `followup-agent-handoff-${requestStamp}`,
+      customerId: engagement.customerId || null,
+      title: `Approve agent work plan: ${title}`,
+      status: "planned",
+      nextActionAt,
+      sourceKind: "agent-handoff",
+      sourceId: handoff.id
+    };
+    const receipt = {
+      id: `receipt-agent-handoff-${requestStamp}`,
+      customerId: engagement.customerId || null,
+      kind: "agent-handoff-proposed",
+      status: "complete",
+      createdAt,
+      note: `${sourceSystem} proposed ${targetSystem} work for ${customer?.displayName || engagement.customerId || "customer pending"}; operator approval required before customer-visible changes.`
+    };
+
+    nextData.workPlans.unshift(workPlan);
+    nextData.agentHandoffs.unshift(handoff);
+    nextData.followups.unshift(followup);
+    nextData.receipts.unshift(receipt);
+
+    return {
+      data: nextData,
+      records: {
+        workPlan,
+        handoff,
+        followup,
+        receipt
+      }
+    };
+  }
+
   function summarizeDeadlines(currentData, options) {
     const nowText = clean(options && options.now) || "2026-06-01T00:00:00+09:00";
     const todayText = nowText.slice(0, 10);
@@ -957,6 +1061,25 @@
       pending: events.filter((item) => item.deliveryStatus === "pending").length,
       posted: events.filter((item) => item.deliveryStatus === "posted").length,
       blocked: events.filter((item) => item.deliveryStatus === "blocked" || item.status === "blocked").length
+    };
+  }
+
+  function summarizeAgentHandoffState(currentData) {
+    const workPlans = Array.isArray(currentData.workPlans) ? currentData.workPlans : [];
+    const handoffs = Array.isArray(currentData.agentHandoffs) ? currentData.agentHandoffs : [];
+    const customerVisibleBlocked = [
+      ...workPlans,
+      ...handoffs
+    ].filter((item) => item.customerVisible).length;
+
+    return {
+      workPlans: workPlans.length,
+      handoffs: handoffs.length,
+      pendingApprovals: handoffs.filter((item) => item.approvalStatus === "pending-operator-approval").length,
+      monitorVisible: handoffs.filter((item) => item.monitorVisible).length,
+      approved: handoffs.filter((item) => item.approvalStatus === "approved").length,
+      rejected: handoffs.filter((item) => item.status === "rejected").length,
+      customerVisibleBlocked
     };
   }
 
@@ -1048,6 +1171,34 @@
       }, timezone));
     }
 
+    for (const workPlan of data.workPlans) {
+      entries.push(createCalendarEntry(data, {
+        sourceKind: "agent-work-plan",
+        sourceId: workPlan.id,
+        title: workPlan.title,
+        timeKind: "approval-window",
+        dueAt: workPlan.dueAt,
+        status: workPlan.status,
+        owner: workPlan.owner,
+        customerId: workPlan.customerId,
+        externalVisible: false
+      }, timezone));
+    }
+
+    for (const handoff of data.agentHandoffs) {
+      entries.push(createCalendarEntry(data, {
+        sourceKind: "agent-handoff",
+        sourceId: handoff.id,
+        title: handoff.title,
+        timeKind: "handoff-approval-window",
+        dueAt: handoff.nextActionAt,
+        status: handoff.status,
+        owner: handoff.approvalStatus,
+        customerId: handoff.customerId,
+        externalVisible: false
+      }, timezone));
+    }
+
     for (const update of data.notificationEvents) {
       entries.push(createCalendarEntry(data, {
         sourceKind: "notification",
@@ -1096,6 +1247,8 @@
       ...currentData.leads.map((item) => ({ kind: "lead", id: item.id, title: item.name, status: item.status, time: item.nextActionAt, owner: item.owner || "intake" })),
       ...currentData.opportunities.map((item) => ({ kind: "opportunity", id: item.id, title: item.packageId || item.id, status: item.status, time: item.nextActionAt, owner: `${item.estimatedValueJpy || 0} JPY` })),
       ...currentData.engagements.map((item) => ({ kind: "engagement", id: item.id, title: item.packageId || item.id, status: item.status, time: item.onboardingDueAt || item.acceptedAt, owner: item.owner || "owner pending" })),
+      ...currentData.workPlans.map((item) => ({ kind: "agent work plan", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.approvalStatus || item.owner || "approval pending" })),
+      ...currentData.agentHandoffs.map((item) => ({ kind: "agent handoff", id: item.id, title: item.title, status: item.status, time: item.nextActionAt, owner: item.approvalStatus || "approval pending" })),
       ...currentData.notificationEvents.map((item) => ({ kind: "update", id: item.id, title: item.title, status: item.status, time: item.deliverAfterAt || item.createdAt, owner: item.deliveryStatus || "pending" })),
       ...currentData.sessions.map((item) => ({ kind: "session", id: item.id, title: item.title, status: item.status, time: item.startAt, owner: item.owner || "owner pending" })),
       ...currentData.assignments.map((item) => ({ kind: "request", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.owner || "owner pending" })),
@@ -1109,9 +1262,10 @@
   function buildMonitorReport(currentData, options) {
     const nowText = clean(options && options.now) || "2026-06-01T12:00:00+09:00";
     const terminalStatuses = new Set(["complete", "returned", "canceled", "accepted", "rejected"]);
-    const activeStatuses = new Set(["waiting", "deferred", "submitted", "reviewing", "overdue", "blocked"]);
+    const activeStatuses = new Set(["waiting", "deferred", "submitted", "reviewing", "overdue", "blocked", "proposed"]);
     const revenue = summarizeRevenueState(currentData);
     const notifications = summarizeNotificationState(currentData);
+    const handoffs = summarizeAgentHandoffState(currentData);
     const calendarExport = createCalendarExport(currentData, { now: nowText });
     const persistence = summarizePersistenceState(currentData, { now: nowText });
     const timeline = monitorTimelineItems(currentData)
@@ -1161,6 +1315,8 @@
         acceptedValueJpy: revenue.acceptedValueJpy,
         visibleUpdates: notifications.visible,
         blockedUpdates: notifications.blocked,
+        agentHandoffs: handoffs.handoffs,
+        pendingHandoffApprovals: handoffs.pendingApprovals,
         calendarEntries: calendarExport.counts.total,
         calendarVisible: calendarExport.counts.customerVisible,
         persistenceRevision: persistence.revision,
@@ -1168,6 +1324,7 @@
       },
       revenue,
       notifications,
+      handoffs,
       calendar: calendarExport.counts,
       persistence,
       queue,
@@ -1225,6 +1382,7 @@
     createCalendarExport,
     createOperatingLedger,
     createPersistenceMetadata,
+    createAgentHandoffRecords,
     decideOpportunityRecords,
     createIntakeRecords,
     createSubmissionRecords,
@@ -1234,6 +1392,7 @@
     buildMonitorReport,
     summarizeCalendarExport,
     summarizeDeadlines,
+    summarizeAgentHandoffState,
     summarizePersistenceState,
     summarizeNotificationState,
     summarizeRevenueState,
