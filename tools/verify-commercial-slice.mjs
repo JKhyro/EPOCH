@@ -69,6 +69,8 @@ for (const id of [
   "view-student",
   "view-monitor",
   "view-public",
+  "schedule-form",
+  "schedule-feed",
   "intake-form",
   "intake-feed",
   "submission-form",
@@ -80,6 +82,9 @@ for (const id of [
 for (const field of ["requesterName", "ageBand", "offerKind", "preferredWindow", "requestSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`intake form missing field ${field}`);
 }
+for (const field of ["owner", "sessionTitle", "startAt", "endAt", "deadlineAt"]) {
+  if (!html.includes(`name="${field}"`)) fail(`schedule form missing field ${field}`);
+}
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
 }
@@ -89,11 +94,15 @@ const app = read("../web/app.js");
 for (const phrase of [
   "createIntakeRecords",
   "createSubmissionRecords",
+  "createScheduleRecords",
   "returnReviewRecords",
+  "summarizeDeadlines",
   "localStorage",
+  "renderScheduleFeed",
   "renderIntakeSnapshot",
   "renderSubmissions",
   "Request Captured",
+  "Work Scheduled",
   "Submission Received",
   "Review Returned"
 ]) {
@@ -139,7 +148,28 @@ if (intakeResult.records.lead.status !== "waiting") fail("under-19 intake should
 if (!intakeResult.records.customer.externalStatus.includes("compatibility")) fail("under-19 intake lacks compatibility messaging");
 if (!intakeResult.records.assignment.externalVisible) fail("intake request is not external-visible");
 
-const submissionResult = recordTools.createSubmissionRecords(intakeResult.data, {
+const scheduleResult = recordTools.createScheduleRecords(intakeResult.data, {
+  assignmentId: intakeResult.records.assignment.id,
+  sessionTitle: "Diagnostic scheduling call",
+  owner: "Jack",
+  startAt: "2026-06-05T19:30",
+  endAt: "2026-06-05T20:15",
+  deadlineAt: "2026-06-06T18:00"
+}, {
+  now: "2026-06-01T03:00:00.000Z"
+});
+
+if (scheduleResult.data.sessions.length !== intakeResult.data.sessions.length + 1) fail("schedule flow did not create a session");
+if (scheduleResult.data.cohorts.length !== intakeResult.data.cohorts.length + 1) fail("schedule flow did not create a cohort");
+if (scheduleResult.records.assignment.status !== "planned") fail("schedule flow did not set assignment planned");
+if (scheduleResult.records.session.owner !== "Jack") fail("schedule flow did not assign owner");
+if (!scheduleResult.data.customers[0].externalStatus.includes("scheduled")) fail("schedule flow did not update external status");
+
+const deadlineSummary = recordTools.summarizeDeadlines(scheduleResult.data, { now: "2026-06-01T12:00:00+09:00" });
+if (deadlineSummary.upcoming < 1) fail("deadline summary did not detect upcoming work");
+if (deadlineSummary.owned < 1) fail("deadline summary did not detect owner-linked work");
+
+const submissionResult = recordTools.createSubmissionRecords(scheduleResult.data, {
   assignmentId: intakeResult.records.assignment.id,
   reviewDueAt: "2026-06-06T18:00",
   submissionTitle: "Diagnostic essay",
