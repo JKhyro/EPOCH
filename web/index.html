@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>EPOCH Commercial Operating Surface</title>
+  <link rel="icon" href="data:," />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
@@ -243,30 +244,108 @@
     </section>
 
     <section id="view-public" class="view" aria-label="Public offer surface">
-      <div class="section-heading">
-        <h2>Professional Intake</h2>
-        <p>Japan-wide education and service operations without leading with AI terminology.</p>
+      <div class="public-hero">
+        <div>
+          <p class="eyebrow">Japan-wide premium services</p>
+          <h2>Exam writing, submission review, and operating support for serious adults.</h2>
+          <p>Structured English and service-operations delivery with clear schedules, request tracking, returned feedback, and professional progress updates.</p>
+          <div class="hero-actions">
+            <button type="button" class="button-link" data-public-target="intake-form">Request Diagnostic</button>
+            <button type="button" class="button-link secondary-action" data-public-target="offer-catalog">Compare Packages</button>
+          </div>
+        </div>
+        <div class="public-visual" aria-label="Offer workflow summary">
+          <div>
+            <span>1</span>
+            <strong>Intake</strong>
+            <p>Goal, level, schedule, and fit.</p>
+          </div>
+          <div>
+            <span>2</span>
+            <strong>Review</strong>
+            <p>Submission windows and feedback queue.</p>
+          </div>
+          <div>
+            <span>3</span>
+            <strong>Progress</strong>
+            <p>Status, next actions, and receipts.</p>
+          </div>
+        </div>
       </div>
-      <div class="offer-layout">
+
+      <div class="funnel-grid" aria-label="Offer funnel">
         <article>
-          <h3>Premium Education Operations</h3>
-          <p>EIKEN 5-1, writing review, cohort labs, diagnostics, and serious student support.</p>
+          <p class="eyebrow">Education ladder</p>
+          <h3>Submission-first English programs</h3>
+          <p>EIKEN 5-1, writing review, interview preparation, TOEIC, IELTS, TOEFL, school writing, university writing, business English, and professional communication.</p>
+          <ul>
+            <li>Paid diagnostics before larger commitments.</li>
+            <li>Monthly review packages for recurring writing improvement.</li>
+            <li>Small cohorts when demand clusters by exam level.</li>
+          </ul>
         </article>
         <article>
-          <h3>Service Operations Support</h3>
-          <p>Consulting, tech support, clerical/admin, database, CRM, and management-system work.</p>
+          <p class="eyebrow">Service operations</p>
+          <h3>Admin, technical, and systems support</h3>
+          <p>Consulting, tech support, clerical/admin, database, CRM, management-system, documentation, automation, and lightweight internal-tooling work.</p>
+          <ul>
+            <li>Diagnostics for small businesses and solo operators.</li>
+            <li>Monthly support retainers for recurring requests.</li>
+            <li>Scoped system builds with clear handoff records.</li>
+          </ul>
         </article>
         <article>
-          <h3>Compatibility Gate</h3>
-          <p>Under-19 applicants require compatibility assessment and guardian agreement before acceptance.</p>
+          <p class="eyebrow">Acceptance policy</p>
+          <h3>Adults first, under-19 by fit only</h3>
+          <p>Students under 19 require compatibility assessment and guardian agreement before acceptance. Higher-touch pricing applies when younger students are accepted.</p>
+          <ul>
+            <li>No generic low-commitment tutoring track.</li>
+            <li>Clear expectations before any recurring package.</li>
+            <li>Fit review protects schedule quality and delivery focus.</li>
+          </ul>
         </article>
       </div>
+
+      <div class="market-grid" aria-label="Marketing routes">
+        <article>
+          <h3>Japan-wide launch routes</h3>
+          <p>Position offers around exam outcomes, writing structure, teacher-reviewed feedback, and reliable scheduling. Use English/Japanese copy without leading with AI terminology.</p>
+          <div class="meta">
+            <span class="chip">EIKEN</span>
+            <span class="chip">TOEIC</span>
+            <span class="chip">Business English</span>
+            <span class="chip">Remote support</span>
+          </div>
+        </article>
+        <article>
+          <h3>Global expansion routes</h3>
+          <p>Use the same operating surface for international writing review, professional English, CRM cleanup, documentation, and remote support once Japan-facing proof is running.</p>
+          <div class="meta">
+            <span class="chip">Async review</span>
+            <span class="chip">Cohorts</span>
+            <span class="chip">Retainers</span>
+            <span class="chip">System builds</span>
+          </div>
+        </article>
+      </div>
+
       <div class="section-heading compact">
         <h2>Offer Catalog</h2>
+        <p>Premium packages route into the same intake, schedule, submission, and monitor records.</p>
       </div>
       <div id="offer-catalog" class="item-list"></div>
+
       <div class="intake-layout">
         <form id="intake-form" class="intake-form">
+          <div>
+            <p class="eyebrow">Request intake</p>
+            <h3>Start with the right first paid step</h3>
+            <p>This intake is for serious inquiries only. Share the document type, target result, deadline, and who is submitting so the request can be routed before booking.</p>
+          </div>
+          <div class="routing-panel">
+            <h3>Select your intake lane</h3>
+            <p>If the learner is under 19, a parent, guardian, or school contact must submit this intake. Direct contracting with minors is not supported on this route.</p>
+          </div>
           <div class="form-row">
             <label>
               Name
@@ -278,6 +357,26 @@
                 <option value="adult">Adult / 19+</option>
                 <option value="business">Business</option>
                 <option value="under-19">Under 19 assessment</option>
+              </select>
+            </label>
+          </div>
+          <div class="form-row">
+            <label>
+              Who is submitting
+              <select name="intakeLane" required>
+                <option value="19+ individual">19+ Individual</option>
+                <option value="parent or guardian">Parent or Guardian</option>
+                <option value="school or program">School or Program</option>
+                <option value="business or institutional">Business or Institutional</option>
+                <option value="international client">International Client</option>
+              </select>
+            </label>
+            <label>
+              Country / billing region
+              <select name="billingRegion" required>
+                <option value="Japan JPY billing">Japan / JPY billing</option>
+                <option value="International USD billing">International / USD billing</option>
+                <option value="Institutional estimate">Institutional estimate</option>
               </select>
             </label>
           </div>
@@ -298,6 +397,20 @@
             </label>
           </div>
           <div class="form-row">
+            <label>
+              Document type
+              <input name="documentType" placeholder="EIKEN essay, TOEFL task, CRM request, report..." required />
+            </label>
+            <label>
+              Target result
+              <input name="targetResult" placeholder="Pass EIKEN Pre-1, return client-ready copy, clean CRM..." required />
+            </label>
+          </div>
+          <div class="form-row">
+            <label>
+              Deadline and timezone
+              <input name="deadlineTimezone" placeholder="June 12, JST / UTC+9" required />
+            </label>
             <label>
               Preferred window
               <input name="preferredWindow" type="datetime-local" required />

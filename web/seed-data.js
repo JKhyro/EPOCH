@@ -37,6 +37,8 @@ window.EPOCH_SEED_DATA = {
       "audience": "Adults and serious test candidates",
       "deliveryModel": "Submission-first monthly review",
       "priceJpy": 45000,
+      "marketRoute": "Japan-wide remote adults",
+      "laborModel": "async-first",
       "routing": "submission-first",
       "status": "active"
     },
@@ -48,6 +50,8 @@ window.EPOCH_SEED_DATA = {
       "audience": "Small groups preparing for EIKEN 2, Pre-1, or 1",
       "deliveryModel": "Cohort plus weekly submissions",
       "priceJpy": 22000,
+      "marketRoute": "Japan-wide grouped exam level",
+      "laborModel": "cohort-scaled",
       "routing": "cohort",
       "status": "active"
     },
@@ -59,6 +63,8 @@ window.EPOCH_SEED_DATA = {
       "audience": "Younger applicants requiring fit review",
       "deliveryModel": "Compatibility gate before acceptance",
       "priceJpy": 65000,
+      "marketRoute": "restricted under-19 fit review",
+      "laborModel": "high-touch-gated",
       "routing": "compatibility-required",
       "status": "restricted"
     },
@@ -70,6 +76,8 @@ window.EPOCH_SEED_DATA = {
       "audience": "Small business and solo operators",
       "deliveryModel": "Consultation plus managed follow-up",
       "priceJpy": 30000,
+      "marketRoute": "Japan and global remote",
+      "laborModel": "diagnostic",
       "routing": "diagnostic",
       "status": "active"
     },
@@ -81,6 +89,8 @@ window.EPOCH_SEED_DATA = {
       "audience": "Operators needing recurring support",
       "deliveryModel": "Monthly support and request queue",
       "priceJpy": 80000,
+      "marketRoute": "recurring remote operators",
+      "laborModel": "retainer",
       "routing": "retainer",
       "status": "active"
     },
@@ -92,6 +102,8 @@ window.EPOCH_SEED_DATA = {
       "audience": "Businesses needing lightweight operating systems",
       "deliveryModel": "Scoped build plus handoff",
       "priceJpy": 150000,
+      "marketRoute": "small business systems",
+      "laborModel": "project-scoped",
       "routing": "project-estimate",
       "status": "active"
     }

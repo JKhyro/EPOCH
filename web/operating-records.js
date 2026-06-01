@@ -439,6 +439,11 @@
     const requestSummary = clean(input.requestSummary);
     const offerKind = clean(input.offerKind) || "education";
     const ageBand = clean(input.ageBand) || "adult";
+    const intakeLane = clean(input.intakeLane) || (ageBand === "under-19" ? "parent or guardian" : "19+ individual");
+    const billingRegion = clean(input.billingRegion) || "Japan JPY billing";
+    const documentType = clean(input.documentType) || "not specified";
+    const targetResult = clean(input.targetResult) || "not specified";
+    const deadlineTimezone = clean(input.deadlineTimezone) || "not specified";
     const preferredWindow = withTimezone(input.preferredWindow, timezone) || withTimezone(now.toISOString(), timezone);
     const isUnder19 = ageBand === "under-19";
     const offerPackage = packageForRequest(nextData, offerKind, clean(input.packageId), isUnder19);
@@ -448,6 +453,14 @@
 
     const trackId = offerPackage?.trackId || trackForOffer(offerKind);
     const offerLabel = offerPackage?.name || offerLabels[offerKind] || "Commercial service";
+    const qualifiedSummary = [
+      requestSummary,
+      `Intake lane: ${intakeLane}`,
+      `Document type: ${documentType}`,
+      `Target result: ${targetResult}`,
+      `Deadline/timezone: ${deadlineTimezone}`,
+      `Billing region: ${billingRegion}`
+    ].join(" | ");
     const customerId = `customer-intake-${requestStamp}`;
     const assignmentId = `request-intake-${requestStamp}`;
     const opportunityId = `opp-intake-${requestStamp}`;
@@ -460,6 +473,8 @@
       name: `${requesterName} request`,
       trackId,
       packageId: offerPackage?.id || null,
+      intakeLane,
+      billingRegion,
       status: isUnder19 ? "waiting" : "planned",
       nextAction,
       nextActionAt: preferredWindow
@@ -471,6 +486,8 @@
       packageId: offerPackage?.id || null,
       status: isUnder19 ? "waiting" : "planned",
       estimatedValueJpy: offerPackage?.priceJpy || 0,
+      intakeLane,
+      billingRegion,
       nextAction,
       nextActionAt: preferredWindow
     };
@@ -481,6 +498,8 @@
       trackId,
       packageId: offerPackage?.id || null,
       ageBand,
+      intakeLane,
+      billingRegion,
       externalStatus: isUnder19
         ? "Request received; compatibility and guardian review required before acceptance."
         : `${offerLabel} request received; next update follows internal review.`
@@ -495,7 +514,12 @@
       dueAt: preferredWindow,
       status: "waiting",
       externalVisible: true,
-      summary: requestSummary
+      documentType,
+      targetResult,
+      deadlineTimezone,
+      intakeLane,
+      billingRegion,
+      summary: qualifiedSummary
     };
 
     const followup = {
@@ -512,7 +536,7 @@
       kind: "intake-request",
       status: "complete",
       createdAt: withTimezone(now.toISOString(), timezone),
-      note: `Captured ${offerLabel.toLowerCase()} request for operating review.`
+      note: `Captured ${offerLabel.toLowerCase()} request for ${intakeLane} with ${billingRegion}.`
     };
     const notificationEvent = createNotificationEventRecord(nextData, {
       customerId,

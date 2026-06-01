@@ -77,9 +77,9 @@ for (const id of [
   "view-monitor",
   "view-public",
   "offer-catalog",
+  "intake-form",
   "schedule-form",
   "schedule-feed",
-  "intake-form",
   "intake-feed",
   "submission-form",
   "submission-feed",
@@ -100,7 +100,7 @@ for (const id of [
 ]) {
   if (!html.includes(`id="${id}"`)) fail(`web surface missing ${id}`);
 }
-for (const field of ["requesterName", "ageBand", "offerKind", "packageId", "preferredWindow", "requestSummary"]) {
+for (const field of ["requesterName", "ageBand", "intakeLane", "billingRegion", "offerKind", "packageId", "documentType", "targetResult", "deadlineTimezone", "preferredWindow", "requestSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`intake form missing field ${field}`);
 }
 for (const field of ["owner", "sessionTitle", "startAt", "endAt", "deadlineAt"]) {
@@ -114,6 +114,24 @@ for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissi
 }
 for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-persistence"]) {
   if (!html.includes(phrase)) fail(`monitor route surface missing phrase ${phrase}`);
+}
+for (const phrase of [
+  "Japan-wide premium services",
+  "Request Diagnostic",
+  "Compare Packages",
+  "Submission-first English programs",
+  "Adults first, under-19 by fit only",
+  "Direct contracting with minors is not supported on this route",
+  "Who is submitting",
+  "Country / billing region",
+  "Document type",
+  "Target result",
+  "Deadline and timezone",
+  "Japan-wide launch routes",
+  "Global expansion routes",
+  "Start with the right first paid step"
+]) {
+  if (!html.includes(phrase)) fail(`public offer funnel missing phrase ${phrase}`);
 }
 if (!html.includes("./operating-records.js")) fail("web surface does not load operating-records.js");
 
@@ -141,12 +159,16 @@ for (const phrase of [
   "wireLedgerControls",
   "wireOpportunityForm",
   "wireMonitorMenu",
+  "wirePublicActions",
+  "data-public-target",
   "viewFromRoute",
   "routeForView",
   "hashchange",
   "aria-selected",
   "renderOfferCatalog",
   "renderOfferOptions",
+  "marketRoute",
+  "laborModel",
   "renderOpportunityOptions",
   "renderOpportunityFeed",
   "renderEngagementFeed",
@@ -196,6 +218,15 @@ if (!data.offerPackages.some((item) => item.id === "pkg-under19-assessment" && i
 }
 if (!data.offerPackages.some((item) => item.offerKind === "management_system" && item.priceJpy >= 100000)) {
   fail("offer catalog missing management-system package");
+}
+if (!data.offerPackages.every((item) => item.marketRoute && item.laborModel)) {
+  fail("offer catalog missing marketing route or labor model metadata");
+}
+if (!data.offerPackages.some((item) => item.laborModel === "async-first" && item.priceJpy >= 45000)) {
+  fail("offer catalog missing premium async-first review package");
+}
+if (!data.offerPackages.some((item) => item.marketRoute.includes("global"))) {
+  fail("offer catalog missing global expansion route");
 }
 if (typeof recordTools.createAgentHandoffRecords !== "function") fail("operating helpers missing createAgentHandoffRecords");
 if (typeof recordTools.summarizeAgentHandoffState !== "function") fail("operating helpers missing summarizeAgentHandoffState");
@@ -249,6 +280,11 @@ const intakeResult = recordTools.createIntakeRecords(data, {
   ageBand: "under-19",
   offerKind: "education",
   packageId: "pkg-eiken-writing-monthly",
+  intakeLane: "parent or guardian",
+  billingRegion: "Japan JPY billing",
+  documentType: "EIKEN essay",
+  targetResult: "Pass EIKEN Pre-1 writing",
+  deadlineTimezone: "June 5 JST",
   preferredWindow: "2026-06-05T19:30",
   requestSummary: "Needs EIKEN writing support but requires fit review."
 }, {
@@ -267,6 +303,10 @@ if (intakeResult.records.opportunity.packageId !== "pkg-under19-assessment") fai
 if (intakeResult.records.opportunity.estimatedValueJpy < 60000) fail("under-19 opportunity value does not reflect higher-touch routing");
 if (!intakeResult.records.customer.externalStatus.includes("compatibility")) fail("under-19 intake lacks compatibility messaging");
 if (!intakeResult.records.assignment.externalVisible) fail("intake request is not external-visible");
+if (intakeResult.records.assignment.intakeLane !== "parent or guardian") fail("intake assignment did not preserve intake lane");
+if (!intakeResult.records.assignment.summary.includes("Document type: EIKEN essay")) fail("intake assignment summary missing document type");
+if (!intakeResult.records.assignment.summary.includes("Target result: Pass EIKEN Pre-1 writing")) fail("intake assignment summary missing target result");
+if (!intakeResult.records.receipt.note.includes("Japan JPY billing")) fail("intake receipt missing billing region");
 if (!intakeResult.records.notificationEvent.visible) fail("intake update event is not customer-visible");
 
 const acceptResult = recordTools.decideOpportunityRecords(intakeResult.data, {

@@ -129,11 +129,12 @@ function renderOfferCatalog() {
   byId("offer-catalog").innerHTML = data.offerPackages.map((offerPackage) => {
     return record(
       offerPackage.name,
-      `${offerPackage.audience} | ${offerPackage.deliveryModel}`,
+      `${offerPackage.audience} | ${offerPackage.deliveryModel} | ${offerPackage.marketRoute || "Japan-wide remote"}`,
       [
         chip(formatJpy(offerPackage.priceJpy)),
         chip(offerPackage.routing),
-        chip(offerPackage.status)
+        chip(offerPackage.status),
+        chip(offerPackage.laborModel || "tracked delivery")
       ]
     );
   }).join("");
@@ -501,6 +502,16 @@ function wireMonitorMenu() {
   });
 }
 
+function wirePublicActions() {
+  document.querySelectorAll("[data-public-target]").forEach((control) => {
+    control.addEventListener("click", () => {
+      activateView("public");
+      const target = byId(control.dataset.publicTarget);
+      if (target) target.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
+  });
+}
+
 function wireIntakeForm() {
   const form = byId("intake-form");
   const confirmation = byId("intake-confirmation");
@@ -652,6 +663,7 @@ function init() {
   wireTabs();
   activateView(viewFromRoute(), { updateRoute: false });
   wireMonitorMenu();
+  wirePublicActions();
   wireOpportunityForm();
   wireScheduleForm();
   wireIntakeForm();
