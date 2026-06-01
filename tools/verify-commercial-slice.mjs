@@ -51,6 +51,7 @@ const requiredCollections = [
   "notificationProviderHandoffs",
   "paymentProviderHandoffs",
   "authSessionRoleHandoffs",
+  "customerAccountHistories",
   "monitorHealthChecks",
   "notificationEvents",
   "customers",
@@ -106,6 +107,7 @@ if (!Array.isArray(data.notificationProviderHandoffs)) fail("seed data missing n
 if (!Array.isArray(data.paymentProviderHandoffs)) fail("seed data missing paymentProviderHandoffs collection");
 if (!Array.isArray(data.authSessionRoleHandoffs)) fail("seed data missing authSessionRoleHandoffs collection");
 if (!Array.isArray(data.calendarAdapterPrototypes)) fail("seed data missing calendarAdapterPrototypes collection");
+if (!Array.isArray(data.customerAccountHistories)) fail("seed data missing customerAccountHistories collection");
 
 const header = read("../native/epoch_core.h");
 const source = read("../native/epoch_core.c");
@@ -132,6 +134,7 @@ for (const id of [
   "intake-feed",
   "submission-form",
   "submission-feed",
+  "customer-account-history",
   "customer-update-log",
   "opportunity-form",
   "engagement-opportunity",
@@ -393,20 +396,24 @@ for (const phrase of [
   "summarizeMarketingConversionState",
   "summarizeProviderAdapterSelectionState",
   "summarizeCalendarAdapterPrototypeState",
+  "summarizeCustomerAccountHistoryState",
   "summarizeCurriculumState",
   "Curriculum Readiness",
   "Campaign Readiness",
   "Conversion KPIs",
   "Provider Adapters",
   "Sandbox Calendar Adapter",
+  "Customer Account History",
   "monitor-campaigns",
   "monitor-marketing-conversions",
   "monitor-provider-adapters",
   "monitor-calendar-adapter",
+  "monitor-account-history",
   "campaign route",
   "marketing conversion",
   "provider adapter",
   "calendar adapter",
+  "account history",
   "monitor-curriculum",
   "gameplan-ready",
   "marketRoute",
@@ -422,6 +429,7 @@ for (const phrase of [
   "renderIntakeSnapshot",
   "renderSubmissions",
   "renderCustomerUpdates",
+  "renderCustomerAccountHistory",
   "monitorSection",
   "monitor-summary",
   "monitor-scope",
@@ -488,6 +496,7 @@ for (const phrase of [
   "summarizeMarketingConversionState",
   "summarizeProviderAdapterSelectionState",
   "summarizeCalendarAdapterPrototypeState",
+  "summarizeCustomerAccountHistoryState",
   "summarizeAccessGatewayState",
   "renderAccessGatewayOptions",
   "renderLibrarySyncOptions",
@@ -518,6 +527,7 @@ for (const phrase of [
   "Provider Adapter Go/No-Go",
   "Provider Adapter Go/No-Go Updated",
   "Sandbox Calendar Adapter Updated",
+  "Customer Account History",
   "renderAgentHandoffOptions",
   "renderNotificationDeliveryOptions",
   "renderNotificationProviderOptions",
@@ -734,6 +744,20 @@ for (const prototype of data.calendarAdapterPrototypes) {
   if (!Array.isArray(prototype.payloadPreview) || !prototype.payloadPreview.length) fail(`calendar adapter prototype ${prototype.id} missing local payload preview`);
   if (!Array.isArray(prototype.blockers) || !prototype.blockers.length) fail(`calendar adapter prototype ${prototype.id} missing blockers`);
 }
+if (!Array.isArray(data.customerAccountHistories) || data.customerAccountHistories.length < data.customers.length) fail("seed data missing durable customer account history records");
+if (!data.receipts.some((item) => item.kind === "customer-account-history" || item.id === "receipt-client-request-seed")) fail("seed data missing customer account history receipt evidence");
+for (const history of data.customerAccountHistories) {
+  if (!data.customers.some((customer) => customer.id === history.customerId)) fail(`account history ${history.id} is not linked to a known customer`);
+  if (history.visibility !== "controlled-customer") fail(`account history ${history.id} must use controlled-customer visibility`);
+  if (history.customerSafe !== true || history.localOnly !== true || history.liveProviderWrite !== false || history.externalNotification !== false || history.productionEnabled !== false) {
+    fail(`account history ${history.id} lost customer-safe local-only guardrails`);
+  }
+  for (const requiredGuardrail of ["controlled-customer-status-only", "no-live-provider-write", "no-customer-send", "no-secret-material", "no-raw-monitor"]) {
+    if (!history.guardrails.includes(requiredGuardrail)) fail(`account history ${history.id} missing ${requiredGuardrail}`);
+  }
+  if (!Array.isArray(history.statusTimeline) || !history.statusTimeline.length) fail(`account history ${history.id} missing status timeline`);
+  if (!history.statusTimeline.every((event) => event.customerSafe !== false && event.operatorVisible !== false)) fail(`account history ${history.id} has unsafe timeline event`);
+}
 if (!data.monitorMemory.some((item) => item.status === "stale")) fail("monitor memory should demonstrate stale-note risk");
 
 if (!data.offerPackages.some((item) => item.id === "pkg-under19-assessment" && item.routing === "compatibility-required")) {
@@ -828,6 +852,7 @@ if (typeof recordTools.createProviderAdapterCandidateRecords !== "function") fai
 if (typeof recordTools.transitionProviderAdapterCandidateRecords !== "function") fail("operating helpers missing transitionProviderAdapterCandidateRecords");
 if (typeof recordTools.createCalendarAdapterPrototypeRecords !== "function") fail("operating helpers missing createCalendarAdapterPrototypeRecords");
 if (typeof recordTools.transitionCalendarAdapterPrototypeRecords !== "function") fail("operating helpers missing transitionCalendarAdapterPrototypeRecords");
+if (typeof recordTools.createCustomerAccountHistoryRecords !== "function") fail("operating helpers missing createCustomerAccountHistoryRecords");
 if (typeof recordTools.createQuoteEstimateRecords !== "function") fail("operating helpers missing createQuoteEstimateRecords");
 if (typeof recordTools.transitionQuoteEstimateRecords !== "function") fail("operating helpers missing transitionQuoteEstimateRecords");
 if (typeof recordTools.createReminderRuleRecords !== "function") fail("operating helpers missing createReminderRuleRecords");
@@ -855,6 +880,7 @@ if (typeof recordTools.summarizeAuthSessionRoleState !== "function") fail("opera
 if (typeof recordTools.summarizeMarketingConversionState !== "function") fail("operating helpers missing summarizeMarketingConversionState");
 if (typeof recordTools.summarizeProviderAdapterSelectionState !== "function") fail("operating helpers missing summarizeProviderAdapterSelectionState");
 if (typeof recordTools.summarizeCalendarAdapterPrototypeState !== "function") fail("operating helpers missing summarizeCalendarAdapterPrototypeState");
+if (typeof recordTools.summarizeCustomerAccountHistoryState !== "function") fail("operating helpers missing summarizeCustomerAccountHistoryState");
 if (typeof recordTools.summarizeAccessPosture !== "function") fail("operating helpers missing summarizeAccessPosture");
 if (typeof recordTools.summarizeMemoryState !== "function") fail("operating helpers missing summarizeMemoryState");
 if (typeof recordTools.summarizeRoutePlacementState !== "function") fail("operating helpers missing summarizeRoutePlacementState");
@@ -1230,6 +1256,40 @@ if (calendarAdapterTransitionResult.records.prototype.liveApiCalls || calendarAd
   fail("calendar adapter transition enabled live provider or secret safeguards");
 }
 
+const accountHistorySummary = recordTools.summarizeCustomerAccountHistoryState(data);
+if (accountHistorySummary.historyCount !== data.customers.length) fail("account history summary should cover every customer");
+if (accountHistorySummary.timelineEvents < data.customerAccountHistories.length) fail("account history summary missing timeline events");
+if (accountHistorySummary.customerVisibleEvents < 1) fail("account history summary missing customer-safe visible events");
+if (accountHistorySummary.receiptLinked < 1) fail("account history summary missing receipt-linked records");
+if (accountHistorySummary.localOnly !== data.customers.length) fail("account history summary should remain local-only");
+if (accountHistorySummary.violations.length !== 0) fail("account history summary should not report seed violations");
+
+const malformedAccountHistoryData = recordTools.cloneData(data);
+malformedAccountHistoryData.customerAccountHistories[0] = {
+  ...malformedAccountHistoryData.customerAccountHistories[0],
+  visibility: "public",
+  customerSafe: false,
+  localOnly: false,
+  liveProviderWrite: true,
+  externalNotification: true,
+  productionEnabled: true,
+  statusTimeline: []
+};
+const malformedAccountHistorySummary = recordTools.summarizeCustomerAccountHistoryState(malformedAccountHistoryData);
+if (malformedAccountHistorySummary.status !== "blocked" || malformedAccountHistorySummary.violations.length < 3) fail("account history summary did not flag public/live-provider violations");
+
+const accountHistoryRefreshResult = recordTools.createCustomerAccountHistoryRecords(data, {
+  customerId: "student-001",
+  note: "Verifier refreshed controlled customer-safe account history without external sends."
+}, { now: "2026-06-01T12:15:00+09:00" });
+if (accountHistoryRefreshResult.data.customerAccountHistories.length !== data.customerAccountHistories.length) fail("account history refresh should replace the customer history record");
+if (accountHistoryRefreshResult.data.receipts.length !== data.receipts.length + 1) fail("account history refresh did not create a receipt");
+if (accountHistoryRefreshResult.data.notificationEvents.length !== data.notificationEvents.length) fail("account history refresh created a customer-visible notification event");
+if (accountHistoryRefreshResult.records.history.liveProviderWrite || accountHistoryRefreshResult.records.history.externalNotification || accountHistoryRefreshResult.records.history.productionEnabled || !accountHistoryRefreshResult.records.history.localOnly) {
+  fail("account history refresh enabled live provider behavior");
+}
+if (accountHistoryRefreshResult.records.receipt.kind !== "customer-account-history") fail("account history refresh missing receipt kind");
+
 const checklist = read("../docs/first-commercial-slice-checklist.md");
 for (const phrase of [
   "Public professional offer page",
@@ -1246,7 +1306,8 @@ for (const phrase of [
   "Auth/session role handoffs",
   "Marketing conversion KPI events",
   "Provider adapter candidates",
-  "Sandbox calendar adapter prototypes"
+  "Sandbox calendar adapter prototypes",
+  "Durable customer account history"
 ]) {
   if (!checklist.includes(phrase)) fail(`checklist missing phrase: ${phrase}`);
 }
@@ -1444,6 +1505,22 @@ for (const phrase of [
   "no-invitation-send"
 ]) {
   if (!calendarAdapterContract.includes(phrase)) fail(`sandbox calendar adapter contract missing phrase: ${phrase}`);
+}
+
+const accountHistoryContract = read("../docs/customer-account-history-contract.md");
+for (const phrase of [
+  "Customer Account History Contract",
+  "customerAccountHistories",
+  "monitor-account-history",
+  "createCustomerAccountHistoryRecords",
+  "summarizeCustomerAccountHistoryState",
+  "controlled-customer-status-only",
+  "localOnly: true",
+  "liveProviderWrite: false",
+  "externalNotification: false",
+  "Customer Account History"
+]) {
+  if (!accountHistoryContract.includes(phrase)) fail(`account history contract missing phrase: ${phrase}`);
 }
 
 const reminderContract = read("../docs/reminder-recurrence-availability-contract.md");
@@ -2208,6 +2285,7 @@ if (!monitorReport.marketing) fail("monitor report missing marketing state");
 if (!monitorReport.marketingConversion) fail("monitor report missing marketing conversion state");
 if (!monitorReport.providerAdapters) fail("monitor report missing provider adapter state");
 if (!monitorReport.calendarAdapter) fail("monitor report missing sandbox calendar adapter state");
+if (!monitorReport.accountHistory) fail("monitor report missing account history state");
 if (!monitorReport.calendar) fail("monitor report missing calendar export state");
 if (!monitorReport.persistence) fail("monitor report missing persistence state");
 if (!monitorReport.scope) fail("monitor report missing scope state");
@@ -2249,6 +2327,11 @@ if (monitorReport.summary.calendarAdapterNoLiveProvider !== data.calendarAdapter
 if (monitorReport.summary.calendarAdapterNoSecrets !== data.calendarAdapterPrototypes.length) fail("monitor summary missing no-secrets calendar adapter prototypes");
 if (monitorReport.summary.calendarAdapterNoInvitationSend !== data.calendarAdapterPrototypes.length) fail("monitor summary missing no-invitation-send calendar adapter prototypes");
 if (monitorReport.summary.calendarAdapterViolations !== 0) fail("monitor summary should not report calendar adapter violations for the seed slice");
+if (monitorReport.summary.accountHistories !== returnResult.data.customers.length) fail("monitor summary account history count is wrong");
+if (monitorReport.summary.accountHistoryEvents < returnResult.data.customerAccountHistories.length) fail("monitor summary missing account history events");
+if (monitorReport.summary.accountHistoryCustomerVisible < 1) fail("monitor summary missing customer-visible account history events");
+if (monitorReport.summary.accountHistoryLocalOnly !== returnResult.data.customers.length) fail("monitor summary account history local-only posture is wrong");
+if (monitorReport.summary.accountHistoryViolations !== 0) fail("monitor summary should not report account history violations for the seed slice");
 if (monitorReport.summary.copyComplianceViolations !== 0) fail("monitor summary should not report campaign copy violations");
 if (monitorReport.summary.rescheduledScheduleEntries < 1) fail("monitor summary missing rescheduled schedule lifecycle count");
 if (monitorReport.summary.canceledScheduleEntries < 1) fail("monitor summary missing canceled schedule lifecycle count");
@@ -2376,6 +2459,7 @@ if (exportedLedger.counts.paymentProviderHandoffs !== returnResult.data.paymentP
 if (exportedLedger.counts.marketingConversionEvents !== returnResult.data.marketingConversionEvents.length) fail("ledger export marketing conversion count is wrong");
 if (exportedLedger.counts.providerAdapterCandidates !== returnResult.data.providerAdapterCandidates.length) fail("ledger export provider adapter count is wrong");
 if (exportedLedger.counts.calendarAdapterPrototypes !== returnResult.data.calendarAdapterPrototypes.length) fail("ledger export calendar adapter prototype count is wrong");
+if (exportedLedger.counts.customerAccountHistories !== exportedLedger.data.customerAccountHistories.length) fail("ledger export account history count is wrong");
 if (!exportedLedger.monitor || exportedLedger.monitor.timeline < 1) fail("ledger export missing monitor summary");
 if (exportedLedger.monitor.persistenceRevision !== exportedLedger.persistence.revision) fail("ledger monitor summary missing persistence revision");
 if (!exportedLedger.calendarExport || exportedLedger.calendarExport.entries.length !== calendarExport.entries.length) fail("ledger export missing calendar export entries");
@@ -2389,6 +2473,7 @@ if (!exportedLedger.authSession || exportedLedger.authSession.handoffCount !== e
 if (!exportedLedger.marketingConversion || exportedLedger.marketingConversion.eventCount !== exportedLedger.data.marketingConversionEvents.length) fail("ledger export missing marketing conversion summary");
 if (!exportedLedger.providerAdapters || exportedLedger.providerAdapters.candidateCount !== exportedLedger.data.providerAdapterCandidates.length) fail("ledger export missing provider adapter summary");
 if (!exportedLedger.calendarAdapter || exportedLedger.calendarAdapter.prototypeCount !== exportedLedger.data.calendarAdapterPrototypes.length) fail("ledger export missing calendar adapter summary");
+if (!exportedLedger.accountHistory || exportedLedger.accountHistory.historyCount !== exportedLedger.data.customers.length) fail("ledger export missing account history summary");
 if (exportedLedger.counts.routePlacements !== returnResult.data.routePlacements.length) fail("ledger export route placement count is wrong");
 if (exportedLedger.counts.curriculumFrameworks !== returnResult.data.curriculumFrameworks.length) fail("ledger export curriculum framework count is wrong");
 if (exportedLedger.counts.packageGameplans !== returnResult.data.packageGameplans.length) fail("ledger export package gameplan count is wrong");
@@ -2416,6 +2501,9 @@ if (exportedLedger.monitor.providerAdapterNoLiveProvider !== returnResult.data.p
 if (exportedLedger.monitor.calendarAdapterPrototypes !== returnResult.data.calendarAdapterPrototypes.length) fail("ledger monitor summary missing calendar adapter prototypes");
 if (exportedLedger.monitor.calendarAdapterNoLiveProvider !== returnResult.data.calendarAdapterPrototypes.length) fail("ledger monitor summary missing calendar adapter no-live-provider posture");
 if (exportedLedger.monitor.calendarAdapterNoInvitationSend !== returnResult.data.calendarAdapterPrototypes.length) fail("ledger monitor summary missing calendar adapter no-invitation-send posture");
+if (exportedLedger.monitor.accountHistories !== exportedLedger.data.customers.length) fail("ledger monitor summary missing account histories");
+if (exportedLedger.monitor.accountHistoryLocalOnly !== exportedLedger.data.customers.length) fail("ledger monitor summary missing account history local-only posture");
+if (exportedLedger.monitor.accountHistoryViolations !== 0) fail("ledger monitor summary should not report account history violations");
 if (exportedLedger.monitor.monitorHealthChecks !== returnResult.data.monitorHealthChecks.length) fail("ledger monitor summary missing monitor health checks");
 
 const persistenceSummary = recordTools.summarizePersistenceState(exportedLedger.data);
@@ -2476,6 +2564,12 @@ if (calendarAdapterLedger.calendarAdapter.noLiveProvider !== calendarAdapterTran
 if (calendarAdapterLedger.calendarAdapter.noInvitationSend !== calendarAdapterTransitionResult.data.calendarAdapterPrototypes.length) fail("ledger calendar adapter summary lost no-invitation-send posture");
 if (calendarAdapterLedger.monitor.calendarAdapterViolations !== 0) fail("ledger monitor summary should not report calendar adapter violations after transition");
 
+const accountHistoryLedger = recordTools.createOperatingLedger(accountHistoryRefreshResult.data, { now: "2026-06-01T04:43:59.500Z" });
+if (accountHistoryLedger.counts.customerAccountHistories !== accountHistoryLedger.data.customers.length) fail("ledger export account history refresh count is wrong");
+if (accountHistoryLedger.accountHistory.historyCount !== accountHistoryLedger.data.customers.length) fail("ledger export missing refreshed account history summary");
+if (accountHistoryLedger.accountHistory.localOnly !== accountHistoryLedger.data.customers.length) fail("ledger account history summary lost local-only posture");
+if (accountHistoryLedger.monitor.accountHistoryViolations !== 0) fail("ledger monitor summary should not report account history violations after refresh");
+
 const quoteLedger = recordTools.createOperatingLedger(paymentReadyQuoteResult.data, { now: "2026-06-01T04:44:00.000Z" });
 if (quoteLedger.counts.quotes !== paymentReadyQuoteResult.data.quotes.length) fail("ledger export quote count is wrong");
 if (quoteLedger.monitor.paymentReadyQuotes < 1) fail("ledger monitor summary missing payment-ready quote count");
@@ -2500,6 +2594,7 @@ if (importedLedger.data.authSessionRoleHandoffs.length !== returnResult.data.aut
 if (importedLedger.data.marketingConversionEvents.length !== returnResult.data.marketingConversionEvents.length) fail("ledger import did not preserve marketing conversion events");
 if (importedLedger.data.providerAdapterCandidates.length !== returnResult.data.providerAdapterCandidates.length) fail("ledger import did not preserve provider adapter candidates");
 if (importedLedger.data.calendarAdapterPrototypes.length !== returnResult.data.calendarAdapterPrototypes.length) fail("ledger import did not preserve calendar adapter prototypes");
+if (importedLedger.data.customerAccountHistories.length !== exportedLedger.data.customerAccountHistories.length) fail("ledger import did not preserve account histories");
 if (importedLedger.data.campaignRoutes.length !== returnResult.data.campaignRoutes.length) fail("ledger import did not preserve campaign routes");
 if (importedLedger.data.customers[0].externalStatus !== returnResult.data.customers[0].externalStatus) fail("ledger import did not preserve external status");
 if (importedLedger.data.persistence.checksum !== exportedLedger.persistence.checksum) fail("ledger import did not preserve persistence checksum");
@@ -2573,6 +2668,12 @@ if (importedCalendarAdapterLedger.data.calendarAdapterPrototypes.length !== cale
 if (!importedCalendarAdapterLedger.data.calendarAdapterPrototypes.some((item) => item.prototypeStatus === "sandbox-approved")) fail("ledger import did not preserve calendar adapter sandbox approval");
 if (!importedCalendarAdapterLedger.data.calendarAdapterPrototypes.every((item) => item.liveApiCalls === false && item.liveSyncEnabled === false && item.sendsInvitations === false && item.externalProviderWrite === false && item.productionEnabled === false && item.secretsPresent === false && item.credentialsStored === false && item.oauthConfigured === false && item.webhookEnabled === false)) {
   fail("ledger import changed calendar adapter no-live-provider safeguards");
+}
+
+const importedAccountHistoryLedger = recordTools.importOperatingLedger(data, JSON.stringify(accountHistoryLedger));
+if (importedAccountHistoryLedger.data.customerAccountHistories.length !== accountHistoryLedger.data.customerAccountHistories.length) fail("ledger import did not preserve account histories after refresh");
+if (!importedAccountHistoryLedger.data.customerAccountHistories.every((item) => item.localOnly === true && item.customerSafe === true && item.liveProviderWrite === false && item.externalNotification === false && item.productionEnabled === false)) {
+  fail("ledger import changed account history local-only safeguards");
 }
 
 const importedQuoteLedger = recordTools.importOperatingLedger(data, JSON.stringify(quoteLedger));

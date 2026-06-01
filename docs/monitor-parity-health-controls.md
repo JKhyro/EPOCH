@@ -24,6 +24,7 @@ EPOCH MONITOR must expose these local operator sections:
 - Notification Providers
 - Marketing Conversion KPIs
 - Provider Adapter Go/No-Go
+- Customer Account History
 - Controls
 
 The public route may reuse the visual language, but it must not expose raw
@@ -154,3 +155,8 @@ The repository verifier must cover:
   no-provider-write/no-live-sync/no-invitation-send enforcement, internal
   `calendar-adapter-prototype` receipts, export/import preservation, monitor
   summary counts, and the `monitor-calendar-adapter` section.
+- Customer account history controls and verifier coverage for
+  `customerAccountHistories`, controlled-customer status timelines,
+  submission/cohort/service/receipt linkage, local-only enforcement, no live
+  provider writes, no customer sends, export/import preservation, monitor
+  summary counts, and the `monitor-account-history` section.

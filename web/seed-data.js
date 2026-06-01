@@ -1715,6 +1715,136 @@ window.EPOCH_SEED_DATA = {
       "externalStatus": "Service request blocked pending source files."
     }
   ],
+  "customerAccountHistories": [
+    {
+      "id": "account-history-student-001",
+      "customerId": "student-001",
+      "displayName": "Adult writing student",
+      "trackId": "track-eiken-upper",
+      "packageId": "pkg-eiken-writing-monthly",
+      "gameplanId": "gameplan-premium-eiken-monthly",
+      "ageBand": "adult",
+      "status": "complete",
+      "visibility": "controlled-customer",
+      "customerSafe": true,
+      "operatorVisible": true,
+      "customerVisible": true,
+      "localOnly": true,
+      "liveProviderWrite": false,
+      "externalNotification": false,
+      "productionEnabled": false,
+      "customerSafeSummary": "Review returned; next submission window opens June 3.",
+      "operatorSummary": "Submission, review, cohort, and receipt history are linked for the adult writing student.",
+      "sourceKinds": ["account-status", "assignment", "cohort", "session", "submission", "review", "customer-update", "followup", "receipt"],
+      "eventCounts": {
+        "total": 8,
+        "customerVisible": 5,
+        "operatorOnly": 3,
+        "submissions": 1,
+        "cohorts": 1,
+        "serviceRecords": 1,
+        "receipts": 1
+      },
+      "statusTimeline": [
+        {
+          "id": "account-history-student-001-review-001",
+          "customerId": "student-001",
+          "sourceKind": "review",
+          "sourceId": "review-001",
+          "title": "Review record",
+          "summary": "Feedback returned with next focus: reason development and word-count control.",
+          "status": "returned",
+          "occurredAt": "2026-06-01T18:10:00+09:00",
+          "customerVisible": true,
+          "operatorVisible": true,
+          "customerSafe": true,
+          "receiptId": "receipt-001"
+        },
+        {
+          "id": "account-history-student-001-submission-001",
+          "customerId": "student-001",
+          "sourceKind": "submission",
+          "sourceId": "submission-001",
+          "title": "EIKEN diagnostic essay",
+          "summary": "Submitted work is in the review queue.",
+          "status": "reviewing",
+          "occurredAt": "2026-06-01T16:42:00+09:00",
+          "customerVisible": true,
+          "operatorVisible": true,
+          "customerSafe": true,
+          "receiptId": null
+        },
+        {
+          "id": "account-history-student-001-cohort-001",
+          "customerId": "student-001",
+          "sourceKind": "cohort",
+          "sourceId": "cohort-001",
+          "title": "June Premium Writing Lab",
+          "summary": "Cohort lane is planned.",
+          "status": "planned",
+          "occurredAt": "2026-06-03T20:00:00+09:00",
+          "customerVisible": false,
+          "operatorVisible": true,
+          "customerSafe": true,
+          "receiptId": null
+        }
+      ],
+      "receiptIds": ["receipt-001"],
+      "guardrails": ["controlled-customer-status-only", "no-live-provider-write", "no-customer-send", "no-secret-material", "no-raw-monitor"],
+      "reviewedAt": "2026-06-02T05:00:00+09:00",
+      "updatedAt": "2026-06-02T05:00:00+09:00"
+    },
+    {
+      "id": "account-history-client-001",
+      "customerId": "client-001",
+      "displayName": "Small business ops client",
+      "trackId": "track-service-ops",
+      "packageId": "pkg-ops-diagnostic",
+      "gameplanId": "gameplan-ops-diagnostic",
+      "ageBand": "business",
+      "status": "complete",
+      "visibility": "controlled-customer",
+      "customerSafe": true,
+      "operatorVisible": true,
+      "customerVisible": true,
+      "localOnly": true,
+      "liveProviderWrite": false,
+      "externalNotification": false,
+      "productionEnabled": false,
+      "customerSafeSummary": "Service request blocked pending source files.",
+      "operatorSummary": "Service request, blocker status, and receipt history are linked for the ops client.",
+      "sourceKinds": ["account-status", "assignment", "receipt"],
+      "eventCounts": {
+        "total": 3,
+        "customerVisible": 2,
+        "operatorOnly": 1,
+        "submissions": 0,
+        "cohorts": 0,
+        "serviceRecords": 1,
+        "receipts": 1
+      },
+      "statusTimeline": [
+        {
+          "id": "account-history-client-001-request-001",
+          "customerId": "client-001",
+          "sourceKind": "assignment",
+          "sourceId": "request-001",
+          "title": "CRM cleanup estimate request",
+          "summary": "Service request is blocked pending source files.",
+          "status": "blocked",
+          "occurredAt": "2026-06-01T12:00:00+09:00",
+          "customerVisible": true,
+          "operatorVisible": true,
+          "customerSafe": true,
+          "receiptId": "receipt-client-request-seed"
+        }
+      ],
+      "receiptIds": ["receipt-client-request-seed"],
+      "guardrails": ["controlled-customer-status-only", "no-live-provider-write", "no-customer-send", "no-secret-material", "no-raw-monitor"],
+      "reviewedAt": "2026-06-02T05:05:00+09:00",
+      "updatedAt": "2026-06-02T05:05:00+09:00"
+    }
+  ],
   "cohorts": [
     {
       "id": "cohort-001",
@@ -2128,6 +2258,14 @@ window.EPOCH_SEED_DATA = {
       "status": "complete",
       "createdAt": "2026-06-02T04:01:00+09:00",
       "note": "Sandbox calendar adapter baseline: local payload preview is ready without live calendar API calls, OAuth, secrets, webhooks, provider writes, invitations, or customer-visible sends."
+    },
+    {
+      "id": "receipt-client-request-seed",
+      "customerId": "client-001",
+      "kind": "service-request-blocker",
+      "status": "complete",
+      "createdAt": "2026-06-01T12:05:00+09:00",
+      "note": "CRM cleanup request is blocked pending source files; customer-safe status remains visible without external notification send."
     },
     {
       "id": "receipt-001",

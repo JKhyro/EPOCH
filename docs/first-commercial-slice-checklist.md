@@ -39,6 +39,7 @@ service operations without waiting for every future CITADEL integration.
 - Notification provider handoff and template/consent readiness record.
 - Marketing conversion KPI event linked to a campaign route.
 - Provider adapter candidate and go/no-go readiness record.
+- Durable customer account history record.
 
 ## Required operating states
 
@@ -109,6 +110,9 @@ service operations without waiting for every future CITADEL integration.
   EPOCH calendar export records while keeping live calendar API calls, OAuth,
   secrets, webhooks, provider writes, invitations, and customer-visible sends
   disabled.
+- Durable customer account history links status, submissions, cohorts, service
+  records, receipts, and customer-safe updates while remaining local-only and
+  controlled-customer.
 - EIKEN 5-1 and professional/service-support offers have reusable frameworks
   and package-level gameplans that support personalized delivery.
 - Japan-wide and global campaign routes define channel, conversion action, copy

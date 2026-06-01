@@ -38,6 +38,7 @@
     "notificationProviderHandoffs",
     "paymentProviderHandoffs",
     "authSessionRoleHandoffs",
+    "customerAccountHistories",
     "quotes",
     "reminderRules",
     "recurrenceCandidates",
@@ -1295,6 +1296,7 @@
     if (!Array.isArray(nextData.calendarAdapterPrototypes) || !nextData.calendarAdapterPrototypes.length) {
       nextData.calendarAdapterPrototypes = defaultCalendarAdapterPrototypes();
     }
+    nextData.customerAccountHistories = reconcileCustomerAccountHistories(nextData);
     if (!nextData.accessPosture || typeof nextData.accessPosture !== "object") {
       nextData.accessPosture = {
         mode: "controlled-local-first",
@@ -3226,6 +3228,377 @@
 
   function customerById(data, customerId) {
     return data.customers.find((item) => item.id === customerId) || null;
+  }
+
+  function addCustomerHistoryEvent(events, customer, details) {
+    const sourceKind = clean(details.sourceKind) || "account";
+    const sourceId = clean(details.sourceId) || customer.id;
+    const occurredAt = clean(details.occurredAt || details.updatedAt || details.createdAt || details.dueAt || details.nextActionAt || details.startAt);
+    events.push({
+      id: clean(details.id) || `account-history-${customer.id}-${sourceKind}-${sourceId}`,
+      customerId: customer.id,
+      sourceKind,
+      sourceId,
+      title: clean(details.title) || "Account history event",
+      summary: clean(details.summary) || clean(details.note) || "Customer-safe account event recorded.",
+      status: clean(details.status) || "complete",
+      occurredAt,
+      customerVisible: details.customerVisible === true,
+      operatorVisible: details.operatorVisible !== false,
+      customerSafe: details.customerSafe !== false,
+      receiptId: clean(details.receiptId) || null
+    });
+  }
+
+  function dedupeCustomerHistoryEvents(events) {
+    const byKey = new Map();
+    for (const event of events) {
+      const key = `${event.sourceKind}:${event.sourceId}:${event.title}`;
+      if (!byKey.has(key)) byKey.set(key, event);
+    }
+    return Array.from(byKey.values())
+      .sort((a, b) => String(b.occurredAt || "").localeCompare(String(a.occurredAt || "")));
+  }
+
+  function relatedCustomerRecords(data, customer) {
+    const submissions = data.submissions.filter((item) => item.customerId === customer.id);
+    const submissionIds = new Set(submissions.map((item) => item.id));
+    const assignmentIds = new Set(submissions.map((item) => item.assignmentId).filter(Boolean));
+    const assignments = data.assignments.filter((item) => item.customerId === customer.id || assignmentIds.has(item.id));
+    for (const assignment of assignments) {
+      if (assignment.id) assignmentIds.add(assignment.id);
+    }
+    const cohortIds = new Set(assignments.map((item) => item.cohortId).filter(Boolean));
+    const sessions = data.sessions.filter((item) => item.customerId === customer.id || assignmentIds.has(item.assignmentId) || cohortIds.has(item.cohortId));
+    for (const session of sessions) {
+      if (session.cohortId) cohortIds.add(session.cohortId);
+    }
+    const cohorts = data.cohorts.filter((item) => cohortIds.has(item.id));
+    const reviews = data.reviews.filter((item) => submissionIds.has(item.submissionId));
+    const receipts = data.receipts.filter((item) => item.customerId === customer.id);
+    const followups = data.followups.filter((item) => item.customerId === customer.id);
+    const notificationEvents = data.notificationEvents.filter((item) => item.customerId === customer.id);
+    const notificationDeliveries = (data.notificationDeliveries || []).filter((item) => item.customerId === customer.id);
+    const quotes = (data.quotes || []).filter((item) => item.customerId === customer.id);
+    const engagements = (data.engagements || []).filter((item) => item.customerId === customer.id);
+    const workPlans = (data.workPlans || []).filter((item) => item.customerId === customer.id);
+    const agentHandoffs = (data.agentHandoffs || []).filter((item) => item.customerId === customer.id);
+    return { assignments, cohorts, sessions, submissions, reviews, receipts, followups, notificationEvents, notificationDeliveries, quotes, engagements, workPlans, agentHandoffs };
+  }
+
+  function buildCustomerAccountHistoryEntries(data, customer) {
+    const records = relatedCustomerRecords(data, customer);
+    const events = [];
+    addCustomerHistoryEvent(events, customer, {
+      sourceKind: "account-status",
+      sourceId: customer.id,
+      title: "Current customer status",
+      summary: customer.externalStatus,
+      status: "complete",
+      customerVisible: true,
+      occurredAt: customer.updatedAt || customer.createdAt || ""
+    });
+    for (const assignment of records.assignments) {
+      addCustomerHistoryEvent(events, customer, {
+        sourceKind: "assignment",
+        sourceId: assignment.id,
+        title: assignment.title,
+        summary: assignment.summary || `Request status: ${assignment.status}`,
+        status: assignment.status,
+        customerVisible: assignment.externalVisible === true,
+        occurredAt: assignment.dueAt || assignment.createdAt
+      });
+    }
+    for (const cohort of records.cohorts) {
+      addCustomerHistoryEvent(events, customer, {
+        sourceKind: "cohort",
+        sourceId: cohort.id,
+        title: cohort.name,
+        summary: `Cohort lane status: ${cohort.status}`,
+        status: cohort.status,
+        customerVisible: false,
+        occurredAt: cohort.startAt
+      });
+    }
+    for (const session of records.sessions) {
+      addCustomerHistoryEvent(events, customer, {
+        sourceKind: "session",
+        sourceId: session.id,
+        title: session.title,
+        summary: `Session ${session.status}; ${scheduleWindowText(session.startAt)} to ${scheduleWindowText(session.endAt)}.`,
+        status: session.status,
+        customerVisible: true,
+        occurredAt: session.startAt
+      });
+    }
+    for (const submission of records.submissions) {
+      addCustomerHistoryEvent(events, customer, {
+        sourceKind: "submission",
+        sourceId: submission.id,
+        title: submission.title || "Submitted work",
+        summary: submission.summary || `Submission status: ${submission.status}`,
+        status: submission.status,
+        customerVisible: true,
+        occurredAt: submission.submittedAt || submission.reviewDueAt
+      });
+    }
+    for (const review of records.reviews) {
+      addCustomerHistoryEvent(events, customer, {
+        sourceKind: "review",
+        sourceId: review.id,
+        title: "Review record",
+        summary: review.summary,
+        status: review.status,
+        customerVisible: review.status === "returned",
+        occurredAt: review.returnedAt
+      });
+    }
+    for (const update of records.notificationEvents) {
+      addCustomerHistoryEvent(events, customer, {
+        sourceKind: "customer-update",
+        sourceId: update.id,
+        title: update.title,
+        summary: update.summary,
+        status: update.outboxStatus || update.deliveryStatus || update.status || "queued",
+        customerVisible: update.visible === true,
+        occurredAt: update.deliverAfterAt || update.createdAt
+      });
+    }
+    for (const delivery of records.notificationDeliveries) {
+      addCustomerHistoryEvent(events, customer, {
+        sourceKind: "delivery",
+        sourceId: delivery.id,
+        title: delivery.title,
+        summary: delivery.lastNote || delivery.summary,
+        status: delivery.status,
+        customerVisible: delivery.customerVisible === true,
+        occurredAt: delivery.nextActionAt || delivery.createdAt
+      });
+    }
+    for (const quote of records.quotes) {
+      addCustomerHistoryEvent(events, customer, {
+        sourceKind: "quote",
+        sourceId: quote.id,
+        title: quote.title,
+        summary: quote.customerSafeStatus || quote.summary,
+        status: quote.status,
+        customerVisible: quote.customerVisible === true,
+        occurredAt: quote.updatedAt || quote.createdAt
+      });
+    }
+    for (const engagement of records.engagements) {
+      addCustomerHistoryEvent(events, customer, {
+        sourceKind: "engagement",
+        sourceId: engagement.id,
+        title: engagement.title || "Accepted service",
+        summary: engagement.summary || `Engagement status: ${engagement.status}`,
+        status: engagement.status,
+        customerVisible: false,
+        occurredAt: engagement.startAt || engagement.createdAt
+      });
+    }
+    for (const workPlan of records.workPlans) {
+      addCustomerHistoryEvent(events, customer, {
+        sourceKind: "work-plan",
+        sourceId: workPlan.id,
+        title: workPlan.title,
+        summary: workPlan.summary || "Operator-approved work plan record.",
+        status: workPlan.status,
+        customerVisible: workPlan.customerVisible === true,
+        occurredAt: workPlan.dueAt || workPlan.createdAt
+      });
+    }
+    for (const handoff of records.agentHandoffs) {
+      addCustomerHistoryEvent(events, customer, {
+        sourceKind: "agent-handoff",
+        sourceId: handoff.id,
+        title: handoff.title,
+        summary: handoff.lastNote || handoff.rollbackRule || "Internal handoff record.",
+        status: handoff.status,
+        customerVisible: handoff.customerVisible === true,
+        occurredAt: handoff.nextActionAt || handoff.createdAt
+      });
+    }
+    for (const followup of records.followups) {
+      addCustomerHistoryEvent(events, customer, {
+        sourceKind: "followup",
+        sourceId: followup.id,
+        title: followup.title,
+        summary: `Follow-up status: ${followup.status}`,
+        status: followup.status,
+        customerVisible: false,
+        occurredAt: followup.nextActionAt
+      });
+    }
+    for (const receipt of records.receipts) {
+      addCustomerHistoryEvent(events, customer, {
+        sourceKind: "receipt",
+        sourceId: receipt.id,
+        title: receipt.kind,
+        summary: receipt.note,
+        status: receipt.status,
+        customerVisible: false,
+        occurredAt: receipt.createdAt,
+        receiptId: receipt.id
+      });
+    }
+    return dedupeCustomerHistoryEvents(events);
+  }
+
+  function buildCustomerAccountHistorySnapshot(data, customer, existing = {}) {
+    const entries = buildCustomerAccountHistoryEntries(data, customer);
+    const existingTimeline = Array.isArray(existing.statusTimeline) ? existing.statusTimeline : null;
+    const statusTimeline = existingTimeline || entries.slice(0, 10);
+    const receiptIds = Array.from(new Set([
+      ...statusTimeline.map((entry) => entry.receiptId).filter(Boolean),
+      ...(Array.isArray(existing.receiptIds) ? existing.receiptIds : [])
+    ]));
+    const sourceKinds = Array.from(new Set(statusTimeline.map((entry) => entry.sourceKind).filter(Boolean)));
+    const serviceSourceKinds = ["assignment", "engagement", "work-plan", "agent-handoff"];
+    const eventCounts = {
+      total: statusTimeline.length,
+      customerVisible: statusTimeline.filter((entry) => entry.customerVisible).length,
+      operatorOnly: statusTimeline.filter((entry) => !entry.customerVisible).length,
+      submissions: statusTimeline.filter((entry) => entry.sourceKind === "submission").length,
+      cohorts: statusTimeline.filter((entry) => entry.sourceKind === "cohort").length,
+      serviceRecords: statusTimeline.filter((entry) => serviceSourceKinds.includes(entry.sourceKind)).length,
+      receipts: receiptIds.length
+    };
+    const guardrails = Array.isArray(existing.guardrails) && existing.guardrails.length
+      ? existing.guardrails
+      : [
+        "controlled-customer-status-only",
+        "no-live-provider-write",
+        "no-customer-send",
+        "no-secret-material",
+        "no-raw-monitor"
+      ];
+    return {
+      id: clean(existing.id) || `account-history-${customer.id}`,
+      customerId: customer.id,
+      displayName: customer.displayName,
+      trackId: customer.trackId || null,
+      packageId: customer.packageId || null,
+      gameplanId: customer.gameplanId || null,
+      ageBand: customer.ageBand || null,
+      status: clean(existing.status) || "complete",
+      visibility: clean(existing.visibility) || "controlled-customer",
+      customerSafe: existing.customerSafe === undefined ? true : existing.customerSafe === true,
+      operatorVisible: existing.operatorVisible !== false,
+      customerVisible: existing.customerVisible !== false,
+      localOnly: existing.localOnly === undefined ? true : existing.localOnly === true,
+      liveProviderWrite: existing.liveProviderWrite === true,
+      externalNotification: existing.externalNotification === true,
+      productionEnabled: existing.productionEnabled === true,
+      customerSafeSummary: clean(customer.externalStatus) || clean(existing.customerSafeSummary) || "Customer-safe status is pending.",
+      operatorSummary: clean(existing.operatorSummary) || `${customer.displayName} has ${entries.length} linked account-history event${entries.length === 1 ? "" : "s"} across ${sourceKinds.join(", ") || "account status"}.`,
+      sourceKinds,
+      eventCounts,
+      statusTimeline,
+      receiptIds,
+      guardrails,
+      reviewedAt: clean(existing.reviewedAt) || null,
+      updatedAt: entries[0]?.occurredAt || clean(existing.updatedAt) || null
+    };
+  }
+
+  function reconcileCustomerAccountHistories(data) {
+    const existingByCustomer = new Map((data.customerAccountHistories || []).map((item) => [item.customerId, item]));
+    return (data.customers || []).map((customer) => buildCustomerAccountHistorySnapshot(data, customer, existingByCustomer.get(customer.id) || {}));
+  }
+
+  function summarizeCustomerAccountHistoryState(currentData) {
+    const data = normalizedOperatingData(currentData);
+    const histories = data.customerAccountHistories.map((history) => {
+      const entries = Array.isArray(history.statusTimeline) ? history.statusTimeline : [];
+      const violations = [];
+      if (!clean(history.customerId)) violations.push("Account history record is missing customerId.");
+      if (!data.customers.some((customer) => customer.id === history.customerId)) violations.push("Account history record is not linked to a known customer.");
+      if (!["controlled-customer", "internal"].includes(clean(history.visibility))) violations.push("Account history visibility must be controlled-customer or internal.");
+      if (history.customerSafe !== true) violations.push("Account history must be marked customer-safe.");
+      if (history.localOnly !== true) violations.push("Account history must remain local-only until account auth is implemented.");
+      if (history.liveProviderWrite || history.externalNotification || history.productionEnabled) violations.push("Account history must not enable live provider writes, sends, or production integration.");
+      if (!entries.length) violations.push("Account history must retain at least one status timeline event.");
+      if (!Array.isArray(history.guardrails) || !history.guardrails.includes("controlled-customer-status-only")) violations.push("Account history guardrails must include controlled-customer-status-only.");
+      if (!entries.every((entry) => entry.customerSafe !== false)) violations.push("Account history timeline contains a non-customer-safe event.");
+      const forbiddenText = stableStringify(entries).toLowerCase();
+      if (forbiddenText.includes("secret") || forbiddenText.includes("oauth") || forbiddenText.includes("token")) violations.push("Account history timeline must not expose secret, OAuth, or token material.");
+      return {
+        ...history,
+        eventCount: entries.length,
+        customerVisibleEvents: entries.filter((entry) => entry.customerVisible).length,
+        operatorOnlyEvents: entries.filter((entry) => !entry.customerVisible).length,
+        receiptCount: Array.isArray(history.receiptIds) ? history.receiptIds.length : 0,
+        submissionEvents: entries.filter((entry) => entry.sourceKind === "submission").length,
+        cohortEvents: entries.filter((entry) => entry.sourceKind === "cohort").length,
+        serviceEvents: entries.filter((entry) => ["assignment", "engagement", "work-plan", "agent-handoff"].includes(entry.sourceKind)).length,
+        violations
+      };
+    });
+    const violations = histories.flatMap((history) => history.violations.map((violation) => `${history.id}: ${violation}`));
+    return {
+      schema: "epoch.customer-account-history",
+      historyCount: histories.length,
+      customerCount: data.customers.length,
+      linkedCustomers: histories.filter((history) => data.customers.some((customer) => customer.id === history.customerId)).length,
+      timelineEvents: histories.reduce((sum, history) => sum + history.eventCount, 0),
+      customerVisibleEvents: histories.reduce((sum, history) => sum + history.customerVisibleEvents, 0),
+      operatorOnlyEvents: histories.reduce((sum, history) => sum + history.operatorOnlyEvents, 0),
+      receiptLinked: histories.filter((history) => history.receiptCount > 0).length,
+      submissionLinked: histories.filter((history) => history.submissionEvents > 0).length,
+      cohortLinked: histories.filter((history) => history.cohortEvents > 0).length,
+      serviceLinked: histories.filter((history) => history.serviceEvents > 0).length,
+      localOnly: histories.filter((history) => history.localOnly === true).length,
+      customerSafe: histories.filter((history) => history.customerSafe === true).length,
+      status: violations.length ? "blocked" : "ready",
+      violations,
+      histories
+    };
+  }
+
+  function createCustomerAccountHistoryRecords(currentData, input = {}, options = {}) {
+    const nextData = cloneData(currentData);
+    ensureCollections(nextData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const customer = customerById(nextData, clean(input.customerId)) || nextData.customers[0];
+    if (!customer) throw new Error("customerId is required");
+    const existing = nextData.customerAccountHistories.find((item) => item.customerId === customer.id) || {};
+    const history = buildCustomerAccountHistorySnapshot(nextData, customer, {
+      id: existing.id,
+      receiptIds: existing.receiptIds,
+      status: clean(input.status) || existing.status || "complete",
+      visibility: "controlled-customer",
+      customerSafe: true,
+      operatorVisible: true,
+      customerVisible: true,
+      localOnly: true,
+      liveProviderWrite: false,
+      externalNotification: false,
+      productionEnabled: false,
+      reviewedAt: withTimezone(input.reviewedAt, timezone) || withTimezone(now.toISOString(), timezone),
+      operatorSummary: clean(input.operatorSummary) || existing.operatorSummary
+    });
+    const receipt = {
+      id: `receipt-account-history-${stamp(now)}`,
+      customerId: customer.id,
+      kind: "customer-account-history",
+      status: "complete",
+      createdAt: withTimezone(now.toISOString(), timezone),
+      note: clean(input.note) || `${customer.displayName} account history refreshed as a controlled customer-safe local record.`
+    };
+    history.receiptIds = Array.from(new Set([...(history.receiptIds || []), receipt.id]));
+    nextData.customerAccountHistories = nextData.customerAccountHistories.filter((item) => item.customerId !== customer.id);
+    nextData.customerAccountHistories.unshift(history);
+    nextData.receipts.unshift(receipt);
+    return {
+      data: nextData,
+      records: {
+        customer,
+        history,
+        receipt
+      }
+    };
   }
 
   function createCalendarEntry(data, details, timezone) {
@@ -6687,6 +7060,7 @@
       ...(currentData.marketingConversionEvents || []).map((item) => ({ kind: "marketing conversion", id: item.id, title: item.title, status: item.status || item.readinessStatus, time: item.nextActionAt || item.occurredAt || item.updatedAt || item.createdAt, owner: item.eventType || item.primaryConversion || "conversion" })),
       ...(currentData.providerAdapterCandidates || []).map((item) => ({ kind: "provider adapter", id: item.id, title: item.title, status: item.status || item.readinessStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.providerFamily || item.targetProvider || "provider" })),
       ...(currentData.calendarAdapterPrototypes || []).map((item) => ({ kind: "calendar adapter", id: item.id, title: item.title, status: item.status || item.prototypeStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.adapterMode || "calendar" })),
+      ...(currentData.customerAccountHistories || []).map((item) => ({ kind: "account history", id: item.id, title: item.displayName || item.id, status: item.status, time: item.updatedAt || item.reviewedAt, owner: item.visibility || "customer history" })),
       ...currentData.workPlans.map((item) => ({ kind: "agent work plan", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.approvalStatus || item.owner || "approval pending" })),
       ...currentData.agentHandoffs.map((item) => ({ kind: "agent handoff", id: item.id, title: item.title, status: item.status, time: item.nextActionAt, owner: item.approvalStatus || "approval pending" })),
       ...currentData.monitorHealthChecks.map((item) => ({ kind: "monitor check", id: item.id, title: item.title, status: item.status, time: item.createdAt, owner: item.target || item.owner || "monitor" })),
@@ -6723,6 +7097,7 @@
     const quotes = summarizeQuoteState(data);
     const paymentProvider = summarizePaymentProviderState(data, { quotes });
     const authSession = summarizeAuthSessionRoleState(data);
+    const accountHistory = summarizeCustomerAccountHistoryState(data);
     const scheduleControls = summarizeScheduleControlState(data);
     const handoffs = summarizeAgentHandoffState(data);
     const marketing = summarizeMarketingState(data);
@@ -6794,6 +7169,9 @@
     for (const item of timeline.filter((entry) => entry.kind === "calendar adapter").slice(0, 4)) {
       if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
       if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
+    }
+    for (const item of timeline.filter((entry) => entry.kind === "account history").slice(0, 4)) {
+      if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
     }
     const overdue = timeline.filter((item) => item.status === "overdue" || (item.time && item.time < nowText && !terminalStatuses.has(item.status)));
     const blocked = timeline.filter((item) => item.status === "blocked");
@@ -6956,6 +7334,14 @@
         detail: authSession.violations[0]
       });
     }
+    if (accountHistory.violations.length) {
+      risks.push({
+        id: "account-history-violation",
+        severity: "high",
+        title: "Customer Account History",
+        detail: accountHistory.violations[0]
+      });
+    }
 
     const operatorActions = [];
     if (dirtyLocalState) {
@@ -7042,6 +7428,12 @@
         authInternalDenied: authSession.internalDenied,
         authNoLiveAuth: authSession.noLiveAuth,
         authSessionRoleViolations: authSession.violations.length,
+        accountHistories: accountHistory.historyCount,
+        accountHistoryEvents: accountHistory.timelineEvents,
+        accountHistoryCustomerVisible: accountHistory.customerVisibleEvents,
+        accountHistoryReceiptLinked: accountHistory.receiptLinked,
+        accountHistoryLocalOnly: accountHistory.localOnly,
+        accountHistoryViolations: accountHistory.violations.length,
         quotes: quotes.total,
         quoteValueJpy: quotes.valueJpy,
         presentedQuotes: quotes.presented,
@@ -7137,6 +7529,7 @@
       notificationProvider,
       paymentProvider,
       authSession,
+      accountHistory,
       quotes,
       scheduleControls,
       handoffs,
@@ -7181,6 +7574,7 @@
     const notificationProvider = summarizeNotificationProviderState(data);
     const paymentProvider = summarizePaymentProviderState(data);
     const authSession = summarizeAuthSessionRoleState(data);
+    const accountHistory = summarizeCustomerAccountHistoryState(data);
     const marketingConversion = summarizeMarketingConversionState(data);
     const providerAdapters = summarizeProviderAdapterSelectionState(data);
     const calendarAdapter = summarizeCalendarAdapterPrototypeState(data, { now: now.toISOString(), calendarExport, providerAdapters });
@@ -7205,6 +7599,7 @@
       notificationProvider,
       paymentProvider,
       authSession,
+      accountHistory,
       marketingConversion,
       providerAdapters,
       calendarAdapter,
@@ -7246,6 +7641,7 @@
     transitionProviderAdapterCandidateRecords,
     createCalendarAdapterPrototypeRecords,
     transitionCalendarAdapterPrototypeRecords,
+    createCustomerAccountHistoryRecords,
     createQuoteEstimateRecords,
     transitionQuoteEstimateRecords,
     createReminderRuleRecords,
@@ -7285,6 +7681,7 @@
     summarizeMarketingConversionState,
     summarizeProviderAdapterSelectionState,
     summarizeCalendarAdapterPrototypeState,
+    summarizeCustomerAccountHistoryState,
     summarizeAccessPosture,
     summarizeMemoryState,
     summarizeScopeState,
