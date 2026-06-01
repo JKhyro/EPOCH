@@ -22,6 +22,7 @@
     "engagements",
     "workPlans",
     "agentHandoffs",
+    "routePlacements",
     "notificationEvents",
     "customers",
     "cohorts",
@@ -67,6 +68,7 @@
   function checksumOperatingData(currentData) {
     const data = normalizedOperatingData(currentData);
     delete data.persistence;
+    delete data.routePlacements;
     return hashText(stableStringify(data));
   }
 
@@ -84,12 +86,76 @@
     }
   }
 
+  function defaultRoutePlacements() {
+    return [
+      {
+        id: "synapse-epoch-admin",
+        label: "EPOCH Admin",
+        href: "#admin",
+        surface: "admin",
+        visibility: "internal",
+        routeKind: "suite-entry",
+        status: "ready",
+        sourceSystem: "EPOCH",
+        targetSystem: "SYNAPSE",
+        summaryKey: "queue",
+        placement: "link",
+        duplicateUi: false
+      },
+      {
+        id: "synapse-epoch-monitor",
+        label: "EPOCH MONITOR",
+        href: "#monitor",
+        surface: "monitor",
+        visibility: "internal",
+        routeKind: "monitor-entry",
+        status: "ready",
+        sourceSystem: "EPOCH",
+        targetSystem: "SYNAPSE",
+        summaryKey: "health",
+        placement: "link-or-embed",
+        duplicateUi: false
+      },
+      {
+        id: "synapse-epoch-customer-status",
+        label: "EPOCH Customer Status",
+        href: "#student",
+        surface: "student",
+        visibility: "controlled-customer",
+        routeKind: "status-entry",
+        status: "ready",
+        sourceSystem: "EPOCH",
+        targetSystem: "SYNAPSE",
+        summaryKey: "visible-updates",
+        placement: "link",
+        duplicateUi: false
+      },
+      {
+        id: "synapse-epoch-intake",
+        label: "EPOCH Intake",
+        href: "#public",
+        surface: "public",
+        visibility: "public-intake",
+        routeKind: "conversion-entry",
+        status: "ready",
+        sourceSystem: "EPOCH",
+        targetSystem: "SYNAPSE",
+        summaryKey: "pipeline",
+        placement: "link",
+        duplicateUi: false
+      }
+    ];
+  }
+
   function normalizedOperatingData(data) {
     const nextData = cloneData(data || {});
     for (const collection of ledgerCollections) {
       if (!Array.isArray(nextData[collection])) nextData[collection] = [];
     }
     if (!nextData.timezone) nextData.timezone = "Asia/Tokyo";
+    if (!Array.isArray(nextData.routePlacements) || !nextData.routePlacements.length) {
+      nextData.routePlacements = defaultRoutePlacements();
+    }
     if (!Array.isArray(nextData.statuses)) {
       nextData.statuses = ["planned", "waiting", "submitted", "reviewing", "returned", "overdue", "blocked", "canceled", "complete"];
     }
@@ -1083,6 +1149,73 @@
     };
   }
 
+  function summarizeRoutePlacementState(currentData, options = {}) {
+    const data = normalizedOperatingData(currentData);
+    const nowText = clean(options.now) || "2026-06-01T12:00:00+09:00";
+    const revenue = summarizeRevenueState(data);
+    const notifications = summarizeNotificationState(data);
+    const handoffs = summarizeAgentHandoffState(data);
+    const calendarExport = createCalendarExport(data, { now: nowText });
+    const timeline = monitorTimelineItems(data);
+    const terminalStatuses = new Set(["complete", "returned", "canceled", "accepted", "rejected"]);
+    const queue = timeline.filter((item) => ["waiting", "deferred", "submitted", "reviewing", "overdue", "blocked", "proposed"].includes(item.status));
+    const risks = timeline.filter((item) => item.status === "blocked" || item.status === "overdue" || (item.time && item.time < nowText && !terminalStatuses.has(item.status)));
+    const receipts = Array.isArray(data.receipts) ? data.receipts : [];
+    const baseSummary = {
+      health: risks.length ? "Attention" : "Ready",
+      queue: queue.length,
+      risks: risks.length,
+      receipts: receipts.length,
+      activeEngagements: revenue.activeEngagements,
+      pipelineValueJpy: revenue.pipelineValueJpy,
+      visibleUpdates: notifications.visible,
+      pendingHandoffApprovals: handoffs.pendingApprovals,
+      calendarEntries: calendarExport.counts.total
+    };
+    const summaryByKey = {
+      health: `${baseSummary.health}; ${baseSummary.risks} risks`,
+      queue: `${baseSummary.queue} queued records`,
+      "visible-updates": `${baseSummary.visibleUpdates} visible updates`,
+      pipeline: `${revenue.pipelineCount} opportunities; ${baseSummary.pipelineValueJpy} JPY pipeline`
+    };
+    const routes = data.routePlacements.map((route) => ({
+      id: clean(route.id),
+      label: clean(route.label),
+      href: clean(route.href),
+      surface: clean(route.surface),
+      visibility: clean(route.visibility) || "internal",
+      routeKind: clean(route.routeKind) || "suite-entry",
+      status: clean(route.status) || "ready",
+      sourceSystem: clean(route.sourceSystem) || "EPOCH",
+      targetSystem: clean(route.targetSystem) || "SYNAPSE",
+      summaryKey: clean(route.summaryKey) || "queue",
+      summary: summaryByKey[clean(route.summaryKey)] || summaryByKey.queue,
+      placement: clean(route.placement || route.embedMode) || "link",
+      duplicateUi: route.duplicateUi === true ? true : false
+    }));
+
+    return {
+      schema: "epoch.synapse-route-placement",
+      version: 1,
+      sourceSystem: "EPOCH",
+      targetSystem: "SYNAPSE",
+      consumerSystem: "SYNAPSE",
+      placementMode: "link-or-embed",
+      localFirst: true,
+      access: "local-or-controlled",
+      duplicateUi: false,
+      routes,
+      summary: {
+        ...baseSummary,
+        routeCount: routes.length,
+        internalRoutes: routes.filter((route) => route.visibility === "internal").length,
+        publicRoutes: routes.filter((route) => route.visibility === "public-intake").length,
+        controlledCustomerRoutes: routes.filter((route) => route.visibility === "controlled-customer").length,
+        monitorHref: routes.find((route) => route.surface === "monitor")?.href || "#monitor"
+      }
+    };
+  }
+
   function createCalendarExport(currentData, options) {
     const data = normalizedOperatingData(currentData);
     const now = options && options.now ? new Date(options.now) : new Date();
@@ -1260,15 +1393,17 @@
   }
 
   function buildMonitorReport(currentData, options) {
+    const data = normalizedOperatingData(currentData);
     const nowText = clean(options && options.now) || "2026-06-01T12:00:00+09:00";
     const terminalStatuses = new Set(["complete", "returned", "canceled", "accepted", "rejected"]);
     const activeStatuses = new Set(["waiting", "deferred", "submitted", "reviewing", "overdue", "blocked", "proposed"]);
-    const revenue = summarizeRevenueState(currentData);
-    const notifications = summarizeNotificationState(currentData);
-    const handoffs = summarizeAgentHandoffState(currentData);
-    const calendarExport = createCalendarExport(currentData, { now: nowText });
-    const persistence = summarizePersistenceState(currentData, { now: nowText });
-    const timeline = monitorTimelineItems(currentData)
+    const revenue = summarizeRevenueState(data);
+    const notifications = summarizeNotificationState(data);
+    const handoffs = summarizeAgentHandoffState(data);
+    const calendarExport = createCalendarExport(data, { now: nowText });
+    const persistence = summarizePersistenceState(data, { now: nowText });
+    const routePlacement = summarizeRoutePlacementState(data, { now: nowText });
+    const timeline = monitorTimelineItems(data)
       .sort((a, b) => String(b.time || "").localeCompare(String(a.time || "")));
     const queue = timeline
       .filter((item) => activeStatuses.has(item.status))
@@ -1309,7 +1444,7 @@
         queue: queue.length,
         timeline: timeline.length,
         risks: risks.length,
-        receipts: currentData.receipts.length,
+        receipts: data.receipts.length,
         activeEngagements: revenue.activeEngagements,
         pipelineValueJpy: revenue.pipelineValueJpy,
         acceptedValueJpy: revenue.acceptedValueJpy,
@@ -1320,17 +1455,20 @@
         calendarEntries: calendarExport.counts.total,
         calendarVisible: calendarExport.counts.customerVisible,
         persistenceRevision: persistence.revision,
-        persistenceState: persistence.adapterState
+        persistenceState: persistence.adapterState,
+        routePlacements: routePlacement.summary.routeCount,
+        synapsePlacementMode: routePlacement.placementMode
       },
       revenue,
       notifications,
       handoffs,
+      routePlacement,
       calendar: calendarExport.counts,
       persistence,
       queue,
       timeline: timeline.slice(0, 10),
       risks,
-      receipts: currentData.receipts.slice(0, 8)
+      receipts: data.receipts.slice(0, 8)
     };
   }
 
@@ -1349,6 +1487,7 @@
     });
     data.persistence = persistence;
     const calendarExport = createCalendarExport(data, { now: now.toISOString() });
+    const routePlacement = summarizeRoutePlacementState(data, { now: now.toISOString() });
     return {
       schema: "epoch.operating-ledger",
       version: ledgerVersion,
@@ -1363,6 +1502,7 @@
         now: exportedAt
       }).summary,
       calendarExport,
+      routePlacement,
       data
     };
   }
@@ -1393,6 +1533,7 @@
     summarizeCalendarExport,
     summarizeDeadlines,
     summarizeAgentHandoffState,
+    summarizeRoutePlacementState,
     summarizePersistenceState,
     summarizeNotificationState,
     summarizeRevenueState,

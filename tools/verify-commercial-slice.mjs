@@ -18,6 +18,7 @@ const requiredCollections = [
   "offerPackages",
   "leads",
   "opportunities",
+  "routePlacements",
   "notificationEvents",
   "customers",
   "cohorts",
@@ -111,7 +112,7 @@ for (const field of ["opportunityId", "decision", "planStartAt", "planEndAt", "p
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
 }
-for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-calendar", "monitor-handoffs", "monitor-persistence"]) {
+for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-persistence"]) {
   if (!html.includes(phrase)) fail(`monitor route surface missing phrase ${phrase}`);
 }
 if (!html.includes("./operating-records.js")) fail("web surface does not load operating-records.js");
@@ -130,6 +131,7 @@ for (const phrase of [
   "summarizeCalendarExport",
   "summarizeDeadlines",
   "summarizeAgentHandoffState",
+  "summarizeRoutePlacementState",
   "summarizePersistenceState",
   "summarizeRevenueState",
   "summarizeNotificationState",
@@ -157,6 +159,7 @@ for (const phrase of [
   "monitor-queue",
   "monitor-timeline",
   "monitor-handoffs",
+  "monitor-suite",
   "monitor-calendar",
   "monitor-persistence",
   "monitor-risks",
@@ -173,6 +176,9 @@ for (const phrase of [
   "Engagement Revenue",
   "Update Events",
   "Agent Handoffs",
+  "SYNAPSE Placement",
+  "no-duplicate-ui",
+  "link-only",
   "operator-approval",
   "Calendar Export",
   "Persistence",
@@ -193,6 +199,7 @@ if (!data.offerPackages.some((item) => item.offerKind === "management_system" &&
 }
 if (typeof recordTools.createAgentHandoffRecords !== "function") fail("operating helpers missing createAgentHandoffRecords");
 if (typeof recordTools.summarizeAgentHandoffState !== "function") fail("operating helpers missing summarizeAgentHandoffState");
+if (typeof recordTools.summarizeRoutePlacementState !== "function") fail("operating helpers missing summarizeRoutePlacementState");
 
 const checklist = read("../docs/first-commercial-slice-checklist.md");
 for (const phrase of [
@@ -214,6 +221,18 @@ for (const phrase of [
   "rollback"
 ]) {
   if (!handoffContract.includes(phrase)) fail(`agentic handoff contract missing phrase: ${phrase}`);
+}
+
+const routePlacementContract = read("../docs/synapse-route-placement-contract.md");
+for (const phrase of [
+  "SYNAPSE Route Placement Contract",
+  "routePlacements",
+  "EPOCH MONITOR",
+  "duplicateUi",
+  "local-first",
+  "live API integration"
+]) {
+  if (!routePlacementContract.includes(phrase)) fail(`SYNAPSE route placement contract missing phrase: ${phrase}`);
 }
 
 const attention = [
@@ -312,6 +331,16 @@ const handoffSummary = recordTools.summarizeAgentHandoffState(handoffResult.data
 if (handoffSummary.workPlans < 1 || handoffSummary.handoffs < 1) fail("handoff summary did not count handoff records");
 if (handoffSummary.pendingApprovals < 1) fail("handoff summary did not count pending approvals");
 if (handoffSummary.customerVisibleBlocked !== 0) fail("handoff summary found customer-visible handoffs before approval");
+
+const routePlacementSummary = recordTools.summarizeRoutePlacementState(handoffResult.data, { now: "2026-06-01T12:00:00+09:00" });
+if (routePlacementSummary.schema !== "epoch.synapse-route-placement") fail("route placement summary has wrong schema");
+if (routePlacementSummary.targetSystem !== "SYNAPSE") fail("route placement summary has wrong target system");
+if (routePlacementSummary.duplicateUi) fail("route placement summary should not allow duplicated UI");
+if (routePlacementSummary.summary.routeCount !== handoffResult.data.routePlacements.length) fail("route placement count does not match data");
+if (!routePlacementSummary.routes.some((route) => route.href === "#monitor" && route.surface === "monitor")) fail("route placement summary missing monitor route");
+if (!routePlacementSummary.routes.some((route) => route.href === "#public" && route.visibility === "public-intake")) fail("route placement summary missing public intake route");
+if (!routePlacementSummary.routes.every((route) => route.targetSystem === "SYNAPSE")) fail("route placement routes missing SYNAPSE target");
+if (routePlacementSummary.summary.pendingHandoffApprovals < 1) fail("route placement summary did not expose handoff approval pressure");
 
 let rejectedDuplicateHandoff = false;
 try {
@@ -433,8 +462,11 @@ if (!monitorReport.revenue) fail("monitor report missing revenue state");
 if (!monitorReport.notifications) fail("monitor report missing notification state");
 if (!monitorReport.calendar) fail("monitor report missing calendar export state");
 if (!monitorReport.persistence) fail("monitor report missing persistence state");
+if (!monitorReport.routePlacement) fail("monitor report missing SYNAPSE route placement state");
 if (!monitorReport.summary.persistenceRevision) fail("monitor summary missing persistence revision");
 if (!monitorReport.summary.persistenceState) fail("monitor summary missing persistence adapter state");
+if (monitorReport.summary.routePlacements < 1) fail("monitor summary missing route placement count");
+if (monitorReport.summary.synapsePlacementMode !== "link-or-embed") fail("monitor summary missing SYNAPSE placement mode");
 if (monitorReport.summary.timeline < 1) fail("monitor report did not include timeline records");
 if (!Array.isArray(monitorReport.queue)) fail("monitor report queue is not an array");
 if (!Array.isArray(monitorReport.receipts) || monitorReport.receipts.length < 1) fail("monitor report receipts missing returned review receipt");
@@ -486,6 +518,8 @@ if (exportedLedger.counts.notificationEvents !== returnResult.data.notificationE
 if (!exportedLedger.monitor || exportedLedger.monitor.timeline < 1) fail("ledger export missing monitor summary");
 if (exportedLedger.monitor.persistenceRevision !== exportedLedger.persistence.revision) fail("ledger monitor summary missing persistence revision");
 if (!exportedLedger.calendarExport || exportedLedger.calendarExport.entries.length !== calendarExport.entries.length) fail("ledger export missing calendar export entries");
+if (!exportedLedger.routePlacement || exportedLedger.routePlacement.summary.routeCount !== exportedLedger.data.routePlacements.length) fail("ledger export missing route placement summary");
+if (exportedLedger.counts.routePlacements !== returnResult.data.routePlacements.length) fail("ledger export route placement count is wrong");
 
 const persistenceSummary = recordTools.summarizePersistenceState(exportedLedger.data);
 if (persistenceSummary.ledgerId !== exportedLedger.persistence.ledgerId) fail("persistence summary did not preserve ledger id");
@@ -502,6 +536,7 @@ if (handoffLedger.monitor.pendingHandoffApprovals < 1) fail("ledger monitor summ
 const importedLedger = recordTools.importOperatingLedger(data, JSON.stringify(exportedLedger));
 if (importedLedger.data.receipts.length !== returnResult.data.receipts.length) fail("ledger import did not preserve receipts");
 if (importedLedger.data.notificationEvents.length !== returnResult.data.notificationEvents.length) fail("ledger import did not preserve update events");
+if (importedLedger.data.routePlacements.length !== returnResult.data.routePlacements.length) fail("ledger import did not preserve route placements");
 if (importedLedger.data.customers[0].externalStatus !== returnResult.data.customers[0].externalStatus) fail("ledger import did not preserve external status");
 if (importedLedger.data.persistence.checksum !== exportedLedger.persistence.checksum) fail("ledger import did not preserve persistence checksum");
 if (importedLedger.ledger.persistence.revision !== exportedLedger.persistence.revision) fail("ledger import did not preserve persistence revision");

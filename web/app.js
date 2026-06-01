@@ -306,10 +306,11 @@ function renderMonitor(items) {
   const revenue = report.revenue || recordTools.summarizeRevenueState(data);
   const notifications = report.notifications || recordTools.summarizeNotificationState(data);
   const handoffs = report.handoffs || recordTools.summarizeAgentHandoffState(data);
+  const routePlacement = report.routePlacement || recordTools.summarizeRoutePlacementState(data, { now: `${today}T12:00:00+09:00` });
   const calendarExport = recordTools.createCalendarExport(data, { now: `${today}T12:00:00+09:00` });
   const calendar = report.calendar || recordTools.summarizeCalendarExport(calendarExport);
   const persistence = report.persistence || recordTools.summarizePersistenceState(data, { now: `${today}T12:00:00+09:00` });
-  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | ${persistence.adapterState}`;
+  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | ${routePlacement.summary.routeCount} SYNAPSE routes | ${persistence.adapterState}`;
 
   const summaryCards = [
     record("Monitor Summary", `${report.summary.queue} queued, ${report.summary.timeline} timeline records, ${report.summary.risks} risks.`, [chip(report.summary.health, report.summary.health === "Ready" ? "complete" : "blocked")]),
@@ -320,6 +321,7 @@ function renderMonitor(items) {
     record("Engagement Revenue", `${revenue.activeEngagements} active engagements with ${formatJpy(revenue.acceptedValueJpy)} accepted value.`, [chip(`${revenue.acceptedCount} accepted`, "complete"), chip(`${revenue.under19CompatibilityCount} compatibility gates`)]),
     record("Update Events", `${notifications.visible} visible updates, ${notifications.pending} pending, ${notifications.blocked} blocked.`, [chip(`${notifications.posted} posted`, "complete"), chip(`${notifications.total} total`)]),
     record("Agent Handoffs", `${handoffs.handoffs} handoffs, ${handoffs.workPlans} work plans, ${handoffs.pendingApprovals} pending approval.`, [chip(`${handoffs.monitorVisible} monitor-visible`), chip(`${handoffs.customerVisibleBlocked} customer-visible`)]),
+    record("SYNAPSE Placement", `${routePlacement.summary.routeCount} routes, ${routePlacement.placementMode}, ${routePlacement.access}.`, [chip(routePlacement.targetSystem), chip(routePlacement.duplicateUi ? "duplicate-ui" : "no-duplicate-ui"), chip(routePlacement.summary.monitorHref)]),
     record("Calendar Export", `${calendar.total} export-ready entries, ${calendar.customerVisible} customer-visible, ${calendar.updateLinked} update-linked.`, [chip(calendarExport.schema), chip(calendarExport.timezone)]),
     record("Persistence", `Ledger ${persistence.ledgerId} revision ${persistence.revision}; ${persistence.adapterState}; checksum ${persistence.checksum}.`, [chip(persistence.adapter), chip(persistence.libraryReady ? "library-ready" : "local-only")])
   ];
@@ -358,6 +360,12 @@ function renderMonitor(items) {
     ? handoffItems.slice(0, 8).map((item) => record(item.title, item.body, item.chips))
     : [record("Agent Handoffs", "No SYMBIOSIS/ANVIL handoff records have been proposed yet.", [chip("empty")])];
 
+  const routeCards = routePlacement.routes.map((route) => record(
+    route.label,
+    `${route.surface} | ${route.href} | ${route.summary}`,
+    [statusChip(route.status), chip(route.visibility), chip(route.placement === "link" ? "link-only" : route.placement)]
+  ));
+
   const riskCards = report.risks.length
     ? report.risks.map((item) => record(item.title, item.detail, [chip(item.severity, item.severity === "high" ? "blocked" : "overdue")]))
     : [record("Risks", "No active risk records in the current operating surface.", [chip("clear", "complete")])];
@@ -386,6 +394,7 @@ function renderMonitor(items) {
     monitorSection("Queue", queueCards, "monitor-queue"),
     monitorSection("Timeline", timelineCards, "monitor-timeline"),
     monitorSection("Agent Handoffs", handoffCards, "monitor-handoffs"),
+    monitorSection("SYNAPSE Placement", routeCards, "monitor-suite"),
     monitorSection("Calendar Export", calendarCards.length ? calendarCards : [record("Calendar Export", "No export-ready calendar entries have been created yet.", [chip("empty")])], "monitor-calendar"),
     monitorSection("Persistence", persistenceCards, "monitor-persistence"),
     monitorSection("Risks", riskCards, "monitor-risks"),

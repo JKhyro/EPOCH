@@ -22,6 +22,7 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
 - `docs/first-commercial-slice-checklist.md`
 - `docs/integration-priority-ranking.md`
 - `docs/agentic-revenue-handoff-contract.md`
+- `docs/synapse-route-placement-contract.md`
 
 ## Current implementation artifacts
 
@@ -38,14 +39,15 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   entries, submission creation, deadline summaries, returned-review receipts,
   monitor health reports, and versioned operating-ledger export/import with a
   LIBRARY-ready durable persistence envelope, plus SYMBIOSIS/ANVIL agentic
-  revenue handoff records.
+  revenue handoff records and SYNAPSE route placement metadata.
 - `web/app.js`: shared renderer and local persistence flow for admin,
   student/customer, monitor, public request, scheduling, submission, and
   review-return views, including local ledger save/load, durable snapshot status,
-  recovery-import state, and JSON export/import.
+  recovery-import state, JSON export/import, and MONITOR-visible SYNAPSE route
+  placement cards.
 - `web/seed-data.js`: demo commercial workflow covering leads, tracks, cohorts,
   offer packages, opportunities, update events, sessions, assignments,
-  submissions, reviews, follow-ups, and receipts.
+  submissions, reviews, follow-ups, receipts, and SYNAPSE route placements.
 - `tools/verify-commercial-slice.mjs`: repository verifier for the first
   commercial slice.
 
