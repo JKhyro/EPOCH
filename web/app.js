@@ -126,17 +126,43 @@ function renderStudentStatus() {
   }).join("");
 }
 
+function renderSubmissionOptions() {
+  const select = byId("submission-assignment");
+  const options = data.assignments
+    .filter((item) => item.externalVisible)
+    .map((assignment) => {
+      const customer = data.customers.find((item) => item.id === assignment.customerId);
+      const owner = customer ? ` - ${customer.displayName}` : "";
+      return `<option value="${escapeHtml(assignment.id)}">${escapeHtml(assignment.title + owner)}</option>`;
+    });
+  select.innerHTML = options.join("");
+}
+
+function renderSubmissions() {
+  byId("submission-feed").innerHTML = data.submissions.slice(0, 6).map((submission) => {
+    const assignment = data.assignments.find((item) => item.id === submission.assignmentId);
+    const title = submission.title || assignment?.title || submission.id;
+    const body = submission.summary || `Review due ${formatTime(submission.reviewDueAt)}`;
+    return record(title, body, [
+      statusChip(submission.status),
+      chip(formatTime(submission.reviewDueAt))
+    ]);
+  }).join("");
+}
+
 function renderMonitor(items) {
   const receiptCount = data.receipts.length;
   const attentionCount = items.filter((item) => attentionStatuses.has(item.status)).length;
   const visibleCount = data.assignments.filter((item) => item.externalVisible).length;
   const intakeCount = data.leads.filter((item) => item.id.startsWith("lead-intake")).length;
+  const reviewingCount = data.submissions.filter((item) => item.status === "reviewing" || item.status === "submitted").length;
 
   byId("monitor-items").innerHTML = [
     record("Queue Attention", `${attentionCount} records need attention now.`, [chip(`${attentionCount} active`, "reviewing")]),
     record("External Visibility", `${visibleCount} student/customer-visible records are available.`, [chip(`${visibleCount} visible`)]),
     record("Delivery Receipts", `${receiptCount} completed delivery receipts are monitor-visible.`, [chip(`${receiptCount} receipts`, "complete")]),
-    record("Live Intake Flow", `${intakeCount} public intake records have entered operations.`, [chip(`${intakeCount} captured`, "waiting")])
+    record("Live Intake Flow", `${intakeCount} public intake records have entered operations.`, [chip(`${intakeCount} captured`, "waiting")]),
+    record("Review Return Queue", `${reviewingCount} submissions are waiting for returned feedback.`, [chip(`${reviewingCount} reviews`, "submitted")])
   ].join("");
 }
 
@@ -159,6 +185,8 @@ function renderAll() {
   renderMetrics(items);
   renderAdmin(items);
   renderStudentStatus();
+  renderSubmissionOptions();
+  renderSubmissions();
   renderMonitor(items);
   renderIntakeSnapshot();
 }
@@ -205,10 +233,52 @@ function wireIntakeForm() {
   });
 }
 
+function wireSubmissionForm() {
+  const form = byId("submission-form");
+  const confirmation = byId("submission-confirmation");
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const result = recordTools.createSubmissionRecords(data, Object.fromEntries(formData.entries()));
+    data = result.data;
+    persistData();
+    renderAll();
+    confirmation.innerHTML = record(
+      "Submission Received",
+      `${result.records.submission.title} is now in the review queue and visible to the monitor.`,
+      [statusChip(result.records.submission.status), chip("review queue")]
+    );
+    form.reset();
+  });
+}
+
+function wireReviewReturn() {
+  const button = byId("return-review");
+  const summary = byId("review-return-summary");
+  const confirmation = byId("review-confirmation");
+
+  button.addEventListener("click", () => {
+    const result = recordTools.returnReviewRecords(data, {
+      returnedSummary: summary.value
+    });
+    data = result.data;
+    persistData();
+    renderAll();
+    confirmation.innerHTML = record(
+      "Review Returned",
+      result.records.review.summary,
+      [statusChip(result.records.review.status), chip("receipt created")]
+    );
+  });
+}
+
 function init() {
   renderAll();
   wireTabs();
   wireIntakeForm();
+  wireSubmissionForm();
+  wireReviewReturn();
 }
 
 init();

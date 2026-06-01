@@ -64,20 +64,38 @@ for (const status of requiredStatuses) {
 }
 
 const html = read("../web/index.html");
-for (const id of ["view-admin", "view-student", "view-monitor", "view-public", "intake-form", "intake-feed"]) {
+for (const id of [
+  "view-admin",
+  "view-student",
+  "view-monitor",
+  "view-public",
+  "intake-form",
+  "intake-feed",
+  "submission-form",
+  "submission-feed",
+  "return-review"
+]) {
   if (!html.includes(`id="${id}"`)) fail(`web surface missing ${id}`);
 }
 for (const field of ["requesterName", "ageBand", "offerKind", "preferredWindow", "requestSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`intake form missing field ${field}`);
+}
+for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
+  if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
 }
 if (!html.includes("./operating-records.js")) fail("web surface does not load operating-records.js");
 
 const app = read("../web/app.js");
 for (const phrase of [
   "createIntakeRecords",
+  "createSubmissionRecords",
+  "returnReviewRecords",
   "localStorage",
   "renderIntakeSnapshot",
-  "Request Captured"
+  "renderSubmissions",
+  "Request Captured",
+  "Submission Received",
+  "Review Returned"
 ]) {
   if (!app.includes(phrase)) fail(`app script missing phrase: ${phrase}`);
 }
@@ -120,5 +138,32 @@ if (intakeResult.data.receipts.length !== data.receipts.length + 1) fail("intake
 if (intakeResult.records.lead.status !== "waiting") fail("under-19 intake should wait for compatibility review");
 if (!intakeResult.records.customer.externalStatus.includes("compatibility")) fail("under-19 intake lacks compatibility messaging");
 if (!intakeResult.records.assignment.externalVisible) fail("intake request is not external-visible");
+
+const submissionResult = recordTools.createSubmissionRecords(intakeResult.data, {
+  assignmentId: intakeResult.records.assignment.id,
+  reviewDueAt: "2026-06-06T18:00",
+  submissionTitle: "Diagnostic essay",
+  submissionSummary: "Student submitted a diagnostic essay for review."
+}, {
+  now: "2026-06-01T03:10:00.000Z"
+});
+
+if (submissionResult.data.submissions.length !== intakeResult.data.submissions.length + 1) fail("submission flow did not create a submission");
+if (submissionResult.data.reviews.length !== intakeResult.data.reviews.length + 1) fail("submission flow did not create a review");
+if (submissionResult.records.submission.status !== "reviewing") fail("submission should enter reviewing status");
+if (submissionResult.records.review.status !== "reviewing") fail("review should enter reviewing status");
+if (!submissionResult.data.customers[0].externalStatus.includes("review is in progress")) fail("submission flow did not update customer status");
+
+const returnResult = recordTools.returnReviewRecords(submissionResult.data, {
+  submissionId: submissionResult.records.submission.id,
+  returnedSummary: "Feedback returned with revision target."
+}, {
+  now: "2026-06-01T04:00:00.000Z"
+});
+
+if (returnResult.records.submission.status !== "returned") fail("return flow did not update submission status");
+if (returnResult.records.review.status !== "returned") fail("return flow did not update review status");
+if (returnResult.data.receipts.length !== submissionResult.data.receipts.length + 1) fail("return flow did not create a receipt");
+if (!returnResult.data.customers[0].externalStatus.includes("Feedback returned")) fail("return flow did not update external status");
 
 console.log("commercial slice verification passed");
