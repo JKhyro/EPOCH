@@ -22,6 +22,7 @@ const requiredCollections = [
   "leads",
   "opportunities",
   "routePlacements",
+  "monitorHealthChecks",
   "notificationEvents",
   "customers",
   "cohorts",
@@ -99,7 +100,10 @@ for (const id of [
   "export-ledger",
   "import-ledger",
   "ledger-json",
-  "intake-package"
+  "intake-package",
+  "monitor-operator-status",
+  "monitor-action-buttons",
+  "monitor-action-receipts"
 ]) {
   if (!html.includes(`id="${id}"`)) fail(`web surface missing ${id}`);
 }
@@ -121,7 +125,7 @@ for (const field of ["opportunityId", "decision", "planStartAt", "planEndAt", "p
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
 }
-for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-command-strip", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-persistence"]) {
+for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-command-strip", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-persistence", "monitor-scope", "monitor-memory", "monitor-access"]) {
   if (!html.includes(phrase)) fail(`monitor route surface missing phrase ${phrase}`);
 }
 for (const phrase of ["monitor-curriculum", "Package Gameplans", "Personalized Gameplan", "Curriculum Frameworks"]) {
@@ -162,7 +166,10 @@ for (const phrase of [
   "rail-tree",
   "Thread Registry",
   "operator-control-panel",
-  "Operating Control Panel"
+  "Operating Control Panel",
+  "Operator Actions",
+  "Local Health Actions",
+  "Safe Access"
 ]) {
   if (!html.includes(phrase)) fail(`SCAFFOLD/HERMES alignment surface missing ${phrase}`);
 }
@@ -192,6 +199,7 @@ for (const phrase of [
   "wireLedgerControls",
   "wireOpportunityForm",
   "wireMonitorMenu",
+  "wireMonitorActionConsole",
   "wirePublicActions",
   "data-public-target",
   "[data-view]",
@@ -228,22 +236,37 @@ for (const phrase of [
   "renderCustomerUpdates",
   "monitorSection",
   "monitor-summary",
+  "monitor-scope",
+  "monitor-memory",
   "monitor-queue",
   "monitor-timeline",
   "monitor-handoffs",
   "monitor-suite",
   "monitor-calendar",
   "monitor-persistence",
+  "monitor-access",
   "monitor-risks",
   "monitor-receipts",
   "monitor-route-status",
+  "monitor-action-buttons",
+  "monitor-action-receipts",
+  "monitor-operator-status",
   "Monitor Summary",
+  "Dirty Local State",
+  "Awaiting Review",
+  "Scope Health",
+  "Memory Health",
+  "Safe Access",
+  "Operator Actions",
   "Request Captured",
   "Work Scheduled",
   "Submission Received",
   "Review Returned",
   "Ledger Exported",
   "Ledger Imported",
+  "renderMonitorActionConsole",
+  "runMonitorAction",
+  "createMonitorActionRecords",
   "Opportunity Pipeline",
   "Engagement Revenue",
   "Update Events",
@@ -277,6 +300,9 @@ for (const phrase of [
   "control-shell",
   "control-rail",
   "operator-control-panel",
+  "operator-action-console",
+  "monitor-action-button",
+  "button-meta",
   "monitor-command-strip",
   "mode-button.active",
   "font-family: var(--font-mono)",
@@ -284,6 +310,15 @@ for (const phrase of [
 ]) {
   if (!styles.includes(phrase)) fail(`styles missing SCAFFOLD/HERMES alignment phrase: ${phrase}`);
 }
+
+if (!data.monitorScope || typeof data.monitorScope !== "object") fail("seed data missing monitor scope contract");
+if (!Array.isArray(data.monitorMemory) || data.monitorMemory.length < 3) fail("seed data missing monitor memory notes");
+if (!data.accessPosture || typeof data.accessPosture !== "object") fail("seed data missing access posture contract");
+if (!Array.isArray(data.monitorHealthChecks) || data.monitorHealthChecks.length < 2) fail("seed data missing ledger-backed monitor health checks");
+if (!data.receipts.some((item) => item.kind === "monitor-check")) fail("seed data missing monitor-check receipt");
+if (data.accessPosture.defaultPublicPolicy !== "deny-by-default") fail("access posture must default to deny-by-default");
+if (data.accessPosture.rawMonitor !== "local-only") fail("access posture must keep raw monitor local-only");
+if (!data.monitorMemory.some((item) => item.status === "stale")) fail("monitor memory should demonstrate stale-note risk");
 
 if (!data.offerPackages.some((item) => item.id === "pkg-under19-assessment" && item.routing === "compatibility-required")) {
   fail("offer catalog missing under-19 compatibility package");
@@ -363,10 +398,44 @@ if (!data.customers.some((item) => item.gameplanId === "gameplan-premium-eiken-m
   fail("customers do not demonstrate assigned personalized gameplan");
 }
 if (typeof recordTools.createAgentHandoffRecords !== "function") fail("operating helpers missing createAgentHandoffRecords");
+if (typeof recordTools.createMonitorActionRecords !== "function") fail("operating helpers missing createMonitorActionRecords");
 if (typeof recordTools.summarizeAgentHandoffState !== "function") fail("operating helpers missing summarizeAgentHandoffState");
+if (typeof recordTools.summarizeAccessPosture !== "function") fail("operating helpers missing summarizeAccessPosture");
+if (typeof recordTools.summarizeMemoryState !== "function") fail("operating helpers missing summarizeMemoryState");
 if (typeof recordTools.summarizeRoutePlacementState !== "function") fail("operating helpers missing summarizeRoutePlacementState");
+if (typeof recordTools.summarizeScopeState !== "function") fail("operating helpers missing summarizeScopeState");
 if (typeof recordTools.summarizeCurriculumState !== "function") fail("operating helpers missing summarizeCurriculumState");
 if (typeof recordTools.summarizeMarketingState !== "function") fail("operating helpers missing summarizeMarketingState");
+
+const scopeSummary = recordTools.summarizeScopeState(data, { now: "2026-06-01T12:00:00+09:00" });
+if (scopeSummary.allowedCount < 3) fail("scope summary missing allowed surfaces");
+if (scopeSummary.blockedCount < 3) fail("scope summary missing blocked surfaces");
+if (scopeSummary.status !== "ready") fail("scope summary should be ready for the seed slice");
+
+const memorySummary = recordTools.summarizeMemoryState(data, { now: "2026-06-01T12:00:00+09:00" });
+if (memorySummary.total < 3) fail("memory summary missing notes");
+if (memorySummary.staleCount < 1) fail("memory summary should detect stale notes");
+
+const accessSummary = recordTools.summarizeAccessPosture(data, { now: "2026-06-01T12:00:00+09:00" });
+if (accessSummary.status !== "ready") fail("safe-access posture should be ready for the seed slice");
+if (accessSummary.defaultPublicPolicy !== "deny-by-default") fail("safe-access summary lost deny-by-default posture");
+if (accessSummary.rawAdmin !== "local-only") fail("safe-access summary should keep raw admin local-only");
+
+const monitorActionResult = recordTools.createMonitorActionRecords(data, {
+  actionId: "verify-safe-access-check",
+  title: "Verify safe-access check",
+  detail: "Verifier recorded a monitor action without creating customer-visible notification events.",
+  status: "complete",
+  target: "monitor-access",
+  effect: "acknowledge-posture",
+  priority: "medium"
+}, { now: "2026-06-01T12:05:00+09:00" });
+if (monitorActionResult.data.monitorHealthChecks.length !== data.monitorHealthChecks.length + 1) fail("monitor action should add a monitor health check");
+if (monitorActionResult.data.receipts.filter((item) => item.kind === "monitor-check").length !== data.receipts.filter((item) => item.kind === "monitor-check").length + 1) {
+  fail("monitor action should add a monitor-check receipt");
+}
+if (monitorActionResult.data.notificationEvents.length !== data.notificationEvents.length) fail("monitor action must not create customer-visible notification events");
+if (monitorActionResult.records.healthCheck.customerVisible !== false) fail("monitor action health check must remain internal");
 
 const marketingSummary = recordTools.summarizeMarketingState(data);
 if (marketingSummary.total !== data.campaignRoutes.length) fail("marketing summary total is wrong");
@@ -704,6 +773,11 @@ if (!monitorReport.notifications) fail("monitor report missing notification stat
 if (!monitorReport.marketing) fail("monitor report missing marketing state");
 if (!monitorReport.calendar) fail("monitor report missing calendar export state");
 if (!monitorReport.persistence) fail("monitor report missing persistence state");
+if (!monitorReport.scope) fail("monitor report missing scope state");
+if (!monitorReport.memory) fail("monitor report missing memory state");
+if (!monitorReport.access) fail("monitor report missing access state");
+if (!Array.isArray(monitorReport.monitorHealthChecks)) fail("monitor report missing monitor health checks");
+if (!Array.isArray(monitorReport.operatorActions)) fail("monitor report missing operator actions");
 if (!monitorReport.routePlacement) fail("monitor report missing SYNAPSE route placement state");
 if (!monitorReport.summary.persistenceRevision) fail("monitor summary missing persistence revision");
 if (!monitorReport.summary.persistenceState) fail("monitor summary missing persistence adapter state");
@@ -714,10 +788,21 @@ if (monitorReport.summary.eikenLevelCount < 7) fail("monitor summary missing EIK
 if (monitorReport.summary.campaignRoutes !== data.campaignRoutes.length) fail("monitor summary campaign route count is wrong");
 if (monitorReport.summary.readyCampaignRoutes < 3) fail("monitor summary missing ready campaign route count");
 if (monitorReport.summary.copyComplianceViolations !== 0) fail("monitor summary should not report campaign copy violations");
+if (!monitorReport.summary.dirtyLocalState) fail("monitor summary should flag dirty local state before export");
+if (monitorReport.summary.awaitingReview < 1) fail("monitor summary missing awaiting-review count");
+if (monitorReport.summary.staleMemoryNotes < 1) fail("monitor summary missing stale memory notes");
+if (monitorReport.summary.safeAccessViolations !== 0) fail("monitor summary should not report safe-access violations for the seed slice");
+if (monitorReport.summary.monitorHealthChecks < 2) fail("monitor summary missing monitor health checks");
+if (monitorReport.summary.monitorActionReceipts < 2) fail("monitor summary missing monitor action receipts");
+if (monitorReport.summary.operatorActions < 3) fail("monitor summary missing operator actions");
 if (!monitorReport.timeline.some((item) => item.kind === "campaign route")) fail("monitor timeline missing campaign routes");
+if (!monitorReport.timeline.some((item) => item.kind === "monitor check")) fail("monitor timeline missing monitor health checks");
 if (monitorReport.summary.timeline < 1) fail("monitor report did not include timeline records");
 if (!Array.isArray(monitorReport.queue)) fail("monitor report queue is not an array");
 if (!Array.isArray(monitorReport.receipts) || monitorReport.receipts.length < 1) fail("monitor report receipts missing returned review receipt");
+if (!monitorReport.risks.some((item) => item.id === "dirty-local-state")) fail("monitor risks missing dirty-local-state");
+if (!monitorReport.risks.some((item) => item.id === "awaiting-review")) fail("monitor risks missing awaiting-review");
+if (!monitorReport.risks.some((item) => item.id === "stale-memory")) fail("monitor risks missing stale-memory");
 
 const calendarExport = recordTools.createCalendarExport(returnResult.data, { now: "2026-06-01T12:00:00+09:00" });
 if (calendarExport.schema !== "epoch.calendar-export") fail("calendar export has wrong schema");
@@ -764,6 +849,7 @@ if (!exportedLedger.persistence.libraryReady) fail("ledger persistence metadata 
 if (!exportedLedger.persistence.checksum.startsWith("fnv1a32-")) fail("ledger persistence metadata has wrong checksum format");
 if (exportedLedger.data.persistence.checksum !== exportedLedger.persistence.checksum) fail("ledger data did not preserve persistence checksum");
 if (exportedLedger.counts.receipts !== returnResult.data.receipts.length) fail("ledger export receipt count is wrong");
+if (exportedLedger.counts.monitorHealthChecks !== returnResult.data.monitorHealthChecks.length) fail("ledger export monitor health check count is wrong");
 if (exportedLedger.counts.notificationEvents !== returnResult.data.notificationEvents.length) fail("ledger export update-event count is wrong");
 if (!exportedLedger.monitor || exportedLedger.monitor.timeline < 1) fail("ledger export missing monitor summary");
 if (exportedLedger.monitor.persistenceRevision !== exportedLedger.persistence.revision) fail("ledger monitor summary missing persistence revision");
@@ -774,6 +860,7 @@ if (exportedLedger.counts.curriculumFrameworks !== returnResult.data.curriculumF
 if (exportedLedger.counts.packageGameplans !== returnResult.data.packageGameplans.length) fail("ledger export package gameplan count is wrong");
 if (exportedLedger.counts.campaignRoutes !== returnResult.data.campaignRoutes.length) fail("ledger export campaign route count is wrong");
 if (exportedLedger.monitor.campaignRoutes !== returnResult.data.campaignRoutes.length) fail("ledger monitor summary missing campaign routes");
+if (exportedLedger.monitor.monitorHealthChecks !== returnResult.data.monitorHealthChecks.length) fail("ledger monitor summary missing monitor health checks");
 
 const persistenceSummary = recordTools.summarizePersistenceState(exportedLedger.data);
 if (persistenceSummary.ledgerId !== exportedLedger.persistence.ledgerId) fail("persistence summary did not preserve ledger id");
@@ -789,6 +876,7 @@ if (handoffLedger.monitor.pendingHandoffApprovals < 1) fail("ledger monitor summ
 
 const importedLedger = recordTools.importOperatingLedger(data, JSON.stringify(exportedLedger));
 if (importedLedger.data.receipts.length !== returnResult.data.receipts.length) fail("ledger import did not preserve receipts");
+if (importedLedger.data.monitorHealthChecks.length !== returnResult.data.monitorHealthChecks.length) fail("ledger import did not preserve monitor health checks");
 if (importedLedger.data.notificationEvents.length !== returnResult.data.notificationEvents.length) fail("ledger import did not preserve update events");
 if (importedLedger.data.routePlacements.length !== returnResult.data.routePlacements.length) fail("ledger import did not preserve route placements");
 if (importedLedger.data.campaignRoutes.length !== returnResult.data.campaignRoutes.length) fail("ledger import did not preserve campaign routes");

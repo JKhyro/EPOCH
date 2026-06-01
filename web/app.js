@@ -6,6 +6,7 @@ const today = "2026-06-01";
 const viewNames = new Set(["admin", "student", "monitor", "public"]);
 
 let data = loadData();
+let lastMonitorReport = null;
 
 function byId(id) {
   return document.getElementById(id);
@@ -78,6 +79,23 @@ function statusChip(status) {
   return chip(status, status);
 }
 
+function toneChip(label, tone) {
+  const toneClass = tone || "neutral";
+  return chip(label, toneClass);
+}
+
+function priorityTone(priority) {
+  if (priority === "high") return "blocked";
+  if (priority === "medium") return "overdue";
+  return "complete";
+}
+
+function monitorReceiptTone(status) {
+  if (status === "blocked") return "blocked";
+  if (status === "attention") return "overdue";
+  return "complete";
+}
+
 function record(title, body, chips) {
   return `
     <article class="record">
@@ -109,6 +127,31 @@ function gameplanForPackage(packageId) {
 
 function formatJpy(value) {
   return `JPY ${Number(value || 0).toLocaleString("en-US")}`;
+}
+
+function appendMonitorReceipt(action, detail, status = "complete", options = {}) {
+  const result = recordTools.createMonitorActionRecords(data, {
+    actionId: action.id,
+    title: action.title,
+    detail,
+    status,
+    target: action.target,
+    effect: action.effect,
+    priority: action.priority
+  });
+  data = result.data;
+  if (options.persist !== false) {
+    persistData({
+      adapterState: "modified-local",
+      recoveryNote: "Monitor operator action recorded locally; export a ledger snapshot before external handoff."
+    });
+  }
+  return result.records;
+}
+
+function scrollToMonitorTarget(targetId) {
+  const target = byId(targetId);
+  if (target) target.scrollIntoView({ block: "start", behavior: "smooth" });
 }
 
 function allOperatingItems() {
@@ -403,6 +446,75 @@ function monitorSection(title, cards, sectionId) {
   `;
 }
 
+function renderMonitorActionConsole(report) {
+  const status = byId("monitor-operator-status");
+  const buttons = byId("monitor-action-buttons");
+  const receipts = byId("monitor-action-receipts");
+  const actionCount = report.operatorActions.length;
+  const riskCount = report.summary.risks;
+  const accessWarnings = report.summary.safeAccessViolations;
+
+  status.textContent = `${actionCount} queued action${actionCount === 1 ? "" : "s"} | ${report.summary.awaitingReview} awaiting review | ${accessWarnings} access warning${accessWarnings === 1 ? "" : "s"} | ${riskCount} total risks`;
+  buttons.innerHTML = actionCount
+    ? report.operatorActions.map((action) => `
+      <button type="button" class="monitor-action-button" data-monitor-action-id="${escapeHtml(action.id)}">
+        <span>${escapeHtml(action.title)}</span>
+        <span class="button-meta">${escapeHtml(action.detail)}</span>
+      </button>
+    `).join("")
+    : `<div class="record compact-record">
+      <h3>No queued operator action</h3>
+      <p>Scope, memory, and safe-access posture are currently aligned with the bounded monitor slice.</p>
+      <div class="meta">${toneChip("stable", "complete")}</div>
+    </div>`;
+
+  receipts.innerHTML = (report.monitorHealthChecks || []).length
+    ? report.monitorHealthChecks.map((item) => `
+      <article class="record compact-record">
+        <h3>${escapeHtml(item.title)}</h3>
+        <p>${escapeHtml(item.summary || "Monitor health check recorded.")}</p>
+        <div class="meta">
+          ${toneChip(item.status || "recorded", monitorReceiptTone(item.status))}
+          ${chip(formatTime(item.createdAt))}
+          ${item.target ? chip(item.target) : ""}
+        </div>
+      </article>
+    `).join("")
+    : `<div class="record compact-record">
+      <h3>No monitor health check</h3>
+      <p>Ledger-backed operator action receipts will appear here after export, review return, or safe-access acknowledgement.</p>
+      <div class="meta">${chip("local-only")}</div>
+    </div>`;
+}
+
+function runMonitorAction(actionId) {
+  const action = (lastMonitorReport?.operatorActions || []).find((item) => item.id === actionId);
+  if (!action) return;
+
+  activateView("monitor");
+  let detail = action.detail;
+  let status = action.effect === "scroll" ? "waiting" : "complete";
+
+  if (action.effect === "export-ledger") {
+    appendMonitorReceipt(action, "Ledger export triggered from the monitor control action.", "complete", { persist: false });
+    byId("export-ledger")?.click();
+    detail = "Ledger export triggered from the monitor control action.";
+  } else if (action.effect === "return-review") {
+    byId("return-review")?.click();
+    detail = "Queued review return triggered from the monitor control action.";
+    appendMonitorReceipt(action, detail, status);
+  } else if (action.effect === "acknowledge-posture") {
+    detail = "Safe-access posture was acknowledged as local-first and intake-only.";
+    appendMonitorReceipt(action, detail, status);
+  } else {
+    detail = `Opened ${action.target} for review.`;
+    appendMonitorReceipt(action, detail, status);
+  }
+
+  renderAll();
+  if (action.target) scrollToMonitorTarget(action.target);
+}
+
 function renderMonitor(items) {
   const attentionCount = items.filter((item) => attentionStatuses.has(item.status)).length;
   const visibleCount = data.assignments.filter((item) => item.externalVisible).length;
@@ -417,11 +529,19 @@ function renderMonitor(items) {
   const calendarExport = recordTools.createCalendarExport(data, { now: `${today}T12:00:00+09:00` });
   const calendar = report.calendar || recordTools.summarizeCalendarExport(calendarExport);
   const persistence = report.persistence || recordTools.summarizePersistenceState(data, { now: `${today}T12:00:00+09:00` });
+  lastMonitorReport = report;
   byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | ${routePlacement.summary.routeCount} SYNAPSE routes | ${marketing.ready} campaign routes ready | ${persistence.adapterState}`;
+  renderMonitorActionConsole(report);
 
   const summaryCards = [
     record("Monitor Summary", `${report.summary.queue} queued, ${report.summary.timeline} timeline records, ${report.summary.risks} risks.`, [chip(report.summary.health, report.summary.health === "Ready" ? "complete" : "blocked")]),
     record("Queue Attention", `${attentionCount} records need attention now.`, [chip(`${attentionCount} active`, "reviewing")]),
+    record("Dirty Local State", report.summary.dirtyLocalState ? `Persistence is ${persistence.adapterState}; export is still required for a durable recovery point.` : "The current ledger is already in a snapshot-ready state.", [toneChip(report.summary.dirtyLocalState ? "dirty" : "clean", report.summary.dirtyLocalState ? "blocked" : "complete")]),
+    record("Awaiting Review", `${report.summary.awaitingReview} submission/review record${report.summary.awaitingReview === 1 ? "" : "s"} still need operator return or blocker state.`, [toneChip(`${report.summary.awaitingReview} queued`, report.summary.awaitingReview ? "overdue" : "complete")]),
+    record("Scope Health", `${report.scope.allowedCount} allowed surfaces, ${report.scope.blockedCount} blocked surfaces, ${report.summary.scopeWarnings} warning${report.summary.scopeWarnings === 1 ? "" : "s"}.`, [toneChip(report.scope.status, report.scope.status === "ready" ? "complete" : "overdue"), chip(report.scope.owner || "owner pending")]),
+    record("Memory Health", `${report.memory.total} monitor note${report.memory.total === 1 ? "" : "s"} with ${report.memory.staleCount} stale and ${report.memory.watchCount} due soon.`, [toneChip(report.memory.status, report.memory.staleCount ? "blocked" : report.memory.watchCount ? "overdue" : "complete"), chip(report.memory.latestUpdate ? formatTime(report.memory.latestUpdate) : "no update")]),
+    record("Safe Access", `${report.access.mode}, raw monitor ${report.access.rawMonitor}, raw admin ${report.access.rawAdmin}.`, [toneChip(`${report.summary.safeAccessViolations} warnings`, report.summary.safeAccessViolations ? "blocked" : "complete"), chip(report.access.defaultPublicPolicy)]),
+    record("Operator Actions", `${report.operatorActions.length} local action${report.operatorActions.length === 1 ? "" : "s"} are queued in the monitor controls.`, [toneChip(`${report.operatorActions.length} queued`, report.operatorActions.length ? "overdue" : "complete")]),
     record("External Visibility", `${visibleCount} student/customer-visible records are available.`, [chip(`${visibleCount} visible`)]),
     record("Deadline Control", `${deadlines.today} today, ${deadlines.upcoming} upcoming, ${deadlines.overdue} overdue.`, [chip(`${deadlines.owned} owner-linked`, "planned")]),
     record("Opportunity Pipeline", `${revenue.pipelineCount} open opportunities with ${formatJpy(revenue.pipelineValueJpy)} estimated value.`, [chip(`${revenue.waitingCount} waiting`, "waiting"), chip(`${revenue.deferredCount} deferred`)]),
@@ -446,6 +566,41 @@ function renderMonitor(items) {
     `${item.kind} | ${formatTime(item.time)} | owner: ${item.owner}`,
     [statusChip(item.status), chip(item.id)]
   ));
+
+  const scopeCards = [
+    record(
+      report.scope.title,
+      `${report.scope.summary} Local authority: ${report.scope.localAuthority}`,
+      [toneChip(report.scope.status, report.scope.status === "ready" ? "complete" : "overdue"), chip(report.scope.reviewBy ? formatTime(report.scope.reviewBy) : "review pending")]
+    ),
+    record(
+      "Allowed Surfaces",
+      report.scope.allowedSurfaces.join(" | ") || "No allowed surfaces recorded.",
+      [chip(`${report.scope.allowedCount} allowed`), chip(routePlacement.summary.publicRoutes ? `${routePlacement.summary.publicRoutes} public intake` : "no public intake")]
+    ),
+    record(
+      "Blocked Surfaces",
+      report.scope.blockedSurfaces.join(" | ") || "No blocked surfaces recorded.",
+      [chip(`${report.scope.blockedCount} blocked`), toneChip(`${report.scope.warnings.length} warnings`, report.scope.warnings.length ? "overdue" : "complete")]
+    ),
+    record(
+      "Verification Steps",
+      report.scope.verificationSteps.join(" | ") || "No verification steps recorded.",
+      [chip(`${report.scope.verificationCount} checks`), chip(report.scope.owner || "owner pending")]
+    )
+  ];
+
+  const memoryCards = report.memory.entries.length
+    ? report.memory.entries.map((item) => record(
+      item.title,
+      item.summary,
+      [
+        toneChip(item.status || "active", String(item.status || "").trim() === "stale" || (item.reviewBy && item.reviewBy < `${today}T12:00:00+09:00`) ? "blocked" : "complete"),
+        chip(item.reviewBy ? formatTime(item.reviewBy) : "review pending"),
+        chip(item.owner || "owner pending")
+      ]
+    ))
+    : [record("Memory", "No monitor memory notes have been recorded yet.", [chip("empty")])];
 
   const calendarCards = calendarExport.entries.slice(0, 8).map((item) => record(
     item.title,
@@ -510,6 +665,29 @@ function renderMonitor(items) {
     [statusChip(item.status), chip(formatTime(item.createdAt))]
   ));
 
+  const accessCards = [
+    record(
+      "Safe Access Posture",
+      `${report.access.mode}; raw monitor ${report.access.rawMonitor}; raw admin ${report.access.rawAdmin}; public intake ${report.access.publicIntake}.`,
+      [toneChip(report.access.status, report.access.status === "ready" ? "complete" : "blocked"), chip(report.access.defaultPublicPolicy)]
+    ),
+    record(
+      "Controlled Customer Route",
+      `${report.access.customerStatus} stays customer-safe while internal admin and monitor routes remain local-first.`,
+      [chip(routePlacement.summary.controlledCustomerRoutes ? `${routePlacement.summary.controlledCustomerRoutes} controlled` : "none"), chip(report.access.safeGateway)]
+    ),
+    record(
+      "Operator Rule",
+      report.access.operatorRule,
+      [toneChip(`${report.access.violations.length} violations`, report.access.violations.length ? "blocked" : "complete"), chip(report.access.lastVerifiedAt ? formatTime(report.access.lastVerifiedAt) : "not verified")]
+    ),
+    record(
+      "Access Notes",
+      (report.access.notes || []).join(" | ") || "No access notes recorded.",
+      [chip(report.access.verificationStatus || "unverified")]
+    )
+  ];
+
   const persistenceCards = [
     record(
       "Durable Ledger Boundary",
@@ -525,6 +703,8 @@ function renderMonitor(items) {
 
   byId("monitor-items").innerHTML = [
     monitorSection("Summary", summaryCards, "monitor-summary"),
+    monitorSection("Scope", scopeCards, "monitor-scope"),
+    monitorSection("Memory", memoryCards, "monitor-memory"),
     monitorSection("Queue", queueCards, "monitor-queue"),
     monitorSection("Timeline", timelineCards, "monitor-timeline"),
     monitorSection("Curriculum / Gameplans", curriculumCards, "monitor-curriculum"),
@@ -533,6 +713,7 @@ function renderMonitor(items) {
     monitorSection("SYNAPSE Placement", routeCards, "monitor-suite"),
     monitorSection("Calendar Export", calendarCards.length ? calendarCards : [record("Calendar Export", "No export-ready calendar entries have been created yet.", [chip("empty")])], "monitor-calendar"),
     monitorSection("Persistence", persistenceCards, "monitor-persistence"),
+    monitorSection("Safe Access", accessCards, "monitor-access"),
     monitorSection("Risks", riskCards, "monitor-risks"),
     monitorSection("Receipts", receiptCards.length ? receiptCards : [record("Receipts", "No receipts have been created yet.", [chip("empty")])], "monitor-receipts")
   ].join("");
@@ -640,6 +821,14 @@ function wireMonitorMenu() {
       const target = byId(control.dataset.monitorTarget);
       if (target) target.scrollIntoView({ block: "start", behavior: "smooth" });
     });
+  });
+}
+
+function wireMonitorActionConsole() {
+  byId("monitor-action-buttons").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-monitor-action-id]");
+    if (!button) return;
+    runMonitorAction(button.dataset.monitorActionId);
   });
 }
 
@@ -804,6 +993,7 @@ function init() {
   wireTabs();
   activateView(viewFromRoute(), { updateRoute: false });
   wireMonitorMenu();
+  wireMonitorActionConsole();
   wirePublicActions();
   wireOpportunityForm();
   wireScheduleForm();
