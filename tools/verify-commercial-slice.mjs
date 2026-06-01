@@ -58,6 +58,8 @@ for (const collection of requiredCollections) {
   }
 }
 if (!Array.isArray(data.engagements)) fail("seed data missing engagements collection");
+if (!Array.isArray(data.workPlans)) fail("seed data missing workPlans collection");
+if (!Array.isArray(data.agentHandoffs)) fail("seed data missing agentHandoffs collection");
 
 const header = read("../native/epoch_core.h");
 const source = read("../native/epoch_core.c");
@@ -109,7 +111,7 @@ for (const field of ["opportunityId", "decision", "planStartAt", "planEndAt", "p
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
 }
-for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-calendar", "monitor-persistence"]) {
+for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-calendar", "monitor-handoffs", "monitor-persistence"]) {
   if (!html.includes(phrase)) fail(`monitor route surface missing phrase ${phrase}`);
 }
 if (!html.includes("./operating-records.js")) fail("web surface does not load operating-records.js");
@@ -127,6 +129,7 @@ for (const phrase of [
   "buildMonitorReport",
   "summarizeCalendarExport",
   "summarizeDeadlines",
+  "summarizeAgentHandoffState",
   "summarizePersistenceState",
   "summarizeRevenueState",
   "summarizeNotificationState",
@@ -153,6 +156,7 @@ for (const phrase of [
   "monitor-summary",
   "monitor-queue",
   "monitor-timeline",
+  "monitor-handoffs",
   "monitor-calendar",
   "monitor-persistence",
   "monitor-risks",
@@ -168,6 +172,8 @@ for (const phrase of [
   "Opportunity Pipeline",
   "Engagement Revenue",
   "Update Events",
+  "Agent Handoffs",
+  "operator-approval",
   "Calendar Export",
   "Persistence",
   "library-ready",
@@ -185,6 +191,8 @@ if (!data.offerPackages.some((item) => item.id === "pkg-under19-assessment" && i
 if (!data.offerPackages.some((item) => item.offerKind === "management_system" && item.priceJpy >= 100000)) {
   fail("offer catalog missing management-system package");
 }
+if (typeof recordTools.createAgentHandoffRecords !== "function") fail("operating helpers missing createAgentHandoffRecords");
+if (typeof recordTools.summarizeAgentHandoffState !== "function") fail("operating helpers missing summarizeAgentHandoffState");
 
 const checklist = read("../docs/first-commercial-slice-checklist.md");
 for (const phrase of [
@@ -195,6 +203,17 @@ for (const phrase of [
   "from intake through returned feedback"
 ]) {
   if (!checklist.includes(phrase)) fail(`checklist missing phrase: ${phrase}`);
+}
+
+const handoffContract = read("../docs/agentic-revenue-handoff-contract.md");
+for (const phrase of [
+  "SYMBIOSIS",
+  "ANVIL",
+  "pending-operator-approval",
+  "customer-facing",
+  "rollback"
+]) {
+  if (!handoffContract.includes(phrase)) fail(`agentic handoff contract missing phrase: ${phrase}`);
 }
 
 const attention = [
@@ -264,6 +283,48 @@ if (revenueSummary.acceptedCount < 1) fail("revenue summary did not count accept
 const notificationSummary = recordTools.summarizeNotificationState(acceptResult.data);
 if (notificationSummary.visible < 1) fail("notification summary did not count visible updates");
 if (notificationSummary.posted < 1) fail("notification summary did not count posted updates");
+
+const acceptedExternalStatus = acceptResult.data.customers[0].externalStatus;
+const handoffResult = recordTools.createAgentHandoffRecords(acceptResult.data, {
+  engagementId: acceptResult.records.engagement.id,
+  sourceSystem: "SYMBIOSIS",
+  targetSystem: "ANVIL",
+  title: "Prepare CRM cleanup work plan",
+  summary: "Agent proposes a scoped CRM cleanup plan for operator approval.",
+  nextActionAt: "2026-06-06T20:00"
+}, {
+  now: "2026-06-01T03:05:00.000Z"
+});
+
+if (handoffResult.data.workPlans.length !== acceptResult.data.workPlans.length + 1) fail("agent handoff did not create a work plan");
+if (handoffResult.data.agentHandoffs.length !== acceptResult.data.agentHandoffs.length + 1) fail("agent handoff did not create a handoff record");
+if (handoffResult.data.followups.length !== acceptResult.data.followups.length + 1) fail("agent handoff did not create an approval follow-up");
+if (handoffResult.data.receipts.length !== acceptResult.data.receipts.length + 1) fail("agent handoff did not create a receipt");
+if (handoffResult.data.notificationEvents.length !== acceptResult.data.notificationEvents.length) fail("agent handoff should not create customer update events before approval");
+if (handoffResult.data.customers[0].externalStatus !== acceptedExternalStatus) fail("agent handoff mutated customer-visible status before approval");
+if (handoffResult.records.workPlan.status !== "proposed") fail("agent work plan should start proposed");
+if (handoffResult.records.handoff.status !== "waiting") fail("agent handoff should wait for approval");
+if (handoffResult.records.handoff.approvalStatus !== "pending-operator-approval") fail("agent handoff missing approval boundary");
+if (handoffResult.records.handoff.customerVisible) fail("agent handoff should not be customer-visible before approval");
+if (!handoffResult.records.receipt.note.includes("operator approval")) fail("agent handoff receipt does not record approval requirement");
+
+const handoffSummary = recordTools.summarizeAgentHandoffState(handoffResult.data);
+if (handoffSummary.workPlans < 1 || handoffSummary.handoffs < 1) fail("handoff summary did not count handoff records");
+if (handoffSummary.pendingApprovals < 1) fail("handoff summary did not count pending approvals");
+if (handoffSummary.customerVisibleBlocked !== 0) fail("handoff summary found customer-visible handoffs before approval");
+
+let rejectedDuplicateHandoff = false;
+try {
+  recordTools.createAgentHandoffRecords(handoffResult.data, {
+    engagementId: acceptResult.records.engagement.id,
+    title: "Duplicate handoff attempt"
+  }, {
+    now: "2026-06-01T03:06:00.000Z"
+  });
+} catch {
+  rejectedDuplicateHandoff = true;
+}
+if (!rejectedDuplicateHandoff) fail("agent handoff allowed duplicate active handoff for one engagement");
 
 let rejectedDuplicateAccept = false;
 try {
@@ -398,6 +459,15 @@ const acceptedMonitorReport = recordTools.buildMonitorReport(acceptResult.data, 
 if (acceptedMonitorReport.revenue.activeEngagements < 1) fail("monitor revenue did not count active engagement");
 if (acceptedMonitorReport.summary.acceptedValueJpy < 60000) fail("monitor summary did not expose accepted value");
 
+const handoffMonitorReport = recordTools.buildMonitorReport(handoffResult.data, { now: "2026-06-01T12:00:00+09:00" });
+if (!handoffMonitorReport.handoffs || handoffMonitorReport.handoffs.handoffs < 1) fail("monitor report missing handoff state");
+if (handoffMonitorReport.summary.pendingHandoffApprovals < 1) fail("monitor summary missing pending handoff approvals");
+if (!handoffMonitorReport.queue.some((item) => item.kind === "agent handoff")) fail("monitor queue missing agent handoff");
+
+const handoffCalendarExport = recordTools.createCalendarExport(handoffResult.data, { now: "2026-06-01T12:00:00+09:00" });
+if (!handoffCalendarExport.entries.some((entry) => entry.sourceKind === "agent-work-plan" && !entry.externalVisible)) fail("calendar export missing internal agent work plan window");
+if (!handoffCalendarExport.entries.some((entry) => entry.sourceKind === "agent-handoff" && entry.timeKind === "handoff-approval-window")) fail("calendar export missing agent handoff approval window");
+
 const exportedLedger = recordTools.createOperatingLedger(returnResult.data, { now: "2026-06-01T04:30:00.000Z" });
 if (exportedLedger.schema !== "epoch.operating-ledger") fail("ledger export has wrong schema");
 if (exportedLedger.version !== recordTools.ledgerVersion) fail("ledger export has wrong version");
@@ -424,6 +494,11 @@ if (persistenceSummary.revision !== exportedLedger.persistence.revision) fail("p
 const engagementLedger = recordTools.createOperatingLedger(acceptResult.data, { now: "2026-06-01T04:35:00.000Z" });
 if (engagementLedger.counts.engagements !== acceptResult.data.engagements.length) fail("ledger export engagement count is wrong");
 
+const handoffLedger = recordTools.createOperatingLedger(handoffResult.data, { now: "2026-06-01T04:40:00.000Z" });
+if (handoffLedger.counts.workPlans !== handoffResult.data.workPlans.length) fail("ledger export work-plan count is wrong");
+if (handoffLedger.counts.agentHandoffs !== handoffResult.data.agentHandoffs.length) fail("ledger export handoff count is wrong");
+if (handoffLedger.monitor.pendingHandoffApprovals < 1) fail("ledger monitor summary missing handoff approvals");
+
 const importedLedger = recordTools.importOperatingLedger(data, JSON.stringify(exportedLedger));
 if (importedLedger.data.receipts.length !== returnResult.data.receipts.length) fail("ledger import did not preserve receipts");
 if (importedLedger.data.notificationEvents.length !== returnResult.data.notificationEvents.length) fail("ledger import did not preserve update events");
@@ -443,6 +518,11 @@ if (recoveryLedger.persistence.adapterState !== "imported-recovery-snapshot") fa
 
 const importedEngagementLedger = recordTools.importOperatingLedger(data, JSON.stringify(engagementLedger));
 if (importedEngagementLedger.data.engagements.length !== acceptResult.data.engagements.length) fail("ledger import did not preserve engagements");
+
+const importedHandoffLedger = recordTools.importOperatingLedger(data, JSON.stringify(handoffLedger));
+if (importedHandoffLedger.data.workPlans.length !== handoffResult.data.workPlans.length) fail("ledger import did not preserve work plans");
+if (importedHandoffLedger.data.agentHandoffs.length !== handoffResult.data.agentHandoffs.length) fail("ledger import did not preserve agent handoffs");
+if (importedHandoffLedger.data.customers[0].externalStatus !== acceptedExternalStatus) fail("ledger import changed customer-visible state for handoff records");
 
 let rejectedInvalidLedger = false;
 try {

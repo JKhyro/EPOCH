@@ -21,6 +21,7 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
 - `docs/education-operating-platform-boundary.md`
 - `docs/first-commercial-slice-checklist.md`
 - `docs/integration-priority-ranking.md`
+- `docs/agentic-revenue-handoff-contract.md`
 
 ## Current implementation artifacts
 
@@ -36,7 +37,8 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   customer-visible update events, scheduling, TEMPO-ready calendar export
   entries, submission creation, deadline summaries, returned-review receipts,
   monitor health reports, and versioned operating-ledger export/import with a
-  LIBRARY-ready durable persistence envelope.
+  LIBRARY-ready durable persistence envelope, plus SYMBIOSIS/ANVIL agentic
+  revenue handoff records.
 - `web/app.js`: shared renderer and local persistence flow for admin,
   student/customer, monitor, public request, scheduling, submission, and
   review-return views, including local ledger save/load, durable snapshot status,

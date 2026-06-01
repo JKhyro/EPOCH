@@ -107,6 +107,8 @@ function allOperatingItems() {
     ...data.leads.map((item) => ({ ...item, kind: "lead", time: item.nextActionAt })),
     ...data.opportunities.map((item) => ({ ...item, title: packageName(item.packageId), kind: "opportunity", time: item.nextActionAt })),
     ...(data.engagements || []).map((item) => ({ ...item, title: packageName(item.packageId), kind: "engagement", time: item.onboardingDueAt || item.acceptedAt })),
+    ...(data.workPlans || []).map((item) => ({ ...item, kind: "agent work plan", time: item.dueAt })),
+    ...(data.agentHandoffs || []).map((item) => ({ ...item, kind: "agent handoff", time: item.nextActionAt })),
     ...(data.notificationEvents || []).map((item) => ({ ...item, kind: "update", time: item.deliverAfterAt || item.createdAt })),
     ...data.sessions.map((item) => ({ ...item, kind: "session", time: item.startAt })),
     ...data.assignments.map((item) => ({ ...item, kind: "request", time: item.dueAt })),
@@ -152,7 +154,7 @@ function renderMetrics(items) {
 
 function renderAdmin(items) {
   const adminItems = items
-    .filter((item) => attentionStatuses.has(item.status) || item.kind === "session" || item.kind === "follow-up" || item.kind === "lead" || item.kind === "opportunity" || item.kind === "engagement")
+    .filter((item) => attentionStatuses.has(item.status) || item.kind === "session" || item.kind === "follow-up" || item.kind === "lead" || item.kind === "opportunity" || item.kind === "engagement" || item.kind === "agent work plan" || item.kind === "agent handoff")
     .slice(0, 10);
 
   byId("admin-actions").innerHTML = adminItems.map((item) => {
@@ -303,6 +305,7 @@ function renderMonitor(items) {
   const report = recordTools.buildMonitorReport(data, { now: `${today}T12:00:00+09:00` });
   const revenue = report.revenue || recordTools.summarizeRevenueState(data);
   const notifications = report.notifications || recordTools.summarizeNotificationState(data);
+  const handoffs = report.handoffs || recordTools.summarizeAgentHandoffState(data);
   const calendarExport = recordTools.createCalendarExport(data, { now: `${today}T12:00:00+09:00` });
   const calendar = report.calendar || recordTools.summarizeCalendarExport(calendarExport);
   const persistence = report.persistence || recordTools.summarizePersistenceState(data, { now: `${today}T12:00:00+09:00` });
@@ -316,6 +319,7 @@ function renderMonitor(items) {
     record("Opportunity Pipeline", `${revenue.pipelineCount} open opportunities with ${formatJpy(revenue.pipelineValueJpy)} estimated value.`, [chip(`${revenue.waitingCount} waiting`, "waiting"), chip(`${revenue.deferredCount} deferred`)]),
     record("Engagement Revenue", `${revenue.activeEngagements} active engagements with ${formatJpy(revenue.acceptedValueJpy)} accepted value.`, [chip(`${revenue.acceptedCount} accepted`, "complete"), chip(`${revenue.under19CompatibilityCount} compatibility gates`)]),
     record("Update Events", `${notifications.visible} visible updates, ${notifications.pending} pending, ${notifications.blocked} blocked.`, [chip(`${notifications.posted} posted`, "complete"), chip(`${notifications.total} total`)]),
+    record("Agent Handoffs", `${handoffs.handoffs} handoffs, ${handoffs.workPlans} work plans, ${handoffs.pendingApprovals} pending approval.`, [chip(`${handoffs.monitorVisible} monitor-visible`), chip(`${handoffs.customerVisibleBlocked} customer-visible`)]),
     record("Calendar Export", `${calendar.total} export-ready entries, ${calendar.customerVisible} customer-visible, ${calendar.updateLinked} update-linked.`, [chip(calendarExport.schema), chip(calendarExport.timezone)]),
     record("Persistence", `Ledger ${persistence.ledgerId} revision ${persistence.revision}; ${persistence.adapterState}; checksum ${persistence.checksum}.`, [chip(persistence.adapter), chip(persistence.libraryReady ? "library-ready" : "local-only")])
   ];
@@ -337,6 +341,22 @@ function renderMonitor(items) {
     `${item.timeKind} | ${formatTime(item.startAt || item.dueAt)} | source: ${item.sourceKind}`,
     [statusChip(item.status), chip(item.localDate || "date pending"), chip(item.customerName || item.owner || "owner pending")]
   ));
+
+  const handoffItems = [
+    ...(data.workPlans || []).map((item) => ({
+      title: item.title,
+      body: `${item.sourceSystem} -> ${item.targetSystem} | ${formatTime(item.dueAt)} | ${item.summary}`,
+      chips: [statusChip(item.status), chip(item.approvalStatus), chip(item.customerVisible ? "customer-visible" : "operator-approval")]
+    })),
+    ...(data.agentHandoffs || []).map((item) => ({
+      title: item.title,
+      body: `${item.sourceSystem} -> ${item.targetSystem} | ${formatTime(item.nextActionAt)} | ${item.rollbackRule}`,
+      chips: [statusChip(item.status), chip(item.approvalStatus), chip(item.customerVisible ? "customer-visible" : "internal-only")]
+    }))
+  ];
+  const handoffCards = handoffItems.length
+    ? handoffItems.slice(0, 8).map((item) => record(item.title, item.body, item.chips))
+    : [record("Agent Handoffs", "No SYMBIOSIS/ANVIL handoff records have been proposed yet.", [chip("empty")])];
 
   const riskCards = report.risks.length
     ? report.risks.map((item) => record(item.title, item.detail, [chip(item.severity, item.severity === "high" ? "blocked" : "overdue")]))
@@ -365,6 +385,7 @@ function renderMonitor(items) {
     monitorSection("Summary", summaryCards, "monitor-summary"),
     monitorSection("Queue", queueCards, "monitor-queue"),
     monitorSection("Timeline", timelineCards, "monitor-timeline"),
+    monitorSection("Agent Handoffs", handoffCards, "monitor-handoffs"),
     monitorSection("Calendar Export", calendarCards.length ? calendarCards : [record("Calendar Export", "No export-ready calendar entries have been created yet.", [chip("empty")])], "monitor-calendar"),
     monitorSection("Persistence", persistenceCards, "monitor-persistence"),
     monitorSection("Risks", riskCards, "monitor-risks"),

@@ -126,6 +126,8 @@ window.EPOCH_SEED_DATA = {
     }
   ],
   "engagements": [],
+  "workPlans": [],
+  "agentHandoffs": [],
   "notificationEvents": [
     {
       "id": "update-001",
