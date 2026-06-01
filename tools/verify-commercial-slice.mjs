@@ -18,6 +18,7 @@ const requiredCollections = [
   "offerPackages",
   "curriculumFrameworks",
   "packageGameplans",
+  "campaignRoutes",
   "leads",
   "opportunities",
   "routePlacements",
@@ -105,6 +106,9 @@ for (const id of [
 for (const id of ["admin-gameplans", "student-gameplans", "curriculum-frameworks"]) {
   if (!html.includes(`id="${id}"`)) fail(`curriculum/gameplan surface missing ${id}`);
 }
+for (const id of ["admin-campaign-routes", "public-campaign-routes", "monitor-campaigns"]) {
+  if (!html.includes(id)) fail(`marketing automation surface missing ${id}`);
+}
 for (const field of ["requesterName", "ageBand", "intakeLane", "billingRegion", "offerKind", "packageId", "documentType", "targetResult", "targetLevel", "baselineSampleState", "weaknessFocus", "availableStudyTime", "deadlineTimezone", "preferredWindow", "requestSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`intake form missing field ${field}`);
 }
@@ -142,6 +146,7 @@ for (const phrase of [
   "Deadline and timezone",
   "Japan-wide launch routes",
   "Global expansion routes",
+  "Campaign Routes",
   "routed before booking",
   "Start with the right first paid step"
 ]) {
@@ -201,8 +206,13 @@ for (const phrase of [
   "renderCurriculumFrameworks",
   "renderAdminGameplans",
   "renderStudentGameplans",
+  "renderCampaignRoutes",
+  "summarizeMarketingState",
   "summarizeCurriculumState",
   "Curriculum Readiness",
+  "Campaign Readiness",
+  "monitor-campaigns",
+  "campaign route",
   "monitor-curriculum",
   "gameplan-ready",
   "marketRoute",
@@ -290,6 +300,45 @@ if (!data.offerPackages.some((item) => item.laborModel === "async-first" && item
 if (!data.offerPackages.some((item) => item.marketRoute.includes("global"))) {
   fail("offer catalog missing global expansion route");
 }
+if (!Array.isArray(data.campaignRoutes) || data.campaignRoutes.length < 5) fail("campaign route records missing marketing automation coverage");
+if (!data.campaignRoutes.every((item) => item.campaignId && item.routeKey && item.channel && item.primaryConversion)) {
+  fail("campaign routes missing campaign id, route key, channel, or primary conversion");
+}
+if (!data.campaignRoutes.every((item) => item.publicRoute && item.adminRoute && item.monitorRoute)) {
+  fail("campaign routes missing public/admin/monitor surfaces");
+}
+if (!data.campaignRoutes.every((item) => Array.isArray(item.monitorKpis) && item.monitorKpis.length)) {
+  fail("campaign routes missing monitor KPI sets");
+}
+if (!data.campaignRoutes.some((item) => item.regionScope === "jp" && item.routeKey.startsWith("ja/offers/"))) {
+  fail("campaign routes missing Japan-wide offer route");
+}
+if (!data.campaignRoutes.some((item) => item.regionScope === "global" && item.routeKey.startsWith("global/offers/"))) {
+  fail("campaign routes missing global offer route");
+}
+if (!data.campaignRoutes.some((item) => item.regionScope === "dual" && item.offerBundle === "crm-system")) {
+  fail("campaign routes missing dual CRM/database service route");
+}
+if (!data.campaignRoutes.some((item) => item.audienceTier === "under19" && item.guardianConsentRequired && item.complianceFlags.includes("no-paid-action-before-consent"))) {
+  fail("campaign routes missing guarded under-19 route");
+}
+if (!data.campaignRoutes.some((item) => item.offerBundle === "tech-support")) fail("campaign routes missing technical support route");
+if (!data.campaignRoutes.some((item) => item.offerBundle === "teacher-review")) fail("campaign routes missing teacher review submission route");
+for (const campaignRoute of data.campaignRoutes) {
+  const publicCopy = `${campaignRoute.publicCopy || ""} ${campaignRoute.ctaPrimary || ""} ${campaignRoute.ctaSecondary || ""}`;
+  for (const forbiddenTerm of campaignRoute.copyForbiddenTerms || []) {
+    if (forbiddenTerm && publicCopy.includes(forbiddenTerm)) {
+      fail(`campaign route ${campaignRoute.id} public copy includes forbidden term ${forbiddenTerm}`);
+    }
+  }
+}
+const englishOfferRoutes = data.campaignRoutes.filter((item) => item.offerBundle === "english-cohort" || item.offerBundle === "teacher-review");
+for (const route of englishOfferRoutes) {
+  const copy = String(route.publicCopy || "").toLowerCase();
+  for (const requiredTerm of ["submission", "progress", "teacher-reviewed", "workflow"]) {
+    if (!copy.includes(requiredTerm)) fail(`English offer campaign ${route.id} missing required copy term ${requiredTerm}`);
+  }
+}
 if (!data.curriculumFrameworks.some((item) => item.id === "framework-eiken-5-to-1-writing")) {
   fail("curriculum frameworks missing EIKEN 5-1 ladder");
 }
@@ -317,6 +366,17 @@ if (typeof recordTools.createAgentHandoffRecords !== "function") fail("operating
 if (typeof recordTools.summarizeAgentHandoffState !== "function") fail("operating helpers missing summarizeAgentHandoffState");
 if (typeof recordTools.summarizeRoutePlacementState !== "function") fail("operating helpers missing summarizeRoutePlacementState");
 if (typeof recordTools.summarizeCurriculumState !== "function") fail("operating helpers missing summarizeCurriculumState");
+if (typeof recordTools.summarizeMarketingState !== "function") fail("operating helpers missing summarizeMarketingState");
+
+const marketingSummary = recordTools.summarizeMarketingState(data);
+if (marketingSummary.total !== data.campaignRoutes.length) fail("marketing summary total is wrong");
+if (marketingSummary.ready < 3) fail("marketing summary missing ready campaign routes");
+if (marketingSummary.jp < 2) fail("marketing summary missing Japan campaign routes");
+if (marketingSummary.global < 1) fail("marketing summary missing global campaign routes");
+if (marketingSummary.dual < 1) fail("marketing summary missing dual campaign routes");
+if (marketingSummary.copyViolations !== 0) fail("marketing summary reported copy policy violations");
+if (marketingSummary.under19Routes !== marketingSummary.guardianRequiredRoutes) fail("marketing summary under-19 routes are not guardian gated");
+if (marketingSummary.serviceRoutes < 2) fail("marketing summary missing adjacent service routes");
 
 const checklist = read("../docs/first-commercial-slice-checklist.md");
 for (const phrase of [
@@ -326,9 +386,24 @@ for (const phrase of [
   "EPOCH MONITOR status page",
   "from intake through returned feedback",
   "Curriculum framework",
-  "Package gameplan"
+  "Package gameplan",
+  "Campaign route"
 ]) {
   if (!checklist.includes(phrase)) fail(`checklist missing phrase: ${phrase}`);
+}
+
+const marketingAutomationDoc = read("../docs/marketing-advertising-automation-plan.md");
+for (const phrase of [
+  "campaignRoutes",
+  "Japan English progress route",
+  "Global professional support route",
+  "Under-19 compatibility gate",
+  "Do not make Japan-facing public copy AI-forward",
+  "technical support retainers",
+  "ready campaign routes",
+  "copy-policy violations"
+]) {
+  if (!marketingAutomationDoc.includes(phrase)) fail(`marketing automation doc missing phrase: ${phrase}`);
 }
 
 const curriculumFrameworkDoc = read("../docs/curriculum-gameplan-framework.md");
@@ -500,8 +575,10 @@ if (routePlacementSummary.duplicateUi) fail("route placement summary should not 
 if (routePlacementSummary.summary.routeCount !== handoffResult.data.routePlacements.length) fail("route placement count does not match data");
 if (!routePlacementSummary.routes.some((route) => route.href === "#monitor" && route.surface === "monitor")) fail("route placement summary missing monitor route");
 if (!routePlacementSummary.routes.some((route) => route.href === "#public" && route.visibility === "public-intake")) fail("route placement summary missing public intake route");
+if (!routePlacementSummary.routes.some((route) => route.summaryKey === "marketing" && route.routeKind === "marketing-readiness")) fail("route placement summary missing marketing readiness route");
 if (!routePlacementSummary.routes.every((route) => route.targetSystem === "SYNAPSE")) fail("route placement routes missing SYNAPSE target");
 if (routePlacementSummary.summary.pendingHandoffApprovals < 1) fail("route placement summary did not expose handoff approval pressure");
+if (routePlacementSummary.summary.campaignRoutes !== data.campaignRoutes.length) fail("route placement summary missing campaign route count");
 
 let rejectedDuplicateHandoff = false;
 try {
@@ -624,6 +701,7 @@ for (const section of ["summary", "queue", "timeline", "risks", "receipts"]) {
 if (!monitorReport.revenue) fail("monitor report missing revenue state");
 if (!monitorReport.curriculum) fail("monitor report missing curriculum state");
 if (!monitorReport.notifications) fail("monitor report missing notification state");
+if (!monitorReport.marketing) fail("monitor report missing marketing state");
 if (!monitorReport.calendar) fail("monitor report missing calendar export state");
 if (!monitorReport.persistence) fail("monitor report missing persistence state");
 if (!monitorReport.routePlacement) fail("monitor report missing SYNAPSE route placement state");
@@ -633,6 +711,10 @@ if (monitorReport.summary.routePlacements < 1) fail("monitor summary missing rou
 if (monitorReport.summary.synapsePlacementMode !== "link-or-embed") fail("monitor summary missing SYNAPSE placement mode");
 if (monitorReport.summary.curriculumFrameworks < 2) fail("monitor summary missing curriculum framework count");
 if (monitorReport.summary.eikenLevelCount < 7) fail("monitor summary missing EIKEN level count");
+if (monitorReport.summary.campaignRoutes !== data.campaignRoutes.length) fail("monitor summary campaign route count is wrong");
+if (monitorReport.summary.readyCampaignRoutes < 3) fail("monitor summary missing ready campaign route count");
+if (monitorReport.summary.copyComplianceViolations !== 0) fail("monitor summary should not report campaign copy violations");
+if (!monitorReport.timeline.some((item) => item.kind === "campaign route")) fail("monitor timeline missing campaign routes");
 if (monitorReport.summary.timeline < 1) fail("monitor report did not include timeline records");
 if (!Array.isArray(monitorReport.queue)) fail("monitor report queue is not an array");
 if (!Array.isArray(monitorReport.receipts) || monitorReport.receipts.length < 1) fail("monitor report receipts missing returned review receipt");
@@ -648,6 +730,7 @@ if (!calendarExport.entries.some((entry) => entry.sourceKind === "session" && en
 if (!calendarExport.entries.some((entry) => entry.sourceKind === "assignment" && entry.dueAt)) fail("calendar export missing assignment due window");
 if (!calendarExport.entries.some((entry) => entry.sourceKind === "submission" && entry.timeKind === "review-window")) fail("calendar export missing submission review window");
 if (!calendarExport.entries.some((entry) => entry.sourceKind === "notification" && entry.updateEventId)) fail("calendar export missing update-linked notification window");
+if (!calendarExport.entries.some((entry) => entry.sourceKind === "campaign-route" && entry.timeKind === "go-live-window")) fail("calendar export missing campaign go-live window");
 const calendarSummary = recordTools.summarizeCalendarExport(calendarExport);
 if (calendarSummary.total !== calendarExport.entries.length) fail("calendar summary total is wrong");
 if (calendarSummary.customerVisible < 1) fail("calendar summary did not count customer-visible entries");
@@ -689,6 +772,8 @@ if (!exportedLedger.routePlacement || exportedLedger.routePlacement.summary.rout
 if (exportedLedger.counts.routePlacements !== returnResult.data.routePlacements.length) fail("ledger export route placement count is wrong");
 if (exportedLedger.counts.curriculumFrameworks !== returnResult.data.curriculumFrameworks.length) fail("ledger export curriculum framework count is wrong");
 if (exportedLedger.counts.packageGameplans !== returnResult.data.packageGameplans.length) fail("ledger export package gameplan count is wrong");
+if (exportedLedger.counts.campaignRoutes !== returnResult.data.campaignRoutes.length) fail("ledger export campaign route count is wrong");
+if (exportedLedger.monitor.campaignRoutes !== returnResult.data.campaignRoutes.length) fail("ledger monitor summary missing campaign routes");
 
 const persistenceSummary = recordTools.summarizePersistenceState(exportedLedger.data);
 if (persistenceSummary.ledgerId !== exportedLedger.persistence.ledgerId) fail("persistence summary did not preserve ledger id");
@@ -706,6 +791,7 @@ const importedLedger = recordTools.importOperatingLedger(data, JSON.stringify(ex
 if (importedLedger.data.receipts.length !== returnResult.data.receipts.length) fail("ledger import did not preserve receipts");
 if (importedLedger.data.notificationEvents.length !== returnResult.data.notificationEvents.length) fail("ledger import did not preserve update events");
 if (importedLedger.data.routePlacements.length !== returnResult.data.routePlacements.length) fail("ledger import did not preserve route placements");
+if (importedLedger.data.campaignRoutes.length !== returnResult.data.campaignRoutes.length) fail("ledger import did not preserve campaign routes");
 if (importedLedger.data.customers[0].externalStatus !== returnResult.data.customers[0].externalStatus) fail("ledger import did not preserve external status");
 if (importedLedger.data.persistence.checksum !== exportedLedger.persistence.checksum) fail("ledger import did not preserve persistence checksum");
 if (importedLedger.ledger.persistence.revision !== exportedLedger.persistence.revision) fail("ledger import did not preserve persistence revision");

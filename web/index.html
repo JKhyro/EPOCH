@@ -26,6 +26,7 @@
         <div class="status-pill" id="monitor-health">Loading</div>
         <div class="rail-chips" aria-label="Active operating capabilities">
           <span class="control-chip">Public intake</span>
+          <span class="control-chip">Campaign routes</span>
           <span class="control-chip">Local ledger</span>
           <span class="control-chip">Thread registry</span>
         </div>
@@ -34,6 +35,7 @@
         <p class="eyebrow">Thread Registry</p>
         <a href="#monitor" class="monitor-route-link">Direct route</a>
         <button type="button" data-monitor-target="monitor-controls">Ledger Controls</button>
+        <button type="button" data-monitor-target="monitor-campaigns">Campaigns</button>
         <button type="button" data-monitor-target="monitor-timeline">Timeline</button>
       </div>
     </aside>
@@ -102,6 +104,11 @@
         <p>Concrete delivery structures that keep premium education work submission-first and personalized.</p>
       </div>
       <div id="admin-gameplans" class="item-list"></div>
+      <div class="section-heading compact">
+        <h2>Campaign Routes</h2>
+        <p>Japan-wide and global campaigns are routed by channel, conversion action, copy policy, and monitor KPI before spend or outreach starts.</p>
+      </div>
+      <div id="admin-campaign-routes" class="item-list campaign-route-list"></div>
       <div class="opportunity-layout">
         <form id="opportunity-form" class="intake-form">
           <div class="form-row">
@@ -265,6 +272,7 @@
         <button type="button" class="mode-button" data-monitor-target="monitor-queue">Queue</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-timeline">Timeline</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-curriculum">Gameplans</button>
+        <button type="button" class="mode-button" data-monitor-target="monitor-campaigns">Campaigns</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-controls">Controls</button>
       </div>
       <div class="monitor-layout">
@@ -278,6 +286,7 @@
           <button type="button" data-monitor-target="monitor-queue">Queue</button>
           <button type="button" data-monitor-target="monitor-timeline">Timeline</button>
           <button type="button" data-monitor-target="monitor-curriculum">Curriculum</button>
+          <button type="button" data-monitor-target="monitor-campaigns">Campaigns</button>
           <button type="button" data-monitor-target="monitor-handoffs">Agent Handoffs</button>
           <button type="button" data-monitor-target="monitor-suite">SYNAPSE</button>
           <button type="button" data-monitor-target="monitor-calendar">Calendar</button>
@@ -369,7 +378,7 @@
       <div class="market-grid" aria-label="Marketing routes">
         <article>
           <h3>Japan-wide launch routes</h3>
-          <p>Position offers around exam outcomes, writing structure, teacher-reviewed feedback, and reliable scheduling. Use English/Japanese copy without leading with AI terminology.</p>
+          <p>Position offers around exam outcomes, writing structure, teacher-reviewed feedback, reliable scheduling, and workflow proof for serious candidates.</p>
           <div class="meta">
             <span class="chip">EIKEN</span>
             <span class="chip">TOEIC</span>
@@ -388,6 +397,12 @@
           </div>
         </article>
       </div>
+
+      <div class="section-heading compact">
+        <h2>Campaign Routes</h2>
+        <p>Each route points to a diagnostic, submission, cohort, or scoped service step so outreach converts into tracked work instead of open-ended calls.</p>
+      </div>
+      <div id="public-campaign-routes" class="item-list campaign-route-list"></div>
 
       <div class="section-heading compact">
         <h2>Offer Catalog</h2>
