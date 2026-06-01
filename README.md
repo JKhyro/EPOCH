@@ -29,9 +29,11 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   public-intake surface.
 - `web/operating-records.js`: browser-local intake-to-operating-record helper
   that turns a public request into lead, customer, request, follow-up, and
-  receipt records.
+  receipt records, then supports submission creation and returned-review
+  receipts.
 - `web/app.js`: shared renderer and local persistence flow for admin,
-  student/customer, monitor, and public request views.
+  student/customer, monitor, public request, submission, and review-return
+  views.
 - `web/seed-data.js`: demo commercial workflow covering leads, tracks, cohorts,
   sessions, assignments, submissions, reviews, follow-ups, and receipts.
 - `tools/verify-commercial-slice.mjs`: repository verifier for the first

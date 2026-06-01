@@ -55,6 +55,38 @@
         <h2>External Status</h2>
         <p>Customer-safe status records for what is due, submitted, returned, and next.</p>
       </div>
+      <div class="submission-layout">
+        <form id="submission-form" class="intake-form">
+          <div class="form-row">
+            <label>
+              Visible request
+              <select name="assignmentId" id="submission-assignment" required></select>
+            </label>
+            <label>
+              Review due
+              <input name="reviewDueAt" type="datetime-local" required />
+            </label>
+          </div>
+          <label>
+            Submission title
+            <input name="submissionTitle" required />
+          </label>
+          <label>
+            Submission summary
+            <textarea name="submissionSummary" rows="4" required></textarea>
+          </label>
+          <div class="form-actions">
+            <button type="submit">Submit Work</button>
+          </div>
+        </form>
+        <div>
+          <div id="submission-confirmation" class="confirmation"></div>
+          <div class="section-heading compact">
+            <h2>Submitted Work</h2>
+          </div>
+          <div id="submission-feed" class="item-list"></div>
+        </div>
+      </div>
       <div id="student-status" class="item-list"></div>
     </section>
 
@@ -63,6 +95,14 @@
         <h2>EPOCH Monitor</h2>
         <p>Local-first health summary for queue risk, receipts, and delivery state.</p>
       </div>
+      <div class="review-console">
+        <label>
+          Review return summary
+          <textarea id="review-return-summary" rows="3">Feedback returned with next action and resubmission guidance.</textarea>
+        </label>
+        <button type="button" id="return-review">Return Next Review</button>
+      </div>
+      <div id="review-confirmation" class="confirmation"></div>
       <div id="monitor-items" class="monitor-grid"></div>
     </section>
 
