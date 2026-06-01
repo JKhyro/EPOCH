@@ -35,6 +35,7 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
 - `docs/payment-provider-handoff-invoice-checkout-contract.md`
 - `docs/auth-session-role-readiness-contract.md`
 - `docs/marketing-conversion-analytics-readiness-contract.md`
+- `docs/provider-adapter-selection-readiness-contract.md`
 
 ## Current implementation artifacts
 
@@ -69,6 +70,8 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   Marketing conversion KPI records remain provider-neutral, first-party, and
   no-live-tracking until a later analytics or advertising adapter is explicitly
   selected and reviewed.
+  Provider adapter candidate records remain sandbox-only and no-live-provider
+  until a later go/no-go decision explicitly permits a scoped live prototype.
 - `web/app.js`: shared renderer and local persistence flow for admin,
   student/customer, monitor, public request, scheduling, submission, and
   review-return views, including local ledger save/load, durable snapshot status,
@@ -78,7 +81,7 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   public/customer access gateway controls, and internal-only LIBRARY
   sync/recovery controls plus provider-neutral calendar and notification
   provider handoff controls, auth/session readiness controls, and local
-  marketing conversion KPI controls.
+  marketing conversion KPI controls plus provider adapter go/no-go controls.
 - `web/seed-data.js`: demo commercial workflow covering leads, tracks, cohorts,
   offer packages, curriculum frameworks, package gameplans, opportunities,
   update events, sessions, assignments, submissions, reviews, follow-ups,
@@ -88,7 +91,9 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   notification provider template/consent readiness, payment provider
   invoice/checkout readiness, auth/session role readiness handoff records, and
   local marketing conversion KPI records for Japan, global, submission-first,
-  and under-19 guarded routes.
+  and under-19 guarded routes, plus provider adapter candidate records for
+  calendar, notification, payment, auth/session, analytics, and persistence
+  go/no-go readiness.
 - `tools/verify-commercial-slice.mjs`: repository verifier for the first
   commercial slice.
 

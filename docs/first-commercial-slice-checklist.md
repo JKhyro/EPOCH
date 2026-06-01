@@ -38,6 +38,7 @@ service operations without waiting for every future CITADEL integration.
 - Calendar provider handoff and invitation-readiness record.
 - Notification provider handoff and template/consent readiness record.
 - Marketing conversion KPI event linked to a campaign route.
+- Provider adapter candidate and go/no-go readiness record.
 
 ## Required operating states
 
@@ -100,6 +101,10 @@ service operations without waiting for every future CITADEL integration.
 - Marketing conversion KPI events prepare route-attributed conversion readiness
   while keeping live pixels, external ad API writes, analytics credentials,
   webhooks, invasive tracking, and cross-site identifiers disabled.
+- Provider adapter candidates prepare calendar, notification, payment,
+  auth/session, analytics, advertising, and durable-persistence selection while
+  keeping live API calls, secrets, OAuth clients, webhooks, provider writes, and
+  production behavior disabled.
 - EIKEN 5-1 and professional/service-support offers have reusable frameworks
   and package-level gameplans that support personalized delivery.
 - Japan-wide and global campaign routes define channel, conversion action, copy

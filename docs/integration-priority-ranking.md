@@ -142,6 +142,19 @@ Current EPOCH-side marketing conversion slice:
   API writes, invasive tracking, analytics credentials, webhooks, personal-data
   storage, cross-site identifiers, or customer-visible notification events.
 
+Current EPOCH-side provider adapter selection slice:
+
+- `providerAdapterCandidates` records sandbox-only candidate adapters for
+  calendar, notification, payment, auth/session, analytics/advertising, and
+  durable persistence.
+- `summarizeProviderAdapterSelectionState` exposes ready candidates,
+  approved-sandbox-only, high-risk, legal/privacy/consent review, no-live,
+  no-secrets, and violation counts to EPOCH MONITOR.
+- `transitionProviderAdapterCandidateRecords` creates internal monitor health
+  checks and `provider-adapter-selection` receipts without live API calls,
+  secrets, OAuth clients, webhooks, provider writes, production behavior, or
+  customer-visible notification events.
+
 ### 7. LIBRARY Durable Operating Ledger Persistence
 
 The local JSON ledger proves the shape, but durable persistence should move to
@@ -214,10 +227,12 @@ are durable enough to present as a suite surface.
    adapters.
 5. Add local marketing conversion KPI readiness before live ad or analytics
    adapters.
-6. Move the operating ledger from browser-local JSON into durable LIBRARY
+6. Add provider adapter go/no-go readiness before selecting a live adapter
+   prototype.
+7. Move the operating ledger from browser-local JSON into durable LIBRARY
    persistence.
-7. Add SYMBIOSIS/ANVIL handoff records for agent-created revenue work.
-8. Add SYNAPSE route placement after the operational contracts are stable.
+8. Add SYMBIOSIS/ANVIL handoff records for agent-created revenue work.
+9. Add SYNAPSE route placement after the operational contracts are stable.
 
 ## Acceptance For Issue 2
 

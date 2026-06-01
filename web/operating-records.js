@@ -21,6 +21,7 @@
     "packageGameplans",
     "campaignRoutes",
     "marketingConversionEvents",
+    "providerAdapterCandidates",
     "leads",
     "opportunities",
     "engagements",
@@ -995,6 +996,209 @@
     ];
   }
 
+  function defaultProviderAdapterCandidates() {
+    return [
+      {
+        id: "provider-adapter-calendar-google",
+        title: "Google Calendar Adapter Candidate",
+        providerFamily: "calendar",
+        targetProvider: "Google Calendar",
+        sourceHandoffIds: ["calendar-provider-google-readiness"],
+        adapterMode: "calendar-sync-readiness",
+        status: "planned",
+        readinessStatus: "go-no-go-ready",
+        goNoGoState: "sandbox-review",
+        riskLevel: "medium",
+        legalReviewRequired: false,
+        privacyReviewRequired: true,
+        consentBoundaryRequired: true,
+        sandboxOnly: true,
+        liveApiCalls: false,
+        productionEnabled: false,
+        secretsPresent: false,
+        credentialsStored: false,
+        oauthConfigured: false,
+        webhookEnabled: false,
+        externalProviderWrite: false,
+        customerVisible: false,
+        customerSafe: false,
+        readinessChecks: ["provider-candidate-recorded", "sandbox-only-before-go-live", "operator-approval-required", "privacy-boundary-required", "consent-boundary-required", "credential-plan-required", "no-live-api", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-live-sync"],
+        goCriteria: ["Calendar export schema remains stable", "Operator approves a sandbox account only", "Consent and invitation copy are reviewed before any send"],
+        blockers: ["No OAuth client configured", "No production calendar write path"],
+        nextActionAt: "2026-06-03T10:00:00+09:00",
+        createdAt: "2026-06-02T03:00:00+09:00",
+        updatedAt: "2026-06-02T03:00:00+09:00",
+        receiptIds: ["receipt-provider-adapter-seed"],
+        notes: "Calendar adapter may be evaluated in sandbox only after explicit operator approval; live sync remains deferred."
+      },
+      {
+        id: "provider-adapter-notification-line-sms",
+        title: "LINE/SMS Notification Adapter Candidate",
+        providerFamily: "notification",
+        targetProvider: "LINE Messaging API or SMS provider",
+        sourceHandoffIds: ["notification-provider-line-sms-readiness"],
+        adapterMode: "notification-send-readiness",
+        status: "planned",
+        readinessStatus: "go-no-go-ready",
+        goNoGoState: "deferred",
+        riskLevel: "high",
+        legalReviewRequired: true,
+        privacyReviewRequired: true,
+        consentBoundaryRequired: true,
+        sandboxOnly: true,
+        liveApiCalls: false,
+        productionEnabled: false,
+        secretsPresent: false,
+        credentialsStored: false,
+        oauthConfigured: false,
+        webhookEnabled: false,
+        externalProviderWrite: false,
+        customerVisible: false,
+        customerSafe: false,
+        readinessChecks: ["provider-candidate-recorded", "sandbox-only-before-go-live", "operator-approval-required", "privacy-boundary-required", "consent-boundary-required", "credential-plan-required", "no-live-api", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-live-send"],
+        goCriteria: ["Consent policy is accepted", "Template copy is approved", "Sandbox send proof is separated from customer-visible delivery"],
+        blockers: ["No live sending consent", "No webhook endpoint selected"],
+        nextActionAt: "2026-06-03T10:30:00+09:00",
+        createdAt: "2026-06-02T03:01:00+09:00",
+        updatedAt: "2026-06-02T03:01:00+09:00",
+        receiptIds: ["receipt-provider-adapter-seed"],
+        notes: "Notification adapter remains a candidate until consent, templates, and sandbox-only handling are reviewed."
+      },
+      {
+        id: "provider-adapter-payment-checkout",
+        title: "Invoice Checkout Adapter Candidate",
+        providerFamily: "payment",
+        targetProvider: "Stripe, Square, or invoice checkout provider",
+        sourceHandoffIds: ["payment-provider-checkout-readiness"],
+        adapterMode: "payment-checkout-readiness",
+        status: "waiting",
+        readinessStatus: "go-no-go-ready",
+        goNoGoState: "legal-review-required",
+        riskLevel: "high",
+        legalReviewRequired: true,
+        privacyReviewRequired: true,
+        consentBoundaryRequired: true,
+        sandboxOnly: true,
+        liveApiCalls: false,
+        productionEnabled: false,
+        secretsPresent: false,
+        credentialsStored: false,
+        oauthConfigured: false,
+        webhookEnabled: false,
+        externalProviderWrite: false,
+        customerVisible: false,
+        customerSafe: false,
+        readinessChecks: ["provider-candidate-recorded", "sandbox-only-before-go-live", "operator-approval-required", "privacy-boundary-required", "consent-boundary-required", "credential-plan-required", "legal-review-required", "no-live-api", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-payment-capture"],
+        goCriteria: ["Legal/tax posture is reviewed", "Under-19 guardian block is preserved", "Sandbox checkout cannot capture production payment"],
+        blockers: ["No live payment capture", "No webhook signing secret", "No checkout credential storage"],
+        nextActionAt: "2026-06-03T11:00:00+09:00",
+        createdAt: "2026-06-02T03:02:00+09:00",
+        updatedAt: "2026-06-02T03:02:00+09:00",
+        receiptIds: ["receipt-provider-adapter-seed"],
+        notes: "Payment adapter requires legal/privacy review and sandbox-only approval before any provider integration."
+      },
+      {
+        id: "provider-adapter-auth-session",
+        title: "Auth Session Adapter Candidate",
+        providerFamily: "auth-session",
+        targetProvider: "Provider-neutral identity adapter",
+        sourceHandoffIds: ["auth-public-intake-readiness", "auth-customer-status-readiness", "auth-admin-denial-readiness", "auth-monitor-denial-readiness"],
+        adapterMode: "identity-boundary-readiness",
+        status: "planned",
+        readinessStatus: "go-no-go-ready",
+        goNoGoState: "deferred",
+        riskLevel: "high",
+        legalReviewRequired: false,
+        privacyReviewRequired: true,
+        consentBoundaryRequired: true,
+        sandboxOnly: true,
+        liveApiCalls: false,
+        productionEnabled: false,
+        secretsPresent: false,
+        credentialsStored: false,
+        oauthConfigured: false,
+        webhookEnabled: false,
+        externalProviderWrite: false,
+        customerVisible: false,
+        customerSafe: false,
+        readinessChecks: ["provider-candidate-recorded", "sandbox-only-before-go-live", "operator-approval-required", "privacy-boundary-required", "consent-boundary-required", "credential-plan-required", "no-live-api", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-live-auth", "raw-monitor-denied-public", "raw-admin-denied-public"],
+        goCriteria: ["Public/customer/admin/monitor role split is preserved", "Token storage policy is explicit", "Raw monitor/admin denial remains verified"],
+        blockers: ["No OAuth client", "No token storage", "No external session"],
+        nextActionAt: "2026-06-03T11:30:00+09:00",
+        createdAt: "2026-06-02T03:03:00+09:00",
+        updatedAt: "2026-06-02T03:03:00+09:00",
+        receiptIds: ["receipt-provider-adapter-seed"],
+        notes: "Auth adapter selection cannot weaken raw admin/monitor denial or introduce token storage."
+      },
+      {
+        id: "provider-adapter-analytics-ads",
+        title: "Analytics And Ads Adapter Candidate",
+        providerFamily: "analytics-advertising",
+        targetProvider: "Google Analytics, Google Ads, Meta, or LINE Ads candidate",
+        sourceHandoffIds: ["conversion-ja-diagnostic-submit", "conversion-global-support-consult"],
+        adapterMode: "conversion-measurement-readiness",
+        status: "waiting",
+        readinessStatus: "go-no-go-ready",
+        goNoGoState: "privacy-review-required",
+        riskLevel: "high",
+        legalReviewRequired: true,
+        privacyReviewRequired: true,
+        consentBoundaryRequired: true,
+        sandboxOnly: true,
+        liveApiCalls: false,
+        productionEnabled: false,
+        secretsPresent: false,
+        credentialsStored: false,
+        oauthConfigured: false,
+        webhookEnabled: false,
+        externalProviderWrite: false,
+        customerVisible: false,
+        customerSafe: false,
+        readinessChecks: ["provider-candidate-recorded", "sandbox-only-before-go-live", "operator-approval-required", "privacy-boundary-required", "consent-boundary-required", "credential-plan-required", "legal-review-required", "no-live-api", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-live-pixel", "no-external-ad-api-write", "no-invasive-tracking"],
+        goCriteria: ["Privacy posture is explicit", "Consent and regional policy are reviewed", "First-party KPI ledger remains the default truth"],
+        blockers: ["No live pixel", "No ad API conversion write", "No cross-site identifier"],
+        nextActionAt: "2026-06-03T12:00:00+09:00",
+        createdAt: "2026-06-02T03:04:00+09:00",
+        updatedAt: "2026-06-02T03:04:00+09:00",
+        receiptIds: ["receipt-provider-adapter-seed"],
+        notes: "Analytics/ad adapter selection remains blocked until legal/privacy and consent boundaries are explicit."
+      },
+      {
+        id: "provider-adapter-library-persistence",
+        title: "LIBRARY Persistence Adapter Candidate",
+        providerFamily: "durable-persistence",
+        targetProvider: "LIBRARY API or Postgres ledger persistence",
+        sourceHandoffIds: ["library-sync-operating-ledger", "library-recovery-import"],
+        adapterMode: "durable-ledger-readiness",
+        status: "planned",
+        readinessStatus: "go-no-go-ready",
+        goNoGoState: "sandbox-review",
+        riskLevel: "medium",
+        legalReviewRequired: false,
+        privacyReviewRequired: true,
+        consentBoundaryRequired: false,
+        sandboxOnly: true,
+        liveApiCalls: false,
+        productionEnabled: false,
+        secretsPresent: false,
+        credentialsStored: false,
+        oauthConfigured: false,
+        webhookEnabled: false,
+        externalProviderWrite: false,
+        customerVisible: false,
+        customerSafe: false,
+        readinessChecks: ["provider-candidate-recorded", "sandbox-only-before-go-live", "operator-approval-required", "privacy-boundary-required", "credential-plan-required", "no-live-api", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "backup-plan-required", "recovery-plan-required"],
+        goCriteria: ["Backup/recovery path is preserved", "Import/export checks stay deterministic", "Sandbox writes cannot overwrite production records"],
+        blockers: ["No live database mutation", "No service credential storage"],
+        nextActionAt: "2026-06-03T12:30:00+09:00",
+        createdAt: "2026-06-02T03:05:00+09:00",
+        updatedAt: "2026-06-02T03:05:00+09:00",
+        receiptIds: ["receipt-provider-adapter-seed"],
+        notes: "Durable persistence adapter is sandbox-only until recovery and backup behavior are proven."
+      }
+    ];
+  }
+
   function normalizedOperatingData(data) {
     const nextData = cloneData(data || {});
     for (const collection of ledgerCollections) {
@@ -1024,6 +1228,9 @@
     }
     if (!Array.isArray(nextData.marketingConversionEvents) || !nextData.marketingConversionEvents.length) {
       nextData.marketingConversionEvents = defaultMarketingConversionEvents();
+    }
+    if (!Array.isArray(nextData.providerAdapterCandidates) || !nextData.providerAdapterCandidates.length) {
+      nextData.providerAdapterCandidates = defaultProviderAdapterCandidates();
     }
     if (!nextData.accessPosture || typeof nextData.accessPosture !== "object") {
       nextData.accessPosture = {
@@ -4785,6 +4992,276 @@
     };
   }
 
+  function summarizeProviderAdapterSelectionState(currentData) {
+    const data = normalizedOperatingData(currentData);
+    const requiredBaseChecks = ["provider-candidate-recorded", "sandbox-only-before-go-live", "operator-approval-required", "credential-plan-required", "no-live-api", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes"];
+    const familyChecks = {
+      calendar: ["no-live-sync"],
+      notification: ["no-live-send", "consent-boundary-required"],
+      payment: ["no-payment-capture", "legal-review-required", "consent-boundary-required"],
+      "auth-session": ["no-live-auth", "raw-monitor-denied-public", "raw-admin-denied-public"],
+      "analytics-advertising": ["no-live-pixel", "no-external-ad-api-write", "no-invasive-tracking", "legal-review-required", "consent-boundary-required"],
+      "durable-persistence": ["backup-plan-required", "recovery-plan-required"]
+    };
+    const candidates = data.providerAdapterCandidates.map((candidate) => {
+      const providerFamily = clean(candidate.providerFamily) || "provider";
+      const status = clean(candidate.status) || "planned";
+      const readinessStatus = clean(candidate.readinessStatus) || "go-no-go-ready";
+      const goNoGoState = clean(candidate.goNoGoState) || "deferred";
+      const readinessChecks = Array.isArray(candidate.readinessChecks) ? candidate.readinessChecks : [];
+      const sourceHandoffIds = Array.isArray(candidate.sourceHandoffIds) ? candidate.sourceHandoffIds : [];
+      const receiptIds = Array.isArray(candidate.receiptIds) ? candidate.receiptIds : [];
+      const goCriteria = Array.isArray(candidate.goCriteria) ? candidate.goCriteria : [];
+      const blockers = Array.isArray(candidate.blockers) ? candidate.blockers : [];
+      const liveApiCalls = candidate.liveApiCalls === true;
+      const productionEnabled = candidate.productionEnabled === true;
+      const secretsPresent = candidate.secretsPresent === true;
+      const credentialsStored = candidate.credentialsStored === true;
+      const oauthConfigured = candidate.oauthConfigured === true;
+      const webhookEnabled = candidate.webhookEnabled === true;
+      const externalProviderWrite = candidate.externalProviderWrite === true;
+      const customerVisible = candidate.customerVisible === true;
+      const violations = [];
+
+      if (liveApiCalls || productionEnabled || externalProviderWrite) {
+        violations.push("Provider adapter candidate cannot enable live API calls, production behavior, or provider writes.");
+      }
+      if (secretsPresent || credentialsStored || oauthConfigured || webhookEnabled) {
+        violations.push("Provider adapter candidate cannot store secrets, credentials, OAuth clients, or webhooks.");
+      }
+      if (customerVisible) {
+        violations.push("Provider adapter readiness must remain internal and not customer-visible.");
+      }
+      for (const required of requiredBaseChecks.concat(familyChecks[providerFamily] || [])) {
+        if (!readinessChecks.includes(required)) {
+          violations.push(`Provider adapter readiness must include ${required}.`);
+        }
+      }
+      if (!goCriteria.length) violations.push("Provider adapter candidate must define go criteria.");
+      if (!blockers.length) violations.push("Provider adapter candidate must define blockers.");
+
+      return {
+        id: clean(candidate.id),
+        title: clean(candidate.title) || "Provider Adapter Candidate",
+        providerFamily,
+        targetProvider: clean(candidate.targetProvider) || "provider pending",
+        sourceHandoffIds,
+        adapterMode: clean(candidate.adapterMode) || "provider-readiness",
+        status,
+        readinessStatus,
+        goNoGoState,
+        riskLevel: clean(candidate.riskLevel) || "medium",
+        legalReviewRequired: candidate.legalReviewRequired === true,
+        privacyReviewRequired: candidate.privacyReviewRequired !== false,
+        consentBoundaryRequired: candidate.consentBoundaryRequired === true,
+        sandboxOnly: candidate.sandboxOnly !== false,
+        liveApiCalls,
+        productionEnabled,
+        secretsPresent,
+        credentialsStored,
+        oauthConfigured,
+        webhookEnabled,
+        externalProviderWrite,
+        customerVisible,
+        customerSafe: candidate.customerSafe === true,
+        readinessChecks,
+        goCriteria,
+        blockers,
+        nextActionAt: clean(candidate.nextActionAt),
+        createdAt: clean(candidate.createdAt),
+        updatedAt: clean(candidate.updatedAt),
+        receiptIds,
+        notes: clean(candidate.notes) || "No provider adapter note recorded.",
+        violations
+      };
+    });
+    const violationList = candidates.flatMap((candidate) => candidate.violations.map((violation) => `${candidate.title}: ${violation}`));
+    const readyStates = new Set(["go-no-go-ready", "sandbox-ready", "approved-sandbox-only"]);
+
+    return {
+      candidateCount: candidates.length,
+      readyCandidates: candidates.filter((candidate) => readyStates.has(candidate.readinessStatus)).length,
+      sandboxOnly: candidates.filter((candidate) => candidate.sandboxOnly).length,
+      approvedSandboxOnly: candidates.filter((candidate) => candidate.goNoGoState === "approved-sandbox-only").length,
+      blockedCandidates: candidates.filter((candidate) => candidate.status === "blocked" || candidate.readinessStatus === "blocked").length,
+      deferredCandidates: candidates.filter((candidate) => ["deferred", "legal-review-required", "privacy-review-required"].includes(candidate.goNoGoState)).length,
+      highRiskCandidates: candidates.filter((candidate) => candidate.riskLevel === "high").length,
+      legalReviewRequired: candidates.filter((candidate) => candidate.legalReviewRequired).length,
+      privacyReviewRequired: candidates.filter((candidate) => candidate.privacyReviewRequired).length,
+      consentBoundaryRequired: candidates.filter((candidate) => candidate.consentBoundaryRequired).length,
+      noLiveProvider: candidates.filter((candidate) => !candidate.liveApiCalls && !candidate.productionEnabled && !candidate.externalProviderWrite).length,
+      noSecrets: candidates.filter((candidate) => !candidate.secretsPresent && !candidate.credentialsStored && !candidate.oauthConfigured && !candidate.webhookEnabled).length,
+      familyCounts: candidates.reduce((memo, candidate) => {
+        memo[candidate.providerFamily] = (memo[candidate.providerFamily] || 0) + 1;
+        return memo;
+      }, {}),
+      status: violationList.length ? "blocked" : "ready",
+      violations: violationList,
+      candidates
+    };
+  }
+
+  function createProviderAdapterCandidateRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const nowText = withTimezone(now.toISOString(), nextData.timezone || "Asia/Tokyo");
+    const providerFamily = clean(input.providerFamily) || "provider";
+    const requiredChecks = ["provider-candidate-recorded", "sandbox-only-before-go-live", "operator-approval-required", "credential-plan-required", "no-live-api", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes"];
+    const candidate = {
+      id: `provider-adapter-${stamp(now)}-${nextData.providerAdapterCandidates.length + 1}`,
+      title: clean(input.title) || `${providerFamily} Provider Adapter Candidate`,
+      providerFamily,
+      targetProvider: clean(input.targetProvider) || "provider-neutral candidate",
+      sourceHandoffIds: Array.isArray(input.sourceHandoffIds) ? input.sourceHandoffIds : [],
+      adapterMode: clean(input.adapterMode) || "provider-readiness",
+      status: clean(input.status) || "planned",
+      readinessStatus: clean(input.readinessStatus) || "go-no-go-ready",
+      goNoGoState: clean(input.goNoGoState) || "deferred",
+      riskLevel: clean(input.riskLevel) || "medium",
+      legalReviewRequired: input.legalReviewRequired === true || input.legalReviewRequired === "true",
+      privacyReviewRequired: input.privacyReviewRequired !== false,
+      consentBoundaryRequired: input.consentBoundaryRequired === true || input.consentBoundaryRequired === "true",
+      sandboxOnly: true,
+      liveApiCalls: false,
+      productionEnabled: false,
+      secretsPresent: false,
+      credentialsStored: false,
+      oauthConfigured: false,
+      webhookEnabled: false,
+      externalProviderWrite: false,
+      customerVisible: false,
+      customerSafe: false,
+      readinessChecks: requiredChecks.concat(Array.isArray(input.readinessChecks) ? input.readinessChecks : []),
+      goCriteria: Array.isArray(input.goCriteria) ? input.goCriteria : ["Operator approval required before sandbox proof."],
+      blockers: Array.isArray(input.blockers) ? input.blockers : ["No live provider behavior is enabled."],
+      nextActionAt: withTimezone(input.nextActionAt, nextData.timezone || "Asia/Tokyo") || nowText,
+      createdAt: nowText,
+      updatedAt: nowText,
+      receiptIds: [],
+      notes: clean(input.note) || "Provider adapter candidate created without live API calls, secrets, OAuth, webhooks, or provider writes."
+    };
+    const familyChecks = {
+      calendar: ["no-live-sync"],
+      notification: ["no-live-send", "consent-boundary-required"],
+      payment: ["no-payment-capture", "legal-review-required", "consent-boundary-required"],
+      "auth-session": ["no-live-auth", "raw-monitor-denied-public", "raw-admin-denied-public"],
+      "analytics-advertising": ["no-live-pixel", "no-external-ad-api-write", "no-invasive-tracking", "legal-review-required", "consent-boundary-required"],
+      "durable-persistence": ["backup-plan-required", "recovery-plan-required"]
+    };
+    for (const check of familyChecks[providerFamily] || []) {
+      if (!candidate.readinessChecks.includes(check)) candidate.readinessChecks.push(check);
+    }
+    const receipt = {
+      id: `receipt-provider-adapter-${stamp(now)}`,
+      kind: "provider-adapter-selection",
+      status: "complete",
+      createdAt: nowText,
+      note: `${candidate.title}: provider adapter candidate created as no-live readiness only.`
+    };
+    candidate.receiptIds.push(receipt.id);
+    nextData.providerAdapterCandidates.unshift(candidate);
+    nextData.receipts.unshift(receipt);
+    return {
+      data: nextData,
+      records: {
+        candidate,
+        receipt
+      }
+    };
+  }
+
+  function transitionProviderAdapterCandidateRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const nowText = withTimezone(now.toISOString(), nextData.timezone || "Asia/Tokyo");
+    const candidate = nextData.providerAdapterCandidates.find((item) => clean(item.id) === clean(input.candidateId));
+    if (!candidate) throw new Error("Select a provider adapter candidate before applying an action.");
+    const action = clean(input.action) || "verify";
+    const note = clean(input.note) || "Provider adapter readiness reviewed.";
+    const ensureChecks = (checks) => {
+      candidate.readinessChecks = Array.isArray(candidate.readinessChecks) ? candidate.readinessChecks : [];
+      for (const check of checks) {
+        if (!candidate.readinessChecks.includes(check)) candidate.readinessChecks.push(check);
+      }
+    };
+
+    if (action === "verify" || action === "mark-ready") {
+      candidate.status = "complete";
+      candidate.readinessStatus = "go-no-go-ready";
+      candidate.goNoGoState = "ready-for-sandbox-review";
+    } else if (action === "approve-sandbox-only") {
+      candidate.status = "approved";
+      candidate.readinessStatus = "approved-sandbox-only";
+      candidate.goNoGoState = "approved-sandbox-only";
+      candidate.sandboxOnly = true;
+    } else if (action === "defer") {
+      candidate.status = "waiting";
+      candidate.readinessStatus = "go-no-go-ready";
+      candidate.goNoGoState = "deferred";
+    } else if (action === "block") {
+      candidate.status = "blocked";
+      candidate.readinessStatus = "blocked";
+      candidate.goNoGoState = "blocked";
+    } else {
+      candidate.status = action;
+    }
+
+    ensureChecks(["provider-candidate-recorded", "sandbox-only-before-go-live", "operator-approval-required", "credential-plan-required", "no-live-api", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes"]);
+    if (clean(candidate.providerFamily) === "calendar") ensureChecks(["no-live-sync"]);
+    if (clean(candidate.providerFamily) === "notification") ensureChecks(["no-live-send", "consent-boundary-required"]);
+    if (clean(candidate.providerFamily) === "payment") ensureChecks(["no-payment-capture", "legal-review-required", "consent-boundary-required"]);
+    if (clean(candidate.providerFamily) === "auth-session") ensureChecks(["no-live-auth", "raw-monitor-denied-public", "raw-admin-denied-public"]);
+    if (clean(candidate.providerFamily) === "analytics-advertising") ensureChecks(["no-live-pixel", "no-external-ad-api-write", "no-invasive-tracking", "legal-review-required", "consent-boundary-required"]);
+    if (clean(candidate.providerFamily) === "durable-persistence") ensureChecks(["backup-plan-required", "recovery-plan-required"]);
+
+    candidate.sandboxOnly = true;
+    candidate.liveApiCalls = false;
+    candidate.productionEnabled = false;
+    candidate.secretsPresent = false;
+    candidate.credentialsStored = false;
+    candidate.oauthConfigured = false;
+    candidate.webhookEnabled = false;
+    candidate.externalProviderWrite = false;
+    candidate.customerVisible = false;
+    candidate.customerSafe = false;
+    candidate.updatedAt = nowText;
+    candidate.notes = note;
+
+    const receipt = {
+      id: `receipt-provider-adapter-${stamp(now)}`,
+      kind: "provider-adapter-selection",
+      status: candidate.status === "blocked" ? "blocked" : "complete",
+      createdAt: nowText,
+      note: `${candidate.title}: ${action} recorded without live API calls, secrets, OAuth, webhooks, or provider writes. ${note}`
+    };
+    const healthCheck = {
+      id: `monitor-check-provider-adapter-${stamp(now)}`,
+      title: "Provider Adapter Go/No-Go Readiness",
+      status: candidate.status === "blocked" ? "blocked" : "complete",
+      target: "monitor-provider-adapters",
+      effect: "provider-adapter-selection-readiness",
+      createdAt: nowText,
+      summary: `${candidate.title} is ${candidate.goNoGoState}; provider behavior remains sandbox-only and no-live.`,
+      receiptId: receipt.id,
+      visibility: "internal",
+      customerVisible: false
+    };
+
+    candidate.receiptIds = Array.isArray(candidate.receiptIds) ? candidate.receiptIds : [];
+    candidate.receiptIds.push(receipt.id);
+    nextData.receipts.unshift(receipt);
+    nextData.monitorHealthChecks.unshift(healthCheck);
+
+    return {
+      data: nextData,
+      records: {
+        candidate,
+        receipt,
+        healthCheck
+      }
+    };
+  }
+
   function summarizeMemoryState(currentData, options = {}) {
     const data = normalizedOperatingData(currentData);
     const nowText = clean(options.now) || "2026-06-01T12:00:00+09:00";
@@ -4818,6 +5295,7 @@
     const handoffs = summarizeAgentHandoffState(data);
     const marketing = summarizeMarketingState(data);
     const marketingConversion = summarizeMarketingConversionState(data);
+    const providerAdapters = summarizeProviderAdapterSelectionState(data);
     const calendarExport = createCalendarExport(data, { now: nowText });
     const timeline = monitorTimelineItems(data);
     const terminalStatuses = new Set(["complete", "sent", "paid-recorded", "declined", "returned", "canceled", "accepted", "rejected", "rolled-back"]);
@@ -4845,6 +5323,8 @@
       readyCampaignRoutes: marketing.ready,
       marketingConversionEvents: marketingConversion.eventCount,
       marketingConversionReady: marketingConversion.readyEvents,
+      providerAdapterCandidates: providerAdapters.candidateCount,
+      providerAdapterReady: providerAdapters.readyCandidates,
       copyComplianceViolations: marketing.copyViolations
     };
     const summaryByKey = {
@@ -4852,7 +5332,7 @@
       queue: `${baseSummary.queue} queued records`,
       "visible-updates": `${baseSummary.visibleUpdates} visible updates`,
       pipeline: `${revenue.pipelineCount} opportunities; ${baseSummary.pipelineValueJpy} JPY pipeline`,
-      marketing: `${marketing.ready} ready campaigns; ${marketingConversion.readyEvents} KPI events; ${marketing.copyViolations} copy policy violations`
+      marketing: `${marketing.ready} ready campaigns; ${marketingConversion.readyEvents} KPI events; ${providerAdapters.readyCandidates} provider candidates; ${marketing.copyViolations} copy policy violations`
     };
     const routes = data.routePlacements.map((route) => ({
       id: clean(route.id),
@@ -5831,6 +6311,7 @@
       ...currentData.packageGameplans.map((item) => ({ kind: "gameplan", id: item.id, title: item.title, status: item.status, time: item.nextMilestoneAt, owner: item.laborModel || "delivery plan" })),
       ...currentData.campaignRoutes.map((item) => ({ kind: "campaign route", id: item.id, title: item.name || item.routeKey, status: item.status || item.readinessStatus, time: item.goLiveAt || item.startAt, owner: item.channel || item.owner || "channel pending" })),
       ...(currentData.marketingConversionEvents || []).map((item) => ({ kind: "marketing conversion", id: item.id, title: item.title, status: item.status || item.readinessStatus, time: item.nextActionAt || item.occurredAt || item.updatedAt || item.createdAt, owner: item.eventType || item.primaryConversion || "conversion" })),
+      ...(currentData.providerAdapterCandidates || []).map((item) => ({ kind: "provider adapter", id: item.id, title: item.title, status: item.status || item.readinessStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.providerFamily || item.targetProvider || "provider" })),
       ...currentData.workPlans.map((item) => ({ kind: "agent work plan", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.approvalStatus || item.owner || "approval pending" })),
       ...currentData.agentHandoffs.map((item) => ({ kind: "agent handoff", id: item.id, title: item.title, status: item.status, time: item.nextActionAt, owner: item.approvalStatus || "approval pending" })),
       ...currentData.monitorHealthChecks.map((item) => ({ kind: "monitor check", id: item.id, title: item.title, status: item.status, time: item.createdAt, owner: item.target || item.owner || "monitor" })),
@@ -5871,6 +6352,7 @@
     const handoffs = summarizeAgentHandoffState(data);
     const marketing = summarizeMarketingState(data);
     const marketingConversion = summarizeMarketingConversionState(data);
+    const providerAdapters = summarizeProviderAdapterSelectionState(data);
     const calendarExport = createCalendarExport(data, { now: nowText });
     const calendarProvider = summarizeCalendarProviderState(data, { now: nowText, calendarExport });
     const persistence = summarizePersistenceState(data, { now: nowText });
@@ -5926,6 +6408,10 @@
       if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
     for (const item of timeline.filter((entry) => entry.kind === "marketing conversion").slice(0, 5)) {
+      if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
+      if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
+    }
+    for (const item of timeline.filter((entry) => entry.kind === "provider adapter").slice(0, 6)) {
       if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
       if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
@@ -6008,6 +6494,14 @@
         severity: "high",
         title: "Marketing Conversion KPI Readiness",
         detail: marketingConversion.violations[0]
+      });
+    }
+    if (providerAdapters.violations.length) {
+      risks.push({
+        id: "provider-adapter-readiness-violation",
+        severity: "high",
+        title: "Provider Adapter Go/No-Go",
+        detail: providerAdapters.violations[0]
       });
     }
     if (scope.warnings.length) {
@@ -6201,6 +6695,16 @@
         marketingConversionNoLiveTracking: marketingConversion.noLiveTracking,
         marketingConversionPotentialValueJpy: marketingConversion.potentialValueJpy,
         marketingConversionViolations: marketingConversion.violations.length,
+        providerAdapterCandidates: providerAdapters.candidateCount,
+        providerAdapterReady: providerAdapters.readyCandidates,
+        providerAdapterSandboxOnly: providerAdapters.sandboxOnly,
+        providerAdapterNoLiveProvider: providerAdapters.noLiveProvider,
+        providerAdapterNoSecrets: providerAdapters.noSecrets,
+        providerAdapterApprovedSandboxOnly: providerAdapters.approvedSandboxOnly,
+        providerAdapterHighRisk: providerAdapters.highRiskCandidates,
+        providerAdapterLegalReviewRequired: providerAdapters.legalReviewRequired,
+        providerAdapterPrivacyReviewRequired: providerAdapters.privacyReviewRequired,
+        providerAdapterViolations: providerAdapters.violations.length,
         copyComplianceViolations: marketing.copyViolations,
         under19CampaignRoutes: marketing.under19Routes,
         marketingChannels: marketing.channelCount,
@@ -6242,6 +6746,7 @@
       handoffs,
       marketing,
       marketingConversion,
+      providerAdapters,
       calendarProvider,
       librarySync,
       accessGateways,
@@ -6280,6 +6785,7 @@
     const paymentProvider = summarizePaymentProviderState(data);
     const authSession = summarizeAuthSessionRoleState(data);
     const marketingConversion = summarizeMarketingConversionState(data);
+    const providerAdapters = summarizeProviderAdapterSelectionState(data);
     const routePlacement = summarizeRoutePlacementState(data, { now: now.toISOString() });
     const accessGateway = summarizeAccessGatewayState(data, { now: now.toISOString(), routePlacement });
     const librarySync = summarizeLibrarySyncState(data, { now: now.toISOString(), persistence });
@@ -6302,6 +6808,7 @@
       paymentProvider,
       authSession,
       marketingConversion,
+      providerAdapters,
       routePlacement,
       accessGateway,
       librarySync,
@@ -6336,6 +6843,8 @@
     transitionAuthSessionRoleHandoffRecords,
     createMarketingConversionEventRecords,
     transitionMarketingConversionEventRecords,
+    createProviderAdapterCandidateRecords,
+    transitionProviderAdapterCandidateRecords,
     createQuoteEstimateRecords,
     transitionQuoteEstimateRecords,
     createReminderRuleRecords,
@@ -6373,6 +6882,7 @@
     summarizePaymentProviderState,
     summarizeAuthSessionRoleState,
     summarizeMarketingConversionState,
+    summarizeProviderAdapterSelectionState,
     summarizeAccessPosture,
     summarizeMemoryState,
     summarizeScopeState,
