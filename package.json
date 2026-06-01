@@ -1,0 +1,9 @@
+{
+  "name": "@jkhyro/epoch",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "verify": "node tools/verify-commercial-slice.mjs"
+  }
+}

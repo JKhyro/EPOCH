@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EPOCH Commercial Operating Surface</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">EPOCH V1</p>
+        <h1>Commercial Operating Surface</h1>
+      </div>
+      <div class="status-pill" id="monitor-health">Loading</div>
+    </header>
+
+    <section class="summary-band" aria-label="Operating summary">
+      <div>
+        <span class="metric" id="metric-today">0</span>
+        <span class="metric-label">today</span>
+      </div>
+      <div>
+        <span class="metric" id="metric-upcoming">0</span>
+        <span class="metric-label">upcoming</span>
+      </div>
+      <div>
+        <span class="metric risk" id="metric-overdue">0</span>
+        <span class="metric-label">overdue</span>
+      </div>
+      <div>
+        <span class="metric blocked" id="metric-blocked">0</span>
+        <span class="metric-label">blocked</span>
+      </div>
+    </section>
+
+    <nav class="tabs" aria-label="EPOCH views">
+      <button class="tab active" data-view="admin">Admin</button>
+      <button class="tab" data-view="student">Student</button>
+      <button class="tab" data-view="monitor">Monitor</button>
+      <button class="tab" data-view="public">Public</button>
+    </nav>
+
+    <section id="view-admin" class="view active" aria-label="Internal administration">
+      <div class="section-heading">
+        <h2>Internal Next Actions</h2>
+        <p>Classes, submissions, service requests, and review work that need provider attention.</p>
+      </div>
+      <div id="admin-actions" class="item-list"></div>
+    </section>
+
+    <section id="view-student" class="view" aria-label="Student and customer status">
+      <div class="section-heading">
+        <h2>External Status</h2>
+        <p>Customer-safe status records for what is due, submitted, returned, and next.</p>
+      </div>
+      <div id="student-status" class="item-list"></div>
+    </section>
+
+    <section id="view-monitor" class="view" aria-label="EPOCH monitor">
+      <div class="section-heading">
+        <h2>EPOCH Monitor</h2>
+        <p>Local-first health summary for queue risk, receipts, and delivery state.</p>
+      </div>
+      <div id="monitor-items" class="monitor-grid"></div>
+    </section>
+
+    <section id="view-public" class="view" aria-label="Public offer surface">
+      <div class="section-heading">
+        <h2>Professional Intake</h2>
+        <p>Japan-wide education and service operations without leading with AI terminology.</p>
+      </div>
+      <div class="offer-layout">
+        <article>
+          <h3>Premium Education Operations</h3>
+          <p>EIKEN 5-1, writing review, cohort labs, diagnostics, and serious student support.</p>
+        </article>
+        <article>
+          <h3>Service Operations Support</h3>
+          <p>Consulting, tech support, clerical/admin, database, CRM, and management-system work.</p>
+        </article>
+        <article>
+          <h3>Compatibility Gate</h3>
+          <p>Under-19 applicants require compatibility assessment and guardian agreement before acceptance.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <script src="./seed-data.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
