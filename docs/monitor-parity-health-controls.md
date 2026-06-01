@@ -148,3 +148,9 @@ The repository verifier must cover:
   no-live-api/no-secrets/no-OAuth/no-webhook/no-provider-write enforcement,
   internal `provider-adapter-selection` receipts, export/import preservation,
   monitor summary counts, and the `monitor-provider-adapters` section.
+- Sandbox calendar adapter prototype controls and verifier coverage for
+  `calendarAdapterPrototypes`, local calendar payload previews,
+  provider-go/no-go linkage, no-live-api/no-secrets/no-OAuth/no-webhook,
+  no-provider-write/no-live-sync/no-invitation-send enforcement, internal
+  `calendar-adapter-prototype` receipts, export/import preservation, monitor
+  summary counts, and the `monitor-calendar-adapter` section.

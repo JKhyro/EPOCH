@@ -67,7 +67,7 @@ function resetData() {
 
 function storageStatusText() {
   const persistence = recordTools.summarizePersistenceState(data);
-  return `Ledger v${recordTools.ledgerVersion} | ${data.customers.length} customers | ${data.engagements.length} engagements | ${data.campaignRoutes.length} campaigns | ${(data.marketingConversionEvents || []).length} conversion KPIs | ${(data.providerAdapterCandidates || []).length} provider adapters | ${(data.librarySyncHandoffs || []).length} LIBRARY handoffs | ${(data.calendarProviderHandoffs || []).length} calendar handoffs | ${(data.notificationProviderHandoffs || []).length} notification provider handoffs | ${(data.paymentProviderHandoffs || []).length} payment provider handoffs | ${(data.authSessionRoleHandoffs || []).length} auth/session handoffs | ${data.notificationEvents.length} updates | ${data.receipts.length} receipts | r${persistence.revision} ${persistence.adapterState} | ${persistence.ledgerId}`;
+  return `Ledger v${recordTools.ledgerVersion} | ${data.customers.length} customers | ${data.engagements.length} engagements | ${data.campaignRoutes.length} campaigns | ${(data.marketingConversionEvents || []).length} conversion KPIs | ${(data.providerAdapterCandidates || []).length} provider adapters | ${(data.calendarAdapterPrototypes || []).length} calendar prototypes | ${(data.librarySyncHandoffs || []).length} LIBRARY handoffs | ${(data.calendarProviderHandoffs || []).length} calendar handoffs | ${(data.notificationProviderHandoffs || []).length} notification provider handoffs | ${(data.paymentProviderHandoffs || []).length} payment provider handoffs | ${(data.authSessionRoleHandoffs || []).length} auth/session handoffs | ${data.notificationEvents.length} updates | ${data.receipts.length} receipts | r${persistence.revision} ${persistence.adapterState} | ${persistence.ledgerId}`;
 }
 
 function formatTime(value) {
@@ -163,6 +163,7 @@ function allOperatingItems() {
     ...(data.campaignRoutes || []).map((item) => ({ ...item, kind: "campaign route", title: item.name || item.routeKey, status: item.status || item.readinessStatus, time: item.goLiveAt || item.startAt })),
     ...(data.marketingConversionEvents || []).map((item) => ({ ...item, kind: "marketing conversion", time: item.nextActionAt || item.occurredAt || item.updatedAt || item.createdAt })),
     ...(data.providerAdapterCandidates || []).map((item) => ({ ...item, kind: "provider adapter", time: item.nextActionAt || item.updatedAt || item.createdAt })),
+    ...(data.calendarAdapterPrototypes || []).map((item) => ({ ...item, kind: "calendar adapter", time: item.nextActionAt || item.updatedAt || item.createdAt })),
     ...(data.workPlans || []).map((item) => ({ ...item, kind: "agent work plan", time: item.dueAt })),
     ...(data.agentHandoffs || []).map((item) => ({ ...item, kind: "agent handoff", time: item.nextActionAt })),
     ...(data.notificationEvents || []).map((item) => ({ ...item, kind: "update", time: item.deliverAfterAt || item.createdAt })),
@@ -561,6 +562,7 @@ function renderMonitor(items) {
   const marketing = report.marketing || recordTools.summarizeMarketingState(data);
   const marketingConversion = report.marketingConversion || recordTools.summarizeMarketingConversionState(data);
   const providerAdapters = report.providerAdapters || recordTools.summarizeProviderAdapterSelectionState(data);
+  const calendarAdapter = report.calendarAdapter || recordTools.summarizeCalendarAdapterPrototypeState(data);
   const routePlacement = report.routePlacement || recordTools.summarizeRoutePlacementState(data, { now: `${today}T12:00:00+09:00` });
   const accessGateways = report.accessGateways || recordTools.summarizeAccessGatewayState(data, { now: `${today}T12:00:00+09:00`, routePlacement });
   const calendarExport = recordTools.createCalendarExport(data, { now: `${today}T12:00:00+09:00` });
@@ -569,7 +571,7 @@ function renderMonitor(items) {
   const persistence = report.persistence || recordTools.summarizePersistenceState(data, { now: `${today}T12:00:00+09:00` });
   const librarySync = report.librarySync || recordTools.summarizeLibrarySyncState(data, { now: `${today}T12:00:00+09:00`, persistence });
   lastMonitorReport = report;
-  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | ${routePlacement.summary.routeCount} SYNAPSE routes | ${accessGateways.gatewayCount} access gates | ${librarySync.handoffCount} LIBRARY handoffs | ${calendarProvider.handoffCount} calendar handoffs | ${notificationProvider.handoffCount} notification provider handoffs | ${paymentProvider.handoffCount} payment provider handoffs | ${authSession.handoffCount} auth/session handoffs | ${marketing.ready} campaign routes ready | ${marketingConversion.readyEvents} conversion KPIs ready | ${providerAdapters.readyCandidates} provider adapters ready | ${persistence.adapterState}`;
+  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | ${routePlacement.summary.routeCount} SYNAPSE routes | ${accessGateways.gatewayCount} access gates | ${librarySync.handoffCount} LIBRARY handoffs | ${calendarProvider.handoffCount} calendar handoffs | ${calendarAdapter.payloadReady} calendar prototypes ready | ${notificationProvider.handoffCount} notification provider handoffs | ${paymentProvider.handoffCount} payment provider handoffs | ${authSession.handoffCount} auth/session handoffs | ${marketing.ready} campaign routes ready | ${marketingConversion.readyEvents} conversion KPIs ready | ${providerAdapters.readyCandidates} provider adapters ready | ${persistence.adapterState}`;
   renderMonitorActionConsole(report);
 
   const summaryCards = [
@@ -600,6 +602,7 @@ function renderMonitor(items) {
     record("Campaign Readiness", `${marketing.ready} of ${marketing.total} campaign routes ready across ${marketing.channelCount} channel groups.`, [chip(`${marketing.jp} JP`), chip(`${marketing.global} global`), chip(`${marketing.copyViolations} copy risks`, marketing.copyViolations ? "blocked" : "complete")]),
     record("Conversion KPIs", `${marketingConversion.readyEvents} of ${marketingConversion.eventCount} KPI events ready; ${marketingConversion.noLiveTracking} no-live-tracking.`, [toneChip(marketingConversion.status, marketingConversion.status === "ready" ? "complete" : "blocked"), chip(formatJpy(marketingConversion.potentialValueJpy))]),
     record("Provider Adapters", `${providerAdapters.readyCandidates} of ${providerAdapters.candidateCount} candidates ready; ${providerAdapters.noLiveProvider} no-live-provider and ${providerAdapters.noSecrets} no-secrets.`, [toneChip(providerAdapters.status, providerAdapters.status === "ready" ? "complete" : "blocked"), chip(`${providerAdapters.approvedSandboxOnly} sandbox-approved`)]),
+    record("Sandbox Calendar Adapter", `${calendarAdapter.payloadReady} of ${calendarAdapter.prototypeCount} prototypes payload-ready; ${calendarAdapter.noLiveProvider} no-live-provider, ${calendarAdapter.noSecrets} no-secrets, ${calendarAdapter.noInvitationSend} no-invitation-send.`, [toneChip(calendarAdapter.status, calendarAdapter.status === "ready" ? "complete" : "blocked"), chip(`${calendarAdapter.payloadEntries} payload items`)]),
     record("SYNAPSE Placement", `${routePlacement.summary.routeCount} routes, ${routePlacement.placementMode}, ${routePlacement.access}.`, [chip(routePlacement.targetSystem), chip(routePlacement.duplicateUi ? "duplicate-ui" : "no-duplicate-ui"), chip(routePlacement.summary.monitorHref)]),
     record("Calendar Export", `${calendar.total} export-ready entries, ${calendar.customerVisible} customer-visible, ${calendar.updateLinked} update-linked.`, [chip(calendarExport.schema), chip(calendarExport.timezone)]),
     record("Persistence", `Ledger ${persistence.ledgerId} revision ${persistence.revision}; ${persistence.adapterState}; checksum ${persistence.checksum}.`, [chip(persistence.adapter), chip(persistence.libraryReady ? "library-ready" : "local-only")])
@@ -830,6 +833,17 @@ function renderMonitor(items) {
     ]
   ));
 
+  const calendarAdapterCards = calendarAdapter.prototypes.map((prototype) => record(
+    prototype.title,
+    `${prototype.targetProvider} | ${prototype.adapterMode} | ${prototype.prototypeStatus} | ${prototype.payloadEntryCount} local preview items | ${prototype.notes}`,
+    [
+      statusChip(prototype.status),
+      chip(prototype.payloadMode),
+      chip(prototype.sandboxOnly && prototype.localOnly ? "sandbox-local" : "boundary-missing"),
+      toneChip(`${prototype.violations.length} violations`, prototype.violations.length ? "blocked" : "complete")
+    ]
+  ));
+
   const riskCards = report.risks.length
     ? report.risks.map((item) => record(item.title, item.detail, [chip(item.severity, item.severity === "high" ? "blocked" : "overdue")]))
     : [record("Risks", "No active risk records in the current operating surface.", [chip("clear", "complete")])];
@@ -891,6 +905,7 @@ function renderMonitor(items) {
     monitorSection("Campaign Routes", campaignCards.length ? campaignCards : [record("Campaign Routes", "No campaign route records have been created yet.", [chip("empty")])], "monitor-campaigns"),
     monitorSection("Marketing Conversion KPIs", marketingConversionCards.length ? marketingConversionCards : [record("Marketing Conversion KPIs", "No local conversion KPI readiness records have been created yet.", [chip("empty")])], "monitor-marketing-conversions"),
     monitorSection("Provider Adapter Go/No-Go", providerAdapterCards.length ? providerAdapterCards : [record("Provider Adapter Go/No-Go", "No provider adapter candidate records have been created yet.", [chip("empty")])], "monitor-provider-adapters"),
+    monitorSection("Sandbox Calendar Adapter", calendarAdapterCards.length ? calendarAdapterCards : [record("Sandbox Calendar Adapter", "No sandbox calendar adapter prototype records have been created yet.", [chip("empty")])], "monitor-calendar-adapter"),
     monitorSection("Agent Handoffs", handoffCards, "monitor-handoffs"),
     monitorSection("Notification Outbox", outboxCards, "monitor-notification-outbox"),
     monitorSection("Notification Provider Handoffs", notificationProviderCards.length ? notificationProviderCards : [record("Notification Providers", "No notification provider handoff records have been created yet.", [chip("empty")])], "monitor-notification-provider"),
@@ -988,6 +1003,17 @@ function renderProviderAdapterOptions() {
   });
   select.innerHTML = candidateOptions.length ? candidateOptions.join("") : `<option value="">No provider adapter candidates yet</option>`;
   if (submit) submit.disabled = !candidateOptions.length;
+}
+
+function renderCalendarAdapterOptions() {
+  const select = byId("calendar-adapter-select");
+  const submit = byId("calendar-adapter-apply");
+  if (!select) return;
+  const prototypeOptions = (data.calendarAdapterPrototypes || []).map((prototype) => {
+    return `<option value="${escapeHtml(prototype.id)}">${escapeHtml(prototype.title)} (${escapeHtml(prototype.status)})</option>`;
+  });
+  select.innerHTML = prototypeOptions.length ? prototypeOptions.join("") : `<option value="">No sandbox calendar adapter prototypes yet</option>`;
+  if (submit) submit.disabled = !prototypeOptions.length;
 }
 
 function renderQuoteOptions() {
@@ -1111,6 +1137,7 @@ function renderAll() {
   renderAuthSessionRoleOptions();
   renderMarketingConversionOptions();
   renderProviderAdapterOptions();
+  renderCalendarAdapterOptions();
   renderQuoteOptions();
   renderReminderControlOptions();
   renderAccessGatewayOptions();
@@ -1545,6 +1572,41 @@ function wireProviderAdapterForm() {
   });
 }
 
+function wireCalendarAdapterForm() {
+  const form = byId("calendar-adapter-form");
+  const confirmation = byId("calendar-adapter-confirmation");
+  if (!form || !confirmation) return;
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+    try {
+      const result = recordTools.transitionCalendarAdapterPrototypeRecords(data, payload, {
+        now: "2026-06-01T17:45:00.000Z"
+      });
+      data = result.data;
+      persistData({
+        adapterState: "modified-local",
+        recoveryNote: "Sandbox calendar adapter prototype changed locally; export a ledger snapshot before live calendar provider work."
+      });
+      renderAll();
+      confirmation.innerHTML = record(
+        "Sandbox Calendar Adapter Updated",
+        `${result.records.prototype.title} is ${result.records.prototype.prototypeStatus}; live calendar API calls, OAuth, secrets, webhooks, provider writes, and invitations remain disabled.`,
+        [statusChip(result.records.prototype.status), chip(result.records.prototype.payloadMode), chip(result.records.prototype.sandboxOnly ? "sandbox-only" : "sandbox-missing")]
+      );
+      form.reset();
+    } catch (error) {
+      confirmation.innerHTML = record(
+        "Sandbox Calendar Adapter Blocked",
+        error.message || "Sandbox calendar adapter action could not be applied.",
+        [chip("blocked", "blocked")]
+      );
+    }
+  });
+}
+
 function wireQuotePaymentForm() {
   const form = byId("quote-payment-form");
   const confirmation = byId("quote-payment-confirmation");
@@ -1806,6 +1868,7 @@ function init() {
   wireAuthSessionRoleForm();
   wireMarketingConversionForm();
   wireProviderAdapterForm();
+  wireCalendarAdapterForm();
   wireQuotePaymentForm();
   wireReminderControlForm();
   wireAccessGatewayForm();

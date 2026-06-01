@@ -155,6 +155,18 @@ Current EPOCH-side provider adapter selection slice:
   secrets, OAuth clients, webhooks, provider writes, production behavior, or
   customer-visible notification events.
 
+Current EPOCH-side sandbox calendar adapter prototype slice:
+
+- `calendarAdapterPrototypes` records local payload-preview prototypes linked
+  to calendar provider adapter candidates and the EPOCH calendar export.
+- `summarizeCalendarAdapterPrototypeState` exposes payload-ready, sandbox-only,
+  local-only, no-live-provider, no-secrets, no-invitation-send, and violation
+  counts to EPOCH MONITOR.
+- `transitionCalendarAdapterPrototypeRecords` creates internal monitor health
+  checks and `calendar-adapter-prototype` receipts without live calendar API
+  calls, OAuth clients, secrets, webhooks, provider writes, invitations, or
+  customer-visible notification events.
+
 ### 7. LIBRARY Durable Operating Ledger Persistence
 
 The local JSON ledger proves the shape, but durable persistence should move to

@@ -22,6 +22,7 @@
     "campaignRoutes",
     "marketingConversionEvents",
     "providerAdapterCandidates",
+    "calendarAdapterPrototypes",
     "leads",
     "opportunities",
     "engagements",
@@ -1199,6 +1200,65 @@
     ];
   }
 
+  function defaultCalendarAdapterPrototypes() {
+    return [
+      {
+        id: "calendar-adapter-google-sandbox-export",
+        title: "Google Calendar Sandbox Export Prototype",
+        providerCandidateId: "provider-adapter-calendar-google",
+        sourceHandoffId: "calendar-provider-google-readiness",
+        adapterFamily: "calendar",
+        targetProvider: "Google Calendar",
+        adapterMode: "sandbox-export-preview",
+        status: "queued",
+        prototypeStatus: "payload-ready",
+        sandboxOnly: true,
+        localOnly: true,
+        liveApiCalls: false,
+        liveSyncEnabled: false,
+        sendsInvitations: false,
+        externalProviderWrite: false,
+        productionEnabled: false,
+        secretsPresent: false,
+        credentialsStored: false,
+        oauthConfigured: false,
+        webhookEnabled: false,
+        customerVisible: false,
+        customerSafe: false,
+        calendarExportSchema: "epoch.calendar-export",
+        payloadMode: "provider-neutral-event-json-preview",
+        payloadSource: "epoch.calendar-export",
+        exportEntryCount: 0,
+        payloadEntryCount: 2,
+        readinessChecks: ["calendar-export-schema-stable", "provider-go-no-go-required", "sandbox-only-before-go-live", "operator-approval-required", "no-live-api", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-live-sync", "no-invitation-send"],
+        payloadPreview: [
+          {
+            uid: "epoch-session-seed-diagnostic-session",
+            summary: "Diagnostic writing session",
+            startsAt: "2026-06-05T19:30:00+09:00",
+            endsAt: "2026-06-05T20:15:00+09:00",
+            timezone: "Asia/Tokyo",
+            source: "session:session-001"
+          },
+          {
+            uid: "epoch-assignment-seed-eiken-writing-request",
+            summary: "EIKEN writing submission due",
+            startsAt: "2026-06-06T18:00:00+09:00",
+            endsAt: "2026-06-06T18:00:00+09:00",
+            timezone: "Asia/Tokyo",
+            source: "assignment:assignment-001"
+          }
+        ],
+        blockers: ["No OAuth client configured", "No live calendar write path", "No provider invitation sending"],
+        nextActionAt: "2026-06-04T10:00:00+09:00",
+        createdAt: "2026-06-02T04:00:00+09:00",
+        updatedAt: "2026-06-02T04:00:00+09:00",
+        receiptIds: ["receipt-calendar-adapter-prototype-seed"],
+        notes: "Local payload proof only; live calendar API calls, OAuth, secrets, webhooks, provider writes, and invitations remain disabled."
+      }
+    ];
+  }
+
   function normalizedOperatingData(data) {
     const nextData = cloneData(data || {});
     for (const collection of ledgerCollections) {
@@ -1231,6 +1291,9 @@
     }
     if (!Array.isArray(nextData.providerAdapterCandidates) || !nextData.providerAdapterCandidates.length) {
       nextData.providerAdapterCandidates = defaultProviderAdapterCandidates();
+    }
+    if (!Array.isArray(nextData.calendarAdapterPrototypes) || !nextData.calendarAdapterPrototypes.length) {
+      nextData.calendarAdapterPrototypes = defaultCalendarAdapterPrototypes();
     }
     if (!nextData.accessPosture || typeof nextData.accessPosture !== "object") {
       nextData.accessPosture = {
@@ -5262,6 +5325,314 @@
     };
   }
 
+  function calendarAdapterPayloadPreview(calendarExport, limit = 4) {
+    return (calendarExport.entries || []).slice(0, limit).map((entry) => ({
+      uid: `epoch-${clean(entry.sourceKind)}-${clean(entry.sourceId)}`,
+      summary: clean(entry.title) || "EPOCH calendar item",
+      startsAt: clean(entry.startAt || entry.dueAt),
+      endsAt: clean(entry.endAt || entry.dueAt || entry.startAt),
+      timezone: clean(calendarExport.timezone) || "Asia/Tokyo",
+      source: `${clean(entry.sourceKind)}:${clean(entry.sourceId)}`,
+      status: clean(entry.status) || "planned"
+    }));
+  }
+
+  function summarizeCalendarAdapterPrototypeState(currentData, options = {}) {
+    const data = normalizedOperatingData(currentData);
+    const calendarExport = options.calendarExport || createCalendarExport(data, { now: options.now || "2026-06-01T12:00:00+09:00" });
+    const adapterSummary = options.providerAdapters || summarizeProviderAdapterSelectionState(data);
+    const candidateById = adapterSummary.candidates.reduce((memo, candidate) => {
+      memo[candidate.id] = candidate;
+      return memo;
+    }, {});
+    const requiredChecks = ["calendar-export-schema-stable", "provider-go-no-go-required", "sandbox-only-before-go-live", "operator-approval-required", "no-live-api", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-live-sync", "no-invitation-send"];
+    const prototypes = data.calendarAdapterPrototypes.map((prototype) => {
+      const providerCandidateId = clean(prototype.providerCandidateId);
+      const candidate = candidateById[providerCandidateId] || null;
+      const readinessChecks = Array.isArray(prototype.readinessChecks) ? prototype.readinessChecks : [];
+      const payloadPreview = Array.isArray(prototype.payloadPreview) ? prototype.payloadPreview : [];
+      const receiptIds = Array.isArray(prototype.receiptIds) ? prototype.receiptIds : [];
+      const blockers = Array.isArray(prototype.blockers) ? prototype.blockers : [];
+      const liveApiCalls = prototype.liveApiCalls === true;
+      const liveSyncEnabled = prototype.liveSyncEnabled === true;
+      const sendsInvitations = prototype.sendsInvitations === true;
+      const externalProviderWrite = prototype.externalProviderWrite === true;
+      const productionEnabled = prototype.productionEnabled === true;
+      const secretsPresent = prototype.secretsPresent === true;
+      const credentialsStored = prototype.credentialsStored === true;
+      const oauthConfigured = prototype.oauthConfigured === true;
+      const webhookEnabled = prototype.webhookEnabled === true;
+      const customerVisible = prototype.customerVisible === true;
+      const violations = [];
+
+      if (clean(prototype.adapterFamily || "calendar") !== "calendar") {
+        violations.push("Calendar adapter prototype must stay in the calendar adapter family.");
+      }
+      if (!candidate || candidate.providerFamily !== "calendar") {
+        violations.push("Calendar adapter prototype must link to a calendar provider adapter candidate.");
+      } else if (candidate.violations.length) {
+        violations.push("Linked provider adapter candidate has readiness violations.");
+      }
+      if (prototype.sandboxOnly === false || prototype.localOnly === false) {
+        violations.push("Calendar adapter prototype must remain sandbox-only and local-only.");
+      }
+      if (liveApiCalls || liveSyncEnabled || sendsInvitations || externalProviderWrite || productionEnabled) {
+        violations.push("Calendar adapter prototype cannot enable live API calls, live sync, invitations, production behavior, or provider writes.");
+      }
+      if (secretsPresent || credentialsStored || oauthConfigured || webhookEnabled) {
+        violations.push("Calendar adapter prototype cannot store secrets, credentials, OAuth clients, or webhooks.");
+      }
+      if (customerVisible) {
+        violations.push("Calendar adapter prototype must remain internal and not customer-visible.");
+      }
+      for (const required of requiredChecks) {
+        if (!readinessChecks.includes(required)) {
+          violations.push(`Calendar adapter prototype must include ${required}.`);
+        }
+      }
+      if (!payloadPreview.length) violations.push("Calendar adapter prototype must include a local payload preview.");
+      if (!blockers.length) violations.push("Calendar adapter prototype must define blockers before live provider work.");
+      if (clean(prototype.status) === "complete" && !receiptIds.length) {
+        violations.push("Completed calendar adapter prototype requires a receipt trail.");
+      }
+
+      return {
+        id: clean(prototype.id),
+        title: clean(prototype.title) || "Calendar Adapter Prototype",
+        providerCandidateId,
+        sourceHandoffId: clean(prototype.sourceHandoffId),
+        adapterFamily: clean(prototype.adapterFamily) || "calendar",
+        targetProvider: clean(prototype.targetProvider) || candidate?.targetProvider || "provider-neutral calendar",
+        adapterMode: clean(prototype.adapterMode) || "sandbox-export-preview",
+        status: clean(prototype.status) || "planned",
+        prototypeStatus: clean(prototype.prototypeStatus) || "payload-pending",
+        sandboxOnly: prototype.sandboxOnly !== false,
+        localOnly: prototype.localOnly !== false,
+        liveApiCalls,
+        liveSyncEnabled,
+        sendsInvitations,
+        externalProviderWrite,
+        productionEnabled,
+        secretsPresent,
+        credentialsStored,
+        oauthConfigured,
+        webhookEnabled,
+        customerVisible,
+        customerSafe: prototype.customerSafe === true,
+        calendarExportSchema: clean(prototype.calendarExportSchema) || calendarExport.schema,
+        payloadMode: clean(prototype.payloadMode) || "provider-neutral-event-json-preview",
+        payloadSource: clean(prototype.payloadSource) || "epoch.calendar-export",
+        exportEntryCount: Number.isInteger(Number(prototype.exportEntryCount)) && Number(prototype.exportEntryCount) > 0 ? Number(prototype.exportEntryCount) : calendarExport.counts.total,
+        payloadEntryCount: payloadPreview.length,
+        readinessChecks,
+        payloadPreview,
+        blockers,
+        nextActionAt: clean(prototype.nextActionAt),
+        createdAt: clean(prototype.createdAt),
+        updatedAt: clean(prototype.updatedAt),
+        receiptIds,
+        notes: clean(prototype.notes) || "No sandbox calendar adapter prototype note recorded.",
+        violations
+      };
+    });
+    const violations = prototypes.flatMap((prototype) => prototype.violations.map((detail) => `${prototype.title}: ${detail}`));
+
+    return {
+      schema: "epoch.calendar-adapter-prototype",
+      prototypeCount: prototypes.length,
+      payloadReady: prototypes.filter((prototype) => ["payload-ready", "sandbox-approved", "operator-reviewed"].includes(prototype.prototypeStatus)).length,
+      sandboxOnly: prototypes.filter((prototype) => prototype.sandboxOnly).length,
+      localOnly: prototypes.filter((prototype) => prototype.localOnly).length,
+      noLiveProvider: prototypes.filter((prototype) => !prototype.liveApiCalls && !prototype.liveSyncEnabled && !prototype.sendsInvitations && !prototype.externalProviderWrite && !prototype.productionEnabled).length,
+      noSecrets: prototypes.filter((prototype) => !prototype.secretsPresent && !prototype.credentialsStored && !prototype.oauthConfigured && !prototype.webhookEnabled).length,
+      noInvitationSend: prototypes.filter((prototype) => !prototype.sendsInvitations).length,
+      candidateLinked: prototypes.filter((prototype) => candidateById[prototype.providerCandidateId]?.providerFamily === "calendar").length,
+      exportEntries: calendarExport.counts.total,
+      payloadEntries: prototypes.reduce((total, prototype) => total + prototype.payloadEntryCount, 0),
+      status: violations.length ? "blocked" : "ready",
+      violations,
+      prototypes
+    };
+  }
+
+  function createCalendarAdapterPrototypeRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const nowText = withTimezone(now.toISOString(), timezone);
+    const calendarExport = createCalendarExport(nextData, { now: now.toISOString() });
+    const candidateId = clean(input.providerCandidateId || input.candidateId) || clean(nextData.providerAdapterCandidates.find((item) => clean(item.providerFamily) === "calendar")?.id);
+    const candidate = nextData.providerAdapterCandidates.find((item) => clean(item.id) === candidateId);
+    if (!candidate || clean(candidate.providerFamily) !== "calendar") throw new Error("calendar provider adapter candidate is required");
+    if (candidate.liveApiCalls || candidate.productionEnabled || candidate.externalProviderWrite || candidate.secretsPresent || candidate.credentialsStored || candidate.oauthConfigured || candidate.webhookEnabled) {
+      throw new Error("calendar provider adapter candidate is not safe for sandbox prototype");
+    }
+    const payloadPreview = calendarAdapterPayloadPreview(calendarExport, Number(input.payloadLimit) || 4);
+    if (!payloadPreview.length) throw new Error("calendar export has no entries to preview");
+    const prototype = {
+      id: clean(input.id) || `calendar-adapter-prototype-${stamp(now)}-${nextData.calendarAdapterPrototypes.length + 1}`,
+      title: clean(input.title) || `${candidate.targetProvider || "Calendar"} Sandbox Calendar Adapter Prototype`,
+      providerCandidateId: candidate.id,
+      sourceHandoffId: clean(input.sourceHandoffId) || (Array.isArray(candidate.sourceHandoffIds) ? candidate.sourceHandoffIds[0] : ""),
+      adapterFamily: "calendar",
+      targetProvider: clean(input.targetProvider) || candidate.targetProvider || "provider-neutral calendar",
+      adapterMode: clean(input.adapterMode) || "sandbox-export-preview",
+      status: clean(input.status) || "queued",
+      prototypeStatus: clean(input.prototypeStatus) || "payload-ready",
+      sandboxOnly: true,
+      localOnly: true,
+      liveApiCalls: false,
+      liveSyncEnabled: false,
+      sendsInvitations: false,
+      externalProviderWrite: false,
+      productionEnabled: false,
+      secretsPresent: false,
+      credentialsStored: false,
+      oauthConfigured: false,
+      webhookEnabled: false,
+      customerVisible: false,
+      customerSafe: false,
+      calendarExportSchema: calendarExport.schema,
+      payloadMode: clean(input.payloadMode) || "provider-neutral-event-json-preview",
+      payloadSource: "epoch.calendar-export",
+      exportEntryCount: calendarExport.counts.total,
+      payloadEntryCount: payloadPreview.length,
+      readinessChecks: ["calendar-export-schema-stable", "provider-go-no-go-required", "sandbox-only-before-go-live", "operator-approval-required", "no-live-api", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-live-sync", "no-invitation-send"],
+      payloadPreview,
+      blockers: Array.isArray(input.blockers) ? input.blockers : ["No OAuth client configured", "No live calendar write path", "No provider invitation sending"],
+      nextActionAt: withTimezone(input.nextActionAt, timezone) || nowText,
+      createdAt: nowText,
+      updatedAt: nowText,
+      receiptIds: [],
+      notes: clean(input.note) || "Sandbox calendar adapter prototype created from EPOCH calendar export without live provider behavior."
+    };
+    const receipt = {
+      id: `receipt-calendar-adapter-prototype-${stamp(now)}`,
+      kind: "calendar-adapter-prototype",
+      status: "complete",
+      createdAt: nowText,
+      note: `${prototype.title}: local payload preview created without live API calls, OAuth, secrets, webhooks, provider writes, or invitations.`
+    };
+    const healthCheck = {
+      id: `monitor-check-calendar-adapter-${stamp(now)}`,
+      title: "Sandbox Calendar Adapter Prototype",
+      status: "complete",
+      target: "monitor-calendar-adapter",
+      effect: "calendar-adapter-sandbox-proof",
+      createdAt: nowText,
+      summary: `${prototype.title} generated ${payloadPreview.length} local payload preview items from ${calendarExport.counts.total} calendar export entries.`,
+      receiptId: receipt.id,
+      visibility: "internal",
+      customerVisible: false
+    };
+    prototype.receiptIds.push(receipt.id);
+    nextData.calendarAdapterPrototypes.unshift(prototype);
+    nextData.receipts.unshift(receipt);
+    nextData.monitorHealthChecks.unshift(healthCheck);
+
+    return {
+      data: nextData,
+      records: {
+        prototype,
+        receipt,
+        healthCheck
+      }
+    };
+  }
+
+  function transitionCalendarAdapterPrototypeRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const nowText = withTimezone(now.toISOString(), timezone);
+    const prototype = nextData.calendarAdapterPrototypes.find((item) => clean(item.id) === clean(input.prototypeId || input.id));
+    if (!prototype) throw new Error("Select a sandbox calendar adapter prototype before applying an action.");
+    const action = clean(input.action) || "generate-preview";
+    const note = clean(input.note) || "Sandbox calendar adapter prototype reviewed without live provider behavior.";
+    const ensureChecks = (checks) => {
+      prototype.readinessChecks = Array.isArray(prototype.readinessChecks) ? prototype.readinessChecks : [];
+      for (const check of checks) {
+        if (!prototype.readinessChecks.includes(check)) prototype.readinessChecks.push(check);
+      }
+    };
+
+    if (action === "generate-preview") {
+      const calendarExport = createCalendarExport(nextData, { now: now.toISOString() });
+      prototype.payloadPreview = calendarAdapterPayloadPreview(calendarExport, Number(input.payloadLimit) || 4);
+      prototype.exportEntryCount = calendarExport.counts.total;
+      prototype.payloadEntryCount = prototype.payloadPreview.length;
+      prototype.status = "queued";
+      prototype.prototypeStatus = "payload-ready";
+    } else if (action === "approve-sandbox") {
+      prototype.status = "approved";
+      prototype.prototypeStatus = "sandbox-approved";
+    } else if (action === "mark-reviewed") {
+      prototype.status = "complete";
+      prototype.prototypeStatus = "operator-reviewed";
+    } else if (action === "defer") {
+      prototype.status = "waiting";
+      prototype.prototypeStatus = "deferred";
+    } else if (action === "block") {
+      prototype.status = "blocked";
+      prototype.prototypeStatus = "blocked";
+    } else {
+      throw new Error("unsupported sandbox calendar adapter action");
+    }
+
+    ensureChecks(["calendar-export-schema-stable", "provider-go-no-go-required", "sandbox-only-before-go-live", "operator-approval-required", "no-live-api", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-live-sync", "no-invitation-send"]);
+    prototype.adapterFamily = "calendar";
+    prototype.sandboxOnly = true;
+    prototype.localOnly = true;
+    prototype.liveApiCalls = false;
+    prototype.liveSyncEnabled = false;
+    prototype.sendsInvitations = false;
+    prototype.externalProviderWrite = false;
+    prototype.productionEnabled = false;
+    prototype.secretsPresent = false;
+    prototype.credentialsStored = false;
+    prototype.oauthConfigured = false;
+    prototype.webhookEnabled = false;
+    prototype.customerVisible = false;
+    prototype.customerSafe = false;
+    prototype.payloadSource = "epoch.calendar-export";
+    prototype.updatedAt = nowText;
+    prototype.notes = note;
+
+    const receipt = {
+      id: `receipt-calendar-adapter-prototype-${stamp(now)}`,
+      kind: "calendar-adapter-prototype",
+      status: prototype.status === "blocked" ? "blocked" : "complete",
+      createdAt: nowText,
+      note: `${prototype.title}: ${action} recorded without live calendar API calls, OAuth, secrets, webhooks, provider writes, or invitations. ${note}`
+    };
+    const healthCheck = {
+      id: `monitor-check-calendar-adapter-${stamp(now)}`,
+      title: "Sandbox Calendar Adapter Prototype",
+      status: prototype.status === "blocked" ? "blocked" : "complete",
+      target: "monitor-calendar-adapter",
+      effect: "calendar-adapter-sandbox-proof",
+      createdAt: nowText,
+      summary: `${prototype.title} is ${prototype.prototypeStatus}; calendar behavior remains sandbox/local only.`,
+      receiptId: receipt.id,
+      visibility: "internal",
+      customerVisible: false
+    };
+
+    prototype.receiptIds = Array.isArray(prototype.receiptIds) ? prototype.receiptIds : [];
+    prototype.receiptIds.push(receipt.id);
+    nextData.receipts.unshift(receipt);
+    nextData.monitorHealthChecks.unshift(healthCheck);
+
+    return {
+      data: nextData,
+      records: {
+        prototype,
+        receipt,
+        healthCheck
+      }
+    };
+  }
+
   function summarizeMemoryState(currentData, options = {}) {
     const data = normalizedOperatingData(currentData);
     const nowText = clean(options.now) || "2026-06-01T12:00:00+09:00";
@@ -5297,6 +5668,7 @@
     const marketingConversion = summarizeMarketingConversionState(data);
     const providerAdapters = summarizeProviderAdapterSelectionState(data);
     const calendarExport = createCalendarExport(data, { now: nowText });
+    const calendarAdapter = summarizeCalendarAdapterPrototypeState(data, { now: nowText, calendarExport, providerAdapters });
     const timeline = monitorTimelineItems(data);
     const terminalStatuses = new Set(["complete", "sent", "paid-recorded", "declined", "returned", "canceled", "accepted", "rejected", "rolled-back"]);
     const queue = timeline.filter((item) => ["waiting", "deferred", "draft", "presented", "queued", "submitted", "reviewing", "overdue", "blocked", "proposed", "approved", "dispatched", "acknowledged", "in-progress", "failed", "snoozed", "retry-ready", "payment-ready", "payment-blocked", "unavailable"].includes(item.status));
@@ -5325,6 +5697,8 @@
       marketingConversionReady: marketingConversion.readyEvents,
       providerAdapterCandidates: providerAdapters.candidateCount,
       providerAdapterReady: providerAdapters.readyCandidates,
+      calendarAdapterPrototypes: calendarAdapter.prototypeCount,
+      calendarAdapterPayloadReady: calendarAdapter.payloadReady,
       copyComplianceViolations: marketing.copyViolations
     };
     const summaryByKey = {
@@ -5332,7 +5706,7 @@
       queue: `${baseSummary.queue} queued records`,
       "visible-updates": `${baseSummary.visibleUpdates} visible updates`,
       pipeline: `${revenue.pipelineCount} opportunities; ${baseSummary.pipelineValueJpy} JPY pipeline`,
-      marketing: `${marketing.ready} ready campaigns; ${marketingConversion.readyEvents} KPI events; ${providerAdapters.readyCandidates} provider candidates; ${marketing.copyViolations} copy policy violations`
+      marketing: `${marketing.ready} ready campaigns; ${marketingConversion.readyEvents} KPI events; ${providerAdapters.readyCandidates} provider candidates; ${calendarAdapter.payloadReady} calendar prototypes; ${marketing.copyViolations} copy policy violations`
     };
     const routes = data.routePlacements.map((route) => ({
       id: clean(route.id),
@@ -6312,6 +6686,7 @@
       ...currentData.campaignRoutes.map((item) => ({ kind: "campaign route", id: item.id, title: item.name || item.routeKey, status: item.status || item.readinessStatus, time: item.goLiveAt || item.startAt, owner: item.channel || item.owner || "channel pending" })),
       ...(currentData.marketingConversionEvents || []).map((item) => ({ kind: "marketing conversion", id: item.id, title: item.title, status: item.status || item.readinessStatus, time: item.nextActionAt || item.occurredAt || item.updatedAt || item.createdAt, owner: item.eventType || item.primaryConversion || "conversion" })),
       ...(currentData.providerAdapterCandidates || []).map((item) => ({ kind: "provider adapter", id: item.id, title: item.title, status: item.status || item.readinessStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.providerFamily || item.targetProvider || "provider" })),
+      ...(currentData.calendarAdapterPrototypes || []).map((item) => ({ kind: "calendar adapter", id: item.id, title: item.title, status: item.status || item.prototypeStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.adapterMode || "calendar" })),
       ...currentData.workPlans.map((item) => ({ kind: "agent work plan", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.approvalStatus || item.owner || "approval pending" })),
       ...currentData.agentHandoffs.map((item) => ({ kind: "agent handoff", id: item.id, title: item.title, status: item.status, time: item.nextActionAt, owner: item.approvalStatus || "approval pending" })),
       ...currentData.monitorHealthChecks.map((item) => ({ kind: "monitor check", id: item.id, title: item.title, status: item.status, time: item.createdAt, owner: item.target || item.owner || "monitor" })),
@@ -6354,6 +6729,7 @@
     const marketingConversion = summarizeMarketingConversionState(data);
     const providerAdapters = summarizeProviderAdapterSelectionState(data);
     const calendarExport = createCalendarExport(data, { now: nowText });
+    const calendarAdapter = summarizeCalendarAdapterPrototypeState(data, { now: nowText, calendarExport, providerAdapters });
     const calendarProvider = summarizeCalendarProviderState(data, { now: nowText, calendarExport });
     const persistence = summarizePersistenceState(data, { now: nowText });
     const librarySync = summarizeLibrarySyncState(data, { now: nowText, persistence });
@@ -6412,6 +6788,10 @@
       if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
     for (const item of timeline.filter((entry) => entry.kind === "provider adapter").slice(0, 6)) {
+      if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
+      if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
+    }
+    for (const item of timeline.filter((entry) => entry.kind === "calendar adapter").slice(0, 4)) {
       if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
       if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
@@ -6502,6 +6882,14 @@
         severity: "high",
         title: "Provider Adapter Go/No-Go",
         detail: providerAdapters.violations[0]
+      });
+    }
+    if (calendarAdapter.violations.length) {
+      risks.push({
+        id: "calendar-adapter-prototype-violation",
+        severity: "high",
+        title: "Sandbox Calendar Adapter",
+        detail: calendarAdapter.violations[0]
       });
     }
     if (scope.warnings.length) {
@@ -6705,6 +7093,14 @@
         providerAdapterLegalReviewRequired: providerAdapters.legalReviewRequired,
         providerAdapterPrivacyReviewRequired: providerAdapters.privacyReviewRequired,
         providerAdapterViolations: providerAdapters.violations.length,
+        calendarAdapterPrototypes: calendarAdapter.prototypeCount,
+        calendarAdapterPayloadReady: calendarAdapter.payloadReady,
+        calendarAdapterSandboxOnly: calendarAdapter.sandboxOnly,
+        calendarAdapterLocalOnly: calendarAdapter.localOnly,
+        calendarAdapterNoLiveProvider: calendarAdapter.noLiveProvider,
+        calendarAdapterNoSecrets: calendarAdapter.noSecrets,
+        calendarAdapterNoInvitationSend: calendarAdapter.noInvitationSend,
+        calendarAdapterViolations: calendarAdapter.violations.length,
         copyComplianceViolations: marketing.copyViolations,
         under19CampaignRoutes: marketing.under19Routes,
         marketingChannels: marketing.channelCount,
@@ -6747,6 +7143,7 @@
       marketing,
       marketingConversion,
       providerAdapters,
+      calendarAdapter,
       calendarProvider,
       librarySync,
       accessGateways,
@@ -6786,6 +7183,7 @@
     const authSession = summarizeAuthSessionRoleState(data);
     const marketingConversion = summarizeMarketingConversionState(data);
     const providerAdapters = summarizeProviderAdapterSelectionState(data);
+    const calendarAdapter = summarizeCalendarAdapterPrototypeState(data, { now: now.toISOString(), calendarExport, providerAdapters });
     const routePlacement = summarizeRoutePlacementState(data, { now: now.toISOString() });
     const accessGateway = summarizeAccessGatewayState(data, { now: now.toISOString(), routePlacement });
     const librarySync = summarizeLibrarySyncState(data, { now: now.toISOString(), persistence });
@@ -6809,6 +7207,7 @@
       authSession,
       marketingConversion,
       providerAdapters,
+      calendarAdapter,
       routePlacement,
       accessGateway,
       librarySync,
@@ -6845,6 +7244,8 @@
     transitionMarketingConversionEventRecords,
     createProviderAdapterCandidateRecords,
     transitionProviderAdapterCandidateRecords,
+    createCalendarAdapterPrototypeRecords,
+    transitionCalendarAdapterPrototypeRecords,
     createQuoteEstimateRecords,
     transitionQuoteEstimateRecords,
     createReminderRuleRecords,
@@ -6883,6 +7284,7 @@
     summarizeAuthSessionRoleState,
     summarizeMarketingConversionState,
     summarizeProviderAdapterSelectionState,
+    summarizeCalendarAdapterPrototypeState,
     summarizeAccessPosture,
     summarizeMemoryState,
     summarizeScopeState,
