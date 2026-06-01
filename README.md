@@ -35,10 +35,12 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   receipt records, then supports opportunity-to-engagement conversion,
   customer-visible update events, scheduling, TEMPO-ready calendar export
   entries, submission creation, deadline summaries, returned-review receipts,
-  monitor health reports, and versioned operating-ledger export/import.
+  monitor health reports, and versioned operating-ledger export/import with a
+  LIBRARY-ready durable persistence envelope.
 - `web/app.js`: shared renderer and local persistence flow for admin,
   student/customer, monitor, public request, scheduling, submission, and
-  review-return views, including local ledger save/load plus JSON export/import.
+  review-return views, including local ledger save/load, durable snapshot status,
+  recovery-import state, and JSON export/import.
 - `web/seed-data.js`: demo commercial workflow covering leads, tracks, cohorts,
   offer packages, opportunities, update events, sessions, assignments,
   submissions, reviews, follow-ups, and receipts.
