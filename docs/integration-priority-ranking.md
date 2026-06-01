@@ -73,6 +73,18 @@ Current EPOCH-side calendar provider slice:
   checks and `calendar-provider-handoff` receipts without live provider writes
   or customer-visible notification events.
 
+Current EPOCH-side notification provider slice:
+
+- `notificationProviderHandoffs` records provider-neutral email, LINE/SMS, and
+  template/consent readiness before any live delivery adapter exists.
+- `summarizeNotificationProviderState` exposes provider readiness,
+  customer-safe template readiness, consent readiness, no-live-send posture, and
+  violations to EPOCH MONITOR.
+- `transitionNotificationProviderHandoffRecords` creates internal monitor
+  health checks and `notification-provider-handoff` receipts without live
+  sends, credentials, webhooks, provider writes, or customer-visible notification
+  events.
+
 ### 4. LIBRARY Durable Operating Ledger Persistence
 
 The local JSON ledger proves the shape, but durable persistence should move to

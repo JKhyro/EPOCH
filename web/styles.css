@@ -762,6 +762,10 @@ button.secondary-action {
   grid-template-columns: 1fr;
 }
 
+.notification-provider-console {
+  grid-template-columns: 1fr;
+}
+
 .quote-console {
   grid-template-columns: 1fr;
 }

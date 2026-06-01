@@ -32,6 +32,7 @@
     "monitorHealthChecks",
     "notificationEvents",
     "notificationDeliveries",
+    "notificationProviderHandoffs",
     "quotes",
     "reminderRules",
     "recurrenceCandidates",
@@ -407,6 +408,116 @@
     ];
   }
 
+  function defaultNotificationProviderHandoffs() {
+    return [
+      {
+        id: "notification-provider-email-readiness",
+        title: "Email Provider Handoff",
+        sourceSystem: "EPOCH",
+        targetProvider: "provider-neutral email",
+        providerKind: "email",
+        syncMode: "notification-provider-readiness",
+        status: "planned",
+        handoffStatus: "adapter-deferred",
+        templatePolicy: "customer-safe-template-required",
+        consentPolicy: "customer-consent-required",
+        customerSafeStatus: "template-ready",
+        visibility: "internal",
+        customerVisible: false,
+        liveSendEnabled: false,
+        externalProviderWrite: false,
+        storesCredentials: false,
+        webhookEnabled: false,
+        notificationOutboxSchema: "epoch.notification-outbox",
+        channelKinds: ["email", "customer-update"],
+        readinessChecks: ["customer-safe-template", "customer-consent-required", "operator-approval-required", "no-live-send"],
+        nextActionAt: "2026-06-02T11:00:00+09:00",
+        createdAt: "2026-06-02T00:10:00+09:00",
+        updatedAt: "2026-06-02T00:10:00+09:00",
+        receiptIds: ["receipt-notification-provider-seed"],
+        handoffHistory: [
+          {
+            action: "seed",
+            status: "planned",
+            at: "2026-06-02T00:10:00+09:00",
+            note: "Email delivery adapter remains deferred while EPOCH records template and consent readiness."
+          }
+        ],
+        notes: "Prepare customer-safe email templates and consent checks before any email provider API work."
+      },
+      {
+        id: "notification-provider-line-sms-readiness",
+        title: "LINE / SMS Provider Handoff",
+        sourceSystem: "EPOCH",
+        targetProvider: "LINE or SMS provider",
+        providerKind: "line-sms",
+        syncMode: "notification-provider-readiness",
+        status: "planned",
+        handoffStatus: "adapter-deferred",
+        templatePolicy: "short-customer-safe-template-required",
+        consentPolicy: "channel-opt-in-required",
+        customerSafeStatus: "template-ready",
+        visibility: "internal",
+        customerVisible: false,
+        liveSendEnabled: false,
+        externalProviderWrite: false,
+        storesCredentials: false,
+        webhookEnabled: false,
+        notificationOutboxSchema: "epoch.notification-outbox",
+        channelKinds: ["line", "sms", "customer-update"],
+        readinessChecks: ["customer-safe-template", "channel-opt-in-required", "operator-approval-required", "no-live-send"],
+        nextActionAt: "2026-06-02T11:30:00+09:00",
+        createdAt: "2026-06-02T00:11:00+09:00",
+        updatedAt: "2026-06-02T00:11:00+09:00",
+        receiptIds: ["receipt-notification-provider-seed"],
+        handoffHistory: [
+          {
+            action: "seed",
+            status: "planned",
+            at: "2026-06-02T00:11:00+09:00",
+            note: "LINE/SMS delivery adapters remain deferred while channel opt-in and short-template readiness are recorded."
+          }
+        ],
+        notes: "Prepare opt-in language and short status-update templates before any LINE or SMS adapter is implemented."
+      },
+      {
+        id: "notification-template-consent-readiness",
+        title: "Template And Consent Readiness",
+        sourceSystem: "EPOCH",
+        targetProvider: "provider-neutral",
+        providerKind: "template-consent",
+        syncMode: "template-consent-readiness",
+        status: "queued",
+        handoffStatus: "operator-review-ready",
+        templatePolicy: "approved-customer-safe-copy",
+        consentPolicy: "consent-policy-defined",
+        customerSafeStatus: "ready-to-preview",
+        visibility: "internal",
+        customerVisible: false,
+        liveSendEnabled: false,
+        externalProviderWrite: false,
+        storesCredentials: false,
+        webhookEnabled: false,
+        notificationOutboxSchema: "epoch.notification-outbox",
+        channelKinds: ["email", "line", "sms", "customer-update"],
+        readinessChecks: ["customer-safe-template", "consent-policy-defined", "operator-approval-required", "no-live-send"],
+        nextActionAt: "2026-06-02T12:00:00+09:00",
+        createdAt: "2026-06-02T00:12:00+09:00",
+        updatedAt: "2026-06-02T00:12:00+09:00",
+        receiptIds: ["receipt-notification-provider-seed"],
+        handoffHistory: [
+          {
+            action: "seed",
+            status: "queued",
+            at: "2026-06-02T00:12:00+09:00",
+            note: "Template and consent readiness can be reviewed without sending live messages."
+          }
+        ],
+        notes: "Customer-safe templates and consent policies must be explicit before live delivery is added."
+      }
+    ];
+  }
+
   function normalizedOperatingData(data) {
     const nextData = cloneData(data || {});
     for (const collection of ledgerCollections) {
@@ -424,6 +535,9 @@
     }
     if (!Array.isArray(nextData.calendarProviderHandoffs) || !nextData.calendarProviderHandoffs.length) {
       nextData.calendarProviderHandoffs = defaultCalendarProviderHandoffs();
+    }
+    if (!Array.isArray(nextData.notificationProviderHandoffs) || !nextData.notificationProviderHandoffs.length) {
+      nextData.notificationProviderHandoffs = defaultNotificationProviderHandoffs();
     }
     if (!nextData.accessPosture || typeof nextData.accessPosture !== "object") {
       nextData.accessPosture = {
@@ -950,6 +1064,254 @@
       records: {
         delivery,
         notificationEvent: event,
+        receipt
+      }
+    };
+  }
+
+  function summarizeNotificationProviderState(currentData, options = {}) {
+    const data = normalizedOperatingData(currentData);
+    const notifications = options.notifications || summarizeNotificationState(data);
+    const handoffs = data.notificationProviderHandoffs.map((handoff) => {
+      const targetProvider = clean(handoff.targetProvider) || "provider-neutral";
+      const providerKind = clean(handoff.providerKind) || "provider-neutral";
+      const syncMode = clean(handoff.syncMode) || "notification-provider-readiness";
+      const status = clean(handoff.status) || "planned";
+      const visibility = clean(handoff.visibility) || "internal";
+      const customerVisible = handoff.customerVisible === true;
+      const liveSendEnabled = handoff.liveSendEnabled === true;
+      const externalProviderWrite = handoff.externalProviderWrite === true;
+      const storesCredentials = handoff.storesCredentials === true;
+      const webhookEnabled = handoff.webhookEnabled === true;
+      const channelKinds = Array.isArray(handoff.channelKinds) ? handoff.channelKinds : [];
+      const readinessChecks = Array.isArray(handoff.readinessChecks) ? handoff.readinessChecks : [];
+      const receiptIds = Array.isArray(handoff.receiptIds) ? handoff.receiptIds : [];
+      const handoffHistory = Array.isArray(handoff.handoffHistory) ? handoff.handoffHistory : [];
+      const violations = [];
+
+      if (visibility !== "internal" || customerVisible) {
+        violations.push("Notification provider handoff must remain internal-only until an authenticated customer delivery surface exists.");
+      }
+      if (liveSendEnabled || externalProviderWrite) {
+        violations.push("Notification provider handoff cannot enable live sending or external provider writes in this slice.");
+      }
+      if (storesCredentials || webhookEnabled) {
+        violations.push("Notification provider handoff cannot store credentials or enable webhooks in this slice.");
+      }
+      if (!targetProvider) {
+        violations.push("Notification provider handoff is missing a provider target.");
+      }
+      if (status === "complete" && !receiptIds.length) {
+        violations.push("Completed notification provider handoff requires a receipt trail.");
+      }
+      if (syncMode === "template-consent-readiness") {
+        if (!readinessChecks.includes("customer-safe-template")) {
+          violations.push("Template readiness must prove customer-safe template copy.");
+        }
+        if (!readinessChecks.includes("consent-policy-defined")) {
+          violations.push("Consent readiness must prove a consent policy is defined.");
+        }
+        if (!readinessChecks.includes("no-live-send")) {
+          violations.push("Template and consent readiness must prove no live send occurs.");
+        }
+      }
+
+      return {
+        id: clean(handoff.id),
+        title: clean(handoff.title) || "Notification Provider Handoff",
+        sourceSystem: clean(handoff.sourceSystem) || "EPOCH",
+        targetProvider,
+        providerKind,
+        syncMode,
+        status,
+        handoffStatus: clean(handoff.handoffStatus) || "pending",
+        templatePolicy: clean(handoff.templatePolicy) || "customer-safe-template-required",
+        consentPolicy: clean(handoff.consentPolicy) || "customer-consent-required",
+        customerSafeStatus: clean(handoff.customerSafeStatus) || "template-pending",
+        visibility,
+        customerVisible,
+        liveSendEnabled,
+        externalProviderWrite,
+        storesCredentials,
+        webhookEnabled,
+        notificationOutboxSchema: clean(handoff.notificationOutboxSchema) || "epoch.notification-outbox",
+        channelKinds,
+        readinessChecks,
+        nextActionAt: clean(handoff.nextActionAt),
+        updatedAt: clean(handoff.updatedAt),
+        receiptIds,
+        handoffHistory,
+        notes: clean(handoff.notes) || "No notification provider handoff note recorded.",
+        violations
+      };
+    });
+    const violations = handoffs.flatMap((handoff) => handoff.violations.map((detail) => `${handoff.title || handoff.id}: ${detail}`));
+
+    return {
+      schema: "epoch.notification-provider-handoff",
+      handoffCount: handoffs.length,
+      providerReady: handoffs.filter((item) => item.syncMode === "notification-provider-readiness").length,
+      templateReady: handoffs.filter((item) => item.readinessChecks.includes("customer-safe-template")).length,
+      consentReady: handoffs.filter((item) => item.readinessChecks.includes("consent-policy-defined") || item.readinessChecks.includes("customer-consent-required") || item.readinessChecks.includes("channel-opt-in-required")).length,
+      queued: handoffs.filter((item) => item.status === "queued").length,
+      complete: handoffs.filter((item) => item.status === "complete").length,
+      blocked: handoffs.filter((item) => item.status === "blocked").length,
+      noLiveSend: handoffs.filter((item) => !item.liveSendEnabled && !item.externalProviderWrite && !item.storesCredentials && !item.webhookEnabled).length,
+      providerKinds: new Set(handoffs.map((item) => item.providerKind).filter(Boolean)).size,
+      outboxRecords: notifications.outbox,
+      visibleUpdates: notifications.visible,
+      violations,
+      status: violations.length ? "blocked" : "ready",
+      handoffs
+    };
+  }
+
+  function createNotificationProviderHandoffRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const createdAt = withTimezone(now.toISOString(), timezone);
+    const handoff = {
+      id: clean(input.id) || `notification-provider-${stamp(now)}`,
+      title: clean(input.title) || "Notification Provider Handoff",
+      sourceSystem: "EPOCH",
+      targetProvider: clean(input.targetProvider) || "provider-neutral",
+      providerKind: clean(input.providerKind) || "provider-neutral",
+      syncMode: clean(input.syncMode) || "notification-provider-readiness",
+      status: clean(input.status) || "planned",
+      handoffStatus: clean(input.handoffStatus) || "adapter-deferred",
+      templatePolicy: clean(input.templatePolicy) || "customer-safe-template-required",
+      consentPolicy: clean(input.consentPolicy) || "customer-consent-required",
+      customerSafeStatus: clean(input.customerSafeStatus) || "template-ready",
+      visibility: "internal",
+      customerVisible: false,
+      liveSendEnabled: false,
+      externalProviderWrite: false,
+      storesCredentials: false,
+      webhookEnabled: false,
+      notificationOutboxSchema: "epoch.notification-outbox",
+      channelKinds: Array.isArray(input.channelKinds) ? input.channelKinds : ["customer-update"],
+      readinessChecks: Array.isArray(input.readinessChecks) ? input.readinessChecks : ["customer-safe-template", "operator-approval-required", "no-live-send"],
+      nextActionAt: withTimezone(input.nextActionAt, timezone) || createdAt,
+      createdAt,
+      updatedAt: createdAt,
+      receiptIds: [],
+      handoffHistory: [
+        {
+          action: "create",
+          status: clean(input.status) || "planned",
+          at: createdAt,
+          note: clean(input.note) || "Notification provider handoff created for operator review."
+        }
+      ],
+      notes: clean(input.note) || "Notification provider handoff created for operator review."
+    };
+    nextData.notificationProviderHandoffs.unshift(handoff);
+    return {
+      data: nextData,
+      records: {
+        handoff
+      }
+    };
+  }
+
+  function transitionNotificationProviderHandoffRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const updatedAt = withTimezone(now.toISOString(), timezone);
+    const handoffId = clean(input.handoffId || input.id);
+    const action = clean(input.action) || "verify";
+    const note = clean(input.note) || "Notification provider handoff reviewed by operator.";
+    const handoff = nextData.notificationProviderHandoffs.find((item) => item.id === handoffId);
+    if (!handoff) throw new Error("notification provider handoff not found");
+
+    if (action === "verify") {
+      handoff.status = "complete";
+      handoff.handoffStatus = "verified-provider-deferred";
+    } else if (action === "prepare") {
+      handoff.status = "queued";
+      handoff.handoffStatus = "provider-template-payload-ready";
+    } else if (action === "mark-ready") {
+      handoff.status = "queued";
+      handoff.handoffStatus = "adapter-ready-without-live-send";
+    } else if (action === "template-ready") {
+      handoff.status = "queued";
+      handoff.syncMode = "template-consent-readiness";
+      handoff.handoffStatus = "template-review-ready";
+      handoff.customerSafeStatus = "template-ready";
+      handoff.templatePolicy = "approved-customer-safe-copy";
+      if (!Array.isArray(handoff.readinessChecks)) handoff.readinessChecks = [];
+      for (const check of ["customer-safe-template", "no-live-send"]) {
+        if (!handoff.readinessChecks.includes(check)) handoff.readinessChecks.push(check);
+      }
+    } else if (action === "consent-ready") {
+      handoff.status = "queued";
+      handoff.syncMode = "template-consent-readiness";
+      handoff.handoffStatus = "consent-review-ready";
+      handoff.consentPolicy = "consent-policy-defined";
+      if (!Array.isArray(handoff.readinessChecks)) handoff.readinessChecks = [];
+      for (const check of ["consent-policy-defined", "operator-approval-required", "no-live-send"]) {
+        if (!handoff.readinessChecks.includes(check)) handoff.readinessChecks.push(check);
+      }
+    } else if (action === "block") {
+      handoff.status = "blocked";
+      handoff.handoffStatus = "blocked";
+    } else {
+      throw new Error("unsupported notification provider action");
+    }
+
+    handoff.visibility = "internal";
+    handoff.customerVisible = false;
+    handoff.liveSendEnabled = false;
+    handoff.externalProviderWrite = false;
+    handoff.storesCredentials = false;
+    handoff.webhookEnabled = false;
+    handoff.updatedAt = updatedAt;
+    handoff.nextActionAt = withTimezone(input.nextActionAt, timezone) || handoff.nextActionAt || updatedAt;
+    handoff.notes = note;
+    if (!Array.isArray(handoff.handoffHistory)) handoff.handoffHistory = [];
+    handoff.handoffHistory.unshift({
+      action,
+      status: handoff.status,
+      at: updatedAt,
+      note
+    });
+
+    const receiptId = `receipt-notification-provider-${stamp(now)}`;
+    if (!Array.isArray(handoff.receiptIds)) handoff.receiptIds = [];
+    handoff.receiptIds.unshift(receiptId);
+    const healthCheck = {
+      id: `monitor-check-notification-provider-${stamp(now)}`,
+      actionId: `notification-provider-${action}`,
+      receiptId,
+      title: `Notification provider ${action}`,
+      summary: `${handoff.title}: ${note}`,
+      status: handoff.status,
+      priority: action === "block" ? "high" : "medium",
+      effect: "notification-provider-handoff",
+      target: "monitor-notification-provider",
+      owner: clean(input.owner) || "Jack",
+      createdAt: updatedAt,
+      visibility: "internal",
+      customerVisible: false
+    };
+    const receipt = {
+      id: receiptId,
+      customerId: null,
+      kind: "notification-provider-handoff",
+      status: handoff.status,
+      createdAt: updatedAt,
+      note: `${healthCheck.title}: ${healthCheck.summary}`
+    };
+    nextData.monitorHealthChecks.unshift(healthCheck);
+    nextData.receipts.unshift(receipt);
+
+    return {
+      data: nextData,
+      records: {
+        handoff,
+        healthCheck,
         receipt
       }
     };
@@ -4135,6 +4497,7 @@
       ...currentData.monitorHealthChecks.map((item) => ({ kind: "monitor check", id: item.id, title: item.title, status: item.status, time: item.createdAt, owner: item.target || item.owner || "monitor" })),
       ...currentData.notificationEvents.map((item) => ({ kind: "update", id: item.id, title: item.title, status: item.status, time: item.deliverAfterAt || item.createdAt, owner: item.deliveryStatus || "pending" })),
       ...(currentData.notificationDeliveries || []).map((item) => ({ kind: "notification delivery", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.createdAt, owner: item.provider || item.channel || "outbox" })),
+      ...(currentData.notificationProviderHandoffs || []).map((item) => ({ kind: "notification provider", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.handoffStatus || "notifications" })),
       ...(currentData.quotes || []).map((item) => ({ kind: "quote", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.validUntil || item.createdAt, owner: item.paymentStatus || item.approvalStatus || "quote" })),
       ...(currentData.reminderRules || []).map((item) => ({ kind: "reminder rule", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.reminderAt, owner: item.channel || "reminder" })),
       ...(currentData.recurrenceCandidates || []).map((item) => ({ kind: "recurrence candidate", id: item.id, title: item.title, status: item.status, time: item.nextCandidateAt || item.createdAt, owner: item.cadence || "recurrence" })),
@@ -4159,6 +4522,7 @@
     const revenue = summarizeRevenueState(data);
     const curriculum = summarizeCurriculumState(data);
     const notifications = summarizeNotificationState(data);
+    const notificationProvider = summarizeNotificationProviderState(data, { notifications });
     const quotes = summarizeQuoteState(data);
     const scheduleControls = summarizeScheduleControlState(data);
     const handoffs = summarizeAgentHandoffState(data);
@@ -4198,6 +4562,10 @@
       if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
     for (const item of timeline.filter((entry) => entry.kind === "calendar provider").slice(0, 4)) {
+      if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
+      if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
+    }
+    for (const item of timeline.filter((entry) => entry.kind === "notification provider").slice(0, 4)) {
       if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
       if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
@@ -4314,6 +4682,14 @@
         detail: calendarProvider.violations[0]
       });
     }
+    if (notificationProvider.violations.length) {
+      risks.push({
+        id: "notification-provider-violation",
+        severity: "high",
+        title: "Notification Provider Violation",
+        detail: notificationProvider.violations[0]
+      });
+    }
 
     const operatorActions = [];
     if (dirtyLocalState) {
@@ -4381,6 +4757,12 @@
         retryReadyNotifications: notifications.retryReady,
         outboxBlockedNotifications: notifications.outboxBlocked,
         missingNotificationOutbox: notifications.missingOutbox,
+        notificationProviderHandoffs: notificationProvider.handoffCount,
+        notificationProviderReady: notificationProvider.providerReady,
+        notificationTemplateReady: notificationProvider.templateReady,
+        notificationConsentReady: notificationProvider.consentReady,
+        notificationProviderNoLiveSend: notificationProvider.noLiveSend,
+        notificationProviderViolations: notificationProvider.violations.length,
         quotes: quotes.total,
         quoteValueJpy: quotes.valueJpy,
         presentedQuotes: quotes.presented,
@@ -4449,6 +4831,7 @@
       revenue,
       curriculum,
       notifications,
+      notificationProvider,
       quotes,
       scheduleControls,
       handoffs,
@@ -4487,6 +4870,7 @@
     data.persistence = persistence;
     const calendarExport = createCalendarExport(data, { now: now.toISOString() });
     const calendarProvider = summarizeCalendarProviderState(data, { now: now.toISOString(), calendarExport });
+    const notificationProvider = summarizeNotificationProviderState(data);
     const routePlacement = summarizeRoutePlacementState(data, { now: now.toISOString() });
     const accessGateway = summarizeAccessGatewayState(data, { now: now.toISOString(), routePlacement });
     const librarySync = summarizeLibrarySyncState(data, { now: now.toISOString(), persistence });
@@ -4505,6 +4889,7 @@
       }).summary,
       calendarExport,
       calendarProvider,
+      notificationProvider,
       routePlacement,
       accessGateway,
       librarySync,
@@ -4531,6 +4916,8 @@
     transitionAgentHandoffRecords,
     createNotificationOutboxRecords,
     transitionNotificationDeliveryRecords,
+    createNotificationProviderHandoffRecords,
+    transitionNotificationProviderHandoffRecords,
     createQuoteEstimateRecords,
     transitionQuoteEstimateRecords,
     createReminderRuleRecords,
@@ -4564,6 +4951,7 @@
     summarizeAccessGatewayState,
     summarizeLibrarySyncState,
     summarizeCalendarProviderState,
+    summarizeNotificationProviderState,
     summarizeAccessPosture,
     summarizeMemoryState,
     summarizeScopeState,

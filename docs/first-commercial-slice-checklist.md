@@ -36,6 +36,7 @@ service operations without waiting for every future CITADEL integration.
 - Controlled public/customer access gateway record.
 - LIBRARY ledger sync/recovery handoff record.
 - Calendar provider handoff and invitation-readiness record.
+- Notification provider handoff and template/consent readiness record.
 
 ## Required operating states
 
@@ -85,6 +86,9 @@ service operations without waiting for every future CITADEL integration.
 - Calendar provider handoffs prepare Google/Microsoft-ready export and
   customer-safe invitation preview state while keeping live sync and invitation
   sending disabled.
+- Notification provider handoffs prepare provider-neutral email, LINE/SMS, and
+  template/consent readiness while keeping live sending, credentials, webhooks,
+  and external provider writes disabled.
 - EIKEN 5-1 and professional/service-support offers have reusable frameworks
   and package-level gameplans that support personalized delivery.
 - Japan-wide and global campaign routes define channel, conversion action, copy

@@ -31,6 +31,7 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
 - `docs/controlled-public-customer-access-gateway.md`
 - `docs/library-ledger-sync-recovery-contract.md`
 - `docs/calendar-provider-handoff-invitation-contract.md`
+- `docs/notification-provider-handoff-template-consent-contract.md`
 
 ## Current implementation artifacts
 
@@ -53,6 +54,9 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   agentic revenue handoff records and SYNAPSE route placement metadata.
   Calendar provider handoff records remain provider-neutral and no-live-send
   until a later adapter slice implements Google or Microsoft sync.
+  Notification provider handoff records remain provider-neutral and
+  no-live-send until a later delivery slice implements live email, LINE, SMS,
+  NEXUS, or webhook integration.
 - `web/app.js`: shared renderer and local persistence flow for admin,
   student/customer, monitor, public request, scheduling, submission, and
   review-return views, including local ledger save/load, durable snapshot status,
@@ -60,13 +64,15 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   placement cards, plus marketing-route and labor-model offer catalog display,
   body-level active-view state, shared data-view activation, controlled
   public/customer access gateway controls, and internal-only LIBRARY
-  sync/recovery controls plus provider-neutral calendar handoff controls.
+  sync/recovery controls plus provider-neutral calendar and notification
+  provider handoff controls.
 - `web/seed-data.js`: demo commercial workflow covering leads, tracks, cohorts,
   offer packages, curriculum frameworks, package gameplans, opportunities,
   update events, sessions, assignments, submissions, reviews, follow-ups,
   receipts, SYNAPSE route placements, and marketing-ready package metadata.
   It also seeds internal LIBRARY ledger sync/recovery handoff records and
-  provider-neutral calendar/invitation-readiness handoff records.
+  provider-neutral calendar/invitation-readiness handoff records, plus
+  notification provider template/consent readiness handoff records.
 - `tools/verify-commercial-slice.mjs`: repository verifier for the first
   commercial slice.
 
