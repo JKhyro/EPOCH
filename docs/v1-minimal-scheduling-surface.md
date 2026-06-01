@@ -45,7 +45,8 @@ timezone-aware behavior, and a submission/review loop.
 
 - create a schedule entry
 - view upcoming scheduled entries
-- edit the basic fields of an entry
+- reschedule the start/end window of an entry while preserving the previous
+  schedule state
 - cancel an entry without deleting historical intent
 - create a cohort/session/assignment/review deadline
 - view an internal next-action list
@@ -54,6 +55,24 @@ timezone-aware behavior, and a submission/review loop.
 - record a submission received state and feedback returned state
 - expose a minimal external status page or export-ready view for a student or
   customer
+
+## Schedule lifecycle records
+
+Schedule changes after creation must be ledger-backed transitions, not direct
+field edits with no proof trail.
+
+The current lifecycle contract is:
+
+- reschedule records preserve `previousStartAt`, `previousEndAt`, a
+  `lifecycleHistory` entry, a customer-safe update event, an internal
+  `schedule-rescheduled` receipt, and a follow-up control record
+- cancellation records mark the session `canceled`, preserve the session row,
+  add `canceledAt`, a lifecycle history entry, a customer-safe update event, an
+  internal `schedule-canceled` receipt, and a replacement-plan follow-up
+- linked assignments may carry `scheduleStatus` and `lastScheduleId`, but the
+  assignment/request record is not deleted
+- calendar export and EPOCH MONITOR summaries must expose rescheduled and
+  canceled lifecycle state
 
 ## Explicitly deferred from this slice
 

@@ -63,7 +63,12 @@ The repository verifier must cover:
 - Scope, Memory, and Safe Access route anchors.
 - Monitor health summaries for dirty local state, awaiting review, stale memory,
   safe access, and operator actions.
+- Schedule lifecycle summaries for rescheduled and canceled entries after a
+  session has already been created.
 - `createMonitorActionRecords`.
+- `rescheduleScheduleRecords` and `cancelScheduleRecords`, including
+  customer-safe update events, internal receipts, follow-ups, calendar export,
+  and monitor summary counts.
 - Internal monitor health checks and `monitor-check` receipts.
 - No customer-visible notification events created by monitor actions.
 - Operating-ledger export/import preservation of `monitorHealthChecks`.
