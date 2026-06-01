@@ -11,6 +11,20 @@
     management_system: "Management system"
   };
 
+  const ledgerVersion = 1;
+  const ledgerCollections = [
+    "tracks",
+    "leads",
+    "customers",
+    "cohorts",
+    "sessions",
+    "assignments",
+    "submissions",
+    "reviews",
+    "followups",
+    "receipts"
+  ];
+
   function cloneData(data) {
     return JSON.parse(JSON.stringify(data));
   }
@@ -35,6 +49,47 @@
     for (const collection of ["leads", "customers", "assignments", "submissions", "reviews", "followups", "receipts"]) {
       if (!Array.isArray(data[collection])) data[collection] = [];
     }
+  }
+
+  function normalizedOperatingData(data) {
+    const nextData = cloneData(data || {});
+    for (const collection of ledgerCollections) {
+      if (!Array.isArray(nextData[collection])) nextData[collection] = [];
+    }
+    if (!nextData.timezone) nextData.timezone = "Asia/Tokyo";
+    if (!Array.isArray(nextData.statuses)) {
+      nextData.statuses = ["planned", "waiting", "submitted", "reviewing", "returned", "overdue", "blocked", "canceled", "complete"];
+    }
+    return nextData;
+  }
+
+  function parseLedgerPayload(payload) {
+    if (typeof payload === "string") return JSON.parse(payload);
+    return cloneData(payload || {});
+  }
+
+  function operatingDataFromLedgerPayload(payload) {
+    const parsed = parseLedgerPayload(payload);
+    const candidate = parsed && parsed.data ? parsed.data : parsed;
+    for (const collection of ledgerCollections) {
+      if (candidate[collection] !== undefined && !Array.isArray(candidate[collection])) {
+        throw new Error(`ledger collection ${collection} must be an array`);
+      }
+    }
+    if (candidate.statuses !== undefined && !Array.isArray(candidate.statuses)) {
+      throw new Error("ledger statuses must be an array");
+    }
+    const normalized = normalizedOperatingData(candidate);
+
+    for (const collection of ledgerCollections) {
+      if (!Array.isArray(normalized[collection])) {
+        throw new Error(`ledger collection ${collection} must be an array`);
+      }
+    }
+    if (!normalized.statuses.includes("reviewing") || !normalized.statuses.includes("returned")) {
+      throw new Error("ledger statuses are missing required delivery states");
+    }
+    return normalized;
   }
 
   function findFirstVisibleAssignment(data) {
@@ -436,11 +491,42 @@
     };
   }
 
+  function createOperatingLedger(currentData, options) {
+    const now = options && options.now ? new Date(options.now) : new Date();
+    const data = normalizedOperatingData(currentData);
+    return {
+      schema: "epoch.operating-ledger",
+      version: ledgerVersion,
+      exportedAt: withTimezone(now.toISOString(), data.timezone || "Asia/Tokyo"),
+      timezone: data.timezone || "Asia/Tokyo",
+      counts: ledgerCollections.reduce((memo, collection) => {
+        memo[collection] = data[collection].length;
+        return memo;
+      }, {}),
+      monitor: buildMonitorReport(data, {
+        now: withTimezone(now.toISOString(), data.timezone || "Asia/Tokyo")
+      }).summary,
+      data
+    };
+  }
+
+  function importOperatingLedger(currentData, payload) {
+    const importedData = operatingDataFromLedgerPayload(payload);
+    const ledger = createOperatingLedger(importedData);
+    return {
+      data: importedData,
+      ledger
+    };
+  }
+
   window.EPOCH_OPERATING_RECORDS = {
+    ledgerVersion,
     cloneData,
+    createOperatingLedger,
     createIntakeRecords,
     createSubmissionRecords,
     createScheduleRecords,
+    importOperatingLedger,
     returnReviewRecords,
     buildMonitorReport,
     summarizeDeadlines,

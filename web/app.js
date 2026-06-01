@@ -28,7 +28,8 @@ function loadData() {
   const fallback = recordTools.cloneData(seedData);
   try {
     const stored = window.localStorage.getItem(storageKey);
-    return stored ? JSON.parse(stored) : fallback;
+    if (!stored) return fallback;
+    return recordTools.importOperatingLedger(fallback, stored).data;
   } catch {
     return fallback;
   }
@@ -36,7 +37,8 @@ function loadData() {
 
 function persistData() {
   try {
-    window.localStorage.setItem(storageKey, JSON.stringify(data));
+    const ledger = recordTools.createOperatingLedger(data);
+    window.localStorage.setItem(storageKey, JSON.stringify(ledger));
   } catch {
     // Browser storage is optional in this static kickoff surface.
   }
@@ -49,6 +51,11 @@ function resetData() {
   } catch {
     // Browser storage is optional in this static kickoff surface.
   }
+}
+
+function storageStatusText() {
+  const ledger = recordTools.createOperatingLedger(data);
+  return `Ledger v${ledger.version} | ${ledger.counts.customers} customers | ${ledger.counts.assignments} requests | ${ledger.counts.receipts} receipts`;
 }
 
 function formatTime(value) {
@@ -230,6 +237,10 @@ function renderMonitor(items) {
   ].join("");
 }
 
+function renderLedgerStatus() {
+  byId("storage-status").textContent = storageStatusText();
+}
+
 function renderIntakeSnapshot() {
   const requests = data.assignments
     .filter((item) => item.externalVisible)
@@ -255,6 +266,7 @@ function renderAll() {
   renderSubmissions();
   renderMonitor(items);
   renderIntakeSnapshot();
+  renderLedgerStatus();
 }
 
 function activateView(viewName) {
@@ -359,6 +371,55 @@ function wireReviewReturn() {
   });
 }
 
+function downloadLedger(text) {
+  const blob = new Blob([text], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "epoch-operating-ledger.json";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function wireLedgerControls() {
+  const exportButton = byId("export-ledger");
+  const importButton = byId("import-ledger");
+  const ledgerText = byId("ledger-json");
+  const confirmation = byId("ledger-confirmation");
+
+  exportButton.addEventListener("click", () => {
+    const ledger = recordTools.createOperatingLedger(data);
+    const text = JSON.stringify(ledger, null, 2);
+    ledgerText.value = text;
+    downloadLedger(text);
+    confirmation.innerHTML = record(
+      "Ledger Exported",
+      storageStatusText(),
+      [chip("json"), chip("download")]
+    );
+  });
+
+  importButton.addEventListener("click", () => {
+    try {
+      const result = recordTools.importOperatingLedger(data, ledgerText.value);
+      data = result.data;
+      persistData();
+      renderAll();
+      confirmation.innerHTML = record(
+        "Ledger Imported",
+        storageStatusText(),
+        [chip("validated", "complete"), chip(`v${result.ledger.version}`)]
+      );
+    } catch (error) {
+      confirmation.innerHTML = record(
+        "Import Blocked",
+        error.message || "The ledger JSON could not be imported.",
+        [chip("invalid", "blocked")]
+      );
+    }
+  });
+}
+
 function init() {
   renderAll();
   wireTabs();
@@ -366,6 +427,7 @@ function init() {
   wireIntakeForm();
   wireSubmissionForm();
   wireReviewReturn();
+  wireLedgerControls();
 }
 
 init();
