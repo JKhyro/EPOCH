@@ -10,6 +10,9 @@ only where the host, UI framework, or platform integration makes it necessary.
 - Native C is the default implementation language.
 - Scheduling logic, data structures, validation, and state transitions should
   live in native C by default.
+- Schedule-bound operating logic for sessions, cohorts, submission windows,
+  review deadlines, queue state, and status transitions should also prefer the
+  native core when the behavior is reusable beyond one host.
 - Managed code should not become the primary home of EPOCH business rules.
 
 ## Avalonia role
@@ -19,6 +22,8 @@ only where the host, UI framework, or platform integration makes it necessary.
   concerns.
 - Avalonia should consume EPOCH through a deliberate interop boundary rather
   than by reimplementing the core scheduling model in C#.
+- Avalonia may host the first internal administration surface for calendars,
+  cohorts, submissions, overdue work, and EPOCH MONITOR status.
 
 ## Interop boundary
 
@@ -28,6 +33,9 @@ only where the host, UI framework, or platform integration makes it necessary.
   chatty object-shaped crossings.
 - Design the interop boundary so the native core can later be hosted by other
   shells without CLR coupling.
+- Public website, student/customer portal, and ARA service surfaces should
+  consume the same scheduling/operating contract rather than inventing separate
+  schedule state.
 
 ## C# is allowed where necessary
 
@@ -35,6 +43,9 @@ only where the host, UI framework, or platform integration makes it necessary.
 - XAML or Avalonia view code
 - platform-specific desktop integration that Avalonia expects in managed code
 - interop marshaling and native library loading
+- host-side rendering of internal dashboards and monitor pages
+- adapters to web/API surfaces before a more permanent cross-host boundary is
+  available
 
 ## C# is not the default place for
 
@@ -42,6 +53,8 @@ only where the host, UI framework, or platform integration makes it necessary.
 - recurrence evaluation
 - event mutation and validation logic
 - storage-neutral data contracts owned by the core runtime
+- cohort/session/submission/review state transitions that should remain shared
+  across desktop, web, monitor, and ARA service workflows
 
 ## Packaging direction
 
@@ -49,11 +62,18 @@ only where the host, UI framework, or platform integration makes it necessary.
 - Keep the native runtime independently testable outside the desktop shell.
 - Avoid taking runtime dependencies that force the core scheduling engine to
   live inside the CLR.
+- Package web/portal surfaces as consumers of EPOCH contracts, not as the
+  permanent source of scheduling truth.
+- Keep EPOCH MONITOR generation local-first until public access control and
+  exposure policy are explicitly verified.
 
 ## Implications for the first executable slice
 
-- The v1 scheduling surface should prove the native C core first.
+- The v1 operating surface should prove the native C core first for
+  schedule-bound objects and status transitions.
 - The Avalonia shell should stay thin and consume the native core via explicit
-  interop.
+  interop for internal administration.
+- A website or student/customer portal may be built sooner for revenue, but it
+  should be treated as a host/client surface over the EPOCH contract.
 - If logic must land in C# for host reasons, document the exception instead of
   letting it silently become the new default.

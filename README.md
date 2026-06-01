@@ -1,32 +1,73 @@
 # EPOCH
 
-Calendar and scheduling surface for the broader KHYRON and SYMBIOSIS suite.
+Scheduling, calendar, and operating-administration surface for the broader
+KHYRON, SYMBIOSIS, and CITADEL suite.
 
 ## Current execution order
 
-1. Lock the product boundary.
-2. Lock the runtime and packaging stance.
-3. Define the first shippable EPOCH slice.
-4. Track integrations only after the boundary, runtime stance, and v1 slice are explicit.
+1. Lock the expanded product boundary.
+2. Preserve the native runtime and packaging stance.
+3. Define the first shippable operating slice.
+4. Track integrations by phase so urgent education-revenue work does not
+   collapse into unbounded platform scope.
 
 ## Current planning artifacts
 
 - `docs/product-boundary.md`
 - `docs/runtime-and-packaging.md`
 - `docs/v1-minimal-scheduling-surface.md`
+- `docs/education-operating-platform-boundary.md`
+- `docs/first-commercial-slice-checklist.md`
 
 ## Initial product intent
 
-EPOCH is the suite surface responsible for calendar- and schedule-shaped work:
+EPOCH is the suite surface responsible for time-, calendar-, schedule-, and
+operations-shaped work:
 
 - time-based objects such as events and schedule entries
 - user-facing planning and viewing flows
 - timezone-aware scheduling behavior
 - the contract for future reminders, recurrence, and availability work
+- internal administration over programs, classes, requests, submissions, and
+  review cycles when those workflows are schedule-bound
+- external student/customer notification, update, tracking, request, and
+  submission surfaces when they depend on schedule state
+- MONITOR-grade operational visibility for EPOCH lanes, following the HERMES
+  MONITOR capability pattern as the parity target
 
-EPOCH is not trying to solve every adjacent suite concern in its first pass. Deep
-integration into SYNAPSIS, SYMBIOSIS, ANVIL, NEXUS, and other surfaces should
-follow a stable EPOCH boundary instead of defining it.
+The immediate commercial wedge is an education operating platform that supports
+premium exam/writing/test-prep offers with less live-class labor: cohorts,
+submission workflows, progress tracking, request handling, and professional
+web-facing conversion surfaces.
+
+EPOCH is not trying to solve every adjacent suite concern in one pass. Deep
+integration into SYMBIOSIS, FURYOKU, ANVIL, NEXUS, LIBRARY, and other CITADEL
+surfaces should follow a stable phased EPOCH boundary instead of defining it by
+accident.
+
+## First commercial operating lane
+
+The first revenue-facing lane should support:
+
+- premium adult and serious-student education services
+- EIKEN 5-1 and later TOEIC, IELTS, TOEFL, school writing, university writing,
+  and professional English tracks
+- under-19 compatibility assessment before acceptance, or higher-touch pricing
+  when younger students are accepted
+- fewer live classes by default, with cohorts, submissions, structured feedback,
+  and progress reporting doing more of the work
+- professional public website copy and intake paths that do not lead with AI
+  terminology in Japan-facing messaging
+- adjacent revenue services such as consulting, tech support, clerical/admin,
+  database, CRM, management-system, and automation support
+
+## ARA revenue direction
+
+EPOCH should also support the Agentic Response Array revenue model: MONITOR,
+SYMBIOSIS, FURYOKU, and other CITADEL projects should be able to create,
+schedule, track, operate, and report revenue-producing work with minimal manual
+input from Jack. EPOCH owns the schedule/admin layer for that future loop; the
+agent/control-plane behavior remains owned by the appropriate ARA projects.
 
 ## Implementation stance
 
@@ -39,7 +80,9 @@ follow a stable EPOCH boundary instead of defining it.
 
 ## Near-term goal
 
-The immediate goal is to define a minimal but executable scheduling product
-contract, lock the native-runtime stance, then deliver one narrow v1 surface
-that proves EPOCH can own scheduling without premature coupling to the rest of
-the suite or unnecessary managed implementation spread.
+The immediate goal is to replace the narrow calendar-only bootstrap with a
+minimal but executable operating product contract: a scheduling core, a class
+and submission administration surface, a HERMES-style monitor parity target, and
+a public website/intake path. This should prove EPOCH can own schedule-bound
+operations without premature coupling to every CITADEL integration or
+unnecessary managed implementation spread.
