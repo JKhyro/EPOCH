@@ -87,6 +87,8 @@ Use these states only:
 - `acknowledged`: `ANVIL` confirmed receipt of the handoff.
 - `in-progress`: downstream work is underway.
 - `completed`: downstream work finished and the outcome was recorded.
+  The current browser-ledger/native status label is `complete`; it maps to this
+  terminal contract state.
 - `canceled`: the handoff was stopped before completion.
 - `rolled-back`: EPOCH recorded a compensating rollback for an earlier handoff.
 - `blocked`: the handoff cannot proceed because approval, scope, data, or
@@ -162,6 +164,28 @@ EPOCH MONITOR should expose handoff records as local-first operating data with:
 The monitor route should remain local or access-controlled. Raw agent payloads,
 internal notes, and future transport details should not be exposed publicly by
 default.
+
+## Current Browser-Ledger Implementation
+
+The current static implementation is intentionally local-first and lives in
+`web/operating-records.js`.
+
+- `createAgentHandoffRecords` creates a `workPlan`, `agentHandoff`, approval
+  follow-up, and `agent-handoff-proposed` receipt without changing
+  customer-visible status or notification events.
+- `transitionAgentHandoffRecords` records operator/system state changes for
+  `approve`, `reject`, `dispatch`, `acknowledge`, `progress`, `block`,
+  `complete`, `cancel`, and `rollback`.
+- Each transition writes a receipt, appends `transportHistory`, mirrors
+  receipt ids onto the handoff and work plan, and updates EPOCH MONITOR counts.
+- Dispatch requires prior approval, acknowledgement requires dispatch, and
+  progress/completion require acknowledgement or in-progress state.
+- Customer-visible notification events are created only when `complete` is
+  submitted with `customerVisibleApproved=true`; internal completion remains
+  private by default.
+- The Monitor controls include an ARA handoff transition console so the
+  operator can apply these lifecycle states from the local UI before live
+  cross-suite APIs exist.
 
 ## Out Of Scope For This Phase
 

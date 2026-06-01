@@ -72,4 +72,7 @@ The repository verifier must cover:
 - Internal monitor health checks and `monitor-check` receipts.
 - No customer-visible notification events created by monitor actions.
 - Operating-ledger export/import preservation of `monitorHealthChecks`.
+- ARA handoff lifecycle controls and verifier coverage for approval, dispatch,
+  acknowledgement, in-progress, completed, terminal-lock, receipt trail,
+  transport history, and the customer-visible completion approval boundary.
 

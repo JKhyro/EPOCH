@@ -367,7 +367,52 @@
               </label>
               <button type="button" id="return-review">Return Next Review</button>
             </div>
+            <form id="agent-handoff-form" class="review-console handoff-console">
+              <div class="form-row">
+                <label>
+                  ARA handoff
+                  <select name="handoffId" id="agent-handoff-select" required></select>
+                </label>
+                <label>
+                  Transport action
+                  <select name="action" id="agent-handoff-action" required>
+                    <option value="approve">Approve</option>
+                    <option value="reject">Reject</option>
+                    <option value="dispatch">Dispatch</option>
+                    <option value="acknowledge">Acknowledge</option>
+                    <option value="progress">In Progress</option>
+                    <option value="block">Block</option>
+                    <option value="complete">Complete</option>
+                    <option value="cancel">Cancel</option>
+                    <option value="rollback">Rollback</option>
+                  </select>
+                </label>
+              </div>
+              <div class="form-row">
+                <label>
+                  Next action
+                  <input name="nextActionAt" type="datetime-local" />
+                </label>
+                <label>
+                  Publish completed update
+                  <select name="customerVisibleApproved">
+                    <option value="false">No</option>
+                    <option value="true">Yes, operator approved</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                Internal transport note
+                <textarea name="note" rows="3">Operator-reviewed ARA transport update.</textarea>
+              </label>
+              <label>
+                Customer-safe completion summary
+                <textarea name="customerSummary" rows="2">Service work completed; operator-approved outcome is recorded.</textarea>
+              </label>
+              <button type="submit" id="agent-handoff-transition">Apply ARA Handoff Transition</button>
+            </form>
             <div id="review-confirmation" class="confirmation"></div>
+            <div id="agent-handoff-confirmation" class="confirmation"></div>
           </section>
           <div id="monitor-items" class="monitor-grid"></div>
         </div>

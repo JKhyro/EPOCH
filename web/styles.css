@@ -754,6 +754,10 @@ button.secondary-action {
   border-radius: 8px;
 }
 
+.handoff-console {
+  grid-template-columns: 1fr;
+}
+
 .operator-action-console {
   display: grid;
   gap: 12px;

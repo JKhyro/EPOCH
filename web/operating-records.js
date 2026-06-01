@@ -161,7 +161,24 @@
       nextData.routePlacements = defaultRoutePlacements();
     }
     if (!Array.isArray(nextData.statuses)) {
-      nextData.statuses = ["planned", "waiting", "submitted", "reviewing", "returned", "overdue", "blocked", "canceled", "complete"];
+      nextData.statuses = [
+        "planned",
+        "waiting",
+        "proposed",
+        "submitted",
+        "reviewing",
+        "returned",
+        "overdue",
+        "blocked",
+        "approved",
+        "dispatched",
+        "acknowledged",
+        "in-progress",
+        "rejected",
+        "rolled-back",
+        "canceled",
+        "complete"
+      ];
     }
     return nextData;
   }
@@ -1400,6 +1417,8 @@
       dueAt: nextActionAt,
       monitorVisible: true,
       customerVisible: false,
+      receiptIds: [`receipt-agent-handoff-${requestStamp}`],
+      transportHistory: [],
       rollbackRule: "Rejecting or canceling the handoff leaves customer-visible records unchanged."
     };
     const handoff = {
@@ -1416,6 +1435,8 @@
       nextActionAt,
       monitorVisible: true,
       customerVisible: false,
+      receiptIds: [`receipt-agent-handoff-${requestStamp}`],
+      transportHistory: [],
       rollbackRule: workPlan.rollbackRule
     };
     const followup = {
@@ -1433,6 +1454,10 @@
       kind: "agent-handoff-proposed",
       status: "complete",
       createdAt,
+      sourceKind: "agent-handoff",
+      sourceId: handoff.id,
+      sourceSystem,
+      targetSystem,
       note: `${sourceSystem} proposed ${targetSystem} work for ${customer?.displayName || engagement.customerId || "customer pending"}; operator approval required before customer-visible changes.`
     };
 
@@ -1448,6 +1473,213 @@
         handoff,
         followup,
         receipt
+      }
+    };
+  }
+
+  function findAgentHandoffBundle(data, handoffId) {
+    const requestedId = clean(handoffId);
+    const terminalStatuses = new Set(["rejected", "rolled-back", "canceled", "complete"]);
+    const handoff = requestedId
+      ? data.agentHandoffs.find((item) => item.id === requestedId)
+      : data.agentHandoffs.find((item) => !terminalStatuses.has(item.status)) || data.agentHandoffs[0];
+
+    if (!handoff) throw new Error("handoffId is required");
+
+    const workPlan = data.workPlans.find((item) => item.id === handoff.workPlanId) || null;
+    return {
+      handoff,
+      workPlan,
+      engagement: data.engagements.find((item) => item.id === handoff.engagementId) || null,
+      customer: customerById(data, handoff.customerId)
+    };
+  }
+
+  function appendTransportHistory(record, entry) {
+    if (!record) return;
+    if (!Array.isArray(record.transportHistory)) record.transportHistory = [];
+    record.transportHistory.unshift(entry);
+  }
+
+  function addReceiptId(record, receiptId) {
+    if (!record) return;
+    if (!Array.isArray(record.receiptIds)) record.receiptIds = [];
+    if (!record.receiptIds.includes(receiptId)) record.receiptIds.unshift(receiptId);
+  }
+
+  function transitionAgentHandoffRecords(currentData, input, options) {
+    const nextData = cloneData(currentData);
+    ensureCollections(nextData);
+
+    const now = options && options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const requestStamp = stamp(now);
+    const action = clean(input.action) || "approve";
+    const actor = clean(input.actor || input.owner) || "Jack";
+    const note = clean(input.note || input.summary) || `Agent handoff ${action} recorded.`;
+    const nextActionAt = withTimezone(input.nextActionAt, timezone) || withTimezone(now.toISOString(), timezone);
+    const eventAt = withTimezone(now.toISOString(), timezone);
+    const { handoff, workPlan, customer } = findAgentHandoffBundle(nextData, input.handoffId);
+    const terminalStatuses = new Set(["rejected", "rolled-back", "canceled", "complete"]);
+    const customerVisibleApproved = input.customerVisibleApproved === true || clean(input.customerVisibleApproved) === "true";
+
+    if (!["approve", "reject", "dispatch", "acknowledge", "progress", "block", "complete", "cancel", "rollback"].includes(action)) {
+      throw new Error("action must be approve, reject, dispatch, acknowledge, progress, block, complete, cancel, or rollback");
+    }
+    if (terminalStatuses.has(handoff.status) && action !== "rollback") {
+      throw new Error("terminal handoffs can only receive rollback records");
+    }
+    if (action === "approve" && !["waiting", "proposed", "blocked"].includes(handoff.status)) {
+      throw new Error("handoff can only be approved from waiting, proposed, or blocked state");
+    }
+    if (action === "reject" && !["waiting", "proposed", "approved", "blocked"].includes(handoff.status)) {
+      throw new Error("handoff can only be rejected before dispatch");
+    }
+    if (action === "dispatch" && (handoff.approvalStatus !== "approved" || handoff.status !== "approved")) {
+      throw new Error("handoff must be approved before dispatch");
+    }
+    if (action === "acknowledge" && handoff.status !== "dispatched") {
+      throw new Error("handoff must be dispatched before acknowledgement");
+    }
+    if (action === "progress" && !["acknowledged", "blocked"].includes(handoff.status)) {
+      throw new Error("handoff must be acknowledged before progress can be recorded");
+    }
+    if (action === "complete" && !["acknowledged", "in-progress"].includes(handoff.status)) {
+      throw new Error("handoff must be acknowledged or in progress before completion");
+    }
+
+    const previousStatus = handoff.status || "waiting";
+    const previousApprovalStatus = handoff.approvalStatus || "pending-operator-approval";
+    const sourceSystem = clean(handoff.sourceSystem || workPlan?.sourceSystem) || "SYMBIOSIS";
+    const targetSystem = clean(handoff.targetSystem || workPlan?.targetSystem) || "ANVIL";
+    const stateByAction = {
+      approve: { status: "approved", approvalStatus: "approved", receiptKind: "agent-handoff-approved", followupTitle: `Dispatch approved handoff: ${handoff.title}` },
+      reject: { status: "rejected", approvalStatus: "rejected", receiptKind: "agent-handoff-rejected", followupTitle: "" },
+      dispatch: { status: "dispatched", approvalStatus: "approved", receiptKind: "agent-handoff-dispatched", followupTitle: `Await ${targetSystem} acknowledgement: ${handoff.title}` },
+      acknowledge: { status: "acknowledged", approvalStatus: "approved", receiptKind: "agent-handoff-acknowledged", followupTitle: `Track ${targetSystem} progress: ${handoff.title}` },
+      progress: { status: "in-progress", approvalStatus: "approved", receiptKind: "agent-handoff-progress", followupTitle: `Review ${targetSystem} progress: ${handoff.title}` },
+      block: { status: "blocked", approvalStatus: previousApprovalStatus, receiptKind: "agent-handoff-blocked", followupTitle: `Unblock handoff: ${handoff.title}` },
+      complete: { status: "complete", approvalStatus: "approved", receiptKind: "agent-handoff-complete", followupTitle: "" },
+      cancel: { status: "canceled", approvalStatus: previousApprovalStatus === "pending-operator-approval" ? "canceled" : previousApprovalStatus, receiptKind: "agent-handoff-canceled", followupTitle: "" },
+      rollback: { status: "rolled-back", approvalStatus: previousApprovalStatus, receiptKind: "agent-handoff-rollback", followupTitle: "" }
+    };
+    const transition = stateByAction[action];
+
+    handoff.status = transition.status;
+    handoff.approvalStatus = transition.approvalStatus;
+    handoff.updatedAt = eventAt;
+    handoff.lastActor = actor;
+    handoff.lastNote = note;
+    handoff.nextActionAt = nextActionAt;
+    handoff.customerVisible = false;
+    if (action === "approve") {
+      handoff.approvedBy = actor;
+      handoff.approvedAt = eventAt;
+    }
+    if (action === "dispatch") handoff.dispatchedAt = eventAt;
+    if (action === "acknowledge") handoff.acknowledgedAt = eventAt;
+    if (action === "complete") handoff.completedAt = eventAt;
+    if (action === "rollback") {
+      handoff.rollbackReason = note;
+      handoff.rollbackOf = clean(input.rollbackOf) || previousStatus;
+    }
+
+    if (workPlan) {
+      workPlan.status = transition.status;
+      workPlan.approvalStatus = transition.approvalStatus;
+      workPlan.updatedAt = eventAt;
+      workPlan.nextActionAt = nextActionAt;
+      workPlan.customerVisible = false;
+      if (action === "approve") {
+        workPlan.approvedBy = actor;
+        workPlan.approvedAt = eventAt;
+      }
+      if (action === "dispatch") workPlan.dispatchedAt = eventAt;
+      if (action === "acknowledge") workPlan.acknowledgedAt = eventAt;
+      if (action === "complete") workPlan.completedAt = eventAt;
+      if (action === "rollback") {
+        workPlan.rollbackReason = note;
+        workPlan.rollbackOf = clean(input.rollbackOf) || previousStatus;
+      }
+    }
+
+    const receipt = {
+      id: `receipt-agent-handoff-${action}-${requestStamp}`,
+      customerId: handoff.customerId || null,
+      kind: transition.receiptKind,
+      status: action === "block" ? "blocked" : "complete",
+      createdAt: eventAt,
+      note: `${actor} moved ${handoff.id} from ${previousStatus} to ${transition.status}. ${note}`,
+      sourceKind: "agent-handoff",
+      sourceId: handoff.id,
+      sourceSystem,
+      targetSystem
+    };
+    addReceiptId(handoff, receipt.id);
+    addReceiptId(workPlan, receipt.id);
+    appendTransportHistory(handoff, {
+      action,
+      at: eventAt,
+      actor,
+      previousStatus,
+      nextStatus: transition.status,
+      previousApprovalStatus,
+      nextApprovalStatus: transition.approvalStatus,
+      receiptId: receipt.id,
+      note
+    });
+    appendTransportHistory(workPlan, {
+      action,
+      at: eventAt,
+      actor,
+      previousStatus,
+      nextStatus: transition.status,
+      receiptId: receipt.id,
+      note
+    });
+
+    let followup = null;
+    if (transition.followupTitle) {
+      followup = {
+        id: `followup-agent-handoff-${action}-${requestStamp}`,
+        customerId: handoff.customerId || null,
+        title: transition.followupTitle,
+        status: action === "block" ? "blocked" : "planned",
+        owner: actor,
+        nextActionAt,
+        sourceKind: "agent-handoff",
+        sourceId: handoff.id
+      };
+      nextData.followups.unshift(followup);
+    }
+
+    let notificationEvent = null;
+    if (action === "complete" && customerVisibleApproved && customer) {
+      const customerSummary = clean(input.customerSummary) || `${handoff.title} completed; operator-approved outcome is recorded.`;
+      customer.externalStatus = customerSummary;
+      notificationEvent = createNotificationEventRecord(nextData, {
+        customerId: customer.id,
+        sourceKind: "agent-handoff",
+        sourceId: handoff.id,
+        title: "Service work completed",
+        summary: customerSummary,
+        deliverAfterAt: eventAt
+      }, now, timezone);
+      nextData.notificationEvents.unshift(notificationEvent);
+      handoff.customerVisible = true;
+      if (workPlan) workPlan.customerVisible = true;
+    }
+
+    nextData.receipts.unshift(receipt);
+
+    return {
+      data: nextData,
+      records: {
+        workPlan,
+        handoff,
+        receipt,
+        followup,
+        notificationEvent
       }
     };
   }
@@ -1537,7 +1769,7 @@
     const customerVisibleBlocked = [
       ...workPlans,
       ...handoffs
-    ].filter((item) => item.customerVisible).length;
+    ].filter((item) => item.customerVisible && item.status !== "complete").length;
 
     return {
       workPlans: workPlans.length,
@@ -1545,7 +1777,15 @@
       pendingApprovals: handoffs.filter((item) => item.approvalStatus === "pending-operator-approval").length,
       monitorVisible: handoffs.filter((item) => item.monitorVisible).length,
       approved: handoffs.filter((item) => item.approvalStatus === "approved").length,
+      dispatched: handoffs.filter((item) => item.status === "dispatched").length,
+      acknowledged: handoffs.filter((item) => item.status === "acknowledged").length,
+      inProgress: handoffs.filter((item) => item.status === "in-progress").length,
+      blocked: handoffs.filter((item) => item.status === "blocked").length,
+      complete: handoffs.filter((item) => item.status === "complete").length,
+      canceled: handoffs.filter((item) => item.status === "canceled").length,
+      rolledBack: handoffs.filter((item) => item.status === "rolled-back").length,
       rejected: handoffs.filter((item) => item.status === "rejected").length,
+      receipts: handoffs.reduce((total, item) => total + (Array.isArray(item.receiptIds) ? item.receiptIds.length : 0), 0),
       customerVisibleBlocked
     };
   }
@@ -1725,8 +1965,8 @@
     const marketing = summarizeMarketingState(data);
     const calendarExport = createCalendarExport(data, { now: nowText });
     const timeline = monitorTimelineItems(data);
-    const terminalStatuses = new Set(["complete", "returned", "canceled", "accepted", "rejected"]);
-    const queue = timeline.filter((item) => ["waiting", "deferred", "submitted", "reviewing", "overdue", "blocked", "proposed"].includes(item.status));
+    const terminalStatuses = new Set(["complete", "returned", "canceled", "accepted", "rejected", "rolled-back"]);
+    const queue = timeline.filter((item) => ["waiting", "deferred", "submitted", "reviewing", "overdue", "blocked", "proposed", "approved", "dispatched", "acknowledged", "in-progress"].includes(item.status));
     const risks = timeline.filter((item) => item.status === "blocked" || item.status === "overdue" || (item.time && item.time < nowText && !terminalStatuses.has(item.status)));
     const receipts = Array.isArray(data.receipts) ? data.receipts : [];
     const baseSummary = {
@@ -2035,8 +2275,8 @@
   function buildMonitorReport(currentData, options) {
     const data = normalizedOperatingData(currentData);
     const nowText = clean(options && options.now) || "2026-06-01T12:00:00+09:00";
-    const terminalStatuses = new Set(["complete", "returned", "canceled", "accepted", "rejected"]);
-    const activeStatuses = new Set(["waiting", "deferred", "submitted", "reviewing", "overdue", "blocked", "proposed"]);
+    const terminalStatuses = new Set(["complete", "returned", "canceled", "accepted", "rejected", "rolled-back"]);
+    const activeStatuses = new Set(["waiting", "deferred", "submitted", "reviewing", "overdue", "blocked", "proposed", "approved", "dispatched", "acknowledged", "in-progress"]);
     const revenue = summarizeRevenueState(data);
     const curriculum = summarizeCurriculumState(data);
     const notifications = summarizeNotificationState(data);
@@ -2210,6 +2450,13 @@
         blockedUpdates: notifications.blocked,
         agentHandoffs: handoffs.handoffs,
         pendingHandoffApprovals: handoffs.pendingApprovals,
+        approvedHandoffs: handoffs.approved,
+        dispatchedHandoffs: handoffs.dispatched,
+        acknowledgedHandoffs: handoffs.acknowledged,
+        inProgressHandoffs: handoffs.inProgress,
+        blockedHandoffs: handoffs.blocked,
+        completedHandoffs: handoffs.complete,
+        rolledBackHandoffs: handoffs.rolledBack,
         calendarEntries: calendarExport.counts.total,
         calendarVisible: calendarExport.counts.customerVisible,
         rescheduledScheduleEntries: calendarExport.counts.rescheduled,
@@ -2304,6 +2551,7 @@
     createOperatingLedger,
     createPersistenceMetadata,
     createAgentHandoffRecords,
+    transitionAgentHandoffRecords,
     createMonitorActionRecords,
     decideOpportunityRecords,
     createIntakeRecords,
