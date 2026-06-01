@@ -771,7 +771,8 @@ button.secondary-action {
 }
 
 .access-gateway-console,
-.library-sync-console {
+.library-sync-console,
+.calendar-provider-console {
   grid-template-columns: 1fr;
   border-color: var(--accent-border);
 }

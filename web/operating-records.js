@@ -28,6 +28,7 @@
     "routePlacements",
     "accessGateways",
     "librarySyncHandoffs",
+    "calendarProviderHandoffs",
     "monitorHealthChecks",
     "notificationEvents",
     "notificationDeliveries",
@@ -302,6 +303,110 @@
     ];
   }
 
+  function defaultCalendarProviderHandoffs() {
+    return [
+      {
+        id: "calendar-provider-google-readiness",
+        title: "Google Calendar Provider Handoff",
+        sourceSystem: "EPOCH",
+        targetProvider: "Google Calendar",
+        providerKind: "google",
+        syncMode: "provider-export-readiness",
+        status: "planned",
+        handoffStatus: "adapter-deferred",
+        invitationPolicy: "no-live-send",
+        customerSafeStatus: "preview-ready",
+        visibility: "internal",
+        customerVisible: false,
+        liveSyncEnabled: false,
+        sendsInvitations: false,
+        externalProviderWrite: false,
+        calendarExportSchema: "epoch.calendar-export",
+        eventSourceKinds: ["session", "assignment", "notification", "reminder-rule"],
+        readinessChecks: ["timezone-normalized", "customer-safe-title", "operator-approval-required"],
+        nextActionAt: "2026-06-02T10:00:00+09:00",
+        createdAt: "2026-06-01T23:05:00+09:00",
+        updatedAt: "2026-06-01T23:05:00+09:00",
+        receiptIds: ["receipt-calendar-provider-seed"],
+        handoffHistory: [
+          {
+            action: "seed",
+            status: "planned",
+            at: "2026-06-01T23:05:00+09:00",
+            note: "Google Calendar adapter remains deferred while EPOCH records invitation-ready exports."
+          }
+        ],
+        notes: "Prepare provider-neutral event payloads before any Google Calendar API adapter is implemented."
+      },
+      {
+        id: "calendar-provider-microsoft-readiness",
+        title: "Microsoft 365 Calendar Provider Handoff",
+        sourceSystem: "EPOCH",
+        targetProvider: "Microsoft 365 Calendar",
+        providerKind: "microsoft",
+        syncMode: "provider-export-readiness",
+        status: "planned",
+        handoffStatus: "adapter-deferred",
+        invitationPolicy: "no-live-send",
+        customerSafeStatus: "preview-ready",
+        visibility: "internal",
+        customerVisible: false,
+        liveSyncEnabled: false,
+        sendsInvitations: false,
+        externalProviderWrite: false,
+        calendarExportSchema: "epoch.calendar-export",
+        eventSourceKinds: ["session", "assignment", "notification", "availability-window"],
+        readinessChecks: ["timezone-normalized", "customer-safe-title", "operator-approval-required"],
+        nextActionAt: "2026-06-02T10:30:00+09:00",
+        createdAt: "2026-06-01T23:06:00+09:00",
+        updatedAt: "2026-06-01T23:06:00+09:00",
+        receiptIds: ["receipt-calendar-provider-seed"],
+        handoffHistory: [
+          {
+            action: "seed",
+            status: "planned",
+            at: "2026-06-01T23:06:00+09:00",
+            note: "Microsoft 365 adapter remains deferred while EPOCH records invitation-ready exports."
+          }
+        ],
+        notes: "Prepare provider-neutral event payloads before any Microsoft Graph adapter is implemented."
+      },
+      {
+        id: "calendar-provider-invitation-readiness",
+        title: "Customer-Safe Invitation Readiness",
+        sourceSystem: "EPOCH",
+        targetProvider: "provider-neutral",
+        providerKind: "invitation",
+        syncMode: "invitation-readiness",
+        status: "queued",
+        handoffStatus: "operator-preview-ready",
+        invitationPolicy: "operator-approved-no-live-send",
+        customerSafeStatus: "ready-to-preview",
+        visibility: "internal",
+        customerVisible: false,
+        liveSyncEnabled: false,
+        sendsInvitations: false,
+        externalProviderWrite: false,
+        calendarExportSchema: "epoch.calendar-export",
+        eventSourceKinds: ["session", "assignment", "customer-update"],
+        readinessChecks: ["customer-safe-summary", "operator-approval-required", "no-provider-send"],
+        nextActionAt: "2026-06-01T23:30:00+09:00",
+        createdAt: "2026-06-01T23:07:00+09:00",
+        updatedAt: "2026-06-01T23:07:00+09:00",
+        receiptIds: ["receipt-calendar-provider-seed"],
+        handoffHistory: [
+          {
+            action: "seed",
+            status: "queued",
+            at: "2026-06-01T23:07:00+09:00",
+            note: "Customer-safe invitation previews can be prepared, but no external invitation is sent."
+          }
+        ],
+        notes: "Invitation readiness records can preview customer-safe schedule text without sending provider invitations."
+      }
+    ];
+  }
+
   function normalizedOperatingData(data) {
     const nextData = cloneData(data || {});
     for (const collection of ledgerCollections) {
@@ -316,6 +421,9 @@
     }
     if (!Array.isArray(nextData.librarySyncHandoffs) || !nextData.librarySyncHandoffs.length) {
       nextData.librarySyncHandoffs = defaultLibrarySyncHandoffs();
+    }
+    if (!Array.isArray(nextData.calendarProviderHandoffs) || !nextData.calendarProviderHandoffs.length) {
+      nextData.calendarProviderHandoffs = defaultCalendarProviderHandoffs();
     }
     if (!nextData.accessPosture || typeof nextData.accessPosture !== "object") {
       nextData.accessPosture = {
@@ -3497,6 +3605,226 @@
     };
   }
 
+  function summarizeCalendarProviderState(currentData, options = {}) {
+    const data = normalizedOperatingData(currentData);
+    const calendarExport = options.calendarExport || createCalendarExport(data, { now: options.now || "2026-06-01T12:00:00+09:00" });
+    const handoffs = data.calendarProviderHandoffs.map((handoff) => {
+      const targetProvider = clean(handoff.targetProvider) || "provider-neutral";
+      const providerKind = clean(handoff.providerKind) || "provider-neutral";
+      const syncMode = clean(handoff.syncMode) || "provider-export-readiness";
+      const status = clean(handoff.status) || "planned";
+      const visibility = clean(handoff.visibility) || "internal";
+      const customerVisible = handoff.customerVisible === true;
+      const liveSyncEnabled = handoff.liveSyncEnabled === true;
+      const sendsInvitations = handoff.sendsInvitations === true;
+      const externalProviderWrite = handoff.externalProviderWrite === true;
+      const eventSourceKinds = Array.isArray(handoff.eventSourceKinds) ? handoff.eventSourceKinds : [];
+      const readinessChecks = Array.isArray(handoff.readinessChecks) ? handoff.readinessChecks : [];
+      const receiptIds = Array.isArray(handoff.receiptIds) ? handoff.receiptIds : [];
+      const handoffHistory = Array.isArray(handoff.handoffHistory) ? handoff.handoffHistory : [];
+      const violations = [];
+
+      if (visibility !== "internal" || customerVisible) {
+        violations.push("Calendar provider handoff must remain internal-only until a controlled customer invitation surface exists.");
+      }
+      if (liveSyncEnabled || sendsInvitations || externalProviderWrite) {
+        violations.push("Calendar provider handoff cannot enable live sync, live provider writes, or invitation sending in this slice.");
+      }
+      if (!targetProvider) {
+        violations.push("Calendar provider handoff is missing a provider target.");
+      }
+      if (status === "complete" && !receiptIds.length) {
+        violations.push("Completed calendar provider handoff requires a receipt trail.");
+      }
+      if (syncMode === "invitation-readiness" && !readinessChecks.includes("no-provider-send")) {
+        violations.push("Invitation readiness must prove no provider send occurs.");
+      }
+
+      return {
+        id: clean(handoff.id),
+        title: clean(handoff.title) || "Calendar Provider Handoff",
+        sourceSystem: clean(handoff.sourceSystem) || "EPOCH",
+        targetProvider,
+        providerKind,
+        syncMode,
+        status,
+        handoffStatus: clean(handoff.handoffStatus) || "pending",
+        invitationPolicy: clean(handoff.invitationPolicy) || "no-live-send",
+        customerSafeStatus: clean(handoff.customerSafeStatus) || "preview-pending",
+        visibility,
+        customerVisible,
+        liveSyncEnabled,
+        sendsInvitations,
+        externalProviderWrite,
+        calendarExportSchema: clean(handoff.calendarExportSchema) || calendarExport.schema,
+        eventSourceKinds,
+        readinessChecks,
+        nextActionAt: clean(handoff.nextActionAt),
+        updatedAt: clean(handoff.updatedAt),
+        receiptIds,
+        handoffHistory,
+        notes: clean(handoff.notes) || "No provider handoff note recorded.",
+        violations
+      };
+    });
+    const violations = handoffs.flatMap((handoff) => handoff.violations.map((detail) => `${handoff.title || handoff.id}: ${detail}`));
+
+    return {
+      schema: "epoch.calendar-provider-handoff",
+      handoffCount: handoffs.length,
+      providerReady: handoffs.filter((item) => item.syncMode === "provider-export-readiness").length,
+      invitationReady: handoffs.filter((item) => item.syncMode === "invitation-readiness").length,
+      queued: handoffs.filter((item) => item.status === "queued").length,
+      complete: handoffs.filter((item) => item.status === "complete").length,
+      blocked: handoffs.filter((item) => item.status === "blocked").length,
+      customerSafe: handoffs.filter((item) => clean(item.customerSafeStatus).includes("ready") || clean(item.customerSafeStatus).includes("preview")).length,
+      noLiveSend: handoffs.filter((item) => !item.liveSyncEnabled && !item.sendsInvitations && !item.externalProviderWrite).length,
+      providerKinds: new Set(handoffs.map((item) => item.providerKind).filter(Boolean)).size,
+      exportEntries: calendarExport.counts.total,
+      customerVisibleEntries: calendarExport.counts.customerVisible,
+      violations,
+      status: violations.length ? "blocked" : "ready",
+      handoffs
+    };
+  }
+
+  function createCalendarProviderHandoffRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const createdAt = withTimezone(now.toISOString(), timezone);
+    const handoff = {
+      id: clean(input.id) || `calendar-provider-${stamp(now)}`,
+      title: clean(input.title) || "Calendar Provider Handoff",
+      sourceSystem: "EPOCH",
+      targetProvider: clean(input.targetProvider) || "provider-neutral",
+      providerKind: clean(input.providerKind) || "provider-neutral",
+      syncMode: clean(input.syncMode) || "provider-export-readiness",
+      status: clean(input.status) || "planned",
+      handoffStatus: clean(input.handoffStatus) || "adapter-deferred",
+      invitationPolicy: clean(input.invitationPolicy) || "no-live-send",
+      customerSafeStatus: clean(input.customerSafeStatus) || "preview-ready",
+      visibility: "internal",
+      customerVisible: false,
+      liveSyncEnabled: false,
+      sendsInvitations: false,
+      externalProviderWrite: false,
+      calendarExportSchema: "epoch.calendar-export",
+      eventSourceKinds: Array.isArray(input.eventSourceKinds) ? input.eventSourceKinds : ["session", "assignment"],
+      readinessChecks: Array.isArray(input.readinessChecks) ? input.readinessChecks : ["timezone-normalized", "operator-approval-required", "no-provider-send"],
+      nextActionAt: withTimezone(input.nextActionAt, timezone) || createdAt,
+      createdAt,
+      updatedAt: createdAt,
+      receiptIds: [],
+      handoffHistory: [
+        {
+          action: "create",
+          status: clean(input.status) || "planned",
+          at: createdAt,
+          note: clean(input.note) || "Calendar provider handoff created for operator review."
+        }
+      ],
+      notes: clean(input.note) || "Calendar provider handoff created for operator review."
+    };
+    nextData.calendarProviderHandoffs.unshift(handoff);
+    return {
+      data: nextData,
+      records: {
+        handoff
+      }
+    };
+  }
+
+  function transitionCalendarProviderHandoffRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const updatedAt = withTimezone(now.toISOString(), timezone);
+    const handoffId = clean(input.handoffId || input.id);
+    const action = clean(input.action) || "verify";
+    const note = clean(input.note) || "Calendar provider handoff reviewed by operator.";
+    const handoff = nextData.calendarProviderHandoffs.find((item) => item.id === handoffId);
+    if (!handoff) throw new Error("calendar provider handoff not found");
+
+    if (action === "verify") {
+      handoff.status = "complete";
+      handoff.handoffStatus = "verified-provider-deferred";
+    } else if (action === "prepare") {
+      handoff.status = "queued";
+      handoff.handoffStatus = "provider-payload-ready";
+    } else if (action === "mark-ready") {
+      handoff.status = "queued";
+      handoff.handoffStatus = "adapter-ready-without-live-send";
+    } else if (action === "invite-ready") {
+      handoff.status = "queued";
+      handoff.syncMode = "invitation-readiness";
+      handoff.handoffStatus = "operator-preview-ready";
+      handoff.customerSafeStatus = "ready-to-preview";
+      handoff.invitationPolicy = "operator-approved-no-live-send";
+      if (!Array.isArray(handoff.readinessChecks)) handoff.readinessChecks = [];
+      if (!handoff.readinessChecks.includes("no-provider-send")) handoff.readinessChecks.push("no-provider-send");
+    } else if (action === "block") {
+      handoff.status = "blocked";
+      handoff.handoffStatus = "blocked";
+    } else {
+      throw new Error("unsupported calendar provider action");
+    }
+
+    handoff.visibility = "internal";
+    handoff.customerVisible = false;
+    handoff.liveSyncEnabled = false;
+    handoff.sendsInvitations = false;
+    handoff.externalProviderWrite = false;
+    handoff.updatedAt = updatedAt;
+    handoff.nextActionAt = withTimezone(input.nextActionAt, timezone) || handoff.nextActionAt || updatedAt;
+    handoff.notes = note;
+    if (!Array.isArray(handoff.handoffHistory)) handoff.handoffHistory = [];
+    handoff.handoffHistory.unshift({
+      action,
+      status: handoff.status,
+      at: updatedAt,
+      note
+    });
+
+    const receiptId = `receipt-calendar-provider-${stamp(now)}`;
+    if (!Array.isArray(handoff.receiptIds)) handoff.receiptIds = [];
+    handoff.receiptIds.unshift(receiptId);
+    const healthCheck = {
+      id: `monitor-check-calendar-provider-${stamp(now)}`,
+      actionId: `calendar-provider-${action}`,
+      receiptId,
+      title: `Calendar provider ${action}`,
+      summary: `${handoff.title}: ${note}`,
+      status: handoff.status,
+      priority: action === "block" ? "high" : "medium",
+      effect: "calendar-provider-handoff",
+      target: "monitor-calendar-provider",
+      owner: clean(input.owner) || "Jack",
+      createdAt: updatedAt,
+      visibility: "internal",
+      customerVisible: false
+    };
+    const receipt = {
+      id: receiptId,
+      customerId: null,
+      kind: "calendar-provider-handoff",
+      status: handoff.status,
+      createdAt: updatedAt,
+      note: `${healthCheck.title}: ${healthCheck.summary}`
+    };
+    nextData.monitorHealthChecks.unshift(healthCheck);
+    nextData.receipts.unshift(receipt);
+
+    return {
+      data: nextData,
+      records: {
+        handoff,
+        healthCheck,
+        receipt
+      }
+    };
+  }
+
   function summarizeAccessPosture(currentData, options = {}) {
     const data = normalizedOperatingData(currentData);
     const posture = data.accessPosture && typeof data.accessPosture === "object" ? data.accessPosture : {};
@@ -3813,6 +4141,7 @@
       ...(currentData.availabilityWindows || []).map((item) => ({ kind: "availability window", id: item.id, title: item.title, status: item.status, time: item.startAt || item.createdAt, owner: item.owner || "availability" })),
       ...(currentData.accessGateways || []).map((item) => ({ kind: "access gateway", id: item.id, title: item.label, status: item.status, time: item.updatedAt || item.lastVerifiedAt || item.createdAt, owner: item.publicExposure || item.policy || "access" })),
       ...(currentData.librarySyncHandoffs || []).map((item) => ({ kind: "library sync", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.handoffStatus || item.targetSystem || "LIBRARY" })),
+      ...(currentData.calendarProviderHandoffs || []).map((item) => ({ kind: "calendar provider", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.handoffStatus || "calendar" })),
       ...currentData.sessions.map((item) => ({ kind: "session", id: item.id, title: item.title, status: item.status, time: item.startAt, owner: item.owner || "owner pending" })),
       ...currentData.assignments.map((item) => ({ kind: "request", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.owner || "owner pending" })),
       ...currentData.submissions.map((item) => ({ kind: "submission", id: item.id, title: item.title || item.id, status: item.status, time: item.reviewDueAt, owner: item.owner || "review queue" })),
@@ -3835,6 +4164,7 @@
     const handoffs = summarizeAgentHandoffState(data);
     const marketing = summarizeMarketingState(data);
     const calendarExport = createCalendarExport(data, { now: nowText });
+    const calendarProvider = summarizeCalendarProviderState(data, { now: nowText, calendarExport });
     const persistence = summarizePersistenceState(data, { now: nowText });
     const librarySync = summarizeLibrarySyncState(data, { now: nowText, persistence });
     const routePlacement = summarizeRoutePlacementState(data, { now: nowText });
@@ -3864,6 +4194,10 @@
       if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
     }
     for (const item of timeline.filter((entry) => entry.kind === "library sync").slice(0, 3)) {
+      if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
+      if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
+    }
+    for (const item of timeline.filter((entry) => entry.kind === "calendar provider").slice(0, 4)) {
       if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
       if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
@@ -3970,6 +4304,14 @@
         severity: "high",
         title: "LIBRARY Sync Violation",
         detail: librarySync.violations[0]
+      });
+    }
+    if (calendarProvider.violations.length) {
+      risks.push({
+        id: "calendar-provider-violation",
+        severity: "high",
+        title: "Calendar Provider Violation",
+        detail: calendarProvider.violations[0]
       });
     }
 
@@ -4095,6 +4437,11 @@
         libraryBackupReady: librarySync.backupReady,
         librarySyncViolations: librarySync.violations.length,
         libraryDirtySnapshotPending: librarySync.dirtySnapshotPending,
+        calendarProviderHandoffs: calendarProvider.handoffCount,
+        calendarProviderReady: calendarProvider.providerReady,
+        calendarInvitationReady: calendarProvider.invitationReady,
+        calendarNoLiveSend: calendarProvider.noLiveSend,
+        calendarProviderViolations: calendarProvider.violations.length,
         monitorHealthChecks: monitorHealthChecks.length,
         monitorActionReceipts: data.receipts.filter((item) => item.kind === "monitor-check").length,
         operatorActions: operatorActions.length
@@ -4106,6 +4453,7 @@
       scheduleControls,
       handoffs,
       marketing,
+      calendarProvider,
       librarySync,
       accessGateways,
       routePlacement,
@@ -4138,6 +4486,7 @@
     });
     data.persistence = persistence;
     const calendarExport = createCalendarExport(data, { now: now.toISOString() });
+    const calendarProvider = summarizeCalendarProviderState(data, { now: now.toISOString(), calendarExport });
     const routePlacement = summarizeRoutePlacementState(data, { now: now.toISOString() });
     const accessGateway = summarizeAccessGatewayState(data, { now: now.toISOString(), routePlacement });
     const librarySync = summarizeLibrarySyncState(data, { now: now.toISOString(), persistence });
@@ -4155,6 +4504,7 @@
         now: exportedAt
       }).summary,
       calendarExport,
+      calendarProvider,
       routePlacement,
       accessGateway,
       librarySync,
@@ -4193,6 +4543,8 @@
     transitionAccessGatewayRecords,
     createLibrarySyncHandoffRecords,
     transitionLibrarySyncHandoffRecords,
+    createCalendarProviderHandoffRecords,
+    transitionCalendarProviderHandoffRecords,
     createMonitorActionRecords,
     decideOpportunityRecords,
     createIntakeRecords,
@@ -4211,6 +4563,7 @@
     summarizeScheduleControlState,
     summarizeAccessGatewayState,
     summarizeLibrarySyncState,
+    summarizeCalendarProviderState,
     summarizeAccessPosture,
     summarizeMemoryState,
     summarizeScopeState,

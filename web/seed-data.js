@@ -729,6 +729,107 @@ window.EPOCH_SEED_DATA = {
       "notes": "Recovery can import only validated operating-ledger JSON with matching persistence metadata."
     }
   ],
+  "calendarProviderHandoffs": [
+    {
+      "id": "calendar-provider-google-readiness",
+      "title": "Google Calendar Provider Handoff",
+      "sourceSystem": "EPOCH",
+      "targetProvider": "Google Calendar",
+      "providerKind": "google",
+      "syncMode": "provider-export-readiness",
+      "status": "planned",
+      "handoffStatus": "adapter-deferred",
+      "invitationPolicy": "no-live-send",
+      "customerSafeStatus": "preview-ready",
+      "visibility": "internal",
+      "customerVisible": false,
+      "liveSyncEnabled": false,
+      "sendsInvitations": false,
+      "externalProviderWrite": false,
+      "calendarExportSchema": "epoch.calendar-export",
+      "eventSourceKinds": ["session", "assignment", "notification", "reminder-rule"],
+      "readinessChecks": ["timezone-normalized", "customer-safe-title", "operator-approval-required"],
+      "nextActionAt": "2026-06-02T10:00:00+09:00",
+      "createdAt": "2026-06-01T23:05:00+09:00",
+      "updatedAt": "2026-06-01T23:05:00+09:00",
+      "receiptIds": ["receipt-calendar-provider-seed"],
+      "handoffHistory": [
+        {
+          "action": "seed",
+          "status": "planned",
+          "at": "2026-06-01T23:05:00+09:00",
+          "note": "Google Calendar adapter remains deferred while EPOCH records invitation-ready exports."
+        }
+      ],
+      "notes": "Prepare provider-neutral event payloads before any Google Calendar API adapter is implemented."
+    },
+    {
+      "id": "calendar-provider-microsoft-readiness",
+      "title": "Microsoft 365 Calendar Provider Handoff",
+      "sourceSystem": "EPOCH",
+      "targetProvider": "Microsoft 365 Calendar",
+      "providerKind": "microsoft",
+      "syncMode": "provider-export-readiness",
+      "status": "planned",
+      "handoffStatus": "adapter-deferred",
+      "invitationPolicy": "no-live-send",
+      "customerSafeStatus": "preview-ready",
+      "visibility": "internal",
+      "customerVisible": false,
+      "liveSyncEnabled": false,
+      "sendsInvitations": false,
+      "externalProviderWrite": false,
+      "calendarExportSchema": "epoch.calendar-export",
+      "eventSourceKinds": ["session", "assignment", "notification", "availability-window"],
+      "readinessChecks": ["timezone-normalized", "customer-safe-title", "operator-approval-required"],
+      "nextActionAt": "2026-06-02T10:30:00+09:00",
+      "createdAt": "2026-06-01T23:06:00+09:00",
+      "updatedAt": "2026-06-01T23:06:00+09:00",
+      "receiptIds": ["receipt-calendar-provider-seed"],
+      "handoffHistory": [
+        {
+          "action": "seed",
+          "status": "planned",
+          "at": "2026-06-01T23:06:00+09:00",
+          "note": "Microsoft 365 adapter remains deferred while EPOCH records invitation-ready exports."
+        }
+      ],
+      "notes": "Prepare provider-neutral event payloads before any Microsoft Graph adapter is implemented."
+    },
+    {
+      "id": "calendar-provider-invitation-readiness",
+      "title": "Customer-Safe Invitation Readiness",
+      "sourceSystem": "EPOCH",
+      "targetProvider": "provider-neutral",
+      "providerKind": "invitation",
+      "syncMode": "invitation-readiness",
+      "status": "queued",
+      "handoffStatus": "operator-preview-ready",
+      "invitationPolicy": "operator-approved-no-live-send",
+      "customerSafeStatus": "ready-to-preview",
+      "visibility": "internal",
+      "customerVisible": false,
+      "liveSyncEnabled": false,
+      "sendsInvitations": false,
+      "externalProviderWrite": false,
+      "calendarExportSchema": "epoch.calendar-export",
+      "eventSourceKinds": ["session", "assignment", "customer-update"],
+      "readinessChecks": ["customer-safe-summary", "operator-approval-required", "no-provider-send"],
+      "nextActionAt": "2026-06-01T23:30:00+09:00",
+      "createdAt": "2026-06-01T23:07:00+09:00",
+      "updatedAt": "2026-06-01T23:07:00+09:00",
+      "receiptIds": ["receipt-calendar-provider-seed"],
+      "handoffHistory": [
+        {
+          "action": "seed",
+          "status": "queued",
+          "at": "2026-06-01T23:07:00+09:00",
+          "note": "Customer-safe invitation previews can be prepared, but no external invitation is sent."
+        }
+      ],
+      "notes": "Invitation readiness records can preview customer-safe schedule text without sending provider invitations."
+    }
+  ],
   "notificationEvents": [
     {
       "id": "update-001",
@@ -921,6 +1022,15 @@ window.EPOCH_SEED_DATA = {
       "updatedAt": "2026-06-01T18:33:00+09:00",
       "reviewBy": "2026-06-05T09:00:00+09:00",
       "owner": "Jack"
+    },
+    {
+      "id": "memory-005",
+      "title": "Calendar providers are handoff-only",
+      "summary": "Provider handoffs can prepare Google or Microsoft-ready payloads and customer-safe invitation previews, but no live provider sync or invitation send occurs in this slice.",
+      "status": "active",
+      "updatedAt": "2026-06-01T23:08:00+09:00",
+      "reviewBy": "2026-06-05T10:00:00+09:00",
+      "owner": "Jack"
     }
   ],
   "accessPosture": {
@@ -985,6 +1095,21 @@ window.EPOCH_SEED_DATA = {
       "createdAt": "2026-06-01T18:34:00+09:00",
       "visibility": "internal",
       "customerVisible": false
+    },
+    {
+      "id": "monitor-check-seed-calendar-provider",
+      "actionId": "seed-calendar-provider-baseline",
+      "receiptId": "receipt-calendar-provider-seed",
+      "title": "Calendar provider baseline",
+      "summary": "EPOCH has internal-only Google, Microsoft, and customer-safe invitation-readiness handoff records without live provider sync.",
+      "status": "complete",
+      "priority": "medium",
+      "effect": "calendar-provider-handoff",
+      "target": "monitor-calendar-provider",
+      "owner": "Jack",
+      "createdAt": "2026-06-01T23:09:00+09:00",
+      "visibility": "internal",
+      "customerVisible": false
     }
   ],
   "receipts": [
@@ -1011,6 +1136,14 @@ window.EPOCH_SEED_DATA = {
       "status": "complete",
       "createdAt": "2026-06-01T18:34:00+09:00",
       "note": "LIBRARY sync baseline: internal-only ledger snapshot and recovery handoff records are ready for operator-controlled durable persistence."
+    },
+    {
+      "id": "receipt-calendar-provider-seed",
+      "customerId": null,
+      "kind": "calendar-provider-handoff",
+      "status": "complete",
+      "createdAt": "2026-06-01T23:09:00+09:00",
+      "note": "Calendar provider baseline: Google, Microsoft, and invitation-readiness handoffs are provider-neutral and no-live-send."
     },
     {
       "id": "receipt-001",

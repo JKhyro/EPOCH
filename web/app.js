@@ -67,7 +67,7 @@ function resetData() {
 
 function storageStatusText() {
   const persistence = recordTools.summarizePersistenceState(data);
-  return `Ledger v${recordTools.ledgerVersion} | ${data.customers.length} customers | ${data.engagements.length} engagements | ${data.campaignRoutes.length} campaigns | ${(data.librarySyncHandoffs || []).length} LIBRARY handoffs | ${data.notificationEvents.length} updates | ${data.receipts.length} receipts | r${persistence.revision} ${persistence.adapterState} | ${persistence.ledgerId}`;
+  return `Ledger v${recordTools.ledgerVersion} | ${data.customers.length} customers | ${data.engagements.length} engagements | ${data.campaignRoutes.length} campaigns | ${(data.librarySyncHandoffs || []).length} LIBRARY handoffs | ${(data.calendarProviderHandoffs || []).length} calendar handoffs | ${data.notificationEvents.length} updates | ${data.receipts.length} receipts | r${persistence.revision} ${persistence.adapterState} | ${persistence.ledgerId}`;
 }
 
 function formatTime(value) {
@@ -171,6 +171,7 @@ function allOperatingItems() {
     ...(data.availabilityWindows || []).map((item) => ({ ...item, kind: "availability window", time: item.startAt || item.createdAt })),
     ...(data.accessGateways || []).map((item) => ({ ...item, kind: "access gateway", title: item.label, time: item.updatedAt || item.lastVerifiedAt || item.createdAt })),
     ...(data.librarySyncHandoffs || []).map((item) => ({ ...item, kind: "library sync", time: item.nextActionAt || item.updatedAt || item.createdAt })),
+    ...(data.calendarProviderHandoffs || []).map((item) => ({ ...item, kind: "calendar provider", time: item.nextActionAt || item.updatedAt || item.createdAt })),
     ...data.sessions.map((item) => ({ ...item, kind: "session", time: item.startAt })),
     ...data.assignments.map((item) => ({ ...item, kind: "request", time: item.dueAt })),
     ...data.submissions.map((item) => ({ ...item, kind: "submission", time: item.reviewDueAt })),
@@ -554,10 +555,11 @@ function renderMonitor(items) {
   const accessGateways = report.accessGateways || recordTools.summarizeAccessGatewayState(data, { now: `${today}T12:00:00+09:00`, routePlacement });
   const calendarExport = recordTools.createCalendarExport(data, { now: `${today}T12:00:00+09:00` });
   const calendar = report.calendar || recordTools.summarizeCalendarExport(calendarExport);
+  const calendarProvider = report.calendarProvider || recordTools.summarizeCalendarProviderState(data, { now: `${today}T12:00:00+09:00`, calendarExport });
   const persistence = report.persistence || recordTools.summarizePersistenceState(data, { now: `${today}T12:00:00+09:00` });
   const librarySync = report.librarySync || recordTools.summarizeLibrarySyncState(data, { now: `${today}T12:00:00+09:00`, persistence });
   lastMonitorReport = report;
-  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | ${routePlacement.summary.routeCount} SYNAPSE routes | ${accessGateways.gatewayCount} access gates | ${librarySync.handoffCount} LIBRARY handoffs | ${marketing.ready} campaign routes ready | ${persistence.adapterState}`;
+  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | ${routePlacement.summary.routeCount} SYNAPSE routes | ${accessGateways.gatewayCount} access gates | ${librarySync.handoffCount} LIBRARY handoffs | ${calendarProvider.handoffCount} calendar handoffs | ${marketing.ready} campaign routes ready | ${persistence.adapterState}`;
   renderMonitorActionConsole(report);
 
   const summaryCards = [
@@ -570,6 +572,7 @@ function renderMonitor(items) {
     record("Safe Access", `${report.access.mode}, raw monitor ${report.access.rawMonitor}, raw admin ${report.access.rawAdmin}.`, [toneChip(`${report.summary.safeAccessViolations} warnings`, report.summary.safeAccessViolations ? "blocked" : "complete"), chip(report.access.defaultPublicPolicy)]),
     record("Access Gateway", `${accessGateways.controlledPublic} public, ${accessGateways.controlledCustomer} customer, ${accessGateways.deniedRaw} raw denied.`, [toneChip(accessGateways.status, accessGateways.status === "ready" ? "complete" : "blocked"), chip(`${accessGateways.gatewayCount} gates`)]),
     record("LIBRARY Sync", `${librarySync.exportHandoffs} export handoff, ${librarySync.recoveryHandoffs} recovery handoff, ${librarySync.searchReady} search-ready.`, [toneChip(librarySync.status, librarySync.violations.length ? "blocked" : librarySync.dirtySnapshotPending ? "overdue" : "complete"), chip(`${librarySync.handoffCount} handoffs`)]),
+    record("Calendar Providers", `${calendarProvider.providerReady} provider handoffs, ${calendarProvider.invitationReady} invitation handoff, ${calendarProvider.noLiveSend} no-live-send.`, [toneChip(calendarProvider.status, calendarProvider.status === "ready" ? "complete" : "blocked"), chip(`${calendarProvider.handoffCount} handoffs`)]),
     record("Operator Actions", `${report.operatorActions.length} local action${report.operatorActions.length === 1 ? "" : "s"} are queued in the monitor controls.`, [toneChip(`${report.operatorActions.length} queued`, report.operatorActions.length ? "overdue" : "complete")]),
     record("External Visibility", `${visibleCount} student/customer-visible records are available.`, [chip(`${visibleCount} visible`)]),
     record("Deadline Control", `${deadlines.today} today, ${deadlines.upcoming} upcoming, ${deadlines.overdue} overdue.`, [chip(`${deadlines.owned} owner-linked`, "planned")]),
@@ -721,6 +724,17 @@ function renderMonitor(items) {
     ]
   ));
 
+  const calendarProviderCards = calendarProvider.handoffs.map((handoff) => record(
+    handoff.title,
+    `${handoff.targetProvider} | ${handoff.syncMode} | ${handoff.invitationPolicy} | ${handoff.notes}`,
+    [
+      statusChip(handoff.status),
+      chip(handoff.handoffStatus),
+      chip(handoff.customerSafeStatus),
+      toneChip(`${handoff.violations.length} violations`, handoff.violations.length ? "blocked" : "complete")
+    ]
+  ));
+
   const curriculumCards = [
     ...(data.curriculumFrameworks || []).map((framework) => record(
       framework.title,
@@ -812,6 +826,7 @@ function renderMonitor(items) {
     monitorSection("SYNAPSE Placement", routeCards, "monitor-suite"),
     monitorSection("Access Gateway Records", gatewayCards.length ? gatewayCards : [record("Access Gateway", "No access gateway records have been created yet.", [chip("empty")])], "monitor-access-gateways"),
     monitorSection("LIBRARY Sync Handoffs", librarySyncCards.length ? librarySyncCards : [record("LIBRARY Sync", "No LIBRARY sync handoff records have been created yet.", [chip("empty")])], "monitor-library-sync"),
+    monitorSection("Calendar Provider Handoffs", calendarProviderCards.length ? calendarProviderCards : [record("Calendar Providers", "No calendar provider handoff records have been created yet.", [chip("empty")])], "monitor-calendar-provider"),
     monitorSection("Calendar Export", calendarCards.length ? calendarCards : [record("Calendar Export", "No export-ready calendar entries have been created yet.", [chip("empty")])], "monitor-calendar"),
     monitorSection("Persistence", persistenceCards, "monitor-persistence"),
     monitorSection("Safe Access", accessCards, "monitor-access"),
@@ -913,6 +928,17 @@ function renderLibrarySyncOptions() {
   if (submit) submit.disabled = !handoffOptions.length;
 }
 
+function renderCalendarProviderOptions() {
+  const select = byId("calendar-provider-select");
+  const submit = byId("calendar-provider-apply");
+  if (!select) return;
+  const handoffOptions = (data.calendarProviderHandoffs || []).map((handoff) => {
+    return `<option value="${escapeHtml(handoff.id)}">${escapeHtml(handoff.title)} (${escapeHtml(handoff.status)})</option>`;
+  });
+  select.innerHTML = handoffOptions.length ? handoffOptions.join("") : `<option value="">No calendar provider handoffs yet</option>`;
+  if (submit) submit.disabled = !handoffOptions.length;
+}
+
 function renderIntakeSnapshot() {
   const requests = data.assignments
     .filter((item) => item.externalVisible)
@@ -954,6 +980,7 @@ function renderAll() {
   renderReminderControlOptions();
   renderAccessGatewayOptions();
   renderLibrarySyncOptions();
+  renderCalendarProviderOptions();
   renderIntakeSnapshot();
   renderLedgerStatus();
 }
@@ -1355,6 +1382,41 @@ function wireLibrarySyncForm() {
   });
 }
 
+function wireCalendarProviderForm() {
+  const form = byId("calendar-provider-form");
+  const confirmation = byId("calendar-provider-confirmation");
+  if (!form || !confirmation) return;
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+    try {
+      const result = recordTools.transitionCalendarProviderHandoffRecords(data, payload, {
+        now: "2026-06-01T14:15:00.000Z"
+      });
+      data = result.data;
+      persistData({
+        adapterState: "modified-local",
+        recoveryNote: "Calendar provider handoff changed locally; export a ledger snapshot before live provider adapter work."
+      });
+      renderAll();
+      confirmation.innerHTML = record(
+        "Calendar Provider Updated",
+        `${result.records.handoff.title} is ${result.records.handoff.handoffStatus}.`,
+        [statusChip(result.records.handoff.status), chip(result.records.handoff.targetProvider), chip(result.records.handoff.invitationPolicy)]
+      );
+      form.reset();
+    } catch (error) {
+      confirmation.innerHTML = record(
+        "Calendar Provider Blocked",
+        error.message || "Calendar provider handoff action could not be applied.",
+        [chip("blocked", "blocked")]
+      );
+    }
+  });
+}
+
 function downloadLedger(text) {
   const blob = new Blob([text], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -1433,6 +1495,7 @@ function init() {
   wireReminderControlForm();
   wireAccessGatewayForm();
   wireLibrarySyncForm();
+  wireCalendarProviderForm();
   wireLedgerControls();
 }
 

@@ -62,6 +62,17 @@ sessions, recurrence candidates, and export-ready schedule entries.
 - Keep out for now: full multi-calendar synchronization and complex invitation
   workflows.
 
+Current EPOCH-side calendar provider slice:
+
+- `calendarProviderHandoffs` records provider-neutral Google Calendar,
+  Microsoft 365 Calendar, and customer-safe invitation-readiness handoffs.
+- `summarizeCalendarProviderState` exposes provider readiness, invitation
+  readiness, no-live-send posture, customer-safe preview state, and violations to
+  EPOCH MONITOR.
+- `transitionCalendarProviderHandoffRecords` creates internal monitor health
+  checks and `calendar-provider-handoff` receipts without live provider writes
+  or customer-visible notification events.
+
 ### 4. LIBRARY Durable Operating Ledger Persistence
 
 The local JSON ledger proves the shape, but durable persistence should move to

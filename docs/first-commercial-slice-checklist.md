@@ -35,6 +35,7 @@ service operations without waiting for every future CITADEL integration.
 - Receipt or outcome note.
 - Controlled public/customer access gateway record.
 - LIBRARY ledger sync/recovery handoff record.
+- Calendar provider handoff and invitation-readiness record.
 
 ## Required operating states
 
@@ -81,6 +82,9 @@ service operations without waiting for every future CITADEL integration.
   default.
 - LIBRARY sync/recovery handoffs are internal-only operating records with
   snapshot, recovery, receipt, search-readiness, and backup-readiness evidence.
+- Calendar provider handoffs prepare Google/Microsoft-ready export and
+  customer-safe invitation preview state while keeping live sync and invitation
+  sending disabled.
 - EIKEN 5-1 and professional/service-support offers have reusable frameworks
   and package-level gameplans that support personalized delivery.
 - Japan-wide and global campaign routes define channel, conversion action, copy

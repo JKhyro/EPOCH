@@ -30,6 +30,7 @@
           <span class="control-chip">Controlled gateway</span>
           <span class="control-chip">Local ledger</span>
           <span class="control-chip">LIBRARY handoff</span>
+          <span class="control-chip">Calendar handoff</span>
           <span class="control-chip">Thread registry</span>
         </div>
       </div>
@@ -40,6 +41,7 @@
         <button type="button" data-monitor-target="monitor-scope">Scope</button>
         <button type="button" data-monitor-target="monitor-memory">Memory</button>
         <button type="button" data-monitor-target="monitor-library-sync">LIBRARY</button>
+        <button type="button" data-monitor-target="monitor-calendar-provider">Calendar Providers</button>
         <button type="button" data-monitor-target="monitor-campaigns">Campaigns</button>
         <button type="button" data-monitor-target="monitor-timeline">Timeline</button>
       </div>
@@ -326,6 +328,7 @@
         <button type="button" class="mode-button" data-monitor-target="monitor-curriculum">Gameplans</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-access">Safe Access</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-library-sync">LIBRARY</button>
+        <button type="button" class="mode-button" data-monitor-target="monitor-calendar-provider">Providers</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-campaigns">Campaigns</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-controls">Controls</button>
       </div>
@@ -346,6 +349,7 @@
           <button type="button" data-monitor-target="monitor-handoffs">Agent Handoffs</button>
           <button type="button" data-monitor-target="monitor-suite">SYNAPSE</button>
           <button type="button" data-monitor-target="monitor-library-sync">LIBRARY Sync</button>
+          <button type="button" data-monitor-target="monitor-calendar-provider">Calendar Providers</button>
           <button type="button" data-monitor-target="monitor-calendar">Calendar</button>
           <button type="button" data-monitor-target="monitor-persistence">Persistence</button>
           <button type="button" data-monitor-target="monitor-access">Safe Access</button>
@@ -622,6 +626,29 @@
               </label>
               <button type="submit" id="library-sync-apply">Apply LIBRARY Sync Action</button>
             </form>
+            <form id="calendar-provider-form" class="review-console calendar-provider-console">
+              <div class="form-row">
+                <label>
+                  Calendar provider handoff
+                  <select name="handoffId" id="calendar-provider-select" required></select>
+                </label>
+                <label>
+                  Provider action
+                  <select name="action" id="calendar-provider-action" required>
+                    <option value="verify">Verify deferred adapter</option>
+                    <option value="prepare">Prepare provider payload</option>
+                    <option value="mark-ready">Mark adapter-ready</option>
+                    <option value="invite-ready">Invitation preview ready</option>
+                    <option value="block">Block handoff</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                Provider note
+                <input name="note" value="Calendar provider handoff reviewed; live sync and invitation sending remain deferred." />
+              </label>
+              <button type="submit" id="calendar-provider-apply">Apply Calendar Provider Action</button>
+            </form>
             <div id="review-confirmation" class="confirmation"></div>
             <div id="agent-handoff-confirmation" class="confirmation"></div>
             <div id="notification-outbox-confirmation" class="confirmation"></div>
@@ -629,6 +656,7 @@
             <div id="reminder-control-confirmation" class="confirmation"></div>
             <div id="access-gateway-confirmation" class="confirmation"></div>
             <div id="library-sync-confirmation" class="confirmation"></div>
+            <div id="calendar-provider-confirmation" class="confirmation"></div>
           </section>
           <div id="monitor-items" class="monitor-grid"></div>
         </div>

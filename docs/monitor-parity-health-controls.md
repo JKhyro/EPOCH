@@ -20,6 +20,7 @@ EPOCH MONITOR must expose these local operator sections:
 - Receipts
 - Safe Access
 - LIBRARY Sync
+- Calendar Providers
 - Controls
 
 The public route may reuse the visual language, but it must not expose raw
@@ -42,6 +43,7 @@ The current action classes are:
 - Stale monitor memory refresh prompt.
 - Local-only safe-access acknowledgement.
 - LIBRARY ledger sync/recovery handoff review.
+- Calendar provider handoff and invitation-readiness review.
 
 ## Safe access posture
 
@@ -102,3 +104,8 @@ The repository verifier must cover:
   `librarySyncHandoffs`, internal-only EPOCH-to-LIBRARY snapshot handoff,
   recovery import posture, internal receipts, export/import preservation, and no
   customer-visible notifications from sync actions.
+- Calendar provider handoff controls and verifier coverage for
+  `calendarProviderHandoffs`, provider-neutral Google/Microsoft readiness,
+  customer-safe invitation preview state, no-live-send enforcement, internal
+  receipts, export/import preservation, and no customer-visible notifications
+  from provider actions.
