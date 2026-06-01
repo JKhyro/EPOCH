@@ -19,6 +19,31 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
 - `docs/education-operating-platform-boundary.md`
 - `docs/first-commercial-slice-checklist.md`
 
+## Current implementation artifacts
+
+- `native/epoch_core.h` and `native/epoch_core.c`: first native C operating
+  contract for statuses, schedule entries, operating entries, and attention
+  checks.
+- `native/epoch_core_smoke.c`: native smoke test for the core contract.
+- `web/index.html`: static first-slice admin, student/customer, monitor, and
+  public-intake surface.
+- `web/seed-data.js`: demo commercial workflow covering leads, tracks, cohorts,
+  sessions, assignments, submissions, reviews, follow-ups, and receipts.
+- `tools/verify-commercial-slice.mjs`: repository verifier for the first
+  commercial slice.
+
+## Verification
+
+```powershell
+npm run verify
+cmake -S . -B $env:TEMP\epoch-cmake-build
+cmake --build $env:TEMP\epoch-cmake-build --config Debug
+ctest --test-dir $env:TEMP\epoch-cmake-build -C Debug --output-on-failure
+```
+
+To preview the static portal, serve the `web` folder with any local static file
+server and open `index.html`.
+
 ## Initial product intent
 
 EPOCH is the suite surface responsible for time-, calendar-, schedule-, and
