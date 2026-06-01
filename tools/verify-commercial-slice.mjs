@@ -105,7 +105,7 @@ for (const id of [
 for (const id of ["admin-gameplans", "student-gameplans", "curriculum-frameworks"]) {
   if (!html.includes(`id="${id}"`)) fail(`curriculum/gameplan surface missing ${id}`);
 }
-for (const field of ["requesterName", "ageBand", "intakeLane", "billingRegion", "offerKind", "packageId", "documentType", "targetResult", "deadlineTimezone", "preferredWindow", "requestSummary"]) {
+for (const field of ["requesterName", "ageBand", "intakeLane", "billingRegion", "offerKind", "packageId", "documentType", "targetResult", "targetLevel", "baselineSampleState", "weaknessFocus", "availableStudyTime", "deadlineTimezone", "preferredWindow", "requestSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`intake form missing field ${field}`);
 }
 for (const field of ["owner", "sessionTitle", "startAt", "endAt", "deadlineAt"]) {
@@ -135,6 +135,10 @@ for (const phrase of [
   "Country / billing region",
   "Document type",
   "Target result",
+  "Target level",
+  "Baseline sample",
+  "Weakness focus",
+  "Available study time",
   "Deadline and timezone",
   "Japan-wide launch routes",
   "Global expansion routes",
@@ -206,6 +210,8 @@ for (const phrase of [
   "renderOpportunityOptions",
   "renderOpportunityFeed",
   "renderEngagementFeed",
+  "frameworkId",
+  "gameplanId",
   "renderScheduleFeed",
   "renderIntakeSnapshot",
   "renderSubmissions",
@@ -296,6 +302,11 @@ if (!eikenFramework.assessmentRules.some((item) => item.includes("Under-19"))) f
 if (!data.packageGameplans.some((item) => item.packageId === "pkg-eiken-writing-monthly" && item.laborModel === "submission-first")) {
   fail("package gameplans missing premium submission-first EIKEN plan");
 }
+for (const offerPackage of data.offerPackages) {
+  if (!data.packageGameplans.some((item) => item.packageId === offerPackage.id)) {
+    fail(`package gameplans missing package ${offerPackage.id}`);
+  }
+}
 if (!data.packageGameplans.every((item) => item.customerVisibleSummary && item.internalReadiness && item.under19Policy)) {
   fail("package gameplans missing customer/internal/under-19 policy metadata");
 }
@@ -372,6 +383,10 @@ const intakeResult = recordTools.createIntakeRecords(data, {
   billingRegion: "Japan JPY billing",
   documentType: "EIKEN essay",
   targetResult: "Pass EIKEN Pre-1 writing",
+  targetLevel: "EIKEN Pre-1",
+  baselineSampleState: "ready to submit",
+  weaknessFocus: "reason development",
+  availableStudyTime: "30 minutes per weekday",
   deadlineTimezone: "June 5 JST",
   preferredWindow: "2026-06-05T19:30",
   requestSummary: "Needs EIKEN writing support but requires fit review."
@@ -394,8 +409,15 @@ if (!intakeResult.records.assignment.externalVisible) fail("intake request is no
 if (intakeResult.records.assignment.intakeLane !== "parent or guardian") fail("intake assignment did not preserve intake lane");
 if (!intakeResult.records.assignment.summary.includes("Document type: EIKEN essay")) fail("intake assignment summary missing document type");
 if (!intakeResult.records.assignment.summary.includes("Target result: Pass EIKEN Pre-1 writing")) fail("intake assignment summary missing target result");
+if (!intakeResult.records.assignment.summary.includes("Target level: EIKEN Pre-1")) fail("intake assignment summary missing target level");
+if (!intakeResult.records.assignment.summary.includes("Weakness focus: reason development")) fail("intake assignment summary missing weakness focus");
 if (!intakeResult.records.receipt.note.includes("Japan JPY billing")) fail("intake receipt missing billing region");
 if (!intakeResult.records.notificationEvent.visible) fail("intake update event is not customer-visible");
+if (intakeResult.records.opportunity.gameplanStatus !== "gameplan-linked") fail("intake opportunity did not link a package gameplan");
+if (intakeResult.records.opportunity.gameplanId !== "gameplan-under19-compatibility") fail("under-19 intake should preserve compatibility gameplan identity");
+if (intakeResult.records.opportunity.targetLevel !== "EIKEN Pre-1") fail("intake opportunity did not preserve target level");
+if (intakeResult.records.customer.gameplanId !== intakeResult.records.opportunity.gameplanId) fail("intake customer did not preserve gameplan identity");
+if (intakeResult.records.assignment.frameworkId !== intakeResult.records.opportunity.frameworkId) fail("intake assignment did not preserve framework identity");
 
 const acceptResult = recordTools.decideOpportunityRecords(intakeResult.data, {
   opportunityId: intakeResult.records.opportunity.id,
@@ -418,9 +440,14 @@ if (acceptResult.data.followups.length !== intakeResult.data.followups.length + 
 if (acceptResult.data.receipts.length !== intakeResult.data.receipts.length + 1) fail("accept flow did not create acceptance receipt");
 if (acceptResult.data.notificationEvents.length !== intakeResult.data.notificationEvents.length + 1) fail("accept flow did not create update event");
 if (acceptResult.records.engagement.status !== "active") fail("accept flow did not create active engagement");
+if (acceptResult.records.engagement.gameplanId !== intakeResult.records.opportunity.gameplanId) fail("accept flow did not preserve engagement gameplan identity");
+if (acceptResult.records.engagement.frameworkId !== intakeResult.records.opportunity.frameworkId) fail("accept flow did not preserve engagement framework identity");
 if (!acceptResult.records.assignment.externalVisible) fail("accept flow did not expose the first submission plan externally");
 if (acceptResult.records.assignment.engagementId !== acceptResult.records.engagement.id) fail("accept flow did not link assignment to engagement");
+if (acceptResult.records.assignment.gameplanId !== intakeResult.records.opportunity.gameplanId) fail("accept flow did not preserve assignment gameplan identity");
+if (!acceptResult.records.assignment.summary.includes("Target level: EIKEN Pre-1")) fail("accept flow assignment summary missing target level");
 if (!acceptResult.data.customers[0].externalStatus.includes("accepted")) fail("accept flow did not update customer external status");
+if (acceptResult.data.customers[0].gameplanId !== intakeResult.records.opportunity.gameplanId) fail("accept flow did not preserve customer gameplan identity");
 if (acceptResult.records.notificationEvent.sourceKind !== "engagement") fail("accept flow update event is not sourced to engagement");
 
 const revenueSummary = recordTools.summarizeRevenueState(acceptResult.data);
@@ -552,6 +579,7 @@ if (scheduleResult.data.sessions.length !== intakeResult.data.sessions.length + 
 if (scheduleResult.data.cohorts.length !== intakeResult.data.cohorts.length + 1) fail("schedule flow did not create a cohort");
 if (scheduleResult.records.assignment.status !== "planned") fail("schedule flow did not set assignment planned");
 if (scheduleResult.records.session.owner !== "Jack") fail("schedule flow did not assign owner");
+if (scheduleResult.records.session.gameplanId !== intakeResult.records.assignment.gameplanId) fail("schedule flow did not preserve session gameplan identity");
 if (!scheduleResult.data.customers[0].externalStatus.includes("scheduled")) fail("schedule flow did not update external status");
 if (scheduleResult.data.notificationEvents.length !== intakeResult.data.notificationEvents.length + 1) fail("schedule flow did not create update event");
 
@@ -571,6 +599,7 @@ const submissionResult = recordTools.createSubmissionRecords(scheduleResult.data
 if (submissionResult.data.submissions.length !== intakeResult.data.submissions.length + 1) fail("submission flow did not create a submission");
 if (submissionResult.data.reviews.length !== intakeResult.data.reviews.length + 1) fail("submission flow did not create a review");
 if (submissionResult.records.submission.status !== "reviewing") fail("submission should enter reviewing status");
+if (submissionResult.records.submission.gameplanId !== intakeResult.records.assignment.gameplanId) fail("submission flow did not preserve gameplan identity");
 if (submissionResult.records.review.status !== "reviewing") fail("review should enter reviewing status");
 if (!submissionResult.data.customers[0].externalStatus.includes("review is in progress")) fail("submission flow did not update customer status");
 if (submissionResult.data.notificationEvents.length !== scheduleResult.data.notificationEvents.length + 1) fail("submission flow did not create update event");

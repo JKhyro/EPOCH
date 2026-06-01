@@ -356,6 +356,18 @@
     return data.offerPackages.find((item) => item.id === packageId) || null;
   }
 
+  function gameplanById(data, gameplanId) {
+    return data.packageGameplans.find((item) => item.id === gameplanId) || null;
+  }
+
+  function gameplanForPackage(data, packageId) {
+    return data.packageGameplans.find((item) => item.packageId === packageId) || null;
+  }
+
+  function frameworkById(data, frameworkId) {
+    return data.curriculumFrameworks.find((item) => item.id === frameworkId) || null;
+  }
+
   function customerForOpportunity(data, opportunity) {
     const assignment = data.assignments.find((item) => item.opportunityId === opportunity.id);
     if (assignment?.customerId) {
@@ -445,10 +457,17 @@
     const billingRegion = clean(input.billingRegion) || "Japan JPY billing";
     const documentType = clean(input.documentType) || "not specified";
     const targetResult = clean(input.targetResult) || "not specified";
+    const targetLevel = clean(input.targetLevel) || "diagnostic";
+    const baselineSampleState = clean(input.baselineSampleState) || "not submitted";
+    const weaknessFocus = clean(input.weaknessFocus) || "diagnostic pending";
+    const availableStudyTime = clean(input.availableStudyTime) || "not specified";
     const deadlineTimezone = clean(input.deadlineTimezone) || "not specified";
     const preferredWindow = withTimezone(input.preferredWindow, timezone) || withTimezone(now.toISOString(), timezone);
     const isUnder19 = ageBand === "under-19";
     const offerPackage = packageForRequest(nextData, offerKind, clean(input.packageId), isUnder19);
+    const packageGameplan = gameplanForPackage(nextData, offerPackage?.id);
+    const curriculumFramework = packageGameplan ? frameworkById(nextData, packageGameplan.frameworkId) : null;
+    const gameplanStatus = packageGameplan ? "gameplan-linked" : "gameplan-pending";
 
     if (!requesterName) throw new Error("requesterName is required");
     if (!requestSummary) throw new Error("requestSummary is required");
@@ -460,8 +479,13 @@
       `Intake lane: ${intakeLane}`,
       `Document type: ${documentType}`,
       `Target result: ${targetResult}`,
+      `Target level: ${targetLevel}`,
+      `Baseline sample: ${baselineSampleState}`,
+      `Weakness focus: ${weaknessFocus}`,
+      `Available study time: ${availableStudyTime}`,
       `Deadline/timezone: ${deadlineTimezone}`,
-      `Billing region: ${billingRegion}`
+      `Billing region: ${billingRegion}`,
+      `Gameplan: ${packageGameplan?.title || "gameplan pending"}`
     ].join(" | ");
     const customerId = `customer-intake-${requestStamp}`;
     const assignmentId = `request-intake-${requestStamp}`;
@@ -475,6 +499,13 @@
       name: `${requesterName} request`,
       trackId,
       packageId: offerPackage?.id || null,
+      frameworkId: curriculumFramework?.id || null,
+      gameplanId: packageGameplan?.id || null,
+      gameplanStatus,
+      targetLevel,
+      baselineSampleState,
+      weaknessFocus,
+      availableStudyTime,
       intakeLane,
       billingRegion,
       status: isUnder19 ? "waiting" : "planned",
@@ -486,6 +517,13 @@
       id: opportunityId,
       leadId: lead.id,
       packageId: offerPackage?.id || null,
+      frameworkId: curriculumFramework?.id || null,
+      gameplanId: packageGameplan?.id || null,
+      gameplanStatus,
+      targetLevel,
+      baselineSampleState,
+      weaknessFocus,
+      availableStudyTime,
       status: isUnder19 ? "waiting" : "planned",
       estimatedValueJpy: offerPackage?.priceJpy || 0,
       intakeLane,
@@ -499,6 +537,13 @@
       displayName: requesterName,
       trackId,
       packageId: offerPackage?.id || null,
+      frameworkId: curriculumFramework?.id || null,
+      gameplanId: packageGameplan?.id || null,
+      gameplanStatus,
+      targetLevel,
+      baselineSampleState,
+      weaknessFocus,
+      availableStudyTime,
       ageBand,
       intakeLane,
       billingRegion,
@@ -511,6 +556,9 @@
       id: assignmentId,
       customerId,
       packageId: offerPackage?.id || null,
+      frameworkId: curriculumFramework?.id || null,
+      gameplanId: packageGameplan?.id || null,
+      gameplanStatus,
       opportunityId,
       title: `${offerLabel} intake request`,
       dueAt: preferredWindow,
@@ -518,6 +566,10 @@
       externalVisible: true,
       documentType,
       targetResult,
+      targetLevel,
+      baselineSampleState,
+      weaknessFocus,
+      availableStudyTime,
       deadlineTimezone,
       intakeLane,
       billingRegion,
@@ -538,7 +590,10 @@
       kind: "intake-request",
       status: "complete",
       createdAt: withTimezone(now.toISOString(), timezone),
-      note: `Captured ${offerLabel.toLowerCase()} request for ${intakeLane} with ${billingRegion}.`
+      frameworkId: curriculumFramework?.id || null,
+      gameplanId: packageGameplan?.id || null,
+      gameplanStatus,
+      note: `Captured ${offerLabel.toLowerCase()} request for ${intakeLane} with ${billingRegion}; ${gameplanStatus}.`
     };
     const notificationEvent = createNotificationEventRecord(nextData, {
       customerId,
@@ -579,7 +634,8 @@
     const timezone = nextData.timezone || "Asia/Tokyo";
     const requestStamp = stamp(now);
     const assignmentId = clean(input.assignmentId) || findFirstVisibleAssignment(nextData)?.id;
-    const customerId = clean(input.customerId) || nextData.assignments.find((item) => item.id === assignmentId)?.customerId || nextData.customers[0]?.id;
+    const sourceAssignment = nextData.assignments.find((item) => item.id === assignmentId);
+    const customerId = clean(input.customerId) || sourceAssignment?.customerId || nextData.customers[0]?.id;
     const submissionTitle = clean(input.submissionTitle) || "Submitted work";
     const submissionSummary = clean(input.submissionSummary);
     const reviewDueAt = withTimezone(input.reviewDueAt, timezone) || withTimezone(now.toISOString(), timezone);
@@ -592,6 +648,14 @@
       id: `submission-flow-${requestStamp}`,
       assignmentId,
       customerId,
+      packageId: sourceAssignment?.packageId || null,
+      frameworkId: sourceAssignment?.frameworkId || null,
+      gameplanId: sourceAssignment?.gameplanId || null,
+      gameplanStatus: sourceAssignment?.gameplanStatus || null,
+      targetLevel: sourceAssignment?.targetLevel || null,
+      baselineSampleState: sourceAssignment?.baselineSampleState || null,
+      weaknessFocus: sourceAssignment?.weaknessFocus || null,
+      availableStudyTime: sourceAssignment?.availableStudyTime || null,
       title: submissionTitle,
       summary: submissionSummary,
       submittedAt: withTimezone(now.toISOString(), timezone),
@@ -624,7 +688,7 @@
       deliverAfterAt: reviewDueAt
     }, now, timezone);
 
-    const assignment = nextData.assignments.find((item) => item.id === assignmentId);
+    const assignment = sourceAssignment;
     if (assignment) assignment.status = "submitted";
 
     const customer = nextData.customers.find((item) => item.id === customerId);
@@ -748,6 +812,10 @@
     const cohort = {
       id: `cohort-schedule-${requestStamp}`,
       trackId,
+      packageId: assignment.packageId || null,
+      frameworkId: assignment.frameworkId || null,
+      gameplanId: assignment.gameplanId || null,
+      gameplanStatus: assignment.gameplanStatus || null,
       name: `${sessionTitle} lane`,
       status: "planned",
       owner,
@@ -759,6 +827,10 @@
       cohortId: cohort.id,
       assignmentId,
       customerId,
+      packageId: assignment.packageId || null,
+      frameworkId: assignment.frameworkId || null,
+      gameplanId: assignment.gameplanId || null,
+      gameplanStatus: assignment.gameplanStatus || null,
       title: sessionTitle,
       startAt,
       endAt,
@@ -839,6 +911,15 @@
 
     const offerPackage = packageById(nextData, opportunity.packageId);
     const customer = customerForOpportunity(nextData, opportunity);
+    const sourceAssignment = nextData.assignments.find((item) => item.opportunityId === opportunity.id);
+    const packageGameplan = gameplanById(nextData, opportunity.gameplanId || customer?.gameplanId || sourceAssignment?.gameplanId)
+      || gameplanForPackage(nextData, opportunity.packageId);
+    const curriculumFramework = frameworkById(nextData, opportunity.frameworkId || packageGameplan?.frameworkId || customer?.frameworkId || sourceAssignment?.frameworkId);
+    const gameplanStatus = packageGameplan ? "gameplan-linked" : "gameplan-pending";
+    const targetLevel = clean(opportunity.targetLevel || customer?.targetLevel || sourceAssignment?.targetLevel) || null;
+    const baselineSampleState = clean(opportunity.baselineSampleState || customer?.baselineSampleState || sourceAssignment?.baselineSampleState) || null;
+    const weaknessFocus = clean(opportunity.weaknessFocus || customer?.weaknessFocus || sourceAssignment?.weaknessFocus) || null;
+    const availableStudyTime = clean(opportunity.availableStudyTime || customer?.availableStudyTime || sourceAssignment?.availableStudyTime) || null;
     const packageName = offerPackage?.name || opportunity.packageId || "selected package";
     const valueJpy = Number(opportunity.estimatedValueJpy || offerPackage?.priceJpy || 0);
     const decidedAt = withTimezone(now.toISOString(), timezone);
@@ -852,6 +933,13 @@
     opportunity.owner = owner;
     opportunity.decisionNote = note;
     opportunity.decidedAt = decidedAt;
+    opportunity.frameworkId = curriculumFramework?.id || opportunity.frameworkId || null;
+    opportunity.gameplanId = packageGameplan?.id || opportunity.gameplanId || null;
+    opportunity.gameplanStatus = gameplanStatus;
+    opportunity.targetLevel = targetLevel;
+    opportunity.baselineSampleState = baselineSampleState;
+    opportunity.weaknessFocus = weaknessFocus;
+    opportunity.availableStudyTime = availableStudyTime;
     opportunity.nextAction = decision === "accept"
       ? `Start ${packageName} engagement plan`
       : decision === "defer"
@@ -867,6 +955,13 @@
         displayName: `${packageName} customer`,
         trackId: offerPackage?.trackId || "track-service-ops",
         packageId: opportunity.packageId,
+        frameworkId: curriculumFramework?.id || null,
+        gameplanId: packageGameplan?.id || null,
+        gameplanStatus,
+        targetLevel,
+        baselineSampleState,
+        weaknessFocus,
+        availableStudyTime,
         ageBand: "unknown",
         externalStatus: `${packageName} accepted; onboarding and first submission plan are active.`
       };
@@ -876,6 +971,13 @@
         opportunityId: opportunity.id,
         customerId,
         packageId: opportunity.packageId,
+        frameworkId: curriculumFramework?.id || null,
+        gameplanId: packageGameplan?.id || null,
+        gameplanStatus,
+        targetLevel,
+        baselineSampleState,
+        weaknessFocus,
+        availableStudyTime,
         status: "active",
         valueJpy,
         owner,
@@ -886,6 +988,9 @@
       const cohort = {
         id: `cohort-engagement-${requestStamp}`,
         trackId: offerPackage?.trackId || customer?.trackId || "track-service-ops",
+        frameworkId: curriculumFramework?.id || null,
+        gameplanId: packageGameplan?.id || null,
+        gameplanStatus,
         name: `${packageName} engagement plan`,
         status: "planned",
         owner,
@@ -897,6 +1002,10 @@
         opportunityId: opportunity.id,
         engagementId: engagement.id,
         customerId,
+        packageId: opportunity.packageId,
+        frameworkId: curriculumFramework?.id || null,
+        gameplanId: packageGameplan?.id || null,
+        gameplanStatus,
         title: `Onboarding: ${packageName}`,
         startAt: planStartAt,
         endAt: planEndAt,
@@ -911,12 +1020,24 @@
         opportunityId: opportunity.id,
         engagementId: engagement.id,
         packageId: opportunity.packageId,
+        frameworkId: curriculumFramework?.id || null,
+        gameplanId: packageGameplan?.id || null,
+        gameplanStatus,
+        targetLevel,
+        baselineSampleState,
+        weaknessFocus,
+        availableStudyTime,
         title: `First submission plan: ${packageName}`,
         dueAt: planDueAt,
         status: "planned",
         externalVisible: true,
         owner,
-        summary: note
+        summary: [
+          note,
+          packageGameplan?.customerVisibleSummary || "Gameplan is pending for this package.",
+          targetLevel ? `Target level: ${targetLevel}` : null,
+          weaknessFocus ? `Weakness focus: ${weaknessFocus}` : null
+        ].filter(Boolean).join(" | ")
       };
       const followup = {
         id: `followup-engagement-${requestStamp}`,
@@ -931,7 +1052,10 @@
         kind: "opportunity-accepted",
         status: "complete",
         createdAt: decidedAt,
-        note: `${packageName} accepted for ${valueJpy} JPY.`
+        frameworkId: curriculumFramework?.id || null,
+        gameplanId: packageGameplan?.id || null,
+        gameplanStatus,
+        note: `${packageName} accepted for ${valueJpy} JPY with ${packageGameplan?.title || "no gameplan linked"}.`
       };
       const notificationEvent = createNotificationEventRecord(nextData, {
         customerId,
@@ -944,6 +1068,13 @@
 
       if (customer) {
         customer.packageId = opportunity.packageId;
+        customer.frameworkId = curriculumFramework?.id || customer.frameworkId || null;
+        customer.gameplanId = packageGameplan?.id || customer.gameplanId || null;
+        customer.gameplanStatus = gameplanStatus;
+        customer.targetLevel = targetLevel;
+        customer.baselineSampleState = baselineSampleState;
+        customer.weaknessFocus = weaknessFocus;
+        customer.availableStudyTime = availableStudyTime;
         customer.externalStatus = `${packageName} accepted; onboarding and first submission plan are active.`;
       } else {
         nextData.customers.unshift(createdCustomer);
