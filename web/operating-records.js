@@ -166,6 +166,42 @@
     };
   }
 
+  function localDateFor(value) {
+    const text = clean(value);
+    return text ? text.slice(0, 10) : null;
+  }
+
+  function customerById(data, customerId) {
+    return data.customers.find((item) => item.id === customerId) || null;
+  }
+
+  function createCalendarEntry(data, details, timezone) {
+    const customer = customerById(data, details.customerId);
+    const startAt = withTimezone(details.startAt, timezone);
+    const endAt = withTimezone(details.endAt, timezone);
+    const dueAt = withTimezone(details.dueAt, timezone);
+    const primaryTime = startAt || dueAt || endAt;
+
+    return {
+      id: `calendar-${clean(details.sourceKind)}-${clean(details.sourceId)}`,
+      sourceKind: clean(details.sourceKind),
+      sourceId: clean(details.sourceId),
+      title: clean(details.title) || "Calendar entry",
+      timeKind: clean(details.timeKind) || "schedule-window",
+      startAt,
+      endAt,
+      dueAt,
+      timezone,
+      localDate: localDateFor(primaryTime),
+      status: clean(details.status) || "planned",
+      owner: clean(details.owner) || null,
+      customerId: clean(details.customerId) || null,
+      customerName: customer?.displayName || null,
+      externalVisible: Boolean(details.externalVisible),
+      updateEventId: clean(details.updateEventId) || null
+    };
+  }
+
   function createIntakeRecords(currentData, input, options) {
     const nextData = cloneData(currentData);
     ensureCollections(nextData);
@@ -771,6 +807,137 @@
     };
   }
 
+  function createCalendarExport(currentData, options) {
+    const data = normalizedOperatingData(currentData);
+    const now = options && options.now ? new Date(options.now) : new Date();
+    const timezone = data.timezone || "Asia/Tokyo";
+    const updateBySource = data.notificationEvents.reduce((memo, item) => {
+      if (item.sourceKind && item.sourceId) memo[`${item.sourceKind}:${item.sourceId}`] = item;
+      return memo;
+    }, {});
+    const entries = [];
+
+    for (const session of data.sessions) {
+      entries.push(createCalendarEntry(data, {
+        sourceKind: "session",
+        sourceId: session.id,
+        title: session.title,
+        timeKind: "session-window",
+        startAt: session.startAt,
+        endAt: session.endAt,
+        status: session.status,
+        owner: session.owner,
+        customerId: session.customerId,
+        externalVisible: true,
+        updateEventId: updateBySource[`session:${session.id}`]?.id
+      }, timezone));
+    }
+
+    for (const assignment of data.assignments) {
+      entries.push(createCalendarEntry(data, {
+        sourceKind: "assignment",
+        sourceId: assignment.id,
+        title: assignment.title,
+        timeKind: "due-window",
+        dueAt: assignment.dueAt,
+        status: assignment.status,
+        owner: assignment.owner,
+        customerId: assignment.customerId,
+        externalVisible: assignment.externalVisible,
+        updateEventId: updateBySource[`assignment:${assignment.id}`]?.id || updateBySource[`intake:${assignment.id}`]?.id
+      }, timezone));
+    }
+
+    for (const submission of data.submissions) {
+      entries.push(createCalendarEntry(data, {
+        sourceKind: "submission",
+        sourceId: submission.id,
+        title: submission.title || "Submission review",
+        timeKind: "review-window",
+        startAt: submission.submittedAt,
+        dueAt: submission.reviewDueAt,
+        status: submission.status,
+        owner: submission.owner,
+        customerId: submission.customerId,
+        externalVisible: true,
+        updateEventId: updateBySource[`submission:${submission.id}`]?.id
+      }, timezone));
+    }
+
+    for (const followup of data.followups) {
+      entries.push(createCalendarEntry(data, {
+        sourceKind: "followup",
+        sourceId: followup.id,
+        title: followup.title,
+        timeKind: "follow-up-window",
+        dueAt: followup.nextActionAt,
+        status: followup.status,
+        owner: followup.owner,
+        customerId: followup.customerId,
+        externalVisible: false,
+        updateEventId: updateBySource[`followup:${followup.id}`]?.id
+      }, timezone));
+    }
+
+    for (const engagement of data.engagements) {
+      entries.push(createCalendarEntry(data, {
+        sourceKind: "engagement",
+        sourceId: engagement.id,
+        title: `${engagement.packageId || "Engagement"} onboarding`,
+        timeKind: "onboarding-window",
+        startAt: engagement.acceptedAt,
+        dueAt: engagement.onboardingDueAt,
+        status: engagement.status,
+        owner: engagement.owner,
+        customerId: engagement.customerId,
+        externalVisible: true,
+        updateEventId: updateBySource[`engagement:${engagement.id}`]?.id
+      }, timezone));
+    }
+
+    for (const update of data.notificationEvents) {
+      entries.push(createCalendarEntry(data, {
+        sourceKind: "notification",
+        sourceId: update.id,
+        title: update.title,
+        timeKind: "customer-update-window",
+        startAt: update.createdAt,
+        dueAt: update.deliverAfterAt,
+        status: update.status,
+        owner: update.deliveryStatus,
+        customerId: update.customerId,
+        externalVisible: update.visible,
+        updateEventId: update.id
+      }, timezone));
+    }
+
+    const normalizedEntries = entries
+      .filter((item) => item.startAt || item.endAt || item.dueAt)
+      .sort((a, b) => String(a.startAt || a.dueAt || "").localeCompare(String(b.startAt || b.dueAt || "")));
+
+    return {
+      schema: "epoch.calendar-export",
+      version: 1,
+      generatedAt: withTimezone(now.toISOString(), timezone),
+      timezone,
+      counts: summarizeCalendarExport({ entries: normalizedEntries }),
+      entries: normalizedEntries
+    };
+  }
+
+  function summarizeCalendarExport(calendarExport) {
+    const entries = Array.isArray(calendarExport.entries) ? calendarExport.entries : [];
+
+    return {
+      total: entries.length,
+      sessions: entries.filter((item) => item.sourceKind === "session").length,
+      dueWindows: entries.filter((item) => item.timeKind && item.timeKind.includes("window")).length,
+      customerVisible: entries.filter((item) => item.externalVisible).length,
+      updateLinked: entries.filter((item) => item.updateEventId).length,
+      overdueOrBlocked: entries.filter((item) => item.status === "overdue" || item.status === "blocked").length
+    };
+  }
+
   function monitorTimelineItems(currentData) {
     return [
       ...currentData.leads.map((item) => ({ kind: "lead", id: item.id, title: item.name, status: item.status, time: item.nextActionAt, owner: item.owner || "intake" })),
@@ -792,6 +959,7 @@
     const activeStatuses = new Set(["waiting", "deferred", "submitted", "reviewing", "overdue", "blocked"]);
     const revenue = summarizeRevenueState(currentData);
     const notifications = summarizeNotificationState(currentData);
+    const calendarExport = createCalendarExport(currentData, { now: nowText });
     const timeline = monitorTimelineItems(currentData)
       .sort((a, b) => String(b.time || "").localeCompare(String(a.time || "")));
     const queue = timeline
@@ -838,10 +1006,13 @@
         pipelineValueJpy: revenue.pipelineValueJpy,
         acceptedValueJpy: revenue.acceptedValueJpy,
         visibleUpdates: notifications.visible,
-        blockedUpdates: notifications.blocked
+        blockedUpdates: notifications.blocked,
+        calendarEntries: calendarExport.counts.total,
+        calendarVisible: calendarExport.counts.customerVisible
       },
       revenue,
       notifications,
+      calendar: calendarExport.counts,
       queue,
       timeline: timeline.slice(0, 10),
       risks,
@@ -852,18 +1023,21 @@
   function createOperatingLedger(currentData, options) {
     const now = options && options.now ? new Date(options.now) : new Date();
     const data = normalizedOperatingData(currentData);
+    const exportedAt = withTimezone(now.toISOString(), data.timezone || "Asia/Tokyo");
+    const calendarExport = createCalendarExport(data, { now: now.toISOString() });
     return {
       schema: "epoch.operating-ledger",
       version: ledgerVersion,
-      exportedAt: withTimezone(now.toISOString(), data.timezone || "Asia/Tokyo"),
+      exportedAt,
       timezone: data.timezone || "Asia/Tokyo",
       counts: ledgerCollections.reduce((memo, collection) => {
         memo[collection] = data[collection].length;
         return memo;
       }, {}),
       monitor: buildMonitorReport(data, {
-        now: withTimezone(now.toISOString(), data.timezone || "Asia/Tokyo")
+        now: exportedAt
       }).summary,
+      calendarExport,
       data
     };
   }
@@ -880,6 +1054,7 @@
   window.EPOCH_OPERATING_RECORDS = {
     ledgerVersion,
     cloneData,
+    createCalendarExport,
     createOperatingLedger,
     decideOpportunityRecords,
     createIntakeRecords,
@@ -888,6 +1063,7 @@
     importOperatingLedger,
     returnReviewRecords,
     buildMonitorReport,
+    summarizeCalendarExport,
     summarizeDeadlines,
     summarizeNotificationState,
     summarizeRevenueState,
