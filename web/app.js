@@ -3,11 +3,21 @@ const recordTools = window.EPOCH_OPERATING_RECORDS;
 const storageKey = "epoch-commercial-operating-data";
 const attentionStatuses = new Set(["submitted", "reviewing", "overdue", "blocked"]);
 const today = "2026-06-01";
+const viewNames = new Set(["admin", "student", "monitor", "public"]);
 
 let data = loadData();
 
 function byId(id) {
   return document.getElementById(id);
+}
+
+function viewFromRoute() {
+  const candidate = window.location.hash.replace("#", "");
+  return viewNames.has(candidate) ? candidate : "admin";
+}
+
+function routeForView(viewName) {
+  return `#${viewName}`;
 }
 
 function escapeHtml(value) {
@@ -252,9 +262,9 @@ function renderSubmissions() {
   }).join("");
 }
 
-function monitorSection(title, cards) {
+function monitorSection(title, cards, sectionId) {
   return `
-    <section class="monitor-section">
+    <section class="monitor-section" id="${escapeHtml(sectionId)}">
       <div class="monitor-section-heading">
         <h3>${escapeHtml(title)}</h3>
       </div>
@@ -269,6 +279,7 @@ function renderMonitor(items) {
   const deadlines = recordTools.summarizeDeadlines(data, { now: `${today}T12:00:00+09:00` });
   const report = recordTools.buildMonitorReport(data, { now: `${today}T12:00:00+09:00` });
   const revenue = report.revenue || recordTools.summarizeRevenueState(data);
+  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | local-first`;
 
   const summaryCards = [
     record("Monitor Summary", `${report.summary.queue} queued, ${report.summary.timeline} timeline records, ${report.summary.risks} risks.`, [chip(report.summary.health, report.summary.health === "Ready" ? "complete" : "blocked")]),
@@ -302,11 +313,11 @@ function renderMonitor(items) {
   ));
 
   byId("monitor-items").innerHTML = [
-    monitorSection("Summary", summaryCards),
-    monitorSection("Queue", queueCards),
-    monitorSection("Timeline", timelineCards),
-    monitorSection("Risks", riskCards),
-    monitorSection("Receipts", receiptCards.length ? receiptCards : [record("Receipts", "No receipts have been created yet.", [chip("empty")])])
+    monitorSection("Summary", summaryCards, "monitor-summary"),
+    monitorSection("Queue", queueCards, "monitor-queue"),
+    monitorSection("Timeline", timelineCards, "monitor-timeline"),
+    monitorSection("Risks", riskCards, "monitor-risks"),
+    monitorSection("Receipts", receiptCards.length ? receiptCards : [record("Receipts", "No receipts have been created yet.", [chip("empty")])], "monitor-receipts")
   ].join("");
 }
 
@@ -376,18 +387,35 @@ function wireOpportunityForm() {
   });
 }
 
-function activateView(viewName) {
+function activateView(viewName, options = {}) {
+  const nextView = viewNames.has(viewName) ? viewName : "admin";
   document.querySelectorAll(".tab").forEach((item) => {
-    item.classList.toggle("active", item.dataset.view === viewName);
+    const isActive = item.dataset.view === nextView;
+    item.classList.toggle("active", isActive);
+    item.setAttribute("aria-selected", String(isActive));
   });
   document.querySelectorAll(".view").forEach((item) => {
-    item.classList.toggle("active", item.id === `view-${viewName}`);
+    item.classList.toggle("active", item.id === `view-${nextView}`);
   });
+  if (options.updateRoute !== false && window.location.hash !== routeForView(nextView)) {
+    window.history.replaceState(null, "", routeForView(nextView));
+  }
 }
 
 function wireTabs() {
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.addEventListener("click", () => activateView(tab.dataset.view));
+  });
+  window.addEventListener("hashchange", () => activateView(viewFromRoute(), { updateRoute: false }));
+}
+
+function wireMonitorMenu() {
+  document.querySelectorAll("[data-monitor-target]").forEach((control) => {
+    control.addEventListener("click", () => {
+      activateView("monitor");
+      const target = byId(control.dataset.monitorTarget);
+      if (target) target.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
   });
 }
 
@@ -530,6 +558,8 @@ function wireLedgerControls() {
 function init() {
   renderAll();
   wireTabs();
+  activateView(viewFromRoute(), { updateRoute: false });
+  wireMonitorMenu();
   wireOpportunityForm();
   wireScheduleForm();
   wireIntakeForm();

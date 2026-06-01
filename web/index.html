@@ -36,10 +36,10 @@
     </section>
 
     <nav class="tabs" aria-label="EPOCH views">
-      <button class="tab active" data-view="admin">Admin</button>
-      <button class="tab" data-view="student">Student</button>
-      <button class="tab" data-view="monitor">Monitor</button>
-      <button class="tab" data-view="public">Public</button>
+      <button type="button" class="tab active" data-view="admin">Admin</button>
+      <button type="button" class="tab" data-view="student">Student</button>
+      <button type="button" class="tab" data-view="monitor">Monitor</button>
+      <button type="button" class="tab" data-view="public">Public</button>
     </nav>
 
     <section id="view-admin" class="view active" aria-label="Internal administration">
@@ -191,27 +191,47 @@
         <h2>EPOCH Monitor</h2>
         <p>Local-first health summary for queue risk, receipts, and delivery state.</p>
       </div>
-      <div class="review-console">
-        <label>
-          Review return summary
-          <textarea id="review-return-summary" rows="3">Feedback returned with next action and resubmission guidance.</textarea>
-        </label>
-        <button type="button" id="return-review">Return Next Review</button>
-      </div>
-      <div id="review-confirmation" class="confirmation"></div>
-      <div class="ledger-console">
-        <div>
-          <h3>Operating Ledger</h3>
-          <p id="storage-status">Ledger loading</p>
+      <div class="monitor-layout">
+        <aside class="monitor-menu" aria-label="Monitor route menu">
+          <div>
+            <p class="eyebrow">Monitor Route</p>
+            <h3>EPOCH MONITOR</h3>
+            <p id="monitor-route-status">Route loading</p>
+          </div>
+          <button type="button" data-monitor-target="monitor-summary">Summary</button>
+          <button type="button" data-monitor-target="monitor-queue">Queue</button>
+          <button type="button" data-monitor-target="monitor-timeline">Timeline</button>
+          <button type="button" data-monitor-target="monitor-risks">Risks</button>
+          <button type="button" data-monitor-target="monitor-receipts">Receipts</button>
+          <button type="button" data-monitor-target="monitor-controls">Controls</button>
+          <a href="#monitor" class="monitor-route-link">Direct route</a>
+        </aside>
+        <div class="monitor-main">
+          <section id="monitor-controls" class="monitor-controls" aria-label="Monitor controls">
+            <div class="review-console">
+              <label>
+                Review return summary
+                <textarea id="review-return-summary" rows="3">Feedback returned with next action and resubmission guidance.</textarea>
+              </label>
+              <button type="button" id="return-review">Return Next Review</button>
+            </div>
+            <div id="review-confirmation" class="confirmation"></div>
+            <div class="ledger-console">
+              <div>
+                <h3>Operating Ledger</h3>
+                <p id="storage-status">Ledger loading</p>
+              </div>
+              <div class="ledger-actions">
+                <button type="button" id="export-ledger">Export Ledger</button>
+                <button type="button" id="import-ledger" class="secondary-action">Import Ledger</button>
+              </div>
+              <textarea id="ledger-json" rows="8" aria-label="Operating ledger JSON"></textarea>
+            </div>
+            <div id="ledger-confirmation" class="confirmation"></div>
+          </section>
+          <div id="monitor-items" class="monitor-grid"></div>
         </div>
-        <div class="ledger-actions">
-          <button type="button" id="export-ledger">Export Ledger</button>
-          <button type="button" id="import-ledger" class="secondary-action">Import Ledger</button>
-        </div>
-        <textarea id="ledger-json" rows="8" aria-label="Operating ledger JSON"></textarea>
       </div>
-      <div id="ledger-confirmation" class="confirmation"></div>
-      <div id="monitor-items" class="monitor-grid"></div>
     </section>
 
     <section id="view-public" class="view" aria-label="Public offer surface">

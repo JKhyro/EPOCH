@@ -85,6 +85,8 @@ for (const id of [
   "engagement-feed",
   "opportunity-confirmation",
   "return-review",
+  "monitor-route-status",
+  "monitor-controls",
   "storage-status",
   "export-ledger",
   "import-ledger",
@@ -105,6 +107,9 @@ for (const field of ["opportunityId", "decision", "planStartAt", "planEndAt", "p
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
 }
+for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route"]) {
+  if (!html.includes(phrase)) fail(`monitor route surface missing phrase ${phrase}`);
+}
 if (!html.includes("./operating-records.js")) fail("web surface does not load operating-records.js");
 
 const app = read("../web/app.js");
@@ -124,6 +129,11 @@ for (const phrase of [
   "downloadLedger",
   "wireLedgerControls",
   "wireOpportunityForm",
+  "wireMonitorMenu",
+  "viewFromRoute",
+  "routeForView",
+  "hashchange",
+  "aria-selected",
   "renderOfferCatalog",
   "renderOfferOptions",
   "renderOpportunityOptions",
@@ -133,6 +143,12 @@ for (const phrase of [
   "renderIntakeSnapshot",
   "renderSubmissions",
   "monitorSection",
+  "monitor-summary",
+  "monitor-queue",
+  "monitor-timeline",
+  "monitor-risks",
+  "monitor-receipts",
+  "monitor-route-status",
   "Monitor Summary",
   "Request Captured",
   "Work Scheduled",
