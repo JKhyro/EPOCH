@@ -19,6 +19,7 @@
     "offerPackages",
     "curriculumFrameworks",
     "packageGameplans",
+    "campaignRoutes",
     "leads",
     "opportunities",
     "engagements",
@@ -1330,6 +1331,53 @@
     };
   }
 
+  function summarizeMarketingState(currentData) {
+    const routes = Array.isArray(currentData.campaignRoutes) ? currentData.campaignRoutes : [];
+    const readyRoutes = routes.filter((item) => ["ready", "live", "active"].includes(clean(item.status || item.readinessStatus)));
+    const under19Routes = routes.filter((item) => clean(item.audienceTier) === "under19" || clean(item.routeKey).includes("under19"));
+    const guardianRequired = under19Routes.filter((item) => {
+      const flags = Array.isArray(item.complianceFlags) ? item.complianceFlags : [];
+      return Boolean(item.guardianConsentRequired) || flags.includes("guardian-consent-required");
+    });
+    const copyViolations = routes.filter((item) => {
+      const publicCopy = clean(item.publicCopy);
+      const ctaPrimary = clean(item.ctaPrimary);
+      const ctaSecondary = clean(item.ctaSecondary);
+      const copyBlob = `${publicCopy} ${ctaPrimary} ${ctaSecondary}`;
+      const forbiddenTerms = Array.isArray(item.copyForbiddenTerms) ? item.copyForbiddenTerms : [];
+      return forbiddenTerms.some((term) => clean(term) && copyBlob.includes(clean(term)));
+    });
+    const conversionTypes = routes.reduce((memo, item) => {
+      const key = clean(item.primaryConversion) || "conversion-pending";
+      memo[key] = (memo[key] || 0) + 1;
+      return memo;
+    }, {});
+    const channelCount = new Set(routes.map((item) => clean(item.channel)).filter(Boolean)).size;
+    const bundleCount = new Set(routes.map((item) => clean(item.offerBundle)).filter(Boolean)).size;
+
+    return {
+      total: routes.length,
+      ready: readyRoutes.length,
+      jp: routes.filter((item) => clean(item.regionScope) === "jp").length,
+      global: routes.filter((item) => clean(item.regionScope) === "global").length,
+      dual: routes.filter((item) => clean(item.regionScope) === "dual").length,
+      publicRoutes: routes.filter((item) => clean(item.publicRoute)).length,
+      adminRoutes: routes.filter((item) => clean(item.adminRoute)).length,
+      monitorRoutes: routes.filter((item) => clean(item.monitorRoute)).length,
+      monitorKpiSets: routes.filter((item) => Array.isArray(item.monitorKpis) && item.monitorKpis.length).length,
+      submissionFirstRoutes: routes.filter((item) => clean(item.capacityMode).includes("queue") || clean(item.primaryConversion).includes("submit")).length,
+      cohortRoutes: routes.filter((item) => clean(item.capacityMode).includes("cohort")).length,
+      serviceRoutes: routes.filter((item) => ["tech-support", "crm-system", "admin-system", "consulting"].includes(clean(item.offerBundle))).length,
+      under19Routes: under19Routes.length,
+      guardianRequiredRoutes: guardianRequired.length,
+      copyCompliant: routes.length - copyViolations.length,
+      copyViolations: copyViolations.length,
+      channelCount,
+      bundleCount,
+      conversionTypes
+    };
+  }
+
   function summarizeRoutePlacementState(currentData, options = {}) {
     const data = normalizedOperatingData(currentData);
     const nowText = clean(options.now) || "2026-06-01T12:00:00+09:00";
@@ -1337,6 +1385,7 @@
     const curriculum = summarizeCurriculumState(data);
     const notifications = summarizeNotificationState(data);
     const handoffs = summarizeAgentHandoffState(data);
+    const marketing = summarizeMarketingState(data);
     const calendarExport = createCalendarExport(data, { now: nowText });
     const timeline = monitorTimelineItems(data);
     const terminalStatuses = new Set(["complete", "returned", "canceled", "accepted", "rejected"]);
@@ -1354,13 +1403,17 @@
       activeGameplans: curriculum.activeGameplans,
       visibleUpdates: notifications.visible,
       pendingHandoffApprovals: handoffs.pendingApprovals,
-      calendarEntries: calendarExport.counts.total
+      calendarEntries: calendarExport.counts.total,
+      campaignRoutes: marketing.total,
+      readyCampaignRoutes: marketing.ready,
+      copyComplianceViolations: marketing.copyViolations
     };
     const summaryByKey = {
       health: `${baseSummary.health}; ${baseSummary.risks} risks`,
       queue: `${baseSummary.queue} queued records`,
       "visible-updates": `${baseSummary.visibleUpdates} visible updates`,
-      pipeline: `${revenue.pipelineCount} opportunities; ${baseSummary.pipelineValueJpy} JPY pipeline`
+      pipeline: `${revenue.pipelineCount} opportunities; ${baseSummary.pipelineValueJpy} JPY pipeline`,
+      marketing: `${marketing.ready} ready campaigns; ${marketing.copyViolations} copy policy violations`
     };
     const routes = data.routePlacements.map((route) => ({
       id: clean(route.id),
@@ -1409,6 +1462,20 @@
       return memo;
     }, {});
     const entries = [];
+
+    for (const campaign of data.campaignRoutes) {
+      entries.push(createCalendarEntry(data, {
+        sourceKind: "campaign-route",
+        sourceId: campaign.id,
+        title: campaign.name || campaign.routeKey,
+        timeKind: "go-live-window",
+        startAt: campaign.goLiveAt || campaign.startAt,
+        endAt: campaign.endAt,
+        status: campaign.status || campaign.readinessStatus,
+        owner: campaign.owner || campaign.channel,
+        externalVisible: Boolean(campaign.publicRoute)
+      }, timezone));
+    }
 
     for (const session of data.sessions) {
       entries.push(createCalendarEntry(data, {
@@ -1565,6 +1632,7 @@
       ...currentData.opportunities.map((item) => ({ kind: "opportunity", id: item.id, title: item.packageId || item.id, status: item.status, time: item.nextActionAt, owner: `${item.estimatedValueJpy || 0} JPY` })),
       ...currentData.engagements.map((item) => ({ kind: "engagement", id: item.id, title: item.packageId || item.id, status: item.status, time: item.onboardingDueAt || item.acceptedAt, owner: item.owner || "owner pending" })),
       ...currentData.packageGameplans.map((item) => ({ kind: "gameplan", id: item.id, title: item.title, status: item.status, time: item.nextMilestoneAt, owner: item.laborModel || "delivery plan" })),
+      ...currentData.campaignRoutes.map((item) => ({ kind: "campaign route", id: item.id, title: item.name || item.routeKey, status: item.status || item.readinessStatus, time: item.goLiveAt || item.startAt, owner: item.channel || item.owner || "channel pending" })),
       ...currentData.workPlans.map((item) => ({ kind: "agent work plan", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.approvalStatus || item.owner || "approval pending" })),
       ...currentData.agentHandoffs.map((item) => ({ kind: "agent handoff", id: item.id, title: item.title, status: item.status, time: item.nextActionAt, owner: item.approvalStatus || "approval pending" })),
       ...currentData.notificationEvents.map((item) => ({ kind: "update", id: item.id, title: item.title, status: item.status, time: item.deliverAfterAt || item.createdAt, owner: item.deliveryStatus || "pending" })),
@@ -1586,6 +1654,7 @@
     const curriculum = summarizeCurriculumState(data);
     const notifications = summarizeNotificationState(data);
     const handoffs = summarizeAgentHandoffState(data);
+    const marketing = summarizeMarketingState(data);
     const calendarExport = createCalendarExport(data, { now: nowText });
     const persistence = summarizePersistenceState(data, { now: nowText });
     const routePlacement = summarizeRoutePlacementState(data, { now: nowText });
@@ -1623,6 +1692,22 @@
         detail: `${stale.length} planned record has passed its scheduled control time.`
       });
     }
+    if (marketing.copyViolations) {
+      risks.push({
+        id: "copy-compliance-violations",
+        severity: "high",
+        title: "Copy Compliance Violations",
+        detail: `${marketing.copyViolations} campaign route has forbidden public copy terms.`
+      });
+    }
+    if (marketing.under19Routes !== marketing.guardianRequiredRoutes) {
+      risks.push({
+        id: "under19-route-guard-missing",
+        severity: "high",
+        title: "Under-19 Route Guard Missing",
+        detail: `${marketing.under19Routes - marketing.guardianRequiredRoutes} under-19 route lacks guardian consent protection.`
+      });
+    }
 
     return {
       summary: {
@@ -1647,12 +1732,18 @@
         persistenceRevision: persistence.revision,
         persistenceState: persistence.adapterState,
         routePlacements: routePlacement.summary.routeCount,
-        synapsePlacementMode: routePlacement.placementMode
+        synapsePlacementMode: routePlacement.placementMode,
+        campaignRoutes: marketing.total,
+        readyCampaignRoutes: marketing.ready,
+        copyComplianceViolations: marketing.copyViolations,
+        under19CampaignRoutes: marketing.under19Routes,
+        marketingChannels: marketing.channelCount
       },
       revenue,
       curriculum,
       notifications,
       handoffs,
+      marketing,
       routePlacement,
       calendar: calendarExport.counts,
       persistence,
@@ -1728,6 +1819,7 @@
     summarizeRoutePlacementState,
     summarizePersistenceState,
     summarizeNotificationState,
+    summarizeMarketingState,
     summarizeRevenueState,
     withTimezone
   };

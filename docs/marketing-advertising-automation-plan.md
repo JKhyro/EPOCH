@@ -1,0 +1,114 @@
+# Marketing And Advertising Automation Plan
+
+## Purpose
+
+EPOCH marketing must convert outreach into tracked diagnostic, submission,
+cohort, or scoped service work. The plan is intentionally route-first: every
+ad, post, referral message, and partner placement maps to a campaign route,
+source campaign id, conversion action, copy policy, and monitor KPI set before
+any spend or outreach begins.
+
+## Campaign Route Model
+
+- `campaignRoutes`: public, admin, and monitor-ready campaign records.
+- `routeKey`: stable route family and stage, such as
+  `ja/offers/english-accelerator/intake` or
+  `services/crm-database/workflow-audit`.
+- `regionScope`: `jp`, `global`, or `dual`.
+- `offerBundle`: education and adjacent-service lane, including
+  `english-cohort`, `teacher-review`, `tech-support`, `crm-system`,
+  `admin-system`, or `consulting`.
+- `audienceTier`: `19plus`, `under19`, or `corporate`.
+- `capacityMode`: whether the route feeds cohorts, submission queues,
+  retainers, compatibility gates, or project estimates.
+- `primaryConversion`: the next tracked action, such as
+  `diagnostic_submit`, `portfolio_submit`, `consult_booking`, or
+  `compatibility_request`.
+- `publicRoute`, `adminRoute`, and `monitorRoute`: the surface where the route
+  is visible.
+- `monitorKpis`: route health, submission-to-enrollment, cohort fill, under-19
+  compliance, premium add-on conversion, queue-to-delivery SLA, and copy-policy
+  checks.
+
+## Route Families
+
+- Japan English progress route: EIKEN 5-1, test writing, teacher-reviewed
+  correction, cohorts, and submission-first monthly review.
+- Japan teacher review pack: fast writing-sample submission, review timeline,
+  and enrollment path for adult candidates.
+- Global professional support route: technical support, documentation cleanup,
+  admin support, and request-queue retainers.
+- CRM and database workflow audit: scoped diagnostics for CRM cleanup,
+  database planning, SOPs, and lightweight management-system builds.
+- Under-19 compatibility gate: guardian-led assessment and no paid recurring
+  plan before compatibility and consent are recorded.
+
+## Copy Rules
+
+- Do lead with outcomes: exam readiness, writing structure, teacher-reviewed
+  correction, progress visibility, reliable scheduling, request tracking, and
+  handoff-ready work.
+- Do make the workflow visible: intake, diagnostic or submission, review,
+  progress update, and next task.
+- Do keep the recurring offer submission-first, cohort-scaled, or queue-based
+  unless a live call clearly advances the outcome.
+- Do not use founder-pricing language.
+- Do not make Japan-facing public copy AI-forward.
+- Do not position the default route as intensive 1:1 tutoring.
+
+## Channel Plan
+
+- Japan-wide: search landing pages, LINE OA, X, note articles, short-form
+  video, community partner placements, referrals, and direct outreach to adult
+  learners or institutions.
+- Global: search, LinkedIn, partner newsletters, education communities, remote
+  support communities, and proof-bundle follow-up sequences.
+- Every channel must preserve its `routeKey`, `campaignId`, and
+  `primaryConversion` through intake so EPOCH can measure source quality and
+  avoid untracked open-ended calls.
+
+## Under-19 Governance
+
+- Under-19 routes must set `guardianConsentRequired` or the
+  `guardian-consent-required` compliance flag.
+- No paid action, recurring plan, or enrollment confirmation should occur
+  before guardian consent and compatibility review are recorded.
+- Under-19 copy must describe compatibility assessment and guardian-led intake,
+  not direct enrollment.
+- Higher-touch pricing remains a protected route, not a discount path.
+
+## Adjacent Services
+
+Campaign routes are not limited to English teaching. EPOCH should also route:
+
+- technical support retainers
+- CRM and database cleanup or build work
+- admin and clerical operating-system support
+- documentation and SOP cleanup
+- consulting diagnostics and proposal work
+
+These routes must start with a scoped diagnostic, source-file or access-boundary
+check, and monitor-visible next action.
+
+## Monitor Readiness
+
+EPOCH MONITOR should report:
+
+- total campaign routes
+- ready campaign routes
+- Japan, global, and dual-route counts
+- public, admin, and monitor route coverage
+- copy-policy violations
+- under-19 guardian-gate coverage
+- channel count and offer-bundle count
+- go-live windows in the calendar export
+
+## Go-Live Checklist
+
+- Each campaign route has public, admin, and monitor visibility.
+- Each route has one primary conversion action.
+- Each route has a channel, campaign id, owner, approver, and go-live time.
+- Public copy avoids forbidden terms and contains required workflow language.
+- Under-19 routes are guardian-gated before payment or enrollment.
+- Campaign routes appear in the operating ledger, monitor report, and calendar
+  export.

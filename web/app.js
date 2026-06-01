@@ -66,7 +66,7 @@ function resetData() {
 
 function storageStatusText() {
   const persistence = recordTools.summarizePersistenceState(data);
-  return `Ledger v${recordTools.ledgerVersion} | ${data.customers.length} customers | ${data.engagements.length} engagements | ${data.notificationEvents.length} updates | ${data.receipts.length} receipts | r${persistence.revision} ${persistence.adapterState} | ${persistence.ledgerId}`;
+  return `Ledger v${recordTools.ledgerVersion} | ${data.customers.length} customers | ${data.engagements.length} engagements | ${data.campaignRoutes.length} campaigns | ${data.notificationEvents.length} updates | ${data.receipts.length} receipts | r${persistence.revision} ${persistence.adapterState} | ${persistence.ledgerId}`;
 }
 
 function formatTime(value) {
@@ -117,6 +117,7 @@ function allOperatingItems() {
     ...data.opportunities.map((item) => ({ ...item, title: packageName(item.packageId), kind: "opportunity", time: item.nextActionAt })),
     ...(data.engagements || []).map((item) => ({ ...item, title: packageName(item.packageId), kind: "engagement", time: item.onboardingDueAt || item.acceptedAt })),
     ...(data.packageGameplans || []).map((item) => ({ ...item, kind: "gameplan", time: item.nextMilestoneAt })),
+    ...(data.campaignRoutes || []).map((item) => ({ ...item, kind: "campaign route", title: item.name || item.routeKey, status: item.status || item.readinessStatus, time: item.goLiveAt || item.startAt })),
     ...(data.workPlans || []).map((item) => ({ ...item, kind: "agent work plan", time: item.dueAt })),
     ...(data.agentHandoffs || []).map((item) => ({ ...item, kind: "agent handoff", time: item.nextActionAt })),
     ...(data.notificationEvents || []).map((item) => ({ ...item, kind: "update", time: item.deliverAfterAt || item.createdAt })),
@@ -202,6 +203,47 @@ function renderStudentGameplans() {
   }).join("");
 }
 
+function campaignAudienceLabel(route) {
+  if (route.audienceTier === "under19") return "guardian gate";
+  if (route.audienceTier === "corporate") return "business route";
+  return "adult route";
+}
+
+function renderCampaignRoutes() {
+  const routes = data.campaignRoutes || [];
+  const adminTarget = byId("admin-campaign-routes");
+  const publicTarget = byId("public-campaign-routes");
+
+  if (adminTarget) {
+    adminTarget.innerHTML = routes.map((route) => record(
+      route.name,
+      `${route.routeKey} | ${route.channel} | ${route.weeklyCadence}`,
+      [
+        statusChip(route.status || route.readinessStatus),
+        chip(route.regionScope),
+        chip(route.primaryConversion),
+        chip(route.capacityMode),
+        chip(`${(route.monitorKpis || []).length} KPIs`)
+      ]
+    )).join("");
+  }
+
+  if (publicTarget) {
+    publicTarget.innerHTML = routes
+      .filter((route) => route.publicRoute)
+      .slice(0, 4)
+      .map((route) => record(
+        route.name,
+        route.publicCopy,
+        [
+          chip(route.regionScope),
+          chip(campaignAudienceLabel(route)),
+          chip(route.ctaPrimary)
+        ]
+      )).join("");
+  }
+}
+
 function renderMetrics(items) {
   const todayCount = items.filter((item) => item.time && item.time.startsWith(today)).length;
   const upcomingCount = items.filter((item) => item.time && item.time > `${today}T23:59:59`).length;
@@ -217,7 +259,7 @@ function renderMetrics(items) {
 
 function renderAdmin(items) {
   const adminItems = items
-    .filter((item) => attentionStatuses.has(item.status) || item.kind === "session" || item.kind === "follow-up" || item.kind === "lead" || item.kind === "opportunity" || item.kind === "engagement" || item.kind === "agent work plan" || item.kind === "agent handoff")
+    .filter((item) => attentionStatuses.has(item.status) || item.kind === "session" || item.kind === "follow-up" || item.kind === "lead" || item.kind === "opportunity" || item.kind === "engagement" || item.kind === "campaign route" || item.kind === "agent work plan" || item.kind === "agent handoff")
     .slice(0, 10);
 
   byId("admin-actions").innerHTML = adminItems.map((item) => {
@@ -370,11 +412,12 @@ function renderMonitor(items) {
   const curriculum = report.curriculum || recordTools.summarizeCurriculumState(data);
   const notifications = report.notifications || recordTools.summarizeNotificationState(data);
   const handoffs = report.handoffs || recordTools.summarizeAgentHandoffState(data);
+  const marketing = report.marketing || recordTools.summarizeMarketingState(data);
   const routePlacement = report.routePlacement || recordTools.summarizeRoutePlacementState(data, { now: `${today}T12:00:00+09:00` });
   const calendarExport = recordTools.createCalendarExport(data, { now: `${today}T12:00:00+09:00` });
   const calendar = report.calendar || recordTools.summarizeCalendarExport(calendarExport);
   const persistence = report.persistence || recordTools.summarizePersistenceState(data, { now: `${today}T12:00:00+09:00` });
-  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | ${routePlacement.summary.routeCount} SYNAPSE routes | ${persistence.adapterState}`;
+  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | ${routePlacement.summary.routeCount} SYNAPSE routes | ${marketing.ready} campaign routes ready | ${persistence.adapterState}`;
 
   const summaryCards = [
     record("Monitor Summary", `${report.summary.queue} queued, ${report.summary.timeline} timeline records, ${report.summary.risks} risks.`, [chip(report.summary.health, report.summary.health === "Ready" ? "complete" : "blocked")]),
@@ -386,6 +429,7 @@ function renderMonitor(items) {
     record("Curriculum Readiness", `${curriculum.frameworks} frameworks, ${curriculum.activeGameplans} active/planned gameplans, ${curriculum.eikenLevelCount} EIKEN levels represented.`, [chip(`${curriculum.submissionFirstGameplans} submission-first`), chip(`${curriculum.under19GuardedGameplans} guarded`)]),
     record("Update Events", `${notifications.visible} visible updates, ${notifications.pending} pending, ${notifications.blocked} blocked.`, [chip(`${notifications.posted} posted`, "complete"), chip(`${notifications.total} total`)]),
     record("Agent Handoffs", `${handoffs.handoffs} handoffs, ${handoffs.workPlans} work plans, ${handoffs.pendingApprovals} pending approval.`, [chip(`${handoffs.monitorVisible} monitor-visible`), chip(`${handoffs.customerVisibleBlocked} customer-visible`)]),
+    record("Campaign Readiness", `${marketing.ready} of ${marketing.total} campaign routes ready across ${marketing.channelCount} channel groups.`, [chip(`${marketing.jp} JP`), chip(`${marketing.global} global`), chip(`${marketing.copyViolations} copy risks`, marketing.copyViolations ? "blocked" : "complete")]),
     record("SYNAPSE Placement", `${routePlacement.summary.routeCount} routes, ${routePlacement.placementMode}, ${routePlacement.access}.`, [chip(routePlacement.targetSystem), chip(routePlacement.duplicateUi ? "duplicate-ui" : "no-duplicate-ui"), chip(routePlacement.summary.monitorHref)]),
     record("Calendar Export", `${calendar.total} export-ready entries, ${calendar.customerVisible} customer-visible, ${calendar.updateLinked} update-linked.`, [chip(calendarExport.schema), chip(calendarExport.timezone)]),
     record("Persistence", `Ledger ${persistence.ledgerId} revision ${persistence.revision}; ${persistence.adapterState}; checksum ${persistence.checksum}.`, [chip(persistence.adapter), chip(persistence.libraryReady ? "library-ready" : "local-only")])
@@ -444,6 +488,18 @@ function renderMonitor(items) {
     ))
   ];
 
+  const campaignCards = (data.campaignRoutes || []).map((route) => record(
+    route.name,
+    `${route.routeKey} | ${route.channel} | ${route.weeklyCadence}`,
+    [
+      statusChip(route.status || route.readinessStatus),
+      chip(route.regionScope),
+      chip(route.primaryConversion),
+      chip(route.audienceTier),
+      chip(route.guardianConsentRequired ? "guardian-consent" : route.copyPolicy)
+    ]
+  ));
+
   const riskCards = report.risks.length
     ? report.risks.map((item) => record(item.title, item.detail, [chip(item.severity, item.severity === "high" ? "blocked" : "overdue")]))
     : [record("Risks", "No active risk records in the current operating surface.", [chip("clear", "complete")])];
@@ -472,6 +528,7 @@ function renderMonitor(items) {
     monitorSection("Queue", queueCards, "monitor-queue"),
     monitorSection("Timeline", timelineCards, "monitor-timeline"),
     monitorSection("Curriculum / Gameplans", curriculumCards, "monitor-curriculum"),
+    monitorSection("Campaign Routes", campaignCards.length ? campaignCards : [record("Campaign Routes", "No campaign route records have been created yet.", [chip("empty")])], "monitor-campaigns"),
     monitorSection("Agent Handoffs", handoffCards, "monitor-handoffs"),
     monitorSection("SYNAPSE Placement", routeCards, "monitor-suite"),
     monitorSection("Calendar Export", calendarCards.length ? calendarCards : [record("Calendar Export", "No export-ready calendar entries have been created yet.", [chip("empty")])], "monitor-calendar"),
@@ -507,6 +564,7 @@ function renderAll() {
   renderCurriculumFrameworks();
   renderAdminGameplans();
   renderStudentGameplans();
+  renderCampaignRoutes();
   renderOpportunityOptions();
   renderOpportunityFeed();
   renderEngagementFeed();

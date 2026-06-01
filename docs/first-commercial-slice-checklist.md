@@ -25,6 +25,7 @@ service operations without waiting for every future CITADEL integration.
 - Program or service track.
 - Curriculum framework.
 - Package gameplan.
+- Campaign route for marketing and advertising automation.
 - Cohort or engagement.
 - Session.
 - Assignment or service request.
@@ -75,5 +76,7 @@ service operations without waiting for every future CITADEL integration.
   system while keeping public intake distinct from the internal control room.
 - EIKEN 5-1 and professional/service-support offers have reusable frameworks
   and package-level gameplans that support personalized delivery.
+- Japan-wide and global campaign routes define channel, conversion action, copy
+  policy, under-19 guard, and monitor KPI coverage before outreach begins.
 - The slice does not depend on production payment, public notification delivery,
   full authentication, or deep LIBRARY persistence.
