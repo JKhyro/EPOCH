@@ -23,6 +23,7 @@ EPOCH MONITOR must expose these local operator sections:
 - Calendar Providers
 - Notification Providers
 - Marketing Conversion KPIs
+- Provider Adapter Go/No-Go
 - Controls
 
 The public route may reuse the visual language, but it must not expose raw
@@ -50,6 +51,9 @@ The current action classes are:
   review.
 - Marketing conversion KPI readiness for route-attributed, first-party,
   no-live-tracking campaign measurement.
+- Provider adapter go/no-go readiness for sandbox-only candidate selection
+  before live API calls, secrets, OAuth, webhooks, provider writes, or
+  production behavior.
 
 ## Safe access posture
 
@@ -138,3 +142,9 @@ The repository verifier must cover:
   invasive tracking, no analytics credentials, no webhooks, internal
   `marketing-conversion` receipts, export/import preservation, monitor summary
   counts, and the `monitor-marketing-conversions` section.
+- Provider adapter selection controls and verifier coverage for
+  `providerAdapterCandidates`, sandbox-only calendar, notification, payment,
+  auth/session, analytics/advertising, and durable-persistence candidates,
+  no-live-api/no-secrets/no-OAuth/no-webhook/no-provider-write enforcement,
+  internal `provider-adapter-selection` receipts, export/import preservation,
+  monitor summary counts, and the `monitor-provider-adapters` section.

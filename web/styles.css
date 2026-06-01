@@ -765,7 +765,8 @@ button.secondary-action {
 .notification-provider-console,
 .payment-provider-console,
 .auth-session-role-console,
-.marketing-conversion-console {
+.marketing-conversion-console,
+.provider-adapter-console {
   grid-template-columns: 1fr;
 }
 

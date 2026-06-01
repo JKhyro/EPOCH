@@ -40,6 +40,7 @@ const requiredCollections = [
   "packageGameplans",
   "campaignRoutes",
   "marketingConversionEvents",
+  "providerAdapterCandidates",
   "leads",
   "opportunities",
   "routePlacements",
@@ -205,7 +206,12 @@ for (const id of [
   "marketing-conversion-select",
   "marketing-conversion-action",
   "marketing-conversion-apply",
-  "marketing-conversion-confirmation"
+  "marketing-conversion-confirmation",
+  "provider-adapter-form",
+  "provider-adapter-select",
+  "provider-adapter-action",
+  "provider-adapter-apply",
+  "provider-adapter-confirmation"
 ]) {
   if (!html.includes(`id="${id}"`)) fail(`web surface missing ${id}`);
 }
@@ -283,6 +289,9 @@ for (const phrase of ["Auth Sessions", "Auth Session Role Handoffs", "Apply Auth
 }
 for (const phrase of ["Marketing Conversion KPIs", "Apply Marketing Conversion KPI Action", "monitor-marketing-conversions", "live pixels, ad API writes, credentials, webhooks, and invasive tracking remain deferred"]) {
   if (!html.includes(phrase)) fail(`marketing conversion HTML missing phrase ${phrase}`);
+}
+for (const phrase of ["Provider Adapter Go/No-Go", "Apply Provider Adapter Go/No-Go Action", "monitor-provider-adapters", "live API calls, secrets, OAuth clients, webhooks, provider writes, and production behavior remain disabled"]) {
+  if (!html.includes(phrase)) fail(`provider adapter HTML missing phrase ${phrase}`);
 }
 for (const phrase of [
   "SCAFFOLD-aligned",
@@ -372,14 +381,18 @@ for (const phrase of [
   "renderCampaignRoutes",
   "summarizeMarketingState",
   "summarizeMarketingConversionState",
+  "summarizeProviderAdapterSelectionState",
   "summarizeCurriculumState",
   "Curriculum Readiness",
   "Campaign Readiness",
   "Conversion KPIs",
+  "Provider Adapters",
   "monitor-campaigns",
   "monitor-marketing-conversions",
+  "monitor-provider-adapters",
   "campaign route",
   "marketing conversion",
+  "provider adapter",
   "monitor-curriculum",
   "gameplan-ready",
   "marketRoute",
@@ -451,12 +464,14 @@ for (const phrase of [
   "transitionPaymentProviderHandoffRecords",
   "transitionAuthSessionRoleHandoffRecords",
   "transitionMarketingConversionEventRecords",
+  "transitionProviderAdapterCandidateRecords",
   "summarizeLibrarySyncState",
   "summarizeCalendarProviderState",
   "summarizeNotificationProviderState",
   "summarizePaymentProviderState",
   "summarizeAuthSessionRoleState",
   "summarizeMarketingConversionState",
+  "summarizeProviderAdapterSelectionState",
   "summarizeAccessGatewayState",
   "renderAccessGatewayOptions",
   "renderLibrarySyncOptions",
@@ -484,12 +499,15 @@ for (const phrase of [
   "Auth Session Role Updated",
   "Marketing Conversion KPIs",
   "Marketing Conversion KPI Updated",
+  "Provider Adapter Go/No-Go",
+  "Provider Adapter Go/No-Go Updated",
   "renderAgentHandoffOptions",
   "renderNotificationDeliveryOptions",
   "renderNotificationProviderOptions",
   "renderPaymentProviderOptions",
   "renderAuthSessionRoleOptions",
   "renderMarketingConversionOptions",
+  "renderProviderAdapterOptions",
   "renderQuoteOptions",
   "renderReminderControlOptions",
   "wireAgentHandoffForm",
@@ -498,6 +516,7 @@ for (const phrase of [
   "wirePaymentProviderForm",
   "wireAuthSessionRoleForm",
   "wireMarketingConversionForm",
+  "wireProviderAdapterForm",
   "wireQuotePaymentForm",
   "wireReminderControlForm",
   "Opportunity Pipeline",
@@ -555,6 +574,7 @@ for (const phrase of [
   "payment-provider-console",
   "auth-session-role-console",
   "marketing-conversion-console",
+  "provider-adapter-console",
   "monitor-action-button",
   "button-meta",
   "monitor-command-strip",
@@ -644,6 +664,35 @@ for (const event of data.marketingConversionEvents) {
     if (!event.readinessChecks.includes(requiredCheck)) fail(`marketing conversion event ${event.id} missing ${requiredCheck}`);
   }
   if (!Array.isArray(event.monitorKpis) || !event.monitorKpis.length) fail(`marketing conversion event ${event.id} missing monitor KPIs`);
+}
+if (!Array.isArray(data.providerAdapterCandidates) || data.providerAdapterCandidates.length < 6) fail("seed data missing provider adapter candidate records");
+if (!data.receipts.some((item) => item.kind === "provider-adapter-selection")) fail("seed data missing provider-adapter-selection receipt");
+if (!data.monitorHealthChecks.some((item) => item.target === "monitor-provider-adapters" && item.effect === "provider-adapter-selection-readiness")) fail("seed data missing provider adapter monitor health check");
+const providerFamilies = new Set(data.providerAdapterCandidates.map((item) => item.providerFamily));
+for (const family of ["calendar", "notification", "payment", "auth-session", "analytics-advertising", "durable-persistence"]) {
+  if (!providerFamilies.has(family)) fail(`provider adapter candidates missing ${family}`);
+}
+const familyRequiredChecks = {
+  calendar: ["no-live-sync"],
+  notification: ["no-live-send", "consent-boundary-required"],
+  payment: ["no-payment-capture", "legal-review-required", "consent-boundary-required"],
+  "auth-session": ["no-live-auth", "raw-monitor-denied-public", "raw-admin-denied-public"],
+  "analytics-advertising": ["no-live-pixel", "no-external-ad-api-write", "no-invasive-tracking", "legal-review-required", "consent-boundary-required"],
+  "durable-persistence": ["backup-plan-required", "recovery-plan-required"]
+};
+for (const candidate of data.providerAdapterCandidates) {
+  if (candidate.sandboxOnly !== true || candidate.liveApiCalls !== false || candidate.productionEnabled !== false || candidate.externalProviderWrite !== false) {
+    fail(`provider adapter candidate ${candidate.id} lost sandbox-only/no-live-provider posture`);
+  }
+  if (candidate.secretsPresent !== false || candidate.credentialsStored !== false || candidate.oauthConfigured !== false || candidate.webhookEnabled !== false) {
+    fail(`provider adapter candidate ${candidate.id} enabled secrets, credentials, OAuth, or webhooks`);
+  }
+  if (candidate.customerVisible !== false || candidate.customerSafe !== false) fail(`provider adapter candidate ${candidate.id} should remain internal-only`);
+  for (const requiredCheck of ["provider-candidate-recorded", "sandbox-only-before-go-live", "operator-approval-required", "credential-plan-required", "no-live-api", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", ...(familyRequiredChecks[candidate.providerFamily] || [])]) {
+    if (!candidate.readinessChecks.includes(requiredCheck)) fail(`provider adapter candidate ${candidate.id} missing ${requiredCheck}`);
+  }
+  if (!Array.isArray(candidate.goCriteria) || !candidate.goCriteria.length) fail(`provider adapter candidate ${candidate.id} missing go criteria`);
+  if (!Array.isArray(candidate.blockers) || !candidate.blockers.length) fail(`provider adapter candidate ${candidate.id} missing blockers`);
 }
 if (!data.monitorMemory.some((item) => item.status === "stale")) fail("monitor memory should demonstrate stale-note risk");
 
@@ -735,6 +784,8 @@ if (typeof recordTools.createAuthSessionRoleHandoffRecords !== "function") fail(
 if (typeof recordTools.transitionAuthSessionRoleHandoffRecords !== "function") fail("operating helpers missing transitionAuthSessionRoleHandoffRecords");
 if (typeof recordTools.createMarketingConversionEventRecords !== "function") fail("operating helpers missing createMarketingConversionEventRecords");
 if (typeof recordTools.transitionMarketingConversionEventRecords !== "function") fail("operating helpers missing transitionMarketingConversionEventRecords");
+if (typeof recordTools.createProviderAdapterCandidateRecords !== "function") fail("operating helpers missing createProviderAdapterCandidateRecords");
+if (typeof recordTools.transitionProviderAdapterCandidateRecords !== "function") fail("operating helpers missing transitionProviderAdapterCandidateRecords");
 if (typeof recordTools.createQuoteEstimateRecords !== "function") fail("operating helpers missing createQuoteEstimateRecords");
 if (typeof recordTools.transitionQuoteEstimateRecords !== "function") fail("operating helpers missing transitionQuoteEstimateRecords");
 if (typeof recordTools.createReminderRuleRecords !== "function") fail("operating helpers missing createReminderRuleRecords");
@@ -760,6 +811,7 @@ if (typeof recordTools.summarizeNotificationProviderState !== "function") fail("
 if (typeof recordTools.summarizePaymentProviderState !== "function") fail("operating helpers missing summarizePaymentProviderState");
 if (typeof recordTools.summarizeAuthSessionRoleState !== "function") fail("operating helpers missing summarizeAuthSessionRoleState");
 if (typeof recordTools.summarizeMarketingConversionState !== "function") fail("operating helpers missing summarizeMarketingConversionState");
+if (typeof recordTools.summarizeProviderAdapterSelectionState !== "function") fail("operating helpers missing summarizeProviderAdapterSelectionState");
 if (typeof recordTools.summarizeAccessPosture !== "function") fail("operating helpers missing summarizeAccessPosture");
 if (typeof recordTools.summarizeMemoryState !== "function") fail("operating helpers missing summarizeMemoryState");
 if (typeof recordTools.summarizeRoutePlacementState !== "function") fail("operating helpers missing summarizeRoutePlacementState");
@@ -1022,6 +1074,63 @@ if (conversionTransitionResult.records.event.livePixelEnabled || conversionTrans
   fail("marketing conversion transition enabled live tracking or external write safeguards");
 }
 
+const providerAdapterSummary = recordTools.summarizeProviderAdapterSelectionState(data);
+if (providerAdapterSummary.candidateCount !== data.providerAdapterCandidates.length) fail("provider adapter summary total is wrong");
+if (providerAdapterSummary.readyCandidates !== data.providerAdapterCandidates.length) fail("provider adapter summary missing ready candidates");
+if (providerAdapterSummary.sandboxOnly !== data.providerAdapterCandidates.length) fail("provider adapter summary missing sandbox-only candidates");
+if (providerAdapterSummary.noLiveProvider !== data.providerAdapterCandidates.length) fail("provider adapter summary no-live-provider count is wrong");
+if (providerAdapterSummary.noSecrets !== data.providerAdapterCandidates.length) fail("provider adapter summary no-secrets count is wrong");
+if (providerAdapterSummary.highRiskCandidates < 3) fail("provider adapter summary missing high-risk candidates");
+if (providerAdapterSummary.legalReviewRequired < 3) fail("provider adapter summary missing legal-review candidates");
+if (providerAdapterSummary.privacyReviewRequired < 6) fail("provider adapter summary missing privacy-review candidates");
+if (providerAdapterSummary.violations.length !== 0) fail("provider adapter summary should not report seed violations");
+
+const malformedProviderAdapterData = recordTools.cloneData(data);
+malformedProviderAdapterData.providerAdapterCandidates[0] = {
+  ...malformedProviderAdapterData.providerAdapterCandidates[0],
+  liveApiCalls: true,
+  productionEnabled: true,
+  secretsPresent: true,
+  credentialsStored: true,
+  oauthConfigured: true,
+  webhookEnabled: true,
+  externalProviderWrite: true,
+  customerVisible: true,
+  readinessChecks: []
+};
+const malformedProviderAdapterSummary = recordTools.summarizeProviderAdapterSelectionState(malformedProviderAdapterData);
+if (malformedProviderAdapterSummary.status !== "blocked" || malformedProviderAdapterSummary.violations.length < 3) fail("provider adapter summary did not flag live provider/secret violations");
+
+const providerAdapterCreateResult = recordTools.createProviderAdapterCandidateRecords(data, {
+  providerFamily: "analytics-advertising",
+  targetProvider: "sandbox conversion test adapter",
+  readinessChecks: ["no-live-pixel", "no-external-ad-api-write", "no-invasive-tracking"],
+  goCriteria: ["Sandbox-only evaluation"],
+  blockers: ["No production conversion writes"],
+  note: "Verifier created a provider adapter candidate without live provider behavior."
+}, { now: "2026-06-01T12:11:00+09:00" });
+if (providerAdapterCreateResult.data.providerAdapterCandidates.length !== data.providerAdapterCandidates.length + 1) fail("provider adapter create did not add a candidate");
+if (providerAdapterCreateResult.records.candidate.liveApiCalls || providerAdapterCreateResult.records.candidate.secretsPresent || providerAdapterCreateResult.records.candidate.oauthConfigured || providerAdapterCreateResult.records.candidate.webhookEnabled || providerAdapterCreateResult.records.candidate.externalProviderWrite) {
+  fail("provider adapter create enabled live API, secrets, OAuth, webhooks, or provider writes");
+}
+if (providerAdapterCreateResult.records.receipt.kind !== "provider-adapter-selection") fail("provider adapter create missing receipt kind");
+
+const providerAdapterTransitionResult = recordTools.transitionProviderAdapterCandidateRecords(data, {
+  candidateId: "provider-adapter-payment-checkout",
+  action: "approve-sandbox-only",
+  note: "Verifier approved sandbox-only checkout review without live API calls, secrets, OAuth, webhooks, provider writes, or payment capture."
+}, { now: "2026-06-01T12:12:00+09:00" });
+if (providerAdapterTransitionResult.records.candidate.status !== "approved") fail("provider adapter transition did not approve sandbox-only status");
+if (providerAdapterTransitionResult.records.candidate.goNoGoState !== "approved-sandbox-only") fail("provider adapter transition did not set approved-sandbox-only state");
+if (providerAdapterTransitionResult.records.receipt.kind !== "provider-adapter-selection") fail("provider adapter transition missing receipt kind");
+if (providerAdapterTransitionResult.records.healthCheck.target !== "monitor-provider-adapters") fail("provider adapter transition missing monitor target");
+if (providerAdapterTransitionResult.records.healthCheck.effect !== "provider-adapter-selection-readiness") fail("provider adapter transition missing monitor effect");
+if (providerAdapterTransitionResult.records.healthCheck.customerVisible !== false) fail("provider adapter health check must remain internal");
+if (providerAdapterTransitionResult.data.notificationEvents.length !== data.notificationEvents.length) fail("provider adapter transition created a customer-visible notification event");
+if (providerAdapterTransitionResult.records.candidate.liveApiCalls || providerAdapterTransitionResult.records.candidate.productionEnabled || providerAdapterTransitionResult.records.candidate.secretsPresent || providerAdapterTransitionResult.records.candidate.credentialsStored || providerAdapterTransitionResult.records.candidate.oauthConfigured || providerAdapterTransitionResult.records.candidate.webhookEnabled || providerAdapterTransitionResult.records.candidate.externalProviderWrite) {
+  fail("provider adapter transition enabled live provider or secret safeguards");
+}
+
 const checklist = read("../docs/first-commercial-slice-checklist.md");
 for (const phrase of [
   "Public professional offer page",
@@ -1036,7 +1145,8 @@ for (const phrase of [
   "LIBRARY ledger sync/recovery handoff record",
   "Calendar provider handoff and invitation-readiness record",
   "Auth/session role handoffs",
-  "Marketing conversion KPI events"
+  "Marketing conversion KPI events",
+  "Provider adapter candidates"
 ]) {
   if (!checklist.includes(phrase)) fail(`checklist missing phrase: ${phrase}`);
 }
@@ -1200,6 +1310,23 @@ for (const phrase of [
   "provider-neutral ledger"
 ]) {
   if (!marketingConversionContract.includes(phrase)) fail(`marketing conversion contract missing phrase: ${phrase}`);
+}
+
+const providerAdapterContract = read("../docs/provider-adapter-selection-readiness-contract.md");
+for (const phrase of [
+  "Provider Adapter Selection Readiness Contract",
+  "providerAdapterCandidates",
+  "Provider Adapter Go/No-Go",
+  "sandboxOnly: true",
+  "liveApiCalls: false",
+  "no-live-api",
+  "no-secrets",
+  "no-oauth-client",
+  "no-provider-writes",
+  "monitor-provider-adapters",
+  "provider-adapter-selection"
+]) {
+  if (!providerAdapterContract.includes(phrase)) fail(`provider adapter contract missing phrase: ${phrase}`);
 }
 
 const reminderContract = read("../docs/reminder-recurrence-availability-contract.md");
@@ -1962,6 +2089,7 @@ if (!monitorReport.curriculum) fail("monitor report missing curriculum state");
 if (!monitorReport.notifications) fail("monitor report missing notification state");
 if (!monitorReport.marketing) fail("monitor report missing marketing state");
 if (!monitorReport.marketingConversion) fail("monitor report missing marketing conversion state");
+if (!monitorReport.providerAdapters) fail("monitor report missing provider adapter state");
 if (!monitorReport.calendar) fail("monitor report missing calendar export state");
 if (!monitorReport.persistence) fail("monitor report missing persistence state");
 if (!monitorReport.scope) fail("monitor report missing scope state");
@@ -1989,6 +2117,12 @@ if (monitorReport.summary.marketingConversionReady !== data.marketingConversionE
 if (monitorReport.summary.marketingConversionNoLiveTracking !== data.marketingConversionEvents.length) fail("monitor summary missing no-live-tracking conversion KPIs");
 if (monitorReport.summary.marketingConversionPotentialValueJpy <= 0) fail("monitor summary missing marketing conversion potential value");
 if (monitorReport.summary.marketingConversionViolations !== 0) fail("monitor summary should not report marketing conversion violations for the seed slice");
+if (monitorReport.summary.providerAdapterCandidates !== data.providerAdapterCandidates.length) fail("monitor summary provider adapter count is wrong");
+if (monitorReport.summary.providerAdapterReady !== data.providerAdapterCandidates.length) fail("monitor summary missing ready provider adapters");
+if (monitorReport.summary.providerAdapterSandboxOnly !== data.providerAdapterCandidates.length) fail("monitor summary missing sandbox-only provider adapters");
+if (monitorReport.summary.providerAdapterNoLiveProvider !== data.providerAdapterCandidates.length) fail("monitor summary missing no-live-provider adapters");
+if (monitorReport.summary.providerAdapterNoSecrets !== data.providerAdapterCandidates.length) fail("monitor summary missing no-secrets provider adapters");
+if (monitorReport.summary.providerAdapterViolations !== 0) fail("monitor summary should not report provider adapter violations for the seed slice");
 if (monitorReport.summary.copyComplianceViolations !== 0) fail("monitor summary should not report campaign copy violations");
 if (monitorReport.summary.rescheduledScheduleEntries < 1) fail("monitor summary missing rescheduled schedule lifecycle count");
 if (monitorReport.summary.canceledScheduleEntries < 1) fail("monitor summary missing canceled schedule lifecycle count");
@@ -2030,6 +2164,7 @@ if (monitorReport.summary.monitorActionReceipts < 2) fail("monitor summary missi
 if (monitorReport.summary.operatorActions < 3) fail("monitor summary missing operator actions");
 if (!monitorReport.timeline.some((item) => item.kind === "campaign route")) fail("monitor timeline missing campaign routes");
 if (!monitorReport.timeline.some((item) => item.kind === "marketing conversion")) fail("monitor timeline missing marketing conversion KPIs");
+if (!monitorReport.timeline.some((item) => item.kind === "provider adapter")) fail("monitor timeline missing provider adapter candidates");
 if (!monitorReport.timeline.some((item) => item.kind === "access gateway")) fail("monitor timeline missing access gateways");
 if (!monitorReport.timeline.some((item) => item.kind === "library sync")) fail("monitor timeline missing LIBRARY sync handoffs");
 if (!monitorReport.timeline.some((item) => item.kind === "calendar provider")) fail("monitor timeline missing calendar provider handoffs");
@@ -2112,6 +2247,7 @@ if (exportedLedger.counts.calendarProviderHandoffs !== returnResult.data.calenda
 if (exportedLedger.counts.notificationProviderHandoffs !== returnResult.data.notificationProviderHandoffs.length) fail("ledger export notification provider handoff count is wrong");
 if (exportedLedger.counts.paymentProviderHandoffs !== returnResult.data.paymentProviderHandoffs.length) fail("ledger export payment provider handoff count is wrong");
 if (exportedLedger.counts.marketingConversionEvents !== returnResult.data.marketingConversionEvents.length) fail("ledger export marketing conversion count is wrong");
+if (exportedLedger.counts.providerAdapterCandidates !== returnResult.data.providerAdapterCandidates.length) fail("ledger export provider adapter count is wrong");
 if (!exportedLedger.monitor || exportedLedger.monitor.timeline < 1) fail("ledger export missing monitor summary");
 if (exportedLedger.monitor.persistenceRevision !== exportedLedger.persistence.revision) fail("ledger monitor summary missing persistence revision");
 if (!exportedLedger.calendarExport || exportedLedger.calendarExport.entries.length !== calendarExport.entries.length) fail("ledger export missing calendar export entries");
@@ -2123,6 +2259,7 @@ if (!exportedLedger.notificationProvider || exportedLedger.notificationProvider.
 if (!exportedLedger.paymentProvider || exportedLedger.paymentProvider.handoffCount !== exportedLedger.data.paymentProviderHandoffs.length) fail("ledger export missing payment provider summary");
 if (!exportedLedger.authSession || exportedLedger.authSession.handoffCount !== exportedLedger.data.authSessionRoleHandoffs.length) fail("ledger export missing auth/session role summary");
 if (!exportedLedger.marketingConversion || exportedLedger.marketingConversion.eventCount !== exportedLedger.data.marketingConversionEvents.length) fail("ledger export missing marketing conversion summary");
+if (!exportedLedger.providerAdapters || exportedLedger.providerAdapters.candidateCount !== exportedLedger.data.providerAdapterCandidates.length) fail("ledger export missing provider adapter summary");
 if (exportedLedger.counts.routePlacements !== returnResult.data.routePlacements.length) fail("ledger export route placement count is wrong");
 if (exportedLedger.counts.curriculumFrameworks !== returnResult.data.curriculumFrameworks.length) fail("ledger export curriculum framework count is wrong");
 if (exportedLedger.counts.packageGameplans !== returnResult.data.packageGameplans.length) fail("ledger export package gameplan count is wrong");
@@ -2145,6 +2282,8 @@ if (exportedLedger.monitor.authCustomerReady < 1) fail("ledger monitor summary m
 if (exportedLedger.monitor.authInternalDenied < 2) fail("ledger monitor summary missing internal auth denial readiness");
 if (exportedLedger.monitor.marketingConversionEvents !== returnResult.data.marketingConversionEvents.length) fail("ledger monitor summary missing marketing conversion KPIs");
 if (exportedLedger.monitor.marketingConversionNoLiveTracking !== returnResult.data.marketingConversionEvents.length) fail("ledger monitor summary missing marketing conversion no-live-tracking posture");
+if (exportedLedger.monitor.providerAdapterCandidates !== returnResult.data.providerAdapterCandidates.length) fail("ledger monitor summary missing provider adapter candidates");
+if (exportedLedger.monitor.providerAdapterNoLiveProvider !== returnResult.data.providerAdapterCandidates.length) fail("ledger monitor summary missing provider adapter no-live-provider posture");
 if (exportedLedger.monitor.monitorHealthChecks !== returnResult.data.monitorHealthChecks.length) fail("ledger monitor summary missing monitor health checks");
 
 const persistenceSummary = recordTools.summarizePersistenceState(exportedLedger.data);
@@ -2192,6 +2331,12 @@ if (marketingConversionLedger.marketingConversion.recordedEvents < 1) fail("ledg
 if (marketingConversionLedger.marketingConversion.noLiveTracking !== conversionTransitionResult.data.marketingConversionEvents.length) fail("ledger marketing conversion summary lost no-live-tracking posture");
 if (marketingConversionLedger.monitor.marketingConversionViolations !== 0) fail("ledger monitor summary should not report marketing conversion violations after transition");
 
+const providerAdapterLedger = recordTools.createOperatingLedger(providerAdapterTransitionResult.data, { now: "2026-06-01T04:43:58.000Z" });
+if (providerAdapterLedger.counts.providerAdapterCandidates !== providerAdapterTransitionResult.data.providerAdapterCandidates.length) fail("ledger export provider adapter transition count is wrong");
+if (providerAdapterLedger.providerAdapters.approvedSandboxOnly < 1) fail("ledger export missing provider adapter sandbox approval after transition");
+if (providerAdapterLedger.providerAdapters.noLiveProvider !== providerAdapterTransitionResult.data.providerAdapterCandidates.length) fail("ledger provider adapter summary lost no-live-provider posture");
+if (providerAdapterLedger.monitor.providerAdapterViolations !== 0) fail("ledger monitor summary should not report provider adapter violations after transition");
+
 const quoteLedger = recordTools.createOperatingLedger(paymentReadyQuoteResult.data, { now: "2026-06-01T04:44:00.000Z" });
 if (quoteLedger.counts.quotes !== paymentReadyQuoteResult.data.quotes.length) fail("ledger export quote count is wrong");
 if (quoteLedger.monitor.paymentReadyQuotes < 1) fail("ledger monitor summary missing payment-ready quote count");
@@ -2214,6 +2359,7 @@ if (importedLedger.data.notificationProviderHandoffs.length !== returnResult.dat
 if (importedLedger.data.paymentProviderHandoffs.length !== returnResult.data.paymentProviderHandoffs.length) fail("ledger import did not preserve payment provider handoffs");
 if (importedLedger.data.authSessionRoleHandoffs.length !== returnResult.data.authSessionRoleHandoffs.length) fail("ledger import did not preserve auth/session role handoffs");
 if (importedLedger.data.marketingConversionEvents.length !== returnResult.data.marketingConversionEvents.length) fail("ledger import did not preserve marketing conversion events");
+if (importedLedger.data.providerAdapterCandidates.length !== returnResult.data.providerAdapterCandidates.length) fail("ledger import did not preserve provider adapter candidates");
 if (importedLedger.data.campaignRoutes.length !== returnResult.data.campaignRoutes.length) fail("ledger import did not preserve campaign routes");
 if (importedLedger.data.customers[0].externalStatus !== returnResult.data.customers[0].externalStatus) fail("ledger import did not preserve external status");
 if (importedLedger.data.persistence.checksum !== exportedLedger.persistence.checksum) fail("ledger import did not preserve persistence checksum");
@@ -2273,6 +2419,13 @@ if (importedMarketingConversionLedger.data.marketingConversionEvents.length !== 
 if (!importedMarketingConversionLedger.data.marketingConversionEvents.some((item) => item.status === "converted")) fail("ledger import did not preserve converted marketing conversion status");
 if (!importedMarketingConversionLedger.data.marketingConversionEvents.every((item) => item.livePixelEnabled === false && item.externalAdApiWrite === false && item.invasiveTracking === false && item.storesPersonalData === false && item.productionAnalyticsCredential === false && item.webhookEnabled === false && item.crossSiteIdentifier === false)) {
   fail("ledger import changed marketing conversion no-live-tracking safeguards");
+}
+
+const importedProviderAdapterLedger = recordTools.importOperatingLedger(data, JSON.stringify(providerAdapterLedger));
+if (importedProviderAdapterLedger.data.providerAdapterCandidates.length !== providerAdapterTransitionResult.data.providerAdapterCandidates.length) fail("ledger import did not preserve provider adapter candidates");
+if (!importedProviderAdapterLedger.data.providerAdapterCandidates.some((item) => item.goNoGoState === "approved-sandbox-only")) fail("ledger import did not preserve provider adapter sandbox approval");
+if (!importedProviderAdapterLedger.data.providerAdapterCandidates.every((item) => item.liveApiCalls === false && item.productionEnabled === false && item.secretsPresent === false && item.credentialsStored === false && item.oauthConfigured === false && item.webhookEnabled === false && item.externalProviderWrite === false)) {
+  fail("ledger import changed provider adapter no-live-provider safeguards");
 }
 
 const importedQuoteLedger = recordTools.importOperatingLedger(data, JSON.stringify(quoteLedger));
