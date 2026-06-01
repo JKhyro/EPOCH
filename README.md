@@ -29,6 +29,7 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
 - `docs/agentic-revenue-handoff-contract.md`
 - `docs/synapse-route-placement-contract.md`
 - `docs/controlled-public-customer-access-gateway.md`
+- `docs/library-ledger-sync-recovery-contract.md`
 
 ## Current implementation artifacts
 
@@ -47,19 +48,21 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   entries, submission creation, deadline summaries, returned-review receipts,
   monitor health reports, ledger-backed monitor health checks, and versioned
   operating-ledger export/import with a LIBRARY-ready durable persistence
-  envelope, plus SYMBIOSIS/ANVIL agentic revenue handoff records and SYNAPSE
-  route placement metadata.
+  envelope, LIBRARY sync/recovery handoff records, plus SYMBIOSIS/ANVIL
+  agentic revenue handoff records and SYNAPSE route placement metadata.
 - `web/app.js`: shared renderer and local persistence flow for admin,
   student/customer, monitor, public request, scheduling, submission, and
   review-return views, including local ledger save/load, durable snapshot status,
   recovery-import state, JSON export/import, and MONITOR-visible SYNAPSE route
   placement cards, plus marketing-route and labor-model offer catalog display,
-  body-level active-view state, shared data-view activation, and controlled
-  public/customer access gateway controls.
+  body-level active-view state, shared data-view activation, controlled
+  public/customer access gateway controls, and internal-only LIBRARY
+  sync/recovery controls.
 - `web/seed-data.js`: demo commercial workflow covering leads, tracks, cohorts,
   offer packages, curriculum frameworks, package gameplans, opportunities,
   update events, sessions, assignments, submissions, reviews, follow-ups,
   receipts, SYNAPSE route placements, and marketing-ready package metadata.
+  It also seeds internal LIBRARY ledger sync and recovery handoff records.
 - `tools/verify-commercial-slice.mjs`: repository verifier for the first
   commercial slice.
 

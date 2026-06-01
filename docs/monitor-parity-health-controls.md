@@ -19,6 +19,7 @@ EPOCH MONITOR must expose these local operator sections:
 - Risks
 - Receipts
 - Safe Access
+- LIBRARY Sync
 - Controls
 
 The public route may reuse the visual language, but it must not expose raw
@@ -40,6 +41,7 @@ The current action classes are:
 - Awaiting-review return prompt.
 - Stale monitor memory refresh prompt.
 - Local-only safe-access acknowledgement.
+- LIBRARY ledger sync/recovery handoff review.
 
 ## Safe access posture
 
@@ -96,3 +98,7 @@ The repository verifier must cover:
 - Controlled public/customer access gateway controls and verifier coverage for
   `accessGateways`, public/customer route exposure, raw admin/monitor denial,
   internal receipts, and no customer-visible notifications from gateway actions.
+- LIBRARY sync/recovery controls and verifier coverage for
+  `librarySyncHandoffs`, internal-only EPOCH-to-LIBRARY snapshot handoff,
+  recovery import posture, internal receipts, export/import preservation, and no
+  customer-visible notifications from sync actions.

@@ -27,6 +27,7 @@
     "agentHandoffs",
     "routePlacements",
     "accessGateways",
+    "librarySyncHandoffs",
     "monitorHealthChecks",
     "notificationEvents",
     "notificationDeliveries",
@@ -230,6 +231,77 @@
     ];
   }
 
+  function defaultLibrarySyncHandoffs() {
+    return [
+      {
+        id: "library-sync-operating-ledger",
+        title: "Operating Ledger Snapshot Handoff",
+        sourceSystem: "EPOCH",
+        targetSystem: "LIBRARY",
+        syncMode: "ledger-snapshot",
+        status: "queued",
+        handoffStatus: "ready-for-export",
+        visibility: "internal",
+        customerVisible: false,
+        persistenceLedgerId: "pending-export",
+        revision: 0,
+        checksum: "pending-export",
+        snapshotAt: "",
+        recoveryState: "export-required",
+        durability: "browser-local-to-library",
+        searchReady: true,
+        backupReady: true,
+        operatorApprovalRequired: true,
+        nextActionAt: "2026-06-01T18:45:00+09:00",
+        createdAt: "2026-06-01T18:31:00+09:00",
+        updatedAt: "2026-06-01T18:31:00+09:00",
+        receiptIds: ["receipt-library-sync-seed"],
+        syncHistory: [
+          {
+            action: "seed",
+            status: "queued",
+            at: "2026-06-01T18:31:00+09:00",
+            note: "EPOCH ledger is ready for a controlled LIBRARY snapshot handoff after operator export."
+          }
+        ],
+        notes: "Export a fresh operating ledger before external LIBRARY writeback."
+      },
+      {
+        id: "library-recovery-import",
+        title: "Recovery Snapshot Import Handoff",
+        sourceSystem: "LIBRARY",
+        targetSystem: "EPOCH",
+        syncMode: "recovery-import",
+        status: "planned",
+        handoffStatus: "recovery-path-defined",
+        visibility: "internal",
+        customerVisible: false,
+        persistenceLedgerId: "pending-recovery",
+        revision: 0,
+        checksum: "pending-recovery",
+        snapshotAt: "",
+        recoveryState: "recovery-ready",
+        durability: "library-to-browser-local",
+        searchReady: false,
+        backupReady: true,
+        operatorApprovalRequired: true,
+        nextActionAt: "2026-06-02T09:00:00+09:00",
+        createdAt: "2026-06-01T18:32:00+09:00",
+        updatedAt: "2026-06-01T18:32:00+09:00",
+        receiptIds: ["receipt-library-sync-seed"],
+        syncHistory: [
+          {
+            action: "seed",
+            status: "planned",
+            at: "2026-06-01T18:32:00+09:00",
+            note: "Recovery imports must validate the EPOCH ledger envelope before replacing local browser state."
+          }
+        ],
+        notes: "Recovery can import only validated operating-ledger JSON with matching persistence metadata."
+      }
+    ];
+  }
+
   function normalizedOperatingData(data) {
     const nextData = cloneData(data || {});
     for (const collection of ledgerCollections) {
@@ -241,6 +313,9 @@
     }
     if (!Array.isArray(nextData.accessGateways) || !nextData.accessGateways.length) {
       nextData.accessGateways = defaultAccessGateways();
+    }
+    if (!Array.isArray(nextData.librarySyncHandoffs) || !nextData.librarySyncHandoffs.length) {
+      nextData.librarySyncHandoffs = defaultLibrarySyncHandoffs();
     }
     if (!nextData.accessPosture || typeof nextData.accessPosture !== "object") {
       nextData.accessPosture = {
@@ -3188,6 +3263,240 @@
     };
   }
 
+  function summarizeLibrarySyncState(currentData, options = {}) {
+    const data = normalizedOperatingData(currentData);
+    const persistence = options.persistence || summarizePersistenceState(data, { now: options.now });
+    const handoffs = data.librarySyncHandoffs.map((handoff) => {
+      const targetSystem = clean(handoff.targetSystem) || "LIBRARY";
+      const sourceSystem = clean(handoff.sourceSystem) || "EPOCH";
+      const syncMode = clean(handoff.syncMode) || "ledger-snapshot";
+      const status = clean(handoff.status) || "planned";
+      const visibility = clean(handoff.visibility) || "internal";
+      const customerVisible = handoff.customerVisible === true;
+      const handoffStatus = clean(handoff.handoffStatus) || "pending";
+      const recoveryState = clean(handoff.recoveryState) || "recovery-pending";
+      const checksum = clean(handoff.checksum) || persistence.checksum;
+      const revision = Number.isInteger(Number(handoff.revision)) ? Number(handoff.revision) : persistence.revision;
+      const receiptIds = Array.isArray(handoff.receiptIds) ? handoff.receiptIds : [];
+      const syncHistory = Array.isArray(handoff.syncHistory) ? handoff.syncHistory : [];
+      const violations = [];
+
+      if (targetSystem !== "LIBRARY" && sourceSystem !== "LIBRARY") {
+        violations.push("LIBRARY sync handoff must target or source LIBRARY.");
+      }
+      if (visibility !== "internal" || customerVisible) {
+        violations.push("LIBRARY sync handoff must remain internal-only.");
+      }
+      if (status === "complete" && !receiptIds.length) {
+        violations.push("Completed LIBRARY sync handoff requires a receipt trail.");
+      }
+      if (["ready-for-export", "ready-for-library", "synced-to-library"].includes(handoffStatus) && !checksum) {
+        violations.push("LIBRARY sync handoff is missing a checksum.");
+      }
+      if (syncMode === "recovery-import" && !["recovery-ready", "validated-recovery", "imported-recovery-snapshot"].includes(recoveryState)) {
+        violations.push("Recovery handoff must declare a validated recovery state.");
+      }
+
+      return {
+        id: clean(handoff.id),
+        title: clean(handoff.title) || "LIBRARY Sync Handoff",
+        sourceSystem,
+        targetSystem,
+        syncMode,
+        status,
+        handoffStatus,
+        visibility,
+        customerVisible,
+        persistenceLedgerId: clean(handoff.persistenceLedgerId) || persistence.ledgerId,
+        revision,
+        checksum,
+        snapshotAt: clean(handoff.snapshotAt) || persistence.snapshotAt,
+        recoveryState,
+        durability: clean(handoff.durability) || "browser-local-to-library",
+        searchReady: handoff.searchReady === true,
+        backupReady: handoff.backupReady !== false,
+        operatorApprovalRequired: handoff.operatorApprovalRequired !== false,
+        nextActionAt: clean(handoff.nextActionAt),
+        updatedAt: clean(handoff.updatedAt),
+        receiptIds,
+        syncHistory,
+        notes: clean(handoff.notes) || "No LIBRARY sync note recorded.",
+        violations
+      };
+    });
+    const violations = handoffs.flatMap((handoff) => handoff.violations.map((detail) => `${handoff.title || handoff.id}: ${detail}`));
+    const exportHandoffs = handoffs.filter((item) => item.syncMode.includes("snapshot") || item.syncMode.includes("export"));
+    const recoveryHandoffs = handoffs.filter((item) => item.syncMode.includes("recovery") || item.recoveryState.includes("recovery"));
+    const dirtySnapshotPending = !["durable-ready-snapshot", "imported-recovery-snapshot"].includes(clean(persistence.adapterState));
+
+    return {
+      schema: "epoch.library-ledger-sync-handoff",
+      handoffCount: handoffs.length,
+      exportHandoffs: exportHandoffs.length,
+      recoveryHandoffs: recoveryHandoffs.length,
+      queued: handoffs.filter((item) => item.status === "queued").length,
+      complete: handoffs.filter((item) => item.status === "complete").length,
+      blocked: handoffs.filter((item) => item.status === "blocked").length,
+      searchReady: handoffs.filter((item) => item.searchReady).length,
+      backupReady: handoffs.filter((item) => item.backupReady).length,
+      internalOnly: handoffs.filter((item) => item.visibility === "internal" && !item.customerVisible).length,
+      dirtySnapshotPending,
+      persistenceLedgerId: persistence.ledgerId,
+      persistenceRevision: persistence.revision,
+      persistenceChecksum: persistence.checksum,
+      persistenceState: persistence.adapterState,
+      violations,
+      status: violations.length ? "blocked" : dirtySnapshotPending ? "snapshot-needed" : "ready",
+      handoffs
+    };
+  }
+
+  function createLibrarySyncHandoffRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const createdAt = withTimezone(now.toISOString(), timezone);
+    const persistence = summarizePersistenceState(nextData, { now: createdAt });
+    const handoff = {
+      id: clean(input.id) || `library-sync-${stamp(now)}`,
+      title: clean(input.title) || "LIBRARY Ledger Sync Handoff",
+      sourceSystem: clean(input.sourceSystem) || "EPOCH",
+      targetSystem: clean(input.targetSystem) || "LIBRARY",
+      syncMode: clean(input.syncMode) || "ledger-snapshot",
+      status: clean(input.status) || "queued",
+      handoffStatus: clean(input.handoffStatus) || "ready-for-export",
+      visibility: "internal",
+      customerVisible: false,
+      persistenceLedgerId: clean(input.persistenceLedgerId) || persistence.ledgerId,
+      revision: Number.isInteger(Number(input.revision)) ? Number(input.revision) : persistence.revision,
+      checksum: clean(input.checksum) || persistence.checksum,
+      snapshotAt: clean(input.snapshotAt) || persistence.snapshotAt,
+      recoveryState: clean(input.recoveryState) || "export-required",
+      durability: clean(input.durability) || "browser-local-to-library",
+      searchReady: input.searchReady === true || clean(input.searchReady) === "true",
+      backupReady: input.backupReady !== false && clean(input.backupReady) !== "false",
+      operatorApprovalRequired: true,
+      nextActionAt: withTimezone(input.nextActionAt, timezone) || createdAt,
+      createdAt,
+      updatedAt: createdAt,
+      receiptIds: [],
+      syncHistory: [
+        {
+          action: "create",
+          status: clean(input.status) || "queued",
+          at: createdAt,
+          note: clean(input.note) || "LIBRARY sync handoff created for operator review."
+        }
+      ],
+      notes: clean(input.note) || "LIBRARY sync handoff created for operator review."
+    };
+    nextData.librarySyncHandoffs.unshift(handoff);
+    return {
+      data: nextData,
+      records: {
+        handoff
+      }
+    };
+  }
+
+  function transitionLibrarySyncHandoffRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const updatedAt = withTimezone(now.toISOString(), timezone);
+    const handoffId = clean(input.handoffId || input.id);
+    const action = clean(input.action) || "prepare-export";
+    const note = clean(input.note) || "LIBRARY ledger sync handoff reviewed by operator.";
+    const handoff = nextData.librarySyncHandoffs.find((item) => item.id === handoffId);
+    if (!handoff) throw new Error("LIBRARY sync handoff not found");
+
+    const persistence = summarizePersistenceState(nextData, { now: updatedAt });
+    handoff.persistenceLedgerId = persistence.ledgerId;
+    handoff.revision = persistence.revision;
+    handoff.checksum = persistence.checksum;
+    handoff.snapshotAt = persistence.snapshotAt;
+
+    if (action === "prepare-export") {
+      handoff.status = "queued";
+      handoff.handoffStatus = "ready-for-export";
+      handoff.recoveryState = "export-required";
+    } else if (action === "mark-ready") {
+      handoff.status = "queued";
+      handoff.handoffStatus = "ready-for-library";
+      handoff.recoveryState = "snapshot-ready";
+    } else if (action === "mark-synced") {
+      handoff.status = "complete";
+      handoff.handoffStatus = "synced-to-library";
+      handoff.recoveryState = "validated-recovery";
+    } else if (action === "recovery-ready") {
+      handoff.status = "complete";
+      handoff.handoffStatus = "recovery-path-defined";
+      handoff.recoveryState = "recovery-ready";
+      handoff.syncMode = "recovery-import";
+    } else if (action === "retry") {
+      handoff.status = "retry-ready";
+      handoff.handoffStatus = "retry-ready";
+    } else if (action === "block") {
+      handoff.status = "blocked";
+      handoff.handoffStatus = "blocked";
+    } else {
+      throw new Error("unsupported LIBRARY sync action");
+    }
+
+    handoff.visibility = "internal";
+    handoff.customerVisible = false;
+    handoff.operatorApprovalRequired = true;
+    handoff.updatedAt = updatedAt;
+    handoff.nextActionAt = withTimezone(input.nextActionAt, timezone) || handoff.nextActionAt || updatedAt;
+    handoff.notes = note;
+    if (!Array.isArray(handoff.syncHistory)) handoff.syncHistory = [];
+    handoff.syncHistory.unshift({
+      action,
+      status: handoff.status,
+      at: updatedAt,
+      checksum: handoff.checksum,
+      note
+    });
+
+    const receiptId = `receipt-library-sync-${stamp(now)}`;
+    if (!Array.isArray(handoff.receiptIds)) handoff.receiptIds = [];
+    handoff.receiptIds.unshift(receiptId);
+    const healthCheck = {
+      id: `monitor-check-library-sync-${stamp(now)}`,
+      actionId: `library-sync-${action}`,
+      receiptId,
+      title: `LIBRARY sync ${action}`,
+      summary: `${handoff.title}: ${note}`,
+      status: handoff.status,
+      priority: action === "block" ? "high" : "medium",
+      effect: "library-sync-handoff",
+      target: "monitor-library-sync",
+      owner: clean(input.owner) || "Jack",
+      createdAt: updatedAt,
+      visibility: "internal",
+      customerVisible: false
+    };
+    const receipt = {
+      id: receiptId,
+      customerId: null,
+      kind: "library-sync-handoff",
+      status: handoff.status,
+      createdAt: updatedAt,
+      note: `${healthCheck.title}: ${healthCheck.summary}`
+    };
+    nextData.monitorHealthChecks.unshift(healthCheck);
+    nextData.receipts.unshift(receipt);
+
+    return {
+      data: nextData,
+      records: {
+        handoff,
+        healthCheck,
+        receipt
+      }
+    };
+  }
+
   function summarizeAccessPosture(currentData, options = {}) {
     const data = normalizedOperatingData(currentData);
     const posture = data.accessPosture && typeof data.accessPosture === "object" ? data.accessPosture : {};
@@ -3503,6 +3812,7 @@
       ...(currentData.recurrenceCandidates || []).map((item) => ({ kind: "recurrence candidate", id: item.id, title: item.title, status: item.status, time: item.nextCandidateAt || item.createdAt, owner: item.cadence || "recurrence" })),
       ...(currentData.availabilityWindows || []).map((item) => ({ kind: "availability window", id: item.id, title: item.title, status: item.status, time: item.startAt || item.createdAt, owner: item.owner || "availability" })),
       ...(currentData.accessGateways || []).map((item) => ({ kind: "access gateway", id: item.id, title: item.label, status: item.status, time: item.updatedAt || item.lastVerifiedAt || item.createdAt, owner: item.publicExposure || item.policy || "access" })),
+      ...(currentData.librarySyncHandoffs || []).map((item) => ({ kind: "library sync", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.handoffStatus || item.targetSystem || "LIBRARY" })),
       ...currentData.sessions.map((item) => ({ kind: "session", id: item.id, title: item.title, status: item.status, time: item.startAt, owner: item.owner || "owner pending" })),
       ...currentData.assignments.map((item) => ({ kind: "request", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.owner || "owner pending" })),
       ...currentData.submissions.map((item) => ({ kind: "submission", id: item.id, title: item.title || item.id, status: item.status, time: item.reviewDueAt, owner: item.owner || "review queue" })),
@@ -3526,6 +3836,7 @@
     const marketing = summarizeMarketingState(data);
     const calendarExport = createCalendarExport(data, { now: nowText });
     const persistence = summarizePersistenceState(data, { now: nowText });
+    const librarySync = summarizeLibrarySyncState(data, { now: nowText, persistence });
     const routePlacement = summarizeRoutePlacementState(data, { now: nowText });
     const scope = summarizeScopeState(data, { now: nowText, routePlacement });
     const memory = summarizeMemoryState(data, { now: nowText });
@@ -3551,6 +3862,10 @@
     }
     for (const item of timeline.filter((entry) => entry.kind === "access gateway").slice(0, 4)) {
       if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
+    }
+    for (const item of timeline.filter((entry) => entry.kind === "library sync").slice(0, 3)) {
+      if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
+      if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
     const overdue = timeline.filter((item) => item.status === "overdue" || (item.time && item.time < nowText && !terminalStatuses.has(item.status)));
     const blocked = timeline.filter((item) => item.status === "blocked");
@@ -3647,6 +3962,14 @@
         severity: "high",
         title: "Access Gateway Violation",
         detail: accessGateways.violations[0]
+      });
+    }
+    if (librarySync.violations.length) {
+      risks.push({
+        id: "library-sync-violation",
+        severity: "high",
+        title: "LIBRARY Sync Violation",
+        detail: librarySync.violations[0]
       });
     }
 
@@ -3765,6 +4088,13 @@
         controlledCustomerGateways: accessGateways.controlledCustomer,
         deniedRawGateways: accessGateways.deniedRaw,
         accessGatewayViolations: accessGateways.violations.length,
+        librarySyncHandoffs: librarySync.handoffCount,
+        libraryExportHandoffs: librarySync.exportHandoffs,
+        libraryRecoveryHandoffs: librarySync.recoveryHandoffs,
+        librarySearchReady: librarySync.searchReady,
+        libraryBackupReady: librarySync.backupReady,
+        librarySyncViolations: librarySync.violations.length,
+        libraryDirtySnapshotPending: librarySync.dirtySnapshotPending,
         monitorHealthChecks: monitorHealthChecks.length,
         monitorActionReceipts: data.receipts.filter((item) => item.kind === "monitor-check").length,
         operatorActions: operatorActions.length
@@ -3776,6 +4106,7 @@
       scheduleControls,
       handoffs,
       marketing,
+      librarySync,
       accessGateways,
       routePlacement,
       calendar: calendarExport.counts,
@@ -3809,6 +4140,7 @@
     const calendarExport = createCalendarExport(data, { now: now.toISOString() });
     const routePlacement = summarizeRoutePlacementState(data, { now: now.toISOString() });
     const accessGateway = summarizeAccessGatewayState(data, { now: now.toISOString(), routePlacement });
+    const librarySync = summarizeLibrarySyncState(data, { now: now.toISOString(), persistence });
     return {
       schema: "epoch.operating-ledger",
       version: ledgerVersion,
@@ -3825,6 +4157,7 @@
       calendarExport,
       routePlacement,
       accessGateway,
+      librarySync,
       data
     };
   }
@@ -3858,6 +4191,8 @@
     transitionAvailabilityWindowRecords,
     createAccessGatewayRecords,
     transitionAccessGatewayRecords,
+    createLibrarySyncHandoffRecords,
+    transitionLibrarySyncHandoffRecords,
     createMonitorActionRecords,
     decideOpportunityRecords,
     createIntakeRecords,
@@ -3875,6 +4210,7 @@
     summarizeQuoteState,
     summarizeScheduleControlState,
     summarizeAccessGatewayState,
+    summarizeLibrarySyncState,
     summarizeAccessPosture,
     summarizeMemoryState,
     summarizeScopeState,

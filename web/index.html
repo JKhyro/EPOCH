@@ -29,6 +29,7 @@
           <span class="control-chip">Campaign routes</span>
           <span class="control-chip">Controlled gateway</span>
           <span class="control-chip">Local ledger</span>
+          <span class="control-chip">LIBRARY handoff</span>
           <span class="control-chip">Thread registry</span>
         </div>
       </div>
@@ -38,6 +39,7 @@
         <button type="button" data-monitor-target="monitor-controls">Ledger Controls</button>
         <button type="button" data-monitor-target="monitor-scope">Scope</button>
         <button type="button" data-monitor-target="monitor-memory">Memory</button>
+        <button type="button" data-monitor-target="monitor-library-sync">LIBRARY</button>
         <button type="button" data-monitor-target="monitor-campaigns">Campaigns</button>
         <button type="button" data-monitor-target="monitor-timeline">Timeline</button>
       </div>
@@ -323,6 +325,7 @@
         <button type="button" class="mode-button" data-monitor-target="monitor-timeline">Timeline</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-curriculum">Gameplans</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-access">Safe Access</button>
+        <button type="button" class="mode-button" data-monitor-target="monitor-library-sync">LIBRARY</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-campaigns">Campaigns</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-controls">Controls</button>
       </div>
@@ -342,11 +345,12 @@
           <button type="button" data-monitor-target="monitor-campaigns">Campaigns</button>
           <button type="button" data-monitor-target="monitor-handoffs">Agent Handoffs</button>
           <button type="button" data-monitor-target="monitor-suite">SYNAPSE</button>
+          <button type="button" data-monitor-target="monitor-library-sync">LIBRARY Sync</button>
           <button type="button" data-monitor-target="monitor-calendar">Calendar</button>
-        <button type="button" data-monitor-target="monitor-persistence">Persistence</button>
-        <button type="button" data-monitor-target="monitor-access">Safe Access</button>
-        <button type="button" data-monitor-target="monitor-access-gateways">Access Gateways</button>
-        <button type="button" data-monitor-target="monitor-risks">Risks</button>
+          <button type="button" data-monitor-target="monitor-persistence">Persistence</button>
+          <button type="button" data-monitor-target="monitor-access">Safe Access</button>
+          <button type="button" data-monitor-target="monitor-access-gateways">Access Gateways</button>
+          <button type="button" data-monitor-target="monitor-risks">Risks</button>
           <button type="button" data-monitor-target="monitor-receipts">Receipts</button>
           <button type="button" data-monitor-target="monitor-controls">Controls</button>
           <a href="#monitor" class="monitor-route-link">Direct route</a>
@@ -594,12 +598,37 @@
               </label>
               <button type="submit" id="access-gateway-apply">Apply Access Gateway Action</button>
             </form>
+            <form id="library-sync-form" class="review-console library-sync-console">
+              <div class="form-row">
+                <label>
+                  LIBRARY sync handoff
+                  <select name="handoffId" id="library-sync-select" required></select>
+                </label>
+                <label>
+                  Handoff action
+                  <select name="action" id="library-sync-action" required>
+                    <option value="prepare-export">Prepare export</option>
+                    <option value="mark-ready">Mark ready for LIBRARY</option>
+                    <option value="mark-synced">Mark synced</option>
+                    <option value="recovery-ready">Recovery ready</option>
+                    <option value="retry">Retry ready</option>
+                    <option value="block">Block handoff</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                Sync note
+                <input name="note" value="EPOCH ledger sync/recovery handoff reviewed for durable LIBRARY persistence." />
+              </label>
+              <button type="submit" id="library-sync-apply">Apply LIBRARY Sync Action</button>
+            </form>
             <div id="review-confirmation" class="confirmation"></div>
             <div id="agent-handoff-confirmation" class="confirmation"></div>
             <div id="notification-outbox-confirmation" class="confirmation"></div>
             <div id="quote-payment-confirmation" class="confirmation"></div>
             <div id="reminder-control-confirmation" class="confirmation"></div>
             <div id="access-gateway-confirmation" class="confirmation"></div>
+            <div id="library-sync-confirmation" class="confirmation"></div>
           </section>
           <div id="monitor-items" class="monitor-grid"></div>
         </div>

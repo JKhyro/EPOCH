@@ -661,6 +661,74 @@ window.EPOCH_SEED_DATA = {
       "notes": "EPOCH MONITOR remains the operator control room and is never customer-visible."
     }
   ],
+  "librarySyncHandoffs": [
+    {
+      "id": "library-sync-operating-ledger",
+      "title": "Operating Ledger Snapshot Handoff",
+      "sourceSystem": "EPOCH",
+      "targetSystem": "LIBRARY",
+      "syncMode": "ledger-snapshot",
+      "status": "queued",
+      "handoffStatus": "ready-for-export",
+      "visibility": "internal",
+      "customerVisible": false,
+      "persistenceLedgerId": "pending-export",
+      "revision": 0,
+      "checksum": "pending-export",
+      "snapshotAt": "",
+      "recoveryState": "export-required",
+      "durability": "browser-local-to-library",
+      "searchReady": true,
+      "backupReady": true,
+      "operatorApprovalRequired": true,
+      "nextActionAt": "2026-06-01T18:45:00+09:00",
+      "createdAt": "2026-06-01T18:31:00+09:00",
+      "updatedAt": "2026-06-01T18:31:00+09:00",
+      "receiptIds": ["receipt-library-sync-seed"],
+      "syncHistory": [
+        {
+          "action": "seed",
+          "status": "queued",
+          "at": "2026-06-01T18:31:00+09:00",
+          "note": "EPOCH ledger is ready for a controlled LIBRARY snapshot handoff after operator export."
+        }
+      ],
+      "notes": "Export a fresh operating ledger before external LIBRARY writeback."
+    },
+    {
+      "id": "library-recovery-import",
+      "title": "Recovery Snapshot Import Handoff",
+      "sourceSystem": "LIBRARY",
+      "targetSystem": "EPOCH",
+      "syncMode": "recovery-import",
+      "status": "planned",
+      "handoffStatus": "recovery-path-defined",
+      "visibility": "internal",
+      "customerVisible": false,
+      "persistenceLedgerId": "pending-recovery",
+      "revision": 0,
+      "checksum": "pending-recovery",
+      "snapshotAt": "",
+      "recoveryState": "recovery-ready",
+      "durability": "library-to-browser-local",
+      "searchReady": false,
+      "backupReady": true,
+      "operatorApprovalRequired": true,
+      "nextActionAt": "2026-06-02T09:00:00+09:00",
+      "createdAt": "2026-06-01T18:32:00+09:00",
+      "updatedAt": "2026-06-01T18:32:00+09:00",
+      "receiptIds": ["receipt-library-sync-seed"],
+      "syncHistory": [
+        {
+          "action": "seed",
+          "status": "planned",
+          "at": "2026-06-01T18:32:00+09:00",
+          "note": "Recovery imports must validate the EPOCH ledger envelope before replacing local browser state."
+        }
+      ],
+      "notes": "Recovery can import only validated operating-ledger JSON with matching persistence metadata."
+    }
+  ],
   "notificationEvents": [
     {
       "id": "update-001",
@@ -830,7 +898,7 @@ window.EPOCH_SEED_DATA = {
     {
       "id": "memory-002",
       "title": "Dirty local ledger must be exported before handoff",
-      "summary": "Modified-local or live-local persistence is usable for local control, but not a durable recovery point until export writes a receipt-bearing snapshot.",
+      "summary": "Modified-local or live-local persistence is usable for local control, but not a durable recovery point until export writes a receipt-bearing snapshot and a LIBRARY sync handoff.",
       "status": "active",
       "updatedAt": "2026-06-01T18:19:00+09:00",
       "reviewBy": "2026-06-02T09:00:00+09:00",
@@ -843,6 +911,15 @@ window.EPOCH_SEED_DATA = {
       "status": "stale",
       "updatedAt": "2026-05-29T12:00:00+09:00",
       "reviewBy": "2026-05-31T18:00:00+09:00",
+      "owner": "Jack"
+    },
+    {
+      "id": "memory-004",
+      "title": "LIBRARY sync stays internal-only",
+      "summary": "EPOCH can prepare ledger snapshots and recovery imports for LIBRARY, but live durable persistence remains a controlled handoff until an external adapter exists.",
+      "status": "active",
+      "updatedAt": "2026-06-01T18:33:00+09:00",
+      "reviewBy": "2026-06-05T09:00:00+09:00",
       "owner": "Jack"
     }
   ],
@@ -893,6 +970,21 @@ window.EPOCH_SEED_DATA = {
       "createdAt": "2026-06-01T18:23:00+09:00",
       "visibility": "internal",
       "customerVisible": false
+    },
+    {
+      "id": "monitor-check-seed-library-sync",
+      "actionId": "seed-library-sync-baseline",
+      "receiptId": "receipt-library-sync-seed",
+      "title": "LIBRARY sync baseline",
+      "summary": "EPOCH has internal-only ledger snapshot and recovery handoff records for future durable LIBRARY persistence.",
+      "status": "complete",
+      "priority": "medium",
+      "effect": "library-sync-handoff",
+      "target": "monitor-library-sync",
+      "owner": "Jack",
+      "createdAt": "2026-06-01T18:34:00+09:00",
+      "visibility": "internal",
+      "customerVisible": false
     }
   ],
   "receipts": [
@@ -911,6 +1003,14 @@ window.EPOCH_SEED_DATA = {
       "status": "complete",
       "createdAt": "2026-06-01T18:23:00+09:00",
       "note": "Safe-access baseline: raw monitor and admin surfaces are local-only; public route remains intake-only until a controlled gateway is verified."
+    },
+    {
+      "id": "receipt-library-sync-seed",
+      "customerId": null,
+      "kind": "library-sync-handoff",
+      "status": "complete",
+      "createdAt": "2026-06-01T18:34:00+09:00",
+      "note": "LIBRARY sync baseline: internal-only ledger snapshot and recovery handoff records are ready for operator-controlled durable persistence."
     },
     {
       "id": "receipt-001",
