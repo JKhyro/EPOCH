@@ -499,10 +499,82 @@
               </label>
               <button type="submit" id="quote-payment-apply">Apply Quote Action</button>
             </form>
+            <form id="reminder-control-form" class="review-console reminder-console">
+              <div class="form-row">
+                <label>
+                  Control type
+                  <select name="controlKind" id="reminder-control-kind" required>
+                    <option value="reminder">Reminder rule</option>
+                    <option value="recurrence">Recurrence candidate</option>
+                    <option value="availability">Availability window</option>
+                  </select>
+                </label>
+                <label>
+                  Action
+                  <select name="action" id="reminder-control-action" required>
+                    <option value="create">Create</option>
+                    <option value="complete">Complete reminder</option>
+                    <option value="snooze">Snooze reminder</option>
+                    <option value="approve">Approve recurrence</option>
+                    <option value="reject">Reject recurrence</option>
+                    <option value="block">Block</option>
+                    <option value="reopen">Reopen availability</option>
+                    <option value="close">Close availability</option>
+                    <option value="cancel">Cancel reminder</option>
+                  </select>
+                </label>
+              </div>
+              <div class="form-row">
+                <label>
+                  Reminder
+                  <select name="reminderId" id="reminder-rule-select"></select>
+                </label>
+                <label>
+                  Recurrence
+                  <select name="recurrenceId" id="recurrence-candidate-select"></select>
+                </label>
+              </div>
+              <div class="form-row">
+                <label>
+                  Availability
+                  <select name="availabilityId" id="availability-window-select"></select>
+                </label>
+                <label>
+                  Source record
+                  <select name="sourceId" id="reminder-source"></select>
+                </label>
+              </div>
+              <div class="form-row">
+                <label>
+                  Start / reminder
+                  <input name="startAt" type="datetime-local" />
+                </label>
+                <label>
+                  End / next action
+                  <input name="endAt" type="datetime-local" />
+                </label>
+              </div>
+              <div class="form-row">
+                <label>
+                  Cadence
+                  <input name="cadence" value="weekly" />
+                </label>
+                <label>
+                  Capacity
+                  <input name="capacity" type="number" min="1" value="1" />
+                </label>
+              </div>
+              <label>
+                Control note
+                <input name="note" value="Local reminder, recurrence, or availability control update." />
+              </label>
+              <button type="submit" id="reminder-control-apply">Apply Schedule Control</button>
+            </form>
             <div id="review-confirmation" class="confirmation"></div>
             <div id="agent-handoff-confirmation" class="confirmation"></div>
             <div id="notification-outbox-confirmation" class="confirmation"></div>
             <div id="quote-payment-confirmation" class="confirmation"></div>
+            <div id="reminder-control-confirmation" class="confirmation"></div>
           </section>
           <div id="monitor-items" class="monitor-grid"></div>
         </div>

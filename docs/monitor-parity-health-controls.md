@@ -81,4 +81,8 @@ The repository verifier must cover:
 - Quote and payment-readiness controls and verifier coverage for draft,
   presented, approved, payment-ready, payment-blocked, paid-recorded, declined,
   under-19 consent gates, receipts, and customer-safe quote status.
+- Reminder, recurrence-candidate, and availability-window controls and verifier
+  coverage for local reminder rules, operator-approved recurrence candidates,
+  provider availability, receipts, calendar export entries, and customer-safe
+  visibility boundaries.
 

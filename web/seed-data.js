@@ -7,6 +7,8 @@ window.EPOCH_SEED_DATA = {
     "proposed",
     "draft",
     "presented",
+    "available",
+    "unavailable",
     "queued",
     "submitted",
     "reviewing",
@@ -19,6 +21,7 @@ window.EPOCH_SEED_DATA = {
     "in-progress",
     "sent",
     "failed",
+    "snoozed",
     "retry-ready",
     "payment-ready",
     "payment-blocked",
@@ -622,6 +625,9 @@ window.EPOCH_SEED_DATA = {
   ],
   "notificationDeliveries": [],
   "quotes": [],
+  "reminderRules": [],
+  "recurrenceCandidates": [],
+  "availabilityWindows": [],
   "customers": [
     {
       "id": "student-001",

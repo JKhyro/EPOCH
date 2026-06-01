@@ -1,7 +1,7 @@
 const seedData = window.EPOCH_SEED_DATA;
 const recordTools = window.EPOCH_OPERATING_RECORDS;
 const storageKey = "epoch-commercial-operating-data";
-const attentionStatuses = new Set(["proposed", "draft", "presented", "queued", "approved", "dispatched", "acknowledged", "in-progress", "failed", "retry-ready", "payment-ready", "payment-blocked", "submitted", "reviewing", "overdue", "blocked"]);
+const attentionStatuses = new Set(["proposed", "draft", "presented", "unavailable", "queued", "approved", "dispatched", "acknowledged", "in-progress", "failed", "snoozed", "retry-ready", "payment-ready", "payment-blocked", "submitted", "reviewing", "overdue", "blocked"]);
 const today = "2026-06-01";
 const viewNames = new Set(["admin", "student", "monitor", "public"]);
 
@@ -166,6 +166,9 @@ function allOperatingItems() {
     ...(data.notificationEvents || []).map((item) => ({ ...item, kind: "update", time: item.deliverAfterAt || item.createdAt })),
     ...(data.notificationDeliveries || []).map((item) => ({ ...item, kind: "notification delivery", time: item.nextActionAt || item.createdAt })),
     ...(data.quotes || []).map((item) => ({ ...item, kind: "quote", time: item.nextActionAt || item.validUntil || item.createdAt })),
+    ...(data.reminderRules || []).map((item) => ({ ...item, kind: "reminder rule", time: item.nextActionAt || item.reminderAt })),
+    ...(data.recurrenceCandidates || []).map((item) => ({ ...item, kind: "recurrence candidate", time: item.nextCandidateAt || item.createdAt })),
+    ...(data.availabilityWindows || []).map((item) => ({ ...item, kind: "availability window", time: item.startAt || item.createdAt })),
     ...data.sessions.map((item) => ({ ...item, kind: "session", time: item.startAt })),
     ...data.assignments.map((item) => ({ ...item, kind: "request", time: item.dueAt })),
     ...data.submissions.map((item) => ({ ...item, kind: "submission", time: item.reviewDueAt })),
@@ -542,6 +545,7 @@ function renderMonitor(items) {
   const curriculum = report.curriculum || recordTools.summarizeCurriculumState(data);
   const notifications = report.notifications || recordTools.summarizeNotificationState(data);
   const quotes = report.quotes || recordTools.summarizeQuoteState(data);
+  const scheduleControls = report.scheduleControls || recordTools.summarizeScheduleControlState(data);
   const handoffs = report.handoffs || recordTools.summarizeAgentHandoffState(data);
   const marketing = report.marketing || recordTools.summarizeMarketingState(data);
   const routePlacement = report.routePlacement || recordTools.summarizeRoutePlacementState(data, { now: `${today}T12:00:00+09:00` });
@@ -569,6 +573,7 @@ function renderMonitor(items) {
     record("Update Events", `${notifications.visible} visible updates, ${notifications.pending} pending, ${notifications.blocked} blocked.`, [chip(`${notifications.posted} posted`, "complete"), chip(`${notifications.total} total`)]),
     record("Notification Outbox", `${notifications.outbox} delivery handoff records, ${notifications.queued} queued, ${notifications.sent} sent, ${notifications.failed} failed.`, [chip(`${notifications.retryReady} retry-ready`), chip(`${notifications.missingOutbox} missing outbox`, notifications.missingOutbox ? "blocked" : "complete")]),
     record("Quote Readiness", `${quotes.total} quote records worth ${formatJpy(quotes.valueJpy)} with ${quotes.paymentReady} payment-ready and ${quotes.paymentBlocked} blocked.`, [chip(`${quotes.under19Blocked} under-19 gated`, quotes.under19Blocked ? "blocked" : "complete"), chip(`${quotes.paidRecorded} paid-recorded`)]),
+    record("Reminder Control", `${scheduleControls.reminders} reminders, ${scheduleControls.recurrenceCandidates} recurrence candidates, ${scheduleControls.availabilityWindows} availability windows.`, [chip(`${scheduleControls.plannedReminders} planned`), chip(`${scheduleControls.availableWindows} available`)]),
     record("Agent Handoffs", `${handoffs.handoffs} handoffs, ${handoffs.workPlans} work plans, ${handoffs.pendingApprovals} pending approval, ${handoffs.dispatched} dispatched, ${handoffs.acknowledged} acknowledged, ${handoffs.complete} complete.`, [chip(`${handoffs.monitorVisible} monitor-visible`), chip(`${handoffs.customerVisibleBlocked} customer-visible`)]),
     record("Campaign Readiness", `${marketing.ready} of ${marketing.total} campaign routes ready across ${marketing.channelCount} channel groups.`, [chip(`${marketing.jp} JP`), chip(`${marketing.global} global`), chip(`${marketing.copyViolations} copy risks`, marketing.copyViolations ? "blocked" : "complete")]),
     record("SYNAPSE Placement", `${routePlacement.summary.routeCount} routes, ${routePlacement.placementMode}, ${routePlacement.access}.`, [chip(routePlacement.targetSystem), chip(routePlacement.duplicateUi ? "duplicate-ui" : "no-duplicate-ui"), chip(routePlacement.summary.monitorHref)]),
@@ -661,6 +666,27 @@ function renderMonitor(items) {
     ))
     : [record("Quote Readiness", "No quote or estimate records have been created yet.", [chip("empty")])];
 
+  const scheduleControlItems = [
+    ...(data.reminderRules || []).map((item) => ({
+      title: item.title,
+      body: `${item.sourceKind}:${item.sourceId} | ${formatTime(item.nextActionAt || item.reminderAt)} | ${item.summary}`,
+      chips: [statusChip(item.status), chip(item.channel), chip(item.customerVisible ? "customer-safe" : "internal")]
+    })),
+    ...(data.recurrenceCandidates || []).map((item) => ({
+      title: item.title,
+      body: `${item.sourceKind}:${item.sourceId} | ${item.cadence} | ${formatTime(item.nextCandidateAt)}`,
+      chips: [statusChip(item.status), chip(item.autoCreateSessions ? "auto" : "operator-approved"), chip(item.customerVisible ? "customer-safe" : "internal")]
+    })),
+    ...(data.availabilityWindows || []).map((item) => ({
+      title: item.title,
+      body: `${item.owner} | ${formatTime(item.startAt)} - ${formatTime(item.endAt)} | capacity ${item.capacity}`,
+      chips: [statusChip(item.status), chip(item.serviceLane), chip(item.customerVisible ? "customer-safe" : "internal")]
+    }))
+  ];
+  const scheduleControlCards = scheduleControlItems.length
+    ? scheduleControlItems.slice(0, 8).map((item) => record(item.title, item.body, item.chips))
+    : [record("Reminder Control", "No reminder, recurrence, or availability-window records have been created yet.", [chip("empty")])];
+
   const routeCards = routePlacement.routes.map((route) => record(
     route.label,
     `${route.surface} | ${route.href} | ${route.summary}`,
@@ -749,6 +775,7 @@ function renderMonitor(items) {
     monitorSection("Agent Handoffs", handoffCards, "monitor-handoffs"),
     monitorSection("Notification Outbox", outboxCards, "monitor-notification-outbox"),
     monitorSection("Quote Readiness", quoteCards, "monitor-quotes"),
+    monitorSection("Reminder Control", scheduleControlCards, "monitor-reminders"),
     monitorSection("SYNAPSE Placement", routeCards, "monitor-suite"),
     monitorSection("Calendar Export", calendarCards.length ? calendarCards : [record("Calendar Export", "No export-ready calendar entries have been created yet.", [chip("empty")])], "monitor-calendar"),
     monitorSection("Persistence", persistenceCards, "monitor-persistence"),
@@ -800,6 +827,35 @@ function renderQuoteOptions() {
   }
 }
 
+function renderReminderControlOptions() {
+  const reminderSelect = byId("reminder-rule-select");
+  const recurrenceSelect = byId("recurrence-candidate-select");
+  const availabilitySelect = byId("availability-window-select");
+  const sourceSelect = byId("reminder-source");
+  if (reminderSelect) {
+    const reminderOptions = (data.reminderRules || []).map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)} (${escapeHtml(item.status)})</option>`);
+    reminderSelect.innerHTML = reminderOptions.length ? reminderOptions.join("") : `<option value="">Create a reminder first</option>`;
+  }
+  if (recurrenceSelect) {
+    const recurrenceOptions = (data.recurrenceCandidates || []).map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)} (${escapeHtml(item.status)})</option>`);
+    recurrenceSelect.innerHTML = recurrenceOptions.length ? recurrenceOptions.join("") : `<option value="">Create a recurrence candidate first</option>`;
+  }
+  if (availabilitySelect) {
+    const availabilityOptions = (data.availabilityWindows || []).map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)} (${escapeHtml(item.status)})</option>`);
+    availabilitySelect.innerHTML = availabilityOptions.length ? availabilityOptions.join("") : `<option value="">Create an availability window first</option>`;
+  }
+  if (sourceSelect) {
+    const sourceItems = [
+      ...data.sessions.map((item) => ({ id: item.id, label: `session: ${item.title}` })),
+      ...data.assignments.map((item) => ({ id: item.id, label: `assignment: ${item.title}` })),
+      ...data.followups.map((item) => ({ id: item.id, label: `follow-up: ${item.title}` }))
+    ];
+    sourceSelect.innerHTML = sourceItems.length
+      ? sourceItems.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.label)}</option>`).join("")
+      : `<option value="">Schedule or request work first</option>`;
+  }
+}
+
 function renderIntakeSnapshot() {
   const requests = data.assignments
     .filter((item) => item.externalVisible)
@@ -838,6 +894,7 @@ function renderAll() {
   renderAgentHandoffOptions();
   renderNotificationDeliveryOptions();
   renderQuoteOptions();
+  renderReminderControlOptions();
   renderIntakeSnapshot();
   renderLedgerStatus();
 }
@@ -1123,6 +1180,52 @@ function wireQuotePaymentForm() {
   });
 }
 
+function wireReminderControlForm() {
+  const form = byId("reminder-control-form");
+  const confirmation = byId("reminder-control-confirmation");
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+    if (!payload.reminderAt && payload.startAt) payload.reminderAt = payload.startAt;
+    if (!payload.nextActionAt && payload.endAt) payload.nextActionAt = payload.endAt;
+    if (!payload.nextCandidateAt && payload.startAt) payload.nextCandidateAt = payload.startAt;
+    try {
+      let result;
+      if (payload.controlKind === "reminder") {
+        result = payload.action === "create"
+          ? recordTools.createReminderRuleRecords(data, payload)
+          : recordTools.transitionReminderRuleRecords(data, payload);
+      } else if (payload.controlKind === "recurrence") {
+        result = payload.action === "create"
+          ? recordTools.createRecurrenceCandidateRecords(data, payload)
+          : recordTools.transitionRecurrenceCandidateRecords(data, payload);
+      } else {
+        result = payload.action === "create"
+          ? recordTools.createAvailabilityWindowRecords(data, payload)
+          : recordTools.transitionAvailabilityWindowRecords(data, payload);
+      }
+      data = result.data;
+      persistData();
+      renderAll();
+      const recordResult = result.records.reminder || result.records.recurrence || result.records.availability;
+      confirmation.innerHTML = record(
+        "Schedule Control Updated",
+        `${recordResult.title} is ${recordResult.status}.`,
+        [statusChip(recordResult.status), chip(payload.controlKind || "schedule-control")]
+      );
+      form.reset();
+    } catch (error) {
+      confirmation.innerHTML = record(
+        "Schedule Control Blocked",
+        error.message || "Reminder, recurrence, or availability action could not be applied.",
+        [chip("blocked", "blocked")]
+      );
+    }
+  });
+}
+
 function downloadLedger(text) {
   const blob = new Blob([text], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -1198,6 +1301,7 @@ function init() {
   wireAgentHandoffForm();
   wireNotificationOutboxForm();
   wireQuotePaymentForm();
+  wireReminderControlForm();
   wireLedgerControls();
 }
 

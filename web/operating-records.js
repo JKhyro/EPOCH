@@ -30,6 +30,9 @@
     "notificationEvents",
     "notificationDeliveries",
     "quotes",
+    "reminderRules",
+    "recurrenceCandidates",
+    "availabilityWindows",
     "customers",
     "cohorts",
     "sessions",
@@ -169,6 +172,8 @@
         "proposed",
         "draft",
         "presented",
+        "available",
+        "unavailable",
         "queued",
         "submitted",
         "reviewing",
@@ -181,6 +186,7 @@
         "in-progress",
         "sent",
         "failed",
+        "snoozed",
         "retry-ready",
         "payment-ready",
         "payment-blocked",
@@ -877,6 +883,364 @@
       data: nextData,
       records: {
         quote,
+        receipt
+      }
+    };
+  }
+
+  function createReminderRuleRecords(currentData, input = {}, options = {}) {
+    const nextData = cloneData(currentData);
+    ensureCollections(nextData);
+
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const requestStamp = stamp(now);
+    const sourceKind = clean(input.sourceKind) || "session";
+    const sourceId = clean(input.sourceId || input.sessionId || input.assignmentId || input.submissionId || input.followupId);
+    const reminderAt = withTimezone(input.reminderAt || input.nextActionAt, timezone) || withTimezone(now.toISOString(), timezone);
+    const customerVisible = input.customerVisible === true || clean(input.customerVisible) === "true";
+    if (!sourceId) throw new Error("sourceId is required for reminder rule");
+
+    const reminder = {
+      id: `reminder-${requestStamp}`,
+      sourceKind,
+      sourceId,
+      customerId: clean(input.customerId) || null,
+      title: clean(input.title) || `Reminder for ${sourceKind} ${sourceId}`,
+      summary: clean(input.summary) || "Local reminder rule; external reminder delivery is out of scope.",
+      status: "planned",
+      reminderAt,
+      nextActionAt: reminderAt,
+      leadMinutes: Number(input.leadMinutes || 60),
+      channel: clean(input.channel) || "operator-dashboard",
+      customerVisible,
+      createdAt: withTimezone(now.toISOString(), timezone),
+      receiptIds: [`receipt-reminder-created-${requestStamp}`],
+      reminderHistory: []
+    };
+    reminder.reminderHistory.unshift({
+      action: "create",
+      at: reminder.createdAt,
+      actor: clean(input.actor || input.owner) || "Jack",
+      nextStatus: reminder.status,
+      receiptId: reminder.receiptIds[0],
+      note: reminder.summary
+    });
+    const receipt = {
+      id: reminder.receiptIds[0],
+      customerId: reminder.customerId,
+      kind: "reminder-rule-created",
+      status: "complete",
+      createdAt: reminder.createdAt,
+      sourceKind: "reminder-rule",
+      sourceId: reminder.id,
+      note: `${reminder.title} scheduled for ${reminderAt}.`
+    };
+
+    nextData.reminderRules.unshift(reminder);
+    nextData.receipts.unshift(receipt);
+
+    return {
+      data: nextData,
+      records: {
+        reminder,
+        receipt
+      }
+    };
+  }
+
+  function transitionReminderRuleRecords(currentData, input = {}, options = {}) {
+    const nextData = cloneData(currentData);
+    ensureCollections(nextData);
+
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const requestStamp = stamp(now);
+    const reminder = nextData.reminderRules.find((item) => item.id === clean(input.reminderId)) || nextData.reminderRules[0];
+    if (!reminder) throw new Error("reminderId is required");
+
+    const action = clean(input.action) || "complete";
+    const actor = clean(input.actor || input.owner) || "Jack";
+    const note = clean(input.note || input.summary) || `Reminder ${action} recorded.`;
+    const eventAt = withTimezone(now.toISOString(), timezone);
+    const previousStatus = reminder.status || "planned";
+    const transitionByAction = {
+      complete: { status: "complete", receiptKind: "reminder-rule-completed" },
+      snooze: { status: "snoozed", receiptKind: "reminder-rule-snoozed" },
+      block: { status: "blocked", receiptKind: "reminder-rule-blocked" },
+      cancel: { status: "canceled", receiptKind: "reminder-rule-canceled" }
+    };
+    if (!transitionByAction[action]) throw new Error("action must be complete, snooze, block, or cancel");
+    if (["complete", "canceled"].includes(previousStatus)) throw new Error("terminal reminders cannot be changed");
+
+    const transition = transitionByAction[action];
+    const nextActionAt = withTimezone(input.nextActionAt || input.reminderAt, timezone) || reminder.nextActionAt || eventAt;
+    reminder.status = transition.status;
+    reminder.updatedAt = eventAt;
+    reminder.nextActionAt = nextActionAt;
+    reminder.reminderAt = action === "snooze" ? nextActionAt : reminder.reminderAt;
+    reminder.lastActor = actor;
+    reminder.lastNote = note;
+    if (action === "complete") reminder.completedAt = eventAt;
+
+    const receipt = {
+      id: `receipt-reminder-${action}-${requestStamp}`,
+      customerId: reminder.customerId || null,
+      kind: transition.receiptKind,
+      status: action === "block" ? "blocked" : "complete",
+      createdAt: eventAt,
+      sourceKind: "reminder-rule",
+      sourceId: reminder.id,
+      note: `${actor} moved ${reminder.id} from ${previousStatus} to ${transition.status}. ${note}`
+    };
+    if (!Array.isArray(reminder.receiptIds)) reminder.receiptIds = [];
+    reminder.receiptIds.unshift(receipt.id);
+    if (!Array.isArray(reminder.reminderHistory)) reminder.reminderHistory = [];
+    reminder.reminderHistory.unshift({
+      action,
+      at: eventAt,
+      actor,
+      previousStatus,
+      nextStatus: transition.status,
+      receiptId: receipt.id,
+      note
+    });
+    nextData.receipts.unshift(receipt);
+
+    return {
+      data: nextData,
+      records: {
+        reminder,
+        receipt
+      }
+    };
+  }
+
+  function createRecurrenceCandidateRecords(currentData, input = {}, options = {}) {
+    const nextData = cloneData(currentData);
+    ensureCollections(nextData);
+
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const requestStamp = stamp(now);
+    const candidate = {
+      id: `recurrence-${requestStamp}`,
+      sourceKind: clean(input.sourceKind) || "engagement",
+      sourceId: clean(input.sourceId || input.engagementId || input.packageId) || "manual",
+      customerId: clean(input.customerId) || null,
+      title: clean(input.title) || "Recurring service candidate",
+      cadence: clean(input.cadence) || "weekly",
+      status: "proposed",
+      nextCandidateAt: withTimezone(input.nextCandidateAt || input.nextActionAt, timezone) || withTimezone(now.toISOString(), timezone),
+      customerVisible: input.customerVisible === true || clean(input.customerVisible) === "true",
+      autoCreateSessions: false,
+      summary: clean(input.summary) || "Recurrence candidate only; future sessions require operator approval.",
+      createdAt: withTimezone(now.toISOString(), timezone),
+      receiptIds: [`receipt-recurrence-created-${requestStamp}`],
+      recurrenceHistory: []
+    };
+    candidate.recurrenceHistory.unshift({
+      action: "create",
+      at: candidate.createdAt,
+      actor: clean(input.actor || input.owner) || "Jack",
+      nextStatus: candidate.status,
+      receiptId: candidate.receiptIds[0],
+      note: candidate.summary
+    });
+    const receipt = {
+      id: candidate.receiptIds[0],
+      customerId: candidate.customerId,
+      kind: "recurrence-candidate-created",
+      status: "complete",
+      createdAt: candidate.createdAt,
+      sourceKind: "recurrence-candidate",
+      sourceId: candidate.id,
+      note: `${candidate.title} proposed with ${candidate.cadence} cadence.`
+    };
+
+    nextData.recurrenceCandidates.unshift(candidate);
+    nextData.receipts.unshift(receipt);
+
+    return {
+      data: nextData,
+      records: {
+        recurrence: candidate,
+        receipt
+      }
+    };
+  }
+
+  function transitionRecurrenceCandidateRecords(currentData, input = {}, options = {}) {
+    const nextData = cloneData(currentData);
+    ensureCollections(nextData);
+
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const requestStamp = stamp(now);
+    const recurrence = nextData.recurrenceCandidates.find((item) => item.id === clean(input.recurrenceId)) || nextData.recurrenceCandidates[0];
+    if (!recurrence) throw new Error("recurrenceId is required");
+
+    const action = clean(input.action) || "approve";
+    const actor = clean(input.actor || input.owner) || "Jack";
+    const note = clean(input.note || input.summary) || `Recurrence ${action} recorded.`;
+    const eventAt = withTimezone(now.toISOString(), timezone);
+    const previousStatus = recurrence.status || "proposed";
+    const transitionByAction = {
+      approve: { status: "approved", receiptKind: "recurrence-candidate-approved" },
+      reject: { status: "rejected", receiptKind: "recurrence-candidate-rejected" },
+      block: { status: "blocked", receiptKind: "recurrence-candidate-blocked" }
+    };
+    if (!transitionByAction[action]) throw new Error("action must be approve, reject, or block");
+    if (["approved", "rejected"].includes(previousStatus)) throw new Error("terminal recurrence candidates cannot be changed");
+
+    const transition = transitionByAction[action];
+    recurrence.status = transition.status;
+    recurrence.updatedAt = eventAt;
+    recurrence.nextCandidateAt = withTimezone(input.nextCandidateAt || input.nextActionAt, timezone) || recurrence.nextCandidateAt;
+    recurrence.lastActor = actor;
+    recurrence.lastNote = note;
+    const receipt = {
+      id: `receipt-recurrence-${action}-${requestStamp}`,
+      customerId: recurrence.customerId || null,
+      kind: transition.receiptKind,
+      status: action === "block" ? "blocked" : "complete",
+      createdAt: eventAt,
+      sourceKind: "recurrence-candidate",
+      sourceId: recurrence.id,
+      note: `${actor} moved ${recurrence.id} from ${previousStatus} to ${transition.status}. ${note}`
+    };
+    if (!Array.isArray(recurrence.receiptIds)) recurrence.receiptIds = [];
+    recurrence.receiptIds.unshift(receipt.id);
+    if (!Array.isArray(recurrence.recurrenceHistory)) recurrence.recurrenceHistory = [];
+    recurrence.recurrenceHistory.unshift({
+      action,
+      at: eventAt,
+      actor,
+      previousStatus,
+      nextStatus: transition.status,
+      receiptId: receipt.id,
+      note
+    });
+    nextData.receipts.unshift(receipt);
+
+    return {
+      data: nextData,
+      records: {
+        recurrence,
+        receipt
+      }
+    };
+  }
+
+  function createAvailabilityWindowRecords(currentData, input = {}, options = {}) {
+    const nextData = cloneData(currentData);
+    ensureCollections(nextData);
+
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const requestStamp = stamp(now);
+    const startAt = withTimezone(input.startAt || input.availableStartAt, timezone);
+    const endAt = withTimezone(input.endAt || input.availableEndAt, timezone);
+    if (!startAt || !endAt) throw new Error("startAt and endAt are required for availability window");
+    const windowRecord = {
+      id: `availability-${requestStamp}`,
+      owner: clean(input.owner) || "Jack",
+      title: clean(input.title) || "Provider availability window",
+      status: clean(input.status) === "blocked" ? "blocked" : "available",
+      startAt,
+      endAt,
+      timezone,
+      capacity: Number(input.capacity || 1),
+      serviceLane: clean(input.serviceLane) || "education",
+      customerVisible: input.customerVisible === true || clean(input.customerVisible) === "true",
+      createdAt: withTimezone(now.toISOString(), timezone),
+      receiptIds: [`receipt-availability-created-${requestStamp}`],
+      availabilityHistory: []
+    };
+    windowRecord.availabilityHistory.unshift({
+      action: "create",
+      at: windowRecord.createdAt,
+      actor: windowRecord.owner,
+      nextStatus: windowRecord.status,
+      receiptId: windowRecord.receiptIds[0],
+      note: "Availability window recorded locally; external calendar sync is out of scope."
+    });
+    const receipt = {
+      id: windowRecord.receiptIds[0],
+      kind: windowRecord.status === "blocked" ? "availability-window-blocked" : "availability-window-created",
+      status: windowRecord.status === "blocked" ? "blocked" : "complete",
+      createdAt: windowRecord.createdAt,
+      sourceKind: "availability-window",
+      sourceId: windowRecord.id,
+      note: `${windowRecord.owner} availability ${startAt} to ${endAt} recorded as ${windowRecord.status}.`
+    };
+
+    nextData.availabilityWindows.unshift(windowRecord);
+    nextData.receipts.unshift(receipt);
+
+    return {
+      data: nextData,
+      records: {
+        availability: windowRecord,
+        receipt
+      }
+    };
+  }
+
+  function transitionAvailabilityWindowRecords(currentData, input = {}, options = {}) {
+    const nextData = cloneData(currentData);
+    ensureCollections(nextData);
+
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const requestStamp = stamp(now);
+    const availability = nextData.availabilityWindows.find((item) => item.id === clean(input.availabilityId)) || nextData.availabilityWindows[0];
+    if (!availability) throw new Error("availabilityId is required");
+
+    const action = clean(input.action) || "block";
+    const actor = clean(input.actor || input.owner) || availability.owner || "Jack";
+    const note = clean(input.note || input.summary) || `Availability ${action} recorded.`;
+    const eventAt = withTimezone(now.toISOString(), timezone);
+    const previousStatus = availability.status || "available";
+    const transitionByAction = {
+      block: { status: "blocked", receiptKind: "availability-window-blocked" },
+      reopen: { status: "available", receiptKind: "availability-window-reopened" },
+      close: { status: "unavailable", receiptKind: "availability-window-closed" }
+    };
+    if (!transitionByAction[action]) throw new Error("action must be block, reopen, or close");
+    const transition = transitionByAction[action];
+
+    availability.status = transition.status;
+    availability.updatedAt = eventAt;
+    availability.lastActor = actor;
+    availability.lastNote = note;
+    const receipt = {
+      id: `receipt-availability-${action}-${requestStamp}`,
+      kind: transition.receiptKind,
+      status: transition.status === "blocked" || transition.status === "unavailable" ? "blocked" : "complete",
+      createdAt: eventAt,
+      sourceKind: "availability-window",
+      sourceId: availability.id,
+      note: `${actor} moved ${availability.id} from ${previousStatus} to ${transition.status}. ${note}`
+    };
+    if (!Array.isArray(availability.receiptIds)) availability.receiptIds = [];
+    availability.receiptIds.unshift(receipt.id);
+    if (!Array.isArray(availability.availabilityHistory)) availability.availabilityHistory = [];
+    availability.availabilityHistory.unshift({
+      action,
+      at: eventAt,
+      actor,
+      previousStatus,
+      nextStatus: transition.status,
+      receiptId: receipt.id,
+      note
+    });
+    nextData.receipts.unshift(receipt);
+
+    return {
+      data: nextData,
+      records: {
+        availability,
         receipt
       }
     };
@@ -2251,6 +2615,30 @@
     };
   }
 
+  function summarizeScheduleControlState(currentData) {
+    const reminders = Array.isArray(currentData.reminderRules) ? currentData.reminderRules : [];
+    const recurrence = Array.isArray(currentData.recurrenceCandidates) ? currentData.recurrenceCandidates : [];
+    const availability = Array.isArray(currentData.availabilityWindows) ? currentData.availabilityWindows : [];
+
+    return {
+      reminders: reminders.length,
+      plannedReminders: reminders.filter((item) => item.status === "planned").length,
+      snoozedReminders: reminders.filter((item) => item.status === "snoozed").length,
+      blockedReminders: reminders.filter((item) => item.status === "blocked").length,
+      completedReminders: reminders.filter((item) => item.status === "complete").length,
+      recurrenceCandidates: recurrence.length,
+      approvedRecurrence: recurrence.filter((item) => item.status === "approved").length,
+      blockedRecurrence: recurrence.filter((item) => item.status === "blocked").length,
+      rejectedRecurrence: recurrence.filter((item) => item.status === "rejected").length,
+      availabilityWindows: availability.length,
+      availableWindows: availability.filter((item) => item.status === "available").length,
+      blockedAvailability: availability.filter((item) => item.status === "blocked").length,
+      unavailableWindows: availability.filter((item) => item.status === "unavailable").length,
+      customerVisibleAvailability: availability.filter((item) => item.customerVisible).length,
+      receiptLinks: [...reminders, ...recurrence, ...availability].reduce((total, item) => total + (Array.isArray(item.receiptIds) ? item.receiptIds.length : 0), 0)
+    };
+  }
+
   function summarizeAgentHandoffState(currentData) {
     const workPlans = Array.isArray(currentData.workPlans) ? currentData.workPlans : [];
     const handoffs = Array.isArray(currentData.agentHandoffs) ? currentData.agentHandoffs : [];
@@ -2450,12 +2838,13 @@
     const curriculum = summarizeCurriculumState(data);
     const notifications = summarizeNotificationState(data);
     const quotes = summarizeQuoteState(data);
+    const scheduleControls = summarizeScheduleControlState(data);
     const handoffs = summarizeAgentHandoffState(data);
     const marketing = summarizeMarketingState(data);
     const calendarExport = createCalendarExport(data, { now: nowText });
     const timeline = monitorTimelineItems(data);
     const terminalStatuses = new Set(["complete", "sent", "paid-recorded", "declined", "returned", "canceled", "accepted", "rejected", "rolled-back"]);
-    const queue = timeline.filter((item) => ["waiting", "deferred", "draft", "presented", "queued", "submitted", "reviewing", "overdue", "blocked", "proposed", "approved", "dispatched", "acknowledged", "in-progress", "failed", "retry-ready", "payment-ready", "payment-blocked"].includes(item.status));
+    const queue = timeline.filter((item) => ["waiting", "deferred", "draft", "presented", "queued", "submitted", "reviewing", "overdue", "blocked", "proposed", "approved", "dispatched", "acknowledged", "in-progress", "failed", "snoozed", "retry-ready", "payment-ready", "payment-blocked", "unavailable"].includes(item.status));
     const risks = timeline.filter((item) => item.status === "blocked" || item.status === "overdue" || (item.time && item.time < nowText && !terminalStatuses.has(item.status)));
     const receipts = Array.isArray(data.receipts) ? data.receipts : [];
     const baseSummary = {
@@ -2471,6 +2860,8 @@
       notificationOutbox: notifications.outbox,
       quoteCount: quotes.total,
       paymentReadyQuotes: quotes.paymentReady,
+      reminderRules: scheduleControls.reminders,
+      availabilityWindows: scheduleControls.availabilityWindows,
       pendingHandoffApprovals: handoffs.pendingApprovals,
       calendarEntries: calendarExport.counts.total,
       campaignRoutes: marketing.total,
@@ -2744,6 +3135,48 @@
       }, timezone));
     }
 
+    for (const reminder of data.reminderRules) {
+      entries.push(createCalendarEntry(data, {
+        sourceKind: "reminder-rule",
+        sourceId: reminder.id,
+        title: reminder.title,
+        timeKind: "reminder-window",
+        dueAt: reminder.nextActionAt || reminder.reminderAt,
+        status: reminder.status,
+        owner: reminder.channel,
+        customerId: reminder.customerId,
+        externalVisible: reminder.customerVisible
+      }, timezone));
+    }
+
+    for (const recurrence of data.recurrenceCandidates) {
+      entries.push(createCalendarEntry(data, {
+        sourceKind: "recurrence-candidate",
+        sourceId: recurrence.id,
+        title: recurrence.title,
+        timeKind: "recurrence-review-window",
+        dueAt: recurrence.nextCandidateAt,
+        status: recurrence.status,
+        owner: recurrence.cadence,
+        customerId: recurrence.customerId,
+        externalVisible: recurrence.customerVisible
+      }, timezone));
+    }
+
+    for (const availability of data.availabilityWindows) {
+      entries.push(createCalendarEntry(data, {
+        sourceKind: "availability-window",
+        sourceId: availability.id,
+        title: availability.title,
+        timeKind: "availability-window",
+        startAt: availability.startAt,
+        endAt: availability.endAt,
+        status: availability.status,
+        owner: availability.owner,
+        externalVisible: availability.customerVisible
+      }, timezone));
+    }
+
     const normalizedEntries = entries
       .filter((item) => item.startAt || item.endAt || item.dueAt)
       .sort((a, b) => String(a.startAt || a.dueAt || "").localeCompare(String(b.startAt || b.dueAt || "")));
@@ -2786,6 +3219,9 @@
       ...currentData.notificationEvents.map((item) => ({ kind: "update", id: item.id, title: item.title, status: item.status, time: item.deliverAfterAt || item.createdAt, owner: item.deliveryStatus || "pending" })),
       ...(currentData.notificationDeliveries || []).map((item) => ({ kind: "notification delivery", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.createdAt, owner: item.provider || item.channel || "outbox" })),
       ...(currentData.quotes || []).map((item) => ({ kind: "quote", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.validUntil || item.createdAt, owner: item.paymentStatus || item.approvalStatus || "quote" })),
+      ...(currentData.reminderRules || []).map((item) => ({ kind: "reminder rule", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.reminderAt, owner: item.channel || "reminder" })),
+      ...(currentData.recurrenceCandidates || []).map((item) => ({ kind: "recurrence candidate", id: item.id, title: item.title, status: item.status, time: item.nextCandidateAt || item.createdAt, owner: item.cadence || "recurrence" })),
+      ...(currentData.availabilityWindows || []).map((item) => ({ kind: "availability window", id: item.id, title: item.title, status: item.status, time: item.startAt || item.createdAt, owner: item.owner || "availability" })),
       ...currentData.sessions.map((item) => ({ kind: "session", id: item.id, title: item.title, status: item.status, time: item.startAt, owner: item.owner || "owner pending" })),
       ...currentData.assignments.map((item) => ({ kind: "request", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.owner || "owner pending" })),
       ...currentData.submissions.map((item) => ({ kind: "submission", id: item.id, title: item.title || item.id, status: item.status, time: item.reviewDueAt, owner: item.owner || "review queue" })),
@@ -2799,11 +3235,12 @@
     const data = normalizedOperatingData(currentData);
     const nowText = clean(options && options.now) || "2026-06-01T12:00:00+09:00";
     const terminalStatuses = new Set(["complete", "sent", "paid-recorded", "declined", "returned", "canceled", "accepted", "rejected", "rolled-back"]);
-    const activeStatuses = new Set(["waiting", "deferred", "draft", "presented", "queued", "submitted", "reviewing", "overdue", "blocked", "proposed", "approved", "dispatched", "acknowledged", "in-progress", "failed", "retry-ready", "payment-ready", "payment-blocked"]);
+    const activeStatuses = new Set(["waiting", "deferred", "draft", "presented", "queued", "submitted", "reviewing", "overdue", "blocked", "proposed", "approved", "dispatched", "acknowledged", "in-progress", "failed", "snoozed", "retry-ready", "payment-ready", "payment-blocked", "unavailable"]);
     const revenue = summarizeRevenueState(data);
     const curriculum = summarizeCurriculumState(data);
     const notifications = summarizeNotificationState(data);
     const quotes = summarizeQuoteState(data);
+    const scheduleControls = summarizeScheduleControlState(data);
     const handoffs = summarizeAgentHandoffState(data);
     const marketing = summarizeMarketingState(data);
     const calendarExport = createCalendarExport(data, { now: nowText });
@@ -2825,6 +3262,9 @@
       .filter((item) => activeStatuses.has(item.status))
       .slice(0, 8);
     for (const item of timeline.filter((entry) => entry.kind === "quote" && activeStatuses.has(entry.status)).slice(0, 2)) {
+      if (!queue.some((entry) => entry.id === item.id)) queue.push(item);
+    }
+    for (const item of timeline.filter((entry) => ["reminder rule", "recurrence candidate", "availability window"].includes(entry.kind) && activeStatuses.has(entry.status)).slice(0, 3)) {
       if (!queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
     const overdue = timeline.filter((item) => item.status === "overdue" || (item.time && item.time < nowText && !terminalStatuses.has(item.status)));
@@ -2991,6 +3431,14 @@
         paymentBlockedQuotes: quotes.paymentBlocked,
         paidRecordedQuotes: quotes.paidRecorded,
         under19BlockedQuotes: quotes.under19Blocked,
+        reminderRules: scheduleControls.reminders,
+        plannedReminders: scheduleControls.plannedReminders,
+        snoozedReminders: scheduleControls.snoozedReminders,
+        recurrenceCandidates: scheduleControls.recurrenceCandidates,
+        approvedRecurrence: scheduleControls.approvedRecurrence,
+        availabilityWindows: scheduleControls.availabilityWindows,
+        availableWindows: scheduleControls.availableWindows,
+        blockedAvailability: scheduleControls.blockedAvailability,
         agentHandoffs: handoffs.handoffs,
         pendingHandoffApprovals: handoffs.pendingApprovals,
         approvedHandoffs: handoffs.approved,
@@ -3027,6 +3475,7 @@
       curriculum,
       notifications,
       quotes,
+      scheduleControls,
       handoffs,
       marketing,
       routePlacement,
@@ -3100,6 +3549,12 @@
     transitionNotificationDeliveryRecords,
     createQuoteEstimateRecords,
     transitionQuoteEstimateRecords,
+    createReminderRuleRecords,
+    transitionReminderRuleRecords,
+    createRecurrenceCandidateRecords,
+    transitionRecurrenceCandidateRecords,
+    createAvailabilityWindowRecords,
+    transitionAvailabilityWindowRecords,
     createMonitorActionRecords,
     decideOpportunityRecords,
     createIntakeRecords,
@@ -3115,6 +3570,7 @@
     summarizeDeadlines,
     summarizeAgentHandoffState,
     summarizeQuoteState,
+    summarizeScheduleControlState,
     summarizeAccessPosture,
     summarizeMemoryState,
     summarizeScopeState,
