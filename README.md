@@ -30,10 +30,11 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
 - `web/operating-records.js`: browser-local intake-to-operating-record helper
   that turns a public request into lead, customer, request, follow-up, and
   receipt records, then supports scheduling, submission creation, deadline
-  summaries, returned-review receipts, and monitor health reports.
+  summaries, returned-review receipts, monitor health reports, and versioned
+  operating-ledger export/import.
 - `web/app.js`: shared renderer and local persistence flow for admin,
   student/customer, monitor, public request, scheduling, submission, and
-  review-return views.
+  review-return views, including local ledger save/load plus JSON export/import.
 - `web/seed-data.js`: demo commercial workflow covering leads, tracks, cohorts,
   sessions, assignments, submissions, reviews, follow-ups, and receipts.
 - `tools/verify-commercial-slice.mjs`: repository verifier for the first

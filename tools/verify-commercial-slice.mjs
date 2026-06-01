@@ -75,7 +75,11 @@ for (const id of [
   "intake-feed",
   "submission-form",
   "submission-feed",
-  "return-review"
+  "return-review",
+  "storage-status",
+  "export-ledger",
+  "import-ledger",
+  "ledger-json"
 ]) {
   if (!html.includes(`id="${id}"`)) fail(`web surface missing ${id}`);
 }
@@ -95,10 +99,15 @@ for (const phrase of [
   "createIntakeRecords",
   "createSubmissionRecords",
   "createScheduleRecords",
+  "createOperatingLedger",
+  "importOperatingLedger",
   "returnReviewRecords",
   "buildMonitorReport",
   "summarizeDeadlines",
   "localStorage",
+  "storageStatusText",
+  "downloadLedger",
+  "wireLedgerControls",
   "renderScheduleFeed",
   "renderIntakeSnapshot",
   "renderSubmissions",
@@ -107,7 +116,9 @@ for (const phrase of [
   "Request Captured",
   "Work Scheduled",
   "Submission Received",
-  "Review Returned"
+  "Review Returned",
+  "Ledger Exported",
+  "Ledger Imported"
 ]) {
   if (!app.includes(phrase)) fail(`app script missing phrase: ${phrase}`);
 }
@@ -206,5 +217,23 @@ for (const section of ["summary", "queue", "timeline", "risks", "receipts"]) {
 if (monitorReport.summary.timeline < 1) fail("monitor report did not include timeline records");
 if (!Array.isArray(monitorReport.queue)) fail("monitor report queue is not an array");
 if (!Array.isArray(monitorReport.receipts) || monitorReport.receipts.length < 1) fail("monitor report receipts missing returned review receipt");
+
+const exportedLedger = recordTools.createOperatingLedger(returnResult.data, { now: "2026-06-01T04:30:00.000Z" });
+if (exportedLedger.schema !== "epoch.operating-ledger") fail("ledger export has wrong schema");
+if (exportedLedger.version !== recordTools.ledgerVersion) fail("ledger export has wrong version");
+if (exportedLedger.counts.receipts !== returnResult.data.receipts.length) fail("ledger export receipt count is wrong");
+if (!exportedLedger.monitor || exportedLedger.monitor.timeline < 1) fail("ledger export missing monitor summary");
+
+const importedLedger = recordTools.importOperatingLedger(data, JSON.stringify(exportedLedger));
+if (importedLedger.data.receipts.length !== returnResult.data.receipts.length) fail("ledger import did not preserve receipts");
+if (importedLedger.data.customers[0].externalStatus !== returnResult.data.customers[0].externalStatus) fail("ledger import did not preserve external status");
+
+let rejectedInvalidLedger = false;
+try {
+  recordTools.importOperatingLedger(data, JSON.stringify({ data: { statuses: "bad", receipts: [] } }));
+} catch {
+  rejectedInvalidLedger = true;
+}
+if (!rejectedInvalidLedger) fail("ledger import accepted an invalid statuses field");
 
 console.log("commercial slice verification passed");
