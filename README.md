@@ -10,6 +10,8 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
 3. Define the first shippable operating slice.
 4. Track integrations by phase so urgent education-revenue work does not
    collapse into unbounded platform scope.
+5. Build the next integration in priority order, starting with EPOCH MONITOR
+   route and menu parity.
 
 ## Current planning artifacts
 
@@ -18,6 +20,7 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
 - `docs/v1-minimal-scheduling-surface.md`
 - `docs/education-operating-platform-boundary.md`
 - `docs/first-commercial-slice-checklist.md`
+- `docs/integration-priority-ranking.md`
 
 ## Current implementation artifacts
 
@@ -29,9 +32,10 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   public-intake surface.
 - `web/operating-records.js`: browser-local intake-to-operating-record helper
   that turns a public request into lead, customer, request, follow-up, and
-  receipt records, then supports scheduling, submission creation, deadline
-  summaries, returned-review receipts, monitor health reports, and versioned
-  operating-ledger export/import.
+  receipt records, then supports opportunity-to-engagement conversion,
+  scheduling, submission creation, deadline summaries, returned-review
+  receipts, monitor health reports, and versioned operating-ledger
+  export/import.
 - `web/app.js`: shared renderer and local persistence flow for admin,
   student/customer, monitor, public request, scheduling, submission, and
   review-return views, including local ledger save/load plus JSON export/import.
