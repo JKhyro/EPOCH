@@ -46,6 +46,11 @@
       || data.submissions[0];
   }
 
+  function findSchedulableRequest(data) {
+    return data.assignments.find((assignment) => assignment.externalVisible && assignment.status !== "returned")
+      || data.assignments[0];
+  }
+
   function trackForOffer(offerKind) {
     return offerKind === "education" ? "track-eiken-upper" : "track-service-ops";
   }
@@ -267,11 +272,111 @@
     };
   }
 
+  function createScheduleRecords(currentData, input, options) {
+    const nextData = cloneData(currentData);
+    ensureCollections(nextData);
+    if (!Array.isArray(nextData.cohorts)) nextData.cohorts = [];
+    if (!Array.isArray(nextData.sessions)) nextData.sessions = [];
+
+    const now = options && options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const requestStamp = stamp(now);
+    const assignmentId = clean(input.assignmentId) || findSchedulableRequest(nextData)?.id;
+    const sessionTitle = clean(input.sessionTitle) || "Diagnostic and scheduling session";
+    const owner = clean(input.owner) || "Jack";
+    const startAt = withTimezone(input.startAt, timezone);
+    const endAt = withTimezone(input.endAt, timezone);
+    const deadlineAt = withTimezone(input.deadlineAt, timezone) || startAt;
+
+    if (!assignmentId) throw new Error("assignmentId is required");
+    if (!startAt) throw new Error("startAt is required");
+    if (!endAt) throw new Error("endAt is required");
+
+    const assignment = nextData.assignments.find((item) => item.id === assignmentId);
+    if (!assignment) throw new Error("assignment not found");
+
+    const customerId = assignment.customerId || nextData.customers[0]?.id;
+    const customer = nextData.customers.find((item) => item.id === customerId);
+    const trackId = customer?.trackId || assignment.trackId || "track-service-ops";
+
+    const cohort = {
+      id: `cohort-schedule-${requestStamp}`,
+      trackId,
+      name: `${sessionTitle} lane`,
+      status: "planned",
+      owner,
+      startAt
+    };
+
+    const session = {
+      id: `session-schedule-${requestStamp}`,
+      cohortId: cohort.id,
+      assignmentId,
+      customerId,
+      title: sessionTitle,
+      startAt,
+      endAt,
+      timezone,
+      status: "planned",
+      owner
+    };
+
+    const followup = {
+      id: `followup-deadline-${requestStamp}`,
+      customerId,
+      title: `Deadline control: ${sessionTitle}`,
+      status: "planned",
+      nextActionAt: deadlineAt
+    };
+
+    assignment.status = "planned";
+    assignment.dueAt = deadlineAt;
+    assignment.owner = owner;
+
+    if (customer) {
+      customer.externalStatus = `${sessionTitle} scheduled for ${startAt.replace("T", " ").replace("+09:00", " JST")}; deadline control is active.`;
+    }
+
+    nextData.cohorts.unshift(cohort);
+    nextData.sessions.unshift(session);
+    nextData.followups.unshift(followup);
+
+    return {
+      data: nextData,
+      records: {
+        cohort,
+        session,
+        followup,
+        assignment
+      }
+    };
+  }
+
+  function summarizeDeadlines(currentData, options) {
+    const nowText = clean(options && options.now) || "2026-06-01T00:00:00+09:00";
+    const todayText = nowText.slice(0, 10);
+    const items = [
+      ...currentData.assignments.map((item) => ({ ...item, kind: "request", time: item.dueAt })),
+      ...currentData.sessions.map((item) => ({ ...item, kind: "session", time: item.startAt })),
+      ...currentData.followups.map((item) => ({ ...item, kind: "follow-up", time: item.nextActionAt })),
+      ...currentData.submissions.map((item) => ({ ...item, kind: "submission", time: item.reviewDueAt }))
+    ].filter((item) => item.time);
+
+    return {
+      today: items.filter((item) => item.time.startsWith(todayText)).length,
+      upcoming: items.filter((item) => item.time > `${todayText}T23:59:59`).length,
+      overdue: items.filter((item) => item.status === "overdue" || item.time < nowText).length,
+      owned: items.filter((item) => item.owner || item.kind === "follow-up").length
+    };
+  }
+
   window.EPOCH_OPERATING_RECORDS = {
     cloneData,
     createIntakeRecords,
     createSubmissionRecords,
+    createScheduleRecords,
     returnReviewRecords,
+    summarizeDeadlines,
     withTimezone
   };
 })();

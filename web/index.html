@@ -47,6 +47,48 @@
         <h2>Internal Next Actions</h2>
         <p>Classes, submissions, service requests, and review work that need provider attention.</p>
       </div>
+      <div class="schedule-layout">
+        <form id="schedule-form" class="intake-form">
+          <div class="form-row">
+            <label>
+              Request to schedule
+              <select name="assignmentId" id="schedule-assignment" required></select>
+            </label>
+            <label>
+              Owner
+              <input name="owner" value="Jack" required />
+            </label>
+          </div>
+          <label>
+            Session title
+            <input name="sessionTitle" value="Diagnostic and scheduling session" required />
+          </label>
+          <div class="form-row">
+            <label>
+              Starts
+              <input name="startAt" type="datetime-local" required />
+            </label>
+            <label>
+              Ends
+              <input name="endAt" type="datetime-local" required />
+            </label>
+          </div>
+          <label>
+            Delivery deadline
+            <input name="deadlineAt" type="datetime-local" required />
+          </label>
+          <div class="form-actions">
+            <button type="submit">Schedule Work</button>
+          </div>
+        </form>
+        <div>
+          <div id="schedule-confirmation" class="confirmation"></div>
+          <div class="section-heading compact">
+            <h2>Scheduled Sessions</h2>
+          </div>
+          <div id="schedule-feed" class="item-list"></div>
+        </div>
+      </div>
       <div id="admin-actions" class="item-list"></div>
     </section>
 

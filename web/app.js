@@ -113,6 +113,28 @@ function renderAdmin(items) {
   }).join("");
 }
 
+function renderScheduleOptions() {
+  const select = byId("schedule-assignment");
+  const options = data.assignments
+    .filter((item) => item.externalVisible)
+    .map((assignment) => {
+      const customer = data.customers.find((item) => item.id === assignment.customerId);
+      const owner = customer ? ` - ${customer.displayName}` : "";
+      return `<option value="${escapeHtml(assignment.id)}">${escapeHtml(assignment.title + owner)}</option>`;
+    });
+  select.innerHTML = options.join("");
+}
+
+function renderScheduleFeed() {
+  byId("schedule-feed").innerHTML = data.sessions.slice(0, 6).map((session) => {
+    const body = `${formatTime(session.startAt)} to ${formatTime(session.endAt)}`;
+    return record(session.title, body, [
+      statusChip(session.status),
+      chip(session.owner || "owner pending")
+    ]);
+  }).join("");
+}
+
 function renderStudentStatus() {
   byId("student-status").innerHTML = data.customers.map((customer) => {
     return record(
@@ -156,13 +178,15 @@ function renderMonitor(items) {
   const visibleCount = data.assignments.filter((item) => item.externalVisible).length;
   const intakeCount = data.leads.filter((item) => item.id.startsWith("lead-intake")).length;
   const reviewingCount = data.submissions.filter((item) => item.status === "reviewing" || item.status === "submitted").length;
+  const deadlines = recordTools.summarizeDeadlines(data, { now: `${today}T12:00:00+09:00` });
 
   byId("monitor-items").innerHTML = [
     record("Queue Attention", `${attentionCount} records need attention now.`, [chip(`${attentionCount} active`, "reviewing")]),
     record("External Visibility", `${visibleCount} student/customer-visible records are available.`, [chip(`${visibleCount} visible`)]),
     record("Delivery Receipts", `${receiptCount} completed delivery receipts are monitor-visible.`, [chip(`${receiptCount} receipts`, "complete")]),
     record("Live Intake Flow", `${intakeCount} public intake records have entered operations.`, [chip(`${intakeCount} captured`, "waiting")]),
-    record("Review Return Queue", `${reviewingCount} submissions are waiting for returned feedback.`, [chip(`${reviewingCount} reviews`, "submitted")])
+    record("Review Return Queue", `${reviewingCount} submissions are waiting for returned feedback.`, [chip(`${reviewingCount} reviews`, "submitted")]),
+    record("Deadline Control", `${deadlines.today} today, ${deadlines.upcoming} upcoming, ${deadlines.overdue} overdue.`, [chip(`${deadlines.owned} owner-linked`, "planned")])
   ].join("");
 }
 
@@ -183,6 +207,8 @@ function renderIntakeSnapshot() {
 function renderAll() {
   const items = allOperatingItems();
   renderMetrics(items);
+  renderScheduleOptions();
+  renderScheduleFeed();
   renderAdmin(items);
   renderStudentStatus();
   renderSubmissionOptions();
@@ -233,6 +259,26 @@ function wireIntakeForm() {
   });
 }
 
+function wireScheduleForm() {
+  const form = byId("schedule-form");
+  const confirmation = byId("schedule-confirmation");
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const result = recordTools.createScheduleRecords(data, Object.fromEntries(formData.entries()));
+    data = result.data;
+    persistData();
+    renderAll();
+    confirmation.innerHTML = record(
+      "Work Scheduled",
+      `${result.records.session.title} is now on the schedule with deadline control active.`,
+      [statusChip(result.records.session.status), chip(result.records.session.owner)]
+    );
+    form.reset();
+  });
+}
+
 function wireSubmissionForm() {
   const form = byId("submission-form");
   const confirmation = byId("submission-confirmation");
@@ -276,6 +322,7 @@ function wireReviewReturn() {
 function init() {
   renderAll();
   wireTabs();
+  wireScheduleForm();
   wireIntakeForm();
   wireSubmissionForm();
   wireReviewReturn();

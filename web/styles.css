@@ -233,7 +233,8 @@ h1 {
 }
 
 .intake-layout,
-.submission-layout {
+.submission-layout,
+.schedule-layout {
   display: grid;
   grid-template-columns: minmax(320px, 460px) 1fr;
   gap: 18px;
@@ -241,7 +242,8 @@ h1 {
   align-items: start;
 }
 
-.submission-layout {
+.submission-layout,
+.schedule-layout {
   margin: 0 0 18px;
 }
 
@@ -342,6 +344,7 @@ button.secondary-action {
 
   .intake-layout,
   .submission-layout,
+  .schedule-layout,
   .form-row,
   .review-console {
     grid-template-columns: 1fr;
