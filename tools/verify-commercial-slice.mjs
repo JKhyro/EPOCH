@@ -5,6 +5,8 @@ const requiredStatuses = [
   "planned",
   "waiting",
   "proposed",
+  "draft",
+  "presented",
   "queued",
   "submitted",
   "reviewing",
@@ -18,6 +20,10 @@ const requiredStatuses = [
   "sent",
   "failed",
   "retry-ready",
+  "payment-ready",
+  "payment-blocked",
+  "paid-recorded",
+  "declined",
   "rejected",
   "rolled-back",
   "canceled",
@@ -77,6 +83,7 @@ if (!Array.isArray(data.engagements)) fail("seed data missing engagements collec
 if (!Array.isArray(data.workPlans)) fail("seed data missing workPlans collection");
 if (!Array.isArray(data.agentHandoffs)) fail("seed data missing agentHandoffs collection");
 if (!Array.isArray(data.notificationDeliveries)) fail("seed data missing notificationDeliveries collection");
+if (!Array.isArray(data.quotes)) fail("seed data missing quotes collection");
 
 const header = read("../native/epoch_core.h");
 const source = read("../native/epoch_core.c");
@@ -129,7 +136,13 @@ for (const id of [
   "notification-delivery-select",
   "notification-outbox-action",
   "notification-outbox-apply",
-  "notification-outbox-confirmation"
+  "notification-outbox-confirmation",
+  "quote-payment-form",
+  "quote-select",
+  "quote-opportunity",
+  "quote-action",
+  "quote-payment-apply",
+  "quote-payment-confirmation"
 ]) {
   if (!html.includes(`id="${id}"`)) fail(`web surface missing ${id}`);
 }
@@ -156,6 +169,9 @@ for (const field of ["handoffId", "action", "nextActionAt", "customerVisibleAppr
 }
 for (const field of ["deliveryId", "action", "provider", "channel", "nextActionAt", "note"]) {
   if (!html.includes(`name="${field}"`)) fail(`notification outbox form missing field ${field}`);
+}
+for (const field of ["quoteId", "opportunityId", "action", "amountJpy", "nextActionAt", "guardianConsentRecorded", "note"]) {
+  if (!html.includes(`name="${field}"`)) fail(`quote payment form missing field ${field}`);
 }
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
@@ -282,6 +298,7 @@ for (const phrase of [
   "monitor-handoffs",
   "monitor-suite",
   "monitor-notification-outbox",
+  "monitor-quotes",
   "monitor-calendar",
   "monitor-persistence",
   "monitor-access",
@@ -312,10 +329,14 @@ for (const phrase of [
   "transitionAgentHandoffRecords",
   "createNotificationOutboxRecords",
   "transitionNotificationDeliveryRecords",
+  "createQuoteEstimateRecords",
+  "transitionQuoteEstimateRecords",
   "renderAgentHandoffOptions",
   "renderNotificationDeliveryOptions",
+  "renderQuoteOptions",
   "wireAgentHandoffForm",
   "wireNotificationOutboxForm",
+  "wireQuotePaymentForm",
   "Opportunity Pipeline",
   "Engagement Revenue",
   "Update Events",
@@ -325,6 +346,9 @@ for (const phrase of [
   "Notification Outbox",
   "Outbox Queued",
   "Delivery Updated",
+  "Quote Readiness",
+  "Quote Created",
+  "Quote Updated",
   "SYNAPSE Placement",
   "no-duplicate-ui",
   "link-only",
@@ -357,6 +381,7 @@ for (const phrase of [
   "operator-action-console",
   "handoff-console",
   "outbox-console",
+  "quote-console",
   "monitor-action-button",
   "button-meta",
   "monitor-command-strip",
@@ -457,8 +482,11 @@ if (!data.customers.some((item) => item.gameplanId === "gameplan-premium-eiken-m
 if (typeof recordTools.createAgentHandoffRecords !== "function") fail("operating helpers missing createAgentHandoffRecords");
 if (typeof recordTools.createNotificationOutboxRecords !== "function") fail("operating helpers missing createNotificationOutboxRecords");
 if (typeof recordTools.transitionNotificationDeliveryRecords !== "function") fail("operating helpers missing transitionNotificationDeliveryRecords");
+if (typeof recordTools.createQuoteEstimateRecords !== "function") fail("operating helpers missing createQuoteEstimateRecords");
+if (typeof recordTools.transitionQuoteEstimateRecords !== "function") fail("operating helpers missing transitionQuoteEstimateRecords");
 if (typeof recordTools.createMonitorActionRecords !== "function") fail("operating helpers missing createMonitorActionRecords");
 if (typeof recordTools.summarizeAgentHandoffState !== "function") fail("operating helpers missing summarizeAgentHandoffState");
+if (typeof recordTools.summarizeQuoteState !== "function") fail("operating helpers missing summarizeQuoteState");
 if (typeof recordTools.summarizeAccessPosture !== "function") fail("operating helpers missing summarizeAccessPosture");
 if (typeof recordTools.summarizeMemoryState !== "function") fail("operating helpers missing summarizeMemoryState");
 if (typeof recordTools.summarizeRoutePlacementState !== "function") fail("operating helpers missing summarizeRoutePlacementState");
@@ -566,6 +594,18 @@ for (const phrase of [
   "live API integration"
 ]) {
   if (!routePlacementContract.includes(phrase)) fail(`SYNAPSE route placement contract missing phrase: ${phrase}`);
+}
+
+const quotePaymentContract = read("../docs/quote-payment-readiness-contract.md");
+for (const phrase of [
+  "Quote And Payment-Readiness Contract",
+  "local-first",
+  "payment-ready",
+  "payment-blocked",
+  "Under-19",
+  "No live checkout"
+]) {
+  if (!quotePaymentContract.includes(phrase)) fail(`quote/payment contract missing phrase: ${phrase}`);
 }
 
 const attention = [
@@ -744,6 +784,84 @@ const outboxMonitorReport = recordTools.buildMonitorReport(retryDeliveryResult.d
 if (outboxMonitorReport.summary.notificationOutbox < outboxResult.records.deliveries.length) fail("monitor summary missing notification outbox count");
 if (outboxMonitorReport.summary.retryReadyNotifications < 1) fail("monitor summary missing retry-ready notification count");
 if (!outboxMonitorReport.queue.some((item) => item.kind === "notification delivery")) fail("monitor queue missing notification delivery records");
+
+const quoteResult = recordTools.createQuoteEstimateRecords(intakeResult.data, {
+  opportunityId: intakeResult.records.opportunity.id,
+  amountJpy: 65000,
+  title: "Under-19 compatibility estimate",
+  nextActionAt: "2026-06-03T18:00",
+  note: "Guardian compatibility quote created."
+}, {
+  now: "2026-06-01T02:55:00.000Z"
+});
+if (quoteResult.data.quotes.length !== intakeResult.data.quotes.length + 1) fail("quote estimate did not create a quote record");
+if (quoteResult.data.receipts.length !== intakeResult.data.receipts.length + 1) fail("quote estimate did not create a receipt");
+if (quoteResult.records.quote.status !== "draft") fail("quote estimate should start draft");
+if (!quoteResult.records.quote.under19 || !quoteResult.records.quote.guardianConsentRequired) fail("under-19 quote did not set guardian consent payment block");
+if (quoteResult.records.quote.customerVisible) fail("draft quote should not be customer-visible");
+if (quoteResult.records.receipt.kind !== "quote-estimate-created") fail("quote estimate missing created receipt");
+const quoteSummary = recordTools.summarizeQuoteState(quoteResult.data);
+if (quoteSummary.total < 1 || quoteSummary.under19Blocked < 1) fail("quote summary missing under-19 blocked quote");
+
+const presentedQuoteResult = recordTools.transitionQuoteEstimateRecords(quoteResult.data, {
+  quoteId: quoteResult.records.quote.id,
+  action: "present",
+  note: "Estimate presented to guardian."
+}, {
+  now: "2026-06-01T02:56:00.000Z"
+});
+if (presentedQuoteResult.records.quote.status !== "presented") fail("quote present did not set presented status");
+if (!presentedQuoteResult.records.quote.customerVisible) fail("presented quote should be customer-visible");
+if (presentedQuoteResult.records.receipt.kind !== "quote-presented") fail("quote present missing receipt kind");
+
+const approvedQuoteResult = recordTools.transitionQuoteEstimateRecords(presentedQuoteResult.data, {
+  quoteId: quoteResult.records.quote.id,
+  action: "approve",
+  note: "Guardian approved the estimate."
+}, {
+  now: "2026-06-01T02:57:00.000Z"
+});
+if (approvedQuoteResult.records.quote.approvalStatus !== "approved") fail("quote approve did not set approval status");
+if (approvedQuoteResult.records.receipt.kind !== "quote-approved") fail("quote approve missing receipt kind");
+
+const blockedPaymentQuoteResult = recordTools.transitionQuoteEstimateRecords(approvedQuoteResult.data, {
+  quoteId: quoteResult.records.quote.id,
+  action: "mark-payment-ready",
+  note: "Payment readiness attempted before consent evidence."
+}, {
+  now: "2026-06-01T02:58:00.000Z"
+});
+if (blockedPaymentQuoteResult.records.quote.status !== "payment-blocked") fail("under-19 quote did not block payment readiness without consent");
+if (blockedPaymentQuoteResult.records.receipt.kind !== "quote-payment-blocked") fail("under-19 payment block missing receipt kind");
+if (recordTools.summarizeQuoteState(blockedPaymentQuoteResult.data).paymentBlocked < 1) fail("quote summary missing payment-blocked count");
+
+const paymentReadyQuoteResult = recordTools.transitionQuoteEstimateRecords(blockedPaymentQuoteResult.data, {
+  quoteId: quoteResult.records.quote.id,
+  action: "mark-payment-ready",
+  guardianConsentRecorded: "true",
+  note: "Guardian consent recorded; quote is payment-ready."
+}, {
+  now: "2026-06-01T02:59:00.000Z"
+});
+if (paymentReadyQuoteResult.records.quote.status !== "payment-ready") fail("quote did not become payment-ready after consent");
+if (paymentReadyQuoteResult.records.quote.guardianConsentRequired) fail("payment-ready quote still requires guardian consent");
+if (paymentReadyQuoteResult.records.receipt.kind !== "quote-payment-ready") fail("quote payment-ready missing receipt kind");
+const quoteMonitorReport = recordTools.buildMonitorReport(paymentReadyQuoteResult.data, { now: "2026-06-01T12:00:00+09:00" });
+if (quoteMonitorReport.summary.quotes < 1) fail("monitor summary missing quote count");
+if (quoteMonitorReport.summary.paymentReadyQuotes < 1) fail("monitor summary missing payment-ready quote count");
+if (!quoteMonitorReport.queue.some((item) => item.kind === "quote")) fail("monitor queue missing quote records");
+
+const paidRecordedQuoteResult = recordTools.transitionQuoteEstimateRecords(paymentReadyQuoteResult.data, {
+  quoteId: quoteResult.records.quote.id,
+  action: "record-payment",
+  note: "Manual payment evidence recorded; no live processor used."
+}, {
+  now: "2026-06-01T03:00:00.000Z"
+});
+if (paidRecordedQuoteResult.records.quote.status !== "paid-recorded") fail("quote payment record did not set paid-recorded status");
+if (paidRecordedQuoteResult.records.quote.receiptIds.length < 6) fail("quote did not retain receipt trail");
+if (paidRecordedQuoteResult.records.quote.quoteHistory.length < 6) fail("quote did not retain quote history");
+if (paidRecordedQuoteResult.records.receipt.kind !== "quote-payment-recorded") fail("quote payment record missing receipt kind");
 
 const curriculumSummary = recordTools.summarizeCurriculumState(acceptResult.data);
 if (curriculumSummary.frameworks < 2) fail("curriculum summary did not count seeded frameworks");
@@ -1147,6 +1265,9 @@ if (calendarSummary.canceled < 1) fail("calendar summary did not count canceled 
 const outboxCalendarExport = recordTools.createCalendarExport(retryDeliveryResult.data, { now: "2026-06-01T12:00:00+09:00" });
 if (!outboxCalendarExport.entries.some((entry) => entry.sourceKind === "notification-delivery" && entry.timeKind === "delivery-window")) fail("calendar export missing notification delivery window");
 
+const quoteCalendarExport = recordTools.createCalendarExport(paymentReadyQuoteResult.data, { now: "2026-06-01T12:00:00+09:00" });
+if (!quoteCalendarExport.entries.some((entry) => entry.sourceKind === "quote" && entry.timeKind === "quote-validity-window")) fail("calendar export missing quote validity window");
+
 const acceptedMonitorReport = recordTools.buildMonitorReport(acceptResult.data, { now: "2026-06-01T12:00:00+09:00" });
 if (acceptedMonitorReport.revenue.activeEngagements < 1) fail("monitor revenue did not count active engagement");
 if (acceptedMonitorReport.summary.acceptedValueJpy < 60000) fail("monitor summary did not expose accepted value");
@@ -1209,6 +1330,10 @@ if (outboxLedger.counts.notificationDeliveries !== retryDeliveryResult.data.noti
 if (outboxLedger.monitor.notificationOutbox !== retryDeliveryResult.data.notificationDeliveries.length) fail("ledger monitor summary missing notification outbox count");
 if (outboxLedger.monitor.retryReadyNotifications < 1) fail("ledger monitor summary missing retry-ready notifications");
 
+const quoteLedger = recordTools.createOperatingLedger(paymentReadyQuoteResult.data, { now: "2026-06-01T04:44:00.000Z" });
+if (quoteLedger.counts.quotes !== paymentReadyQuoteResult.data.quotes.length) fail("ledger export quote count is wrong");
+if (quoteLedger.monitor.paymentReadyQuotes < 1) fail("ledger monitor summary missing payment-ready quote count");
+
 const importedLedger = recordTools.importOperatingLedger(data, JSON.stringify(exportedLedger));
 if (importedLedger.data.receipts.length !== returnResult.data.receipts.length) fail("ledger import did not preserve receipts");
 if (importedLedger.data.monitorHealthChecks.length !== returnResult.data.monitorHealthChecks.length) fail("ledger import did not preserve monitor health checks");
@@ -1246,6 +1371,11 @@ const importedOutboxLedger = recordTools.importOperatingLedger(data, JSON.string
 if (importedOutboxLedger.data.notificationDeliveries.length !== retryDeliveryResult.data.notificationDeliveries.length) fail("ledger import did not preserve notification deliveries");
 if (!importedOutboxLedger.data.notificationDeliveries.some((item) => item.status === "retry-ready")) fail("ledger import did not preserve retry-ready delivery status");
 if (!importedOutboxLedger.data.notificationDeliveries.some((item) => Array.isArray(item.deliveryHistory) && item.deliveryHistory.length >= 2)) fail("ledger import did not preserve notification delivery history");
+
+const importedQuoteLedger = recordTools.importOperatingLedger(data, JSON.stringify(quoteLedger));
+if (importedQuoteLedger.data.quotes.length !== paymentReadyQuoteResult.data.quotes.length) fail("ledger import did not preserve quote records");
+if (!importedQuoteLedger.data.quotes.some((item) => item.status === "payment-ready")) fail("ledger import did not preserve payment-ready quote status");
+if (!importedQuoteLedger.data.quotes.some((item) => Array.isArray(item.quoteHistory) && item.quoteHistory.length >= 5)) fail("ledger import did not preserve quote history");
 
 let rejectedInvalidLedger = false;
 try {

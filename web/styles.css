@@ -762,6 +762,10 @@ button.secondary-action {
   grid-template-columns: 1fr;
 }
 
+.quote-console {
+  grid-template-columns: 1fr;
+}
+
 .operator-action-console {
   display: grid;
   gap: 12px;

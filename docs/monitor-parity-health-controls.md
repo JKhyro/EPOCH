@@ -78,4 +78,7 @@ The repository verifier must cover:
 - Notification outbox controls and verifier coverage for queued, dispatched,
   sent, failed, blocked, retry-ready, receipt-backed delivery handoff records
   that preserve customer-safe visibility boundaries.
+- Quote and payment-readiness controls and verifier coverage for draft,
+  presented, approved, payment-ready, payment-blocked, paid-recorded, declined,
+  under-19 consent gates, receipts, and customer-safe quote status.
 

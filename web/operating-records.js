@@ -29,6 +29,7 @@
     "monitorHealthChecks",
     "notificationEvents",
     "notificationDeliveries",
+    "quotes",
     "customers",
     "cohorts",
     "sessions",
@@ -166,6 +167,8 @@
         "planned",
         "waiting",
         "proposed",
+        "draft",
+        "presented",
         "queued",
         "submitted",
         "reviewing",
@@ -179,6 +182,10 @@
         "sent",
         "failed",
         "retry-ready",
+        "payment-ready",
+        "payment-blocked",
+        "paid-recorded",
+        "declined",
         "rejected",
         "rolled-back",
         "canceled",
@@ -658,6 +665,218 @@
       records: {
         delivery,
         notificationEvent: event,
+        receipt
+      }
+    };
+  }
+
+  function offerPackageById(data, packageId) {
+    return data.offerPackages.find((item) => item.id === packageId) || null;
+  }
+
+  function isUnder19Quote(customer, offerPackage, input = {}) {
+    const ageBand = clean(input.ageBand || customer?.ageBand).toLowerCase();
+    return ageBand.includes("under") || clean(offerPackage?.routing) === "compatibility-required";
+  }
+
+  function findQuoteBundle(data, quoteId) {
+    const requestedId = clean(quoteId);
+    const quote = requestedId
+      ? data.quotes.find((item) => item.id === requestedId)
+      : data.quotes.find((item) => !["declined", "paid-recorded"].includes(item.status)) || data.quotes[0];
+
+    if (!quote) throw new Error("quoteId is required");
+
+    return {
+      quote,
+      opportunity: data.opportunities.find((item) => item.id === quote.opportunityId) || null,
+      engagement: data.engagements.find((item) => item.id === quote.engagementId) || null,
+      customer: customerById(data, quote.customerId),
+      offerPackage: offerPackageById(data, quote.packageId)
+    };
+  }
+
+  function addQuoteReceiptId(record, receiptId) {
+    if (!record) return;
+    if (!Array.isArray(record.receiptIds)) record.receiptIds = [];
+    if (!record.receiptIds.includes(receiptId)) record.receiptIds.unshift(receiptId);
+  }
+
+  function appendQuoteHistory(record, entry) {
+    if (!record) return;
+    if (!Array.isArray(record.quoteHistory)) record.quoteHistory = [];
+    record.quoteHistory.unshift(entry);
+  }
+
+  function createQuoteEstimateRecords(currentData, input = {}, options = {}) {
+    const nextData = cloneData(currentData);
+    ensureCollections(nextData);
+
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const requestStamp = stamp(now);
+    const opportunity = nextData.opportunities.find((item) => item.id === clean(input.opportunityId)) || null;
+    const engagement = nextData.engagements.find((item) => item.id === clean(input.engagementId)) || null;
+    const packageId = clean(input.packageId || opportunity?.packageId || engagement?.packageId);
+    const offerPackage = offerPackageById(nextData, packageId);
+    const customer = customerById(nextData, clean(input.customerId || opportunity && customerForOpportunity(nextData, opportunity)?.id || engagement?.customerId));
+    const amountJpy = Number(input.amountJpy || input.priceJpy || offerPackage?.priceJpy || opportunity?.estimatedValueJpy || engagement?.valueJpy || 0);
+    const title = clean(input.title) || `${offerPackage?.name || packageId || "Service"} estimate`;
+    const validUntil = withTimezone(input.validUntil || input.nextActionAt, timezone) || withTimezone(now.toISOString(), timezone);
+
+    if (!packageId || !offerPackage) throw new Error("packageId is required for quote estimate");
+    if (!customer) throw new Error("customerId is required for quote estimate");
+    if (!amountJpy) throw new Error("amountJpy is required for quote estimate");
+
+    const under19 = isUnder19Quote(customer, offerPackage, input);
+    const guardianConsentRecorded = input.guardianConsentRecorded === true || clean(input.guardianConsentRecorded) === "true";
+    const paymentBlocked = under19 && !guardianConsentRecorded;
+    const quoteId = `quote-${requestStamp}`;
+    const receiptId = `receipt-quote-created-${requestStamp}`;
+    const quote = {
+      id: quoteId,
+      opportunityId: opportunity?.id || null,
+      engagementId: engagement?.id || null,
+      customerId: customer.id,
+      packageId,
+      title,
+      summary: clean(input.summary) || `${title} for ${amountJpy} JPY.`,
+      amountJpy,
+      currency: "JPY",
+      status: "draft",
+      paymentStatus: paymentBlocked ? "payment-blocked" : "draft",
+      approvalStatus: "draft",
+      customerVisible: false,
+      under19,
+      guardianConsentRequired: paymentBlocked,
+      guardianConsentRecorded,
+      internalNote: clean(input.internalNote) || "Local quote estimate; live payment processing is out of scope.",
+      customerSafeStatus: "Estimate is being prepared.",
+      validUntil,
+      nextActionAt: validUntil,
+      createdAt: withTimezone(now.toISOString(), timezone),
+      receiptIds: [receiptId],
+      quoteHistory: [{
+        action: "create",
+        at: withTimezone(now.toISOString(), timezone),
+        actor: clean(input.actor || input.owner) || "Jack",
+        nextStatus: "draft",
+        receiptId,
+        note: paymentBlocked ? "Quote created with under-19 payment block pending consent." : "Quote estimate created."
+      }]
+    };
+    const receipt = {
+      id: receiptId,
+      customerId: customer.id,
+      kind: "quote-estimate-created",
+      status: "complete",
+      createdAt: withTimezone(now.toISOString(), timezone),
+      sourceKind: "quote",
+      sourceId: quote.id,
+      note: `${title} created for ${amountJpy} JPY; payment processing not initiated.`
+    };
+
+    nextData.quotes.unshift(quote);
+    nextData.receipts.unshift(receipt);
+
+    return {
+      data: nextData,
+      records: {
+        quote,
+        receipt
+      }
+    };
+  }
+
+  function transitionQuoteEstimateRecords(currentData, input = {}, options = {}) {
+    const nextData = cloneData(currentData);
+    ensureCollections(nextData);
+
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const requestStamp = stamp(now);
+    const action = clean(input.action) || "present";
+    const actor = clean(input.actor || input.owner) || "Jack";
+    const note = clean(input.note || input.summary) || `Quote ${action} recorded.`;
+    const eventAt = withTimezone(now.toISOString(), timezone);
+    const { quote, customer, offerPackage } = findQuoteBundle(nextData, input.quoteId);
+    const previousStatus = quote.status || "draft";
+    const guardianConsentRecorded = quote.guardianConsentRecorded || input.guardianConsentRecorded === true || clean(input.guardianConsentRecorded) === "true";
+    const under19 = quote.under19 || isUnder19Quote(customer, offerPackage, input);
+    const stateByAction = {
+      present: { status: "presented", paymentStatus: quote.paymentStatus || "draft", approvalStatus: "presented", receiptKind: "quote-presented", customerSafeStatus: "Estimate presented for review." },
+      approve: { status: "approved", paymentStatus: quote.paymentStatus || "draft", approvalStatus: "approved", receiptKind: "quote-approved", customerSafeStatus: "Estimate approved; payment readiness is being checked." },
+      decline: { status: "declined", paymentStatus: "declined", approvalStatus: "declined", receiptKind: "quote-declined", customerSafeStatus: "Estimate declined." },
+      "mark-payment-ready": { status: "payment-ready", paymentStatus: "payment-ready", approvalStatus: "approved", receiptKind: "quote-payment-ready", customerSafeStatus: "Payment-ready status recorded; payment instructions are not live yet." },
+      "block-payment": { status: "payment-blocked", paymentStatus: "payment-blocked", approvalStatus: quote.approvalStatus || "pending", receiptKind: "quote-payment-blocked", customerSafeStatus: "Payment is blocked pending required review." },
+      "record-payment": { status: "paid-recorded", paymentStatus: "paid-recorded", approvalStatus: "approved", receiptKind: "quote-payment-recorded", customerSafeStatus: "Payment record placeholder captured." }
+    };
+
+    if (!stateByAction[action]) {
+      throw new Error("action must be present, approve, decline, mark-payment-ready, block-payment, or record-payment");
+    }
+    if (["declined", "paid-recorded"].includes(previousStatus)) {
+      throw new Error("terminal quotes cannot be changed");
+    }
+    if (action === "mark-payment-ready" && quote.approvalStatus !== "approved") {
+      throw new Error("quote must be approved before payment readiness");
+    }
+    if (action === "record-payment" && quote.paymentStatus !== "payment-ready") {
+      throw new Error("quote must be payment-ready before recording payment placeholder");
+    }
+
+    let transition = stateByAction[action];
+    if (action === "mark-payment-ready" && under19 && !guardianConsentRecorded) {
+      transition = stateByAction["block-payment"];
+    }
+
+    quote.status = transition.status;
+    quote.paymentStatus = transition.paymentStatus;
+    quote.approvalStatus = transition.approvalStatus;
+    quote.customerVisible = action !== "block-payment";
+    quote.customerSafeStatus = transition.customerSafeStatus;
+    quote.guardianConsentRecorded = guardianConsentRecorded;
+    quote.guardianConsentRequired = under19 && !guardianConsentRecorded;
+    quote.updatedAt = eventAt;
+    quote.lastActor = actor;
+    quote.lastNote = note;
+    quote.nextActionAt = withTimezone(input.nextActionAt, timezone) || eventAt;
+    if (action === "present") quote.presentedAt = eventAt;
+    if (action === "approve") quote.approvedAt = eventAt;
+    if (transition.status === "payment-ready") quote.paymentReadyAt = eventAt;
+    if (transition.status === "payment-blocked") quote.paymentBlockedAt = eventAt;
+    if (action === "record-payment") quote.paymentRecordedAt = eventAt;
+
+    const receipt = {
+      id: `receipt-quote-${action}-${requestStamp}`,
+      customerId: quote.customerId || null,
+      kind: transition.receiptKind,
+      status: transition.status === "payment-blocked" ? "blocked" : "complete",
+      createdAt: eventAt,
+      sourceKind: "quote",
+      sourceId: quote.id,
+      note: `${actor} moved ${quote.id} from ${previousStatus} to ${transition.status}. ${note}`
+    };
+    addQuoteReceiptId(quote, receipt.id);
+    appendQuoteHistory(quote, {
+      action,
+      at: eventAt,
+      actor,
+      previousStatus,
+      nextStatus: transition.status,
+      receiptId: receipt.id,
+      note
+    });
+    if (customer && quote.customerVisible) {
+      customer.externalStatus = quote.customerSafeStatus;
+    }
+
+    nextData.receipts.unshift(receipt);
+
+    return {
+      data: nextData,
+      records: {
+        quote,
         receipt
       }
     };
@@ -2012,6 +2231,26 @@
     };
   }
 
+  function summarizeQuoteState(currentData) {
+    const quotes = Array.isArray(currentData.quotes) ? currentData.quotes : [];
+    const byStatus = (status) => quotes.filter((item) => item.status === status || item.paymentStatus === status).length;
+
+    return {
+      total: quotes.length,
+      draft: byStatus("draft"),
+      presented: byStatus("presented"),
+      approved: quotes.filter((item) => item.approvalStatus === "approved").length,
+      declined: byStatus("declined"),
+      paymentReady: byStatus("payment-ready"),
+      paymentBlocked: byStatus("payment-blocked"),
+      paidRecorded: byStatus("paid-recorded"),
+      under19Blocked: quotes.filter((item) => item.under19 && item.guardianConsentRequired).length,
+      customerVisible: quotes.filter((item) => item.customerVisible).length,
+      valueJpy: quotes.reduce((total, item) => total + Number(item.amountJpy || 0), 0),
+      receiptLinks: quotes.reduce((total, item) => total + (Array.isArray(item.receiptIds) ? item.receiptIds.length : 0), 0)
+    };
+  }
+
   function summarizeAgentHandoffState(currentData) {
     const workPlans = Array.isArray(currentData.workPlans) ? currentData.workPlans : [];
     const handoffs = Array.isArray(currentData.agentHandoffs) ? currentData.agentHandoffs : [];
@@ -2210,12 +2449,13 @@
     const revenue = summarizeRevenueState(data);
     const curriculum = summarizeCurriculumState(data);
     const notifications = summarizeNotificationState(data);
+    const quotes = summarizeQuoteState(data);
     const handoffs = summarizeAgentHandoffState(data);
     const marketing = summarizeMarketingState(data);
     const calendarExport = createCalendarExport(data, { now: nowText });
     const timeline = monitorTimelineItems(data);
-    const terminalStatuses = new Set(["complete", "sent", "returned", "canceled", "accepted", "rejected", "rolled-back"]);
-    const queue = timeline.filter((item) => ["waiting", "deferred", "queued", "submitted", "reviewing", "overdue", "blocked", "proposed", "approved", "dispatched", "acknowledged", "in-progress", "failed", "retry-ready"].includes(item.status));
+    const terminalStatuses = new Set(["complete", "sent", "paid-recorded", "declined", "returned", "canceled", "accepted", "rejected", "rolled-back"]);
+    const queue = timeline.filter((item) => ["waiting", "deferred", "draft", "presented", "queued", "submitted", "reviewing", "overdue", "blocked", "proposed", "approved", "dispatched", "acknowledged", "in-progress", "failed", "retry-ready", "payment-ready", "payment-blocked"].includes(item.status));
     const risks = timeline.filter((item) => item.status === "blocked" || item.status === "overdue" || (item.time && item.time < nowText && !terminalStatuses.has(item.status)));
     const receipts = Array.isArray(data.receipts) ? data.receipts : [];
     const baseSummary = {
@@ -2229,6 +2469,8 @@
       activeGameplans: curriculum.activeGameplans,
       visibleUpdates: notifications.visible,
       notificationOutbox: notifications.outbox,
+      quoteCount: quotes.total,
+      paymentReadyQuotes: quotes.paymentReady,
       pendingHandoffApprovals: handoffs.pendingApprovals,
       calendarEntries: calendarExport.counts.total,
       campaignRoutes: marketing.total,
@@ -2488,6 +2730,20 @@
       }, timezone));
     }
 
+    for (const quote of data.quotes) {
+      entries.push(createCalendarEntry(data, {
+        sourceKind: "quote",
+        sourceId: quote.id,
+        title: quote.title,
+        timeKind: "quote-validity-window",
+        dueAt: quote.nextActionAt || quote.validUntil,
+        status: quote.status,
+        owner: quote.paymentStatus || quote.approvalStatus,
+        customerId: quote.customerId,
+        externalVisible: quote.customerVisible
+      }, timezone));
+    }
+
     const normalizedEntries = entries
       .filter((item) => item.startAt || item.endAt || item.dueAt)
       .sort((a, b) => String(a.startAt || a.dueAt || "").localeCompare(String(b.startAt || b.dueAt || "")));
@@ -2529,6 +2785,7 @@
       ...currentData.monitorHealthChecks.map((item) => ({ kind: "monitor check", id: item.id, title: item.title, status: item.status, time: item.createdAt, owner: item.target || item.owner || "monitor" })),
       ...currentData.notificationEvents.map((item) => ({ kind: "update", id: item.id, title: item.title, status: item.status, time: item.deliverAfterAt || item.createdAt, owner: item.deliveryStatus || "pending" })),
       ...(currentData.notificationDeliveries || []).map((item) => ({ kind: "notification delivery", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.createdAt, owner: item.provider || item.channel || "outbox" })),
+      ...(currentData.quotes || []).map((item) => ({ kind: "quote", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.validUntil || item.createdAt, owner: item.paymentStatus || item.approvalStatus || "quote" })),
       ...currentData.sessions.map((item) => ({ kind: "session", id: item.id, title: item.title, status: item.status, time: item.startAt, owner: item.owner || "owner pending" })),
       ...currentData.assignments.map((item) => ({ kind: "request", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.owner || "owner pending" })),
       ...currentData.submissions.map((item) => ({ kind: "submission", id: item.id, title: item.title || item.id, status: item.status, time: item.reviewDueAt, owner: item.owner || "review queue" })),
@@ -2541,11 +2798,12 @@
   function buildMonitorReport(currentData, options) {
     const data = normalizedOperatingData(currentData);
     const nowText = clean(options && options.now) || "2026-06-01T12:00:00+09:00";
-    const terminalStatuses = new Set(["complete", "returned", "canceled", "accepted", "rejected", "rolled-back"]);
-    const activeStatuses = new Set(["waiting", "deferred", "queued", "submitted", "reviewing", "overdue", "blocked", "proposed", "approved", "dispatched", "acknowledged", "in-progress", "failed", "retry-ready"]);
+    const terminalStatuses = new Set(["complete", "sent", "paid-recorded", "declined", "returned", "canceled", "accepted", "rejected", "rolled-back"]);
+    const activeStatuses = new Set(["waiting", "deferred", "draft", "presented", "queued", "submitted", "reviewing", "overdue", "blocked", "proposed", "approved", "dispatched", "acknowledged", "in-progress", "failed", "retry-ready", "payment-ready", "payment-blocked"]);
     const revenue = summarizeRevenueState(data);
     const curriculum = summarizeCurriculumState(data);
     const notifications = summarizeNotificationState(data);
+    const quotes = summarizeQuoteState(data);
     const handoffs = summarizeAgentHandoffState(data);
     const marketing = summarizeMarketingState(data);
     const calendarExport = createCalendarExport(data, { now: nowText });
@@ -2566,6 +2824,9 @@
     const queue = timeline
       .filter((item) => activeStatuses.has(item.status))
       .slice(0, 8);
+    for (const item of timeline.filter((entry) => entry.kind === "quote" && activeStatuses.has(entry.status)).slice(0, 2)) {
+      if (!queue.some((entry) => entry.id === item.id)) queue.push(item);
+    }
     const overdue = timeline.filter((item) => item.status === "overdue" || (item.time && item.time < nowText && !terminalStatuses.has(item.status)));
     const blocked = timeline.filter((item) => item.status === "blocked");
     const stale = timeline.filter((item) => item.time && item.time < nowText && item.status === "planned");
@@ -2722,6 +2983,14 @@
         retryReadyNotifications: notifications.retryReady,
         outboxBlockedNotifications: notifications.outboxBlocked,
         missingNotificationOutbox: notifications.missingOutbox,
+        quotes: quotes.total,
+        quoteValueJpy: quotes.valueJpy,
+        presentedQuotes: quotes.presented,
+        approvedQuotes: quotes.approved,
+        paymentReadyQuotes: quotes.paymentReady,
+        paymentBlockedQuotes: quotes.paymentBlocked,
+        paidRecordedQuotes: quotes.paidRecorded,
+        under19BlockedQuotes: quotes.under19Blocked,
         agentHandoffs: handoffs.handoffs,
         pendingHandoffApprovals: handoffs.pendingApprovals,
         approvedHandoffs: handoffs.approved,
@@ -2757,6 +3026,7 @@
       revenue,
       curriculum,
       notifications,
+      quotes,
       handoffs,
       marketing,
       routePlacement,
@@ -2828,6 +3098,8 @@
     transitionAgentHandoffRecords,
     createNotificationOutboxRecords,
     transitionNotificationDeliveryRecords,
+    createQuoteEstimateRecords,
+    transitionQuoteEstimateRecords,
     createMonitorActionRecords,
     decideOpportunityRecords,
     createIntakeRecords,
@@ -2842,6 +3114,7 @@
     summarizeCurriculumState,
     summarizeDeadlines,
     summarizeAgentHandoffState,
+    summarizeQuoteState,
     summarizeAccessPosture,
     summarizeMemoryState,
     summarizeScopeState,

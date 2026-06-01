@@ -451,9 +451,58 @@
               </div>
               <button type="submit" id="notification-outbox-apply">Apply Notification Outbox Action</button>
             </form>
+            <form id="quote-payment-form" class="review-console quote-console">
+              <div class="form-row">
+                <label>
+                  Quote
+                  <select name="quoteId" id="quote-select"></select>
+                </label>
+                <label>
+                  Opportunity
+                  <select name="opportunityId" id="quote-opportunity"></select>
+                </label>
+              </div>
+              <div class="form-row">
+                <label>
+                  Quote action
+                  <select name="action" id="quote-action" required>
+                    <option value="create">Create estimate</option>
+                    <option value="present">Present</option>
+                    <option value="approve">Approve</option>
+                    <option value="decline">Decline</option>
+                    <option value="mark-payment-ready">Payment ready</option>
+                    <option value="block-payment">Block payment</option>
+                    <option value="record-payment">Record payment placeholder</option>
+                  </select>
+                </label>
+                <label>
+                  Amount JPY
+                  <input name="amountJpy" type="number" min="0" step="1000" value="45000" />
+                </label>
+              </div>
+              <div class="form-row">
+                <label>
+                  Valid / next action
+                  <input name="nextActionAt" type="datetime-local" />
+                </label>
+                <label>
+                  Guardian consent
+                  <select name="guardianConsentRecorded">
+                    <option value="false">Not recorded</option>
+                    <option value="true">Recorded</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                Quote note
+                <input name="note" value="Local quote/payment-readiness update; live payment processing remains out of scope." />
+              </label>
+              <button type="submit" id="quote-payment-apply">Apply Quote Action</button>
+            </form>
             <div id="review-confirmation" class="confirmation"></div>
             <div id="agent-handoff-confirmation" class="confirmation"></div>
             <div id="notification-outbox-confirmation" class="confirmation"></div>
+            <div id="quote-payment-confirmation" class="confirmation"></div>
           </section>
           <div id="monitor-items" class="monitor-grid"></div>
         </div>
