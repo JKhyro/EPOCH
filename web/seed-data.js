@@ -699,7 +699,124 @@ window.EPOCH_SEED_DATA = {
       "nextActionAt": "2026-06-03T09:00:00+09:00"
     }
   ],
+  "monitorScope": {
+    "title": "EPOCH monitor commercial slice",
+    "summary": "Keep the bounded commercial surface local-first while exposing only intake and controlled customer status outside the operator lane.",
+    "localAuthority": "Browser-local operating ledger plus route tree in this workspace.",
+    "allowedSurfaces": [
+      "Public intake route may describe offers and collect requests.",
+      "Controlled customer status may show delivery-safe updates only.",
+      "Internal admin and monitor routes stay local to the operator lane."
+    ],
+    "blockedSurfaces": [
+      "Do not expose raw admin or monitor routes on public hostnames.",
+      "Do not publish customer-visible agent work before operator approval.",
+      "Do not treat browser-local edits as durable writeback until a ledger snapshot exists."
+    ],
+    "verificationSteps": [
+      "Verify route split locally before changing public campaign copy.",
+      "Export a ledger snapshot before handoff, reset, or browser recovery.",
+      "Keep public posture intake-only unless a controlled gateway is explicitly added and verified."
+    ],
+    "updatedAt": "2026-06-01T18:20:00+09:00",
+    "reviewBy": "2026-06-05T18:00:00+09:00",
+    "owner": "Jack"
+  },
+  "monitorMemory": [
+    {
+      "id": "memory-001",
+      "title": "Public route is intake-only",
+      "summary": "Japan-facing and global campaign routes can land on public intake, but raw monitor/admin routes remain local-only.",
+      "status": "active",
+      "updatedAt": "2026-06-01T18:18:00+09:00",
+      "reviewBy": "2026-06-08T18:00:00+09:00",
+      "owner": "Jack"
+    },
+    {
+      "id": "memory-002",
+      "title": "Dirty local ledger must be exported before handoff",
+      "summary": "Modified-local or live-local persistence is usable for local control, but not a durable recovery point until export writes a receipt-bearing snapshot.",
+      "status": "active",
+      "updatedAt": "2026-06-01T18:19:00+09:00",
+      "reviewBy": "2026-06-02T09:00:00+09:00",
+      "owner": "Jack"
+    },
+    {
+      "id": "memory-003",
+      "title": "Awaiting-review work should stay visible",
+      "summary": "Submitted and reviewing work must remain obvious in the monitor until feedback is returned or an explicit blocker is recorded.",
+      "status": "stale",
+      "updatedAt": "2026-05-29T12:00:00+09:00",
+      "reviewBy": "2026-05-31T18:00:00+09:00",
+      "owner": "Jack"
+    }
+  ],
+  "accessPosture": {
+    "mode": "local-first",
+    "rawMonitor": "local-only",
+    "rawAdmin": "local-only",
+    "publicIntake": "#public",
+    "customerStatus": "#student",
+    "safeGateway": "none in this static slice",
+    "defaultPublicPolicy": "deny-by-default",
+    "operatorRule": "Customer-visible agent work stays blocked until operator approval is recorded.",
+    "verificationStatus": "verified-local-route-split",
+    "lastVerifiedAt": "2026-06-01T18:21:00+09:00",
+    "notes": [
+      "Route placement may point public traffic to intake only.",
+      "Controlled customer status should exclude internal notes and raw receipts.",
+      "A future public gateway must be explicitly controlled before monitor/admin exposure changes."
+    ]
+  },
+  "monitorHealthChecks": [
+    {
+      "id": "monitor-check-seed-scope",
+      "actionId": "seed-scope-baseline",
+      "receiptId": "receipt-monitor-seed-scope",
+      "title": "Scope route baseline",
+      "summary": "Scope, memory, queue, timeline, risks, receipts, and safe access routes are visible in the local monitor.",
+      "status": "complete",
+      "priority": "medium",
+      "effect": "record",
+      "target": "monitor-scope",
+      "owner": "Jack",
+      "createdAt": "2026-06-01T18:22:00+09:00",
+      "visibility": "internal",
+      "customerVisible": false
+    },
+    {
+      "id": "monitor-check-seed-access",
+      "actionId": "seed-safe-access-baseline",
+      "receiptId": "receipt-monitor-seed-access",
+      "title": "Safe-access baseline",
+      "summary": "Raw monitor and admin surfaces are local-only; public route remains intake-only until a controlled gateway is verified.",
+      "status": "complete",
+      "priority": "high",
+      "effect": "acknowledge-posture",
+      "target": "monitor-access",
+      "owner": "Jack",
+      "createdAt": "2026-06-01T18:23:00+09:00",
+      "visibility": "internal",
+      "customerVisible": false
+    }
+  ],
   "receipts": [
+    {
+      "id": "receipt-monitor-seed-scope",
+      "customerId": null,
+      "kind": "monitor-check",
+      "status": "complete",
+      "createdAt": "2026-06-01T18:22:00+09:00",
+      "note": "Scope route baseline: Scope, memory, queue, timeline, risks, receipts, and safe access routes are visible in the local monitor."
+    },
+    {
+      "id": "receipt-monitor-seed-access",
+      "customerId": null,
+      "kind": "monitor-check",
+      "status": "complete",
+      "createdAt": "2026-06-01T18:23:00+09:00",
+      "note": "Safe-access baseline: raw monitor and admin surfaces are local-only; public route remains intake-only until a controlled gateway is verified."
+    },
     {
       "id": "receipt-001",
       "customerId": "student-001",

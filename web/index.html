@@ -35,6 +35,8 @@
         <p class="eyebrow">Thread Registry</p>
         <a href="#monitor" class="monitor-route-link">Direct route</a>
         <button type="button" data-monitor-target="monitor-controls">Ledger Controls</button>
+        <button type="button" data-monitor-target="monitor-scope">Scope</button>
+        <button type="button" data-monitor-target="monitor-memory">Memory</button>
         <button type="button" data-monitor-target="monitor-campaigns">Campaigns</button>
         <button type="button" data-monitor-target="monitor-timeline">Timeline</button>
       </div>
@@ -269,9 +271,12 @@
       </div>
       <div class="command-strip monitor-command-strip" aria-label="Monitor command strip">
         <button type="button" class="mode-button active" data-monitor-target="monitor-summary">Check</button>
+        <button type="button" class="mode-button" data-monitor-target="monitor-scope">Scope</button>
+        <button type="button" class="mode-button" data-monitor-target="monitor-memory">Memory</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-queue">Queue</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-timeline">Timeline</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-curriculum">Gameplans</button>
+        <button type="button" class="mode-button" data-monitor-target="monitor-access">Safe Access</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-campaigns">Campaigns</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-controls">Controls</button>
       </div>
@@ -283,6 +288,8 @@
             <p id="monitor-route-status">Route loading</p>
           </div>
           <button type="button" data-monitor-target="monitor-summary">Summary</button>
+          <button type="button" data-monitor-target="monitor-scope">Scope</button>
+          <button type="button" data-monitor-target="monitor-memory">Memory</button>
           <button type="button" data-monitor-target="monitor-queue">Queue</button>
           <button type="button" data-monitor-target="monitor-timeline">Timeline</button>
           <button type="button" data-monitor-target="monitor-curriculum">Curriculum</button>
@@ -291,6 +298,7 @@
           <button type="button" data-monitor-target="monitor-suite">SYNAPSE</button>
           <button type="button" data-monitor-target="monitor-calendar">Calendar</button>
           <button type="button" data-monitor-target="monitor-persistence">Persistence</button>
+          <button type="button" data-monitor-target="monitor-access">Safe Access</button>
           <button type="button" data-monitor-target="monitor-risks">Risks</button>
           <button type="button" data-monitor-target="monitor-receipts">Receipts</button>
           <button type="button" data-monitor-target="monitor-controls">Controls</button>
@@ -298,6 +306,15 @@
         </aside>
         <div class="monitor-main">
           <section id="monitor-controls" class="monitor-controls" aria-label="Monitor controls">
+            <div class="operator-action-console">
+              <div>
+                <p class="eyebrow">Operator Actions</p>
+                <h3>Local Health Actions</h3>
+                <p id="monitor-operator-status">Loading operator actions</p>
+              </div>
+              <div id="monitor-action-buttons" class="operator-action-buttons" aria-label="Monitor operator actions"></div>
+              <div id="monitor-action-receipts" class="operator-action-receipts" aria-label="Monitor action receipts"></div>
+            </div>
             <div class="review-console">
               <label>
                 Review return summary

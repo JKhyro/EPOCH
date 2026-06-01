@@ -26,6 +26,7 @@
     "workPlans",
     "agentHandoffs",
     "routePlacements",
+    "monitorHealthChecks",
     "notificationEvents",
     "customers",
     "cohorts",
@@ -1331,6 +1332,102 @@
     };
   }
 
+  function createMonitorActionRecords(currentData, input, options = {}) {
+    const nextData = cloneData(currentData);
+    ensureCollections(nextData);
+
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const createdAt = withTimezone(now.toISOString(), timezone);
+    const requestStamp = stamp(now);
+    const actionId = clean(input.actionId) || `monitor-action-${requestStamp}`;
+    const title = clean(input.title) || "Monitor operator action";
+    const detail = clean(input.detail) || "Monitor action recorded.";
+    const status = clean(input.status) || "complete";
+    const target = clean(input.target) || "monitor-controls";
+    const owner = clean(input.owner) || "Jack";
+    const receiptId = `receipt-monitor-${requestStamp}`;
+
+    const healthCheck = {
+      id: `monitor-check-${requestStamp}`,
+      actionId,
+      receiptId,
+      title,
+      summary: detail,
+      status,
+      priority: clean(input.priority) || "medium",
+      effect: clean(input.effect) || "record",
+      target,
+      owner,
+      createdAt,
+      visibility: "internal",
+      customerVisible: false
+    };
+
+    const receipt = {
+      id: receiptId,
+      customerId: null,
+      kind: "monitor-check",
+      status,
+      createdAt,
+      note: `${title}: ${detail}`
+    };
+
+    nextData.monitorHealthChecks.unshift(healthCheck);
+    nextData.receipts.unshift(receipt);
+
+    return {
+      data: nextData,
+      records: {
+        healthCheck,
+        receipt
+      }
+    };
+  }
+
+  function summarizeScopeState(currentData, options = {}) {
+    const data = normalizedOperatingData(currentData);
+    const scope = data.monitorScope && typeof data.monitorScope === "object" ? data.monitorScope : {};
+    const routePlacement = options.routePlacement || summarizeRoutePlacementState(data, { now: options.now });
+    const allowedSurfaces = Array.isArray(scope.allowedSurfaces) ? scope.allowedSurfaces : [];
+    const blockedSurfaces = Array.isArray(scope.blockedSurfaces) ? scope.blockedSurfaces : [];
+    const verificationSteps = Array.isArray(scope.verificationSteps) ? scope.verificationSteps : [];
+    const warnings = [];
+
+    if (!clean(scope.localAuthority).toLowerCase().includes("local")) {
+      warnings.push("Local authority is not stated clearly.");
+    }
+    if (routePlacement.routes.some((route) => route.surface === "monitor" && route.visibility !== "internal")) {
+      warnings.push("Monitor route placement is not internal-only.");
+    }
+    if (routePlacement.routes.some((route) => route.surface === "admin" && route.visibility !== "internal")) {
+      warnings.push("Admin route placement is not internal-only.");
+    }
+    if (routePlacement.routes.some((route) => route.duplicateUi)) {
+      warnings.push("A route placement is marked duplicate-ui.");
+    }
+    if (!allowedSurfaces.length || !blockedSurfaces.length) {
+      warnings.push("Scope surface rules are incomplete.");
+    }
+
+    return {
+      title: clean(scope.title) || "EPOCH monitor scope",
+      summary: clean(scope.summary) || "Scope is not defined yet.",
+      localAuthority: clean(scope.localAuthority) || "Local authority not recorded.",
+      allowedSurfaces,
+      blockedSurfaces,
+      verificationSteps,
+      owner: clean(scope.owner) || "owner pending",
+      updatedAt: clean(scope.updatedAt) || "",
+      reviewBy: clean(scope.reviewBy) || "",
+      allowedCount: allowedSurfaces.length,
+      blockedCount: blockedSurfaces.length,
+      verificationCount: verificationSteps.length,
+      warnings,
+      status: warnings.length ? "attention" : "ready"
+    };
+  }
+
   function summarizeMarketingState(currentData) {
     const routes = Array.isArray(currentData.campaignRoutes) ? currentData.campaignRoutes : [];
     const readyRoutes = routes.filter((item) => ["ready", "live", "active"].includes(clean(item.status || item.readinessStatus)));
@@ -1375,6 +1472,28 @@
       channelCount,
       bundleCount,
       conversionTypes
+    };
+  }
+
+  function summarizeMemoryState(currentData, options = {}) {
+    const data = normalizedOperatingData(currentData);
+    const nowText = clean(options.now) || "2026-06-01T12:00:00+09:00";
+    const entries = Array.isArray(data.monitorMemory) ? data.monitorMemory : [];
+    const staleEntries = entries.filter((item) => clean(item.status) === "stale" || (clean(item.reviewBy) && clean(item.reviewBy) < nowText));
+    const watchEntries = entries.filter((item) => {
+      const reviewBy = clean(item.reviewBy);
+      return reviewBy && reviewBy >= nowText && reviewBy <= `${nowText.slice(0, 10)}T23:59:59+09:00`;
+    });
+
+    return {
+      total: entries.length,
+      active: entries.filter((item) => clean(item.status) !== "stale").length,
+      staleCount: staleEntries.length,
+      watchCount: watchEntries.length,
+      latestUpdate: entries.map((item) => clean(item.updatedAt)).filter(Boolean).sort().slice(-1)[0] || "",
+      ownerCount: new Set(entries.map((item) => clean(item.owner)).filter(Boolean)).size,
+      status: staleEntries.length ? "attention" : watchEntries.length ? "watch" : "ready",
+      entries
     };
   }
 
@@ -1450,6 +1569,46 @@
         controlledCustomerRoutes: routes.filter((route) => route.visibility === "controlled-customer").length,
         monitorHref: routes.find((route) => route.surface === "monitor")?.href || "#monitor"
       }
+    };
+  }
+
+  function summarizeAccessPosture(currentData, options = {}) {
+    const data = normalizedOperatingData(currentData);
+    const posture = data.accessPosture && typeof data.accessPosture === "object" ? data.accessPosture : {};
+    const routePlacement = options.routePlacement || summarizeRoutePlacementState(data, { now: options.now });
+    const violations = [];
+    const notes = Array.isArray(posture.notes) ? posture.notes : [];
+
+    if (clean(posture.rawMonitor) !== "local-only") {
+      violations.push("Raw monitor is not marked local-only.");
+    }
+    if (clean(posture.rawAdmin) !== "local-only") {
+      violations.push("Raw admin route is not marked local-only.");
+    }
+    if (clean(posture.defaultPublicPolicy) !== "deny-by-default") {
+      violations.push("Default public policy is not deny-by-default.");
+    }
+    if (routePlacement.routes.some((route) => route.surface === "monitor" && route.visibility !== "internal")) {
+      violations.push("Route placement exposes monitor outside the internal lane.");
+    }
+    if (routePlacement.routes.some((route) => route.surface === "admin" && route.visibility !== "internal")) {
+      violations.push("Route placement exposes admin outside the internal lane.");
+    }
+
+    return {
+      mode: clean(posture.mode) || "local-first",
+      rawMonitor: clean(posture.rawMonitor) || "local-only",
+      rawAdmin: clean(posture.rawAdmin) || "local-only",
+      publicIntake: clean(posture.publicIntake) || "#public",
+      customerStatus: clean(posture.customerStatus) || "#student",
+      safeGateway: clean(posture.safeGateway) || "none",
+      defaultPublicPolicy: clean(posture.defaultPublicPolicy) || "deny-by-default",
+      operatorRule: clean(posture.operatorRule) || "Operator rule not recorded.",
+      verificationStatus: clean(posture.verificationStatus) || "unverified",
+      lastVerifiedAt: clean(posture.lastVerifiedAt) || "",
+      notes,
+      violations,
+      status: violations.length ? "blocked" : "ready"
     };
   }
 
@@ -1635,6 +1794,7 @@
       ...currentData.campaignRoutes.map((item) => ({ kind: "campaign route", id: item.id, title: item.name || item.routeKey, status: item.status || item.readinessStatus, time: item.goLiveAt || item.startAt, owner: item.channel || item.owner || "channel pending" })),
       ...currentData.workPlans.map((item) => ({ kind: "agent work plan", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.approvalStatus || item.owner || "approval pending" })),
       ...currentData.agentHandoffs.map((item) => ({ kind: "agent handoff", id: item.id, title: item.title, status: item.status, time: item.nextActionAt, owner: item.approvalStatus || "approval pending" })),
+      ...currentData.monitorHealthChecks.map((item) => ({ kind: "monitor check", id: item.id, title: item.title, status: item.status, time: item.createdAt, owner: item.target || item.owner || "monitor" })),
       ...currentData.notificationEvents.map((item) => ({ kind: "update", id: item.id, title: item.title, status: item.status, time: item.deliverAfterAt || item.createdAt, owner: item.deliveryStatus || "pending" })),
       ...currentData.sessions.map((item) => ({ kind: "session", id: item.id, title: item.title, status: item.status, time: item.startAt, owner: item.owner || "owner pending" })),
       ...currentData.assignments.map((item) => ({ kind: "request", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.owner || "owner pending" })),
@@ -1658,14 +1818,28 @@
     const calendarExport = createCalendarExport(data, { now: nowText });
     const persistence = summarizePersistenceState(data, { now: nowText });
     const routePlacement = summarizeRoutePlacementState(data, { now: nowText });
+    const scope = summarizeScopeState(data, { now: nowText, routePlacement });
+    const memory = summarizeMemoryState(data, { now: nowText });
+    const access = summarizeAccessPosture(data, { now: nowText, routePlacement });
+    const monitorHealthChecks = data.monitorHealthChecks
+      .slice()
+      .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
     const timeline = monitorTimelineItems(data)
       .sort((a, b) => String(b.time || "").localeCompare(String(a.time || "")));
+    const visibleTimeline = timeline.slice(0, 16);
+    for (const item of timeline.filter((entry) => entry.kind === "monitor check").slice(0, 2)) {
+      if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
+    }
     const queue = timeline
       .filter((item) => activeStatuses.has(item.status))
       .slice(0, 8);
     const overdue = timeline.filter((item) => item.status === "overdue" || (item.time && item.time < nowText && !terminalStatuses.has(item.status)));
     const blocked = timeline.filter((item) => item.status === "blocked");
     const stale = timeline.filter((item) => item.time && item.time < nowText && item.status === "planned");
+    const awaitingReview = timeline.filter((item) => {
+      return (item.kind === "submission" || item.kind === "review") && ["submitted", "reviewing"].includes(item.status);
+    });
+    const dirtyLocalState = !["durable-ready-snapshot", "imported-recovery-snapshot"].includes(clean(persistence.adapterState));
     const risks = [];
 
     if (blocked.length) {
@@ -1692,6 +1866,30 @@
         detail: `${stale.length} planned record has passed its scheduled control time.`
       });
     }
+    if (dirtyLocalState) {
+      risks.push({
+        id: "dirty-local-state",
+        severity: "high",
+        title: "Dirty Local State",
+        detail: `Ledger persistence is ${persistence.adapterState}; export a fresh snapshot before treating this browser state as durable.`
+      });
+    }
+    if (awaitingReview.length) {
+      risks.push({
+        id: "awaiting-review",
+        severity: "medium",
+        title: "Awaiting Review",
+        detail: `${awaitingReview.length} submission or review record still needs operator return or explicit blocker state.`
+      });
+    }
+    if (memory.staleCount) {
+      risks.push({
+        id: "stale-memory",
+        severity: "medium",
+        title: "Stale Memory",
+        detail: `${memory.staleCount} monitor memory note is stale or past review time.`
+      });
+    }
     if (marketing.copyViolations) {
       risks.push({
         id: "copy-compliance-violations",
@@ -1708,6 +1906,64 @@
         detail: `${marketing.under19Routes - marketing.guardianRequiredRoutes} under-19 route lacks guardian consent protection.`
       });
     }
+    if (scope.warnings.length) {
+      risks.push({
+        id: "scope-surface-warning",
+        severity: "medium",
+        title: "Scope Surface Warning",
+        detail: scope.warnings[0]
+      });
+    }
+    if (access.violations.length) {
+      risks.push({
+        id: "safe-access-violation",
+        severity: "high",
+        title: "Safe Access Posture",
+        detail: access.violations[0]
+      });
+    }
+
+    const operatorActions = [];
+    if (dirtyLocalState) {
+      operatorActions.push({
+        id: "export-dirty-ledger",
+        title: "Export dirty ledger snapshot",
+        detail: `Current persistence is ${persistence.adapterState}; write a recovery snapshot before handoff or reset.`,
+        target: "monitor-persistence",
+        effect: "export-ledger",
+        priority: "high"
+      });
+    }
+    if (awaitingReview.length) {
+      operatorActions.push({
+        id: "return-awaiting-review",
+        title: "Return the next queued review",
+        detail: `${awaitingReview.length} review-stage record still needs a return action or blocker note.`,
+        target: "monitor-controls",
+        effect: "return-review",
+        priority: "high"
+      });
+    }
+    if (memory.staleCount) {
+      operatorActions.push({
+        id: "refresh-monitor-memory",
+        title: "Refresh stale monitor memory",
+        detail: `${memory.staleCount} memory note is stale or past review time.`,
+        target: "monitor-memory",
+        effect: "scroll",
+        priority: "medium"
+      });
+    }
+    operatorActions.push({
+      id: "confirm-safe-access",
+      title: access.status === "ready" ? "Record local-only access check" : "Repair safe-access posture",
+      detail: access.status === "ready"
+        ? "Public posture stays intake-only while raw admin and monitor remain local-only."
+        : access.violations[0] || "Safe-access posture needs review.",
+      target: "monitor-access",
+      effect: "acknowledge-posture",
+      priority: access.status === "ready" ? "medium" : "high"
+    });
 
     return {
       summary: {
@@ -1737,7 +1993,16 @@
         readyCampaignRoutes: marketing.ready,
         copyComplianceViolations: marketing.copyViolations,
         under19CampaignRoutes: marketing.under19Routes,
-        marketingChannels: marketing.channelCount
+        marketingChannels: marketing.channelCount,
+        dirtyLocalState,
+        staleRecords: stale.length + memory.staleCount,
+        awaitingReview: awaitingReview.length,
+        scopeWarnings: scope.warnings.length,
+        staleMemoryNotes: memory.staleCount,
+        safeAccessViolations: access.violations.length,
+        monitorHealthChecks: monitorHealthChecks.length,
+        monitorActionReceipts: data.receipts.filter((item) => item.kind === "monitor-check").length,
+        operatorActions: operatorActions.length
       },
       revenue,
       curriculum,
@@ -1747,10 +2012,15 @@
       routePlacement,
       calendar: calendarExport.counts,
       persistence,
+      scope,
+      memory,
+      access,
+      monitorHealthChecks: monitorHealthChecks.slice(0, 8),
       queue,
-      timeline: timeline.slice(0, 10),
+      timeline: visibleTimeline,
       risks,
-      receipts: data.receipts.slice(0, 8)
+      receipts: data.receipts.slice(0, 8),
+      operatorActions
     };
   }
 
@@ -1805,6 +2075,7 @@
     createOperatingLedger,
     createPersistenceMetadata,
     createAgentHandoffRecords,
+    createMonitorActionRecords,
     decideOpportunityRecords,
     createIntakeRecords,
     createSubmissionRecords,
@@ -1816,6 +2087,9 @@
     summarizeCurriculumState,
     summarizeDeadlines,
     summarizeAgentHandoffState,
+    summarizeAccessPosture,
+    summarizeMemoryState,
+    summarizeScopeState,
     summarizeRoutePlacementState,
     summarizePersistenceState,
     summarizeNotificationState,

@@ -25,6 +25,7 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
 - `docs/first-commercial-slice-checklist.md`
 - `docs/integration-priority-ranking.md`
 - `docs/curriculum-gameplan-framework.md`
+- `docs/monitor-parity-health-controls.md`
 - `docs/agentic-revenue-handoff-contract.md`
 - `docs/synapse-route-placement-contract.md`
 
@@ -43,9 +44,10 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   receipt records, then supports opportunity-to-engagement conversion,
   customer-visible update events, scheduling, TEMPO-ready calendar export
   entries, submission creation, deadline summaries, returned-review receipts,
-  monitor health reports, and versioned operating-ledger export/import with a
-  LIBRARY-ready durable persistence envelope, plus SYMBIOSIS/ANVIL agentic
-  revenue handoff records and SYNAPSE route placement metadata.
+  monitor health reports, ledger-backed monitor health checks, and versioned
+  operating-ledger export/import with a LIBRARY-ready durable persistence
+  envelope, plus SYMBIOSIS/ANVIL agentic revenue handoff records and SYNAPSE
+  route placement metadata.
 - `web/app.js`: shared renderer and local persistence flow for admin,
   student/customer, monitor, public request, scheduling, submission, and
   review-return views, including local ledger save/load, durable snapshot status,
