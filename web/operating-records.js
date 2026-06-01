@@ -20,6 +20,7 @@
     "curriculumFrameworks",
     "packageGameplans",
     "campaignRoutes",
+    "marketingConversionEvents",
     "leads",
     "opportunities",
     "engagements",
@@ -794,6 +795,206 @@
     ];
   }
 
+  function defaultMarketingConversionEvents() {
+    return [
+      {
+        id: "conversion-ja-diagnostic-view",
+        title: "Japan English Offer View Readiness",
+        campaignRouteId: "campaign-ja-english-accelerator",
+        campaignId: "cmp-ja-eiken-writing-001",
+        routeKey: "ja/offers/english-accelerator/intake",
+        regionScope: "jp",
+        sourceChannel: "Japan SEO, LINE, note, X, referrals",
+        offerBundle: "english-cohort",
+        audienceTier: "19plus",
+        eventType: "offer_view",
+        conversionStage: "awareness",
+        primaryConversion: "diagnostic_submit",
+        status: "queued",
+        readinessStatus: "kpi-ready",
+        conversionValueJpy: 0,
+        publicMetric: true,
+        customerVisible: false,
+        customerSafe: true,
+        localOnly: true,
+        livePixelEnabled: false,
+        externalAdApiWrite: false,
+        invasiveTracking: false,
+        storesPersonalData: false,
+        productionAnalyticsCredential: false,
+        webhookEnabled: false,
+        crossSiteIdentifier: false,
+        analyticsProvider: "provider-neutral ledger",
+        attributionPolicy: "first-party-route-key-only",
+        copyPolicy: "outcome-workflow-no-ai-forward",
+        readinessChecks: ["route-key-preserved", "no-live-pixel", "no-external-ad-api-write", "first-party-ledger-only", "no-invasive-tracking", "no-analytics-credentials"],
+        monitorKpis: ["Route Health", "Offer View Readiness", "Submission-to-Enrollment"],
+        nextActionAt: "2026-06-02T17:00:00+09:00",
+        occurredAt: "2026-06-02T09:00:00+09:00",
+        createdAt: "2026-06-02T02:00:00+09:00",
+        updatedAt: "2026-06-02T02:00:00+09:00",
+        receiptIds: ["receipt-marketing-conversion-seed"],
+        notes: "Track offer-view readiness through local route attribution only; do not attach live pixels or external ad provider writes."
+      },
+      {
+        id: "conversion-ja-diagnostic-submit",
+        title: "Japan Diagnostic Submit KPI",
+        campaignRouteId: "campaign-ja-english-accelerator",
+        campaignId: "cmp-ja-eiken-writing-001",
+        routeKey: "ja/offers/english-accelerator/intake",
+        regionScope: "jp",
+        sourceChannel: "Japan SEO, LINE, note, X, referrals",
+        offerBundle: "english-cohort",
+        audienceTier: "19plus",
+        eventType: "diagnostic_submit",
+        conversionStage: "high-intent",
+        primaryConversion: "diagnostic_submit",
+        status: "planned",
+        readinessStatus: "kpi-ready",
+        conversionValueJpy: 45000,
+        publicMetric: false,
+        customerVisible: false,
+        customerSafe: true,
+        localOnly: true,
+        livePixelEnabled: false,
+        externalAdApiWrite: false,
+        invasiveTracking: false,
+        storesPersonalData: false,
+        productionAnalyticsCredential: false,
+        webhookEnabled: false,
+        crossSiteIdentifier: false,
+        analyticsProvider: "provider-neutral ledger",
+        attributionPolicy: "first-party-route-key-only",
+        copyPolicy: "outcome-workflow-no-ai-forward",
+        readinessChecks: ["route-key-preserved", "primary-conversion-defined", "no-live-pixel", "no-external-ad-api-write", "first-party-ledger-only", "no-invasive-tracking", "no-analytics-credentials"],
+        monitorKpis: ["Submission-to-Enrollment", "Cohort Fill%", "Queue-to-Delivery SLA"],
+        nextActionAt: "2026-06-02T17:30:00+09:00",
+        occurredAt: "",
+        createdAt: "2026-06-02T02:01:00+09:00",
+        updatedAt: "2026-06-02T02:01:00+09:00",
+        receiptIds: ["receipt-marketing-conversion-seed"],
+        notes: "Diagnostic submit is the main Japan English conversion signal before any paid route or external ad integration."
+      },
+      {
+        id: "conversion-ja-review-submit",
+        title: "Teacher Review Submission KPI",
+        campaignRouteId: "campaign-ja-teacher-review-pack",
+        campaignId: "cmp-ja-review-pack-001",
+        routeKey: "ja/offers/teacher-review-pack/submission-path",
+        regionScope: "jp",
+        sourceChannel: "Community partners, search, referral messages",
+        offerBundle: "teacher-review",
+        audienceTier: "19plus",
+        eventType: "portfolio_submit",
+        conversionStage: "high-intent",
+        primaryConversion: "portfolio_submit",
+        status: "planned",
+        readinessStatus: "kpi-ready",
+        conversionValueJpy: 16000,
+        publicMetric: false,
+        customerVisible: false,
+        customerSafe: true,
+        localOnly: true,
+        livePixelEnabled: false,
+        externalAdApiWrite: false,
+        invasiveTracking: false,
+        storesPersonalData: false,
+        productionAnalyticsCredential: false,
+        webhookEnabled: false,
+        crossSiteIdentifier: false,
+        analyticsProvider: "provider-neutral ledger",
+        attributionPolicy: "first-party-route-key-only",
+        copyPolicy: "teacher-reviewed-outcome-copy",
+        readinessChecks: ["route-key-preserved", "primary-conversion-defined", "submission-first", "no-live-pixel", "no-external-ad-api-write", "first-party-ledger-only", "no-invasive-tracking", "no-analytics-credentials"],
+        monitorKpis: ["Submission-to-Enrollment", "Queue-to-Delivery SLA", "Copy Compliance Violations"],
+        nextActionAt: "2026-06-02T18:00:00+09:00",
+        occurredAt: "",
+        createdAt: "2026-06-02T02:02:00+09:00",
+        updatedAt: "2026-06-02T02:02:00+09:00",
+        receiptIds: ["receipt-marketing-conversion-seed"],
+        notes: "Submission-first review pack conversion stays local and route-key based until campaign proof is strong enough for provider selection."
+      },
+      {
+        id: "conversion-global-support-consult",
+        title: "Global Support Consultation KPI",
+        campaignRouteId: "campaign-global-professional-support",
+        campaignId: "cmp-global-support-001",
+        routeKey: "global/offers/professional-support/tech-support",
+        regionScope: "global",
+        sourceChannel: "LinkedIn, Google Search, partner newsletters",
+        offerBundle: "tech-support",
+        audienceTier: "corporate",
+        eventType: "consult_booking",
+        conversionStage: "qualified",
+        primaryConversion: "consult_booking",
+        status: "planned",
+        readinessStatus: "provider-deferred",
+        conversionValueJpy: 120000,
+        publicMetric: false,
+        customerVisible: false,
+        customerSafe: true,
+        localOnly: true,
+        livePixelEnabled: false,
+        externalAdApiWrite: false,
+        invasiveTracking: false,
+        storesPersonalData: false,
+        productionAnalyticsCredential: false,
+        webhookEnabled: false,
+        crossSiteIdentifier: false,
+        analyticsProvider: "provider-neutral ledger",
+        attributionPolicy: "first-party-route-key-only",
+        copyPolicy: "service-outcome-copy",
+        readinessChecks: ["route-key-preserved", "primary-conversion-defined", "access-boundary-required", "no-live-pixel", "no-external-ad-api-write", "first-party-ledger-only", "no-invasive-tracking", "no-analytics-credentials"],
+        monitorKpis: ["Route Health", "Queue-to-Delivery SLA", "Premium Add-on Conversion"],
+        nextActionAt: "2026-06-02T18:30:00+09:00",
+        occurredAt: "",
+        createdAt: "2026-06-02T02:03:00+09:00",
+        updatedAt: "2026-06-02T02:03:00+09:00",
+        receiptIds: ["receipt-marketing-conversion-seed"],
+        notes: "Global support route can measure consultation readiness locally before ad platforms, pixels, or analytics credentials are selected."
+      },
+      {
+        id: "conversion-under19-compatibility-request",
+        title: "Under-19 Compatibility Request KPI",
+        campaignRouteId: "campaign-ja-under19-guardian-gate",
+        campaignId: "cmp-ja-under19-001",
+        routeKey: "ja/offers/under19/guardian-gate",
+        regionScope: "jp",
+        sourceChannel: "Guardian referrals, school contacts, partner placements",
+        offerBundle: "english-cohort",
+        audienceTier: "under19",
+        eventType: "compatibility_request",
+        conversionStage: "guarded-intake",
+        primaryConversion: "compatibility_request",
+        status: "queued",
+        readinessStatus: "guardian-gated",
+        conversionValueJpy: 0,
+        publicMetric: false,
+        customerVisible: false,
+        customerSafe: true,
+        localOnly: true,
+        livePixelEnabled: false,
+        externalAdApiWrite: false,
+        invasiveTracking: false,
+        storesPersonalData: false,
+        productionAnalyticsCredential: false,
+        webhookEnabled: false,
+        crossSiteIdentifier: false,
+        analyticsProvider: "provider-neutral ledger",
+        attributionPolicy: "first-party-route-key-only",
+        copyPolicy: "under19-guardian-gated-copy",
+        readinessChecks: ["route-key-preserved", "guardian-consent-required", "no-paid-action-before-consent", "no-live-pixel", "no-external-ad-api-write", "first-party-ledger-only", "no-invasive-tracking", "no-analytics-credentials"],
+        monitorKpis: ["Under-19 Compliance Rate", "Copy Compliance Violations"],
+        nextActionAt: "2026-06-02T19:00:00+09:00",
+        occurredAt: "",
+        createdAt: "2026-06-02T02:04:00+09:00",
+        updatedAt: "2026-06-02T02:04:00+09:00",
+        receiptIds: ["receipt-marketing-conversion-seed"],
+        notes: "Under-19 conversion analytics only proves compatibility-route readiness; payment and enrollment remain blocked before consent."
+      }
+    ];
+  }
+
   function normalizedOperatingData(data) {
     const nextData = cloneData(data || {});
     for (const collection of ledgerCollections) {
@@ -820,6 +1021,9 @@
     }
     if (!Array.isArray(nextData.authSessionRoleHandoffs) || !nextData.authSessionRoleHandoffs.length) {
       nextData.authSessionRoleHandoffs = defaultAuthSessionRoleHandoffs();
+    }
+    if (!Array.isArray(nextData.marketingConversionEvents) || !nextData.marketingConversionEvents.length) {
+      nextData.marketingConversionEvents = defaultMarketingConversionEvents();
     }
     if (!nextData.accessPosture || typeof nextData.accessPosture !== "object") {
       nextData.accessPosture = {
@@ -4303,6 +4507,284 @@
     };
   }
 
+  function summarizeMarketingConversionState(currentData) {
+    const data = normalizedOperatingData(currentData);
+    const routesById = new Map(data.campaignRoutes.map((route) => [clean(route.id), route]));
+    const events = data.marketingConversionEvents.map((event) => {
+      const route = routesById.get(clean(event.campaignRouteId));
+      const eventType = clean(event.eventType) || clean(event.primaryConversion) || "conversion-pending";
+      const status = clean(event.status) || "planned";
+      const readinessStatus = clean(event.readinessStatus) || "provider-deferred";
+      const readinessChecks = Array.isArray(event.readinessChecks) ? event.readinessChecks : [];
+      const monitorKpis = Array.isArray(event.monitorKpis) ? event.monitorKpis : [];
+      const receiptIds = Array.isArray(event.receiptIds) ? event.receiptIds : [];
+      const livePixelEnabled = event.livePixelEnabled === true;
+      const externalAdApiWrite = event.externalAdApiWrite === true;
+      const invasiveTracking = event.invasiveTracking === true;
+      const storesPersonalData = event.storesPersonalData === true;
+      const productionAnalyticsCredential = event.productionAnalyticsCredential === true;
+      const webhookEnabled = event.webhookEnabled === true;
+      const crossSiteIdentifier = event.crossSiteIdentifier === true;
+      const audienceTier = clean(event.audienceTier || route?.audienceTier) || "19plus";
+      const violations = [];
+
+      if (!route) {
+        violations.push("Marketing conversion event must reference a campaign route.");
+      }
+      if (livePixelEnabled || externalAdApiWrite || productionAnalyticsCredential || webhookEnabled) {
+        violations.push("Marketing conversion readiness cannot enable live pixels, ad API writes, analytics credentials, or webhooks.");
+      }
+      if (invasiveTracking || storesPersonalData || crossSiteIdentifier) {
+        violations.push("Marketing conversion readiness must avoid invasive tracking, personal-data storage, and cross-site identifiers.");
+      }
+      for (const required of ["no-live-pixel", "no-external-ad-api-write", "first-party-ledger-only", "no-invasive-tracking", "no-analytics-credentials"]) {
+        if (!readinessChecks.includes(required)) {
+          violations.push(`Marketing conversion readiness must include ${required}.`);
+        }
+      }
+      if (audienceTier === "under19") {
+        if (!readinessChecks.includes("guardian-consent-required") || !readinessChecks.includes("no-paid-action-before-consent")) {
+          violations.push("Under-19 marketing conversion readiness must preserve guardian consent and no paid action before consent.");
+        }
+      }
+      if (!monitorKpis.length) {
+        violations.push("Marketing conversion event must expose at least one monitor KPI.");
+      }
+
+      return {
+        id: clean(event.id),
+        title: clean(event.title) || "Marketing Conversion Event",
+        campaignRouteId: clean(event.campaignRouteId),
+        campaignId: clean(event.campaignId || route?.campaignId),
+        routeKey: clean(event.routeKey || route?.routeKey),
+        regionScope: clean(event.regionScope || route?.regionScope) || "jp",
+        sourceChannel: clean(event.sourceChannel || route?.channel) || "channel pending",
+        offerBundle: clean(event.offerBundle || route?.offerBundle) || "offer-pending",
+        audienceTier,
+        eventType,
+        conversionStage: clean(event.conversionStage) || "readiness",
+        primaryConversion: clean(event.primaryConversion || route?.primaryConversion) || eventType,
+        status,
+        readinessStatus,
+        conversionValueJpy: Number(event.conversionValueJpy || 0),
+        publicMetric: event.publicMetric === true,
+        customerVisible: event.customerVisible === true,
+        customerSafe: event.customerSafe !== false,
+        localOnly: event.localOnly !== false,
+        livePixelEnabled,
+        externalAdApiWrite,
+        invasiveTracking,
+        storesPersonalData,
+        productionAnalyticsCredential,
+        webhookEnabled,
+        crossSiteIdentifier,
+        analyticsProvider: clean(event.analyticsProvider) || "provider-neutral ledger",
+        attributionPolicy: clean(event.attributionPolicy) || "first-party-route-key-only",
+        copyPolicy: clean(event.copyPolicy || route?.copyPolicy) || "copy-policy-pending",
+        readinessChecks,
+        monitorKpis,
+        nextActionAt: clean(event.nextActionAt),
+        occurredAt: clean(event.occurredAt),
+        createdAt: clean(event.createdAt),
+        updatedAt: clean(event.updatedAt),
+        receiptIds,
+        notes: clean(event.notes) || "No marketing conversion note recorded.",
+        routeStatus: clean(route?.status || route?.readinessStatus) || "missing-route",
+        violations
+      };
+    });
+    const violationList = events.flatMap((event) => event.violations.map((violation) => `${event.title}: ${violation}`));
+    const conversionStatuses = new Set(["recorded", "complete", "qualified", "converted"]);
+
+    return {
+      eventCount: events.length,
+      readyEvents: events.filter((event) => ["ready", "kpi-ready", "provider-deferred", "guardian-gated"].includes(event.readinessStatus)).length,
+      recordedEvents: events.filter((event) => conversionStatuses.has(event.status)).length,
+      highIntentEvents: events.filter((event) => ["high-intent", "qualified", "converted", "guarded-intake"].includes(event.conversionStage)).length,
+      jpEvents: events.filter((event) => event.regionScope === "jp").length,
+      globalEvents: events.filter((event) => event.regionScope === "global").length,
+      dualEvents: events.filter((event) => event.regionScope === "dual").length,
+      under19GuardedEvents: events.filter((event) => event.audienceTier === "under19" && event.readinessChecks.includes("guardian-consent-required")).length,
+      noLiveTracking: events.filter((event) => !event.livePixelEnabled && !event.externalAdApiWrite && !event.invasiveTracking && !event.storesPersonalData && !event.productionAnalyticsCredential && !event.webhookEnabled && !event.crossSiteIdentifier).length,
+      providerDeferred: events.filter((event) => event.analyticsProvider === "provider-neutral ledger").length,
+      potentialValueJpy: events.reduce((sum, event) => sum + event.conversionValueJpy, 0),
+      eventTypes: events.reduce((memo, event) => {
+        memo[event.eventType] = (memo[event.eventType] || 0) + 1;
+        return memo;
+      }, {}),
+      status: violationList.length ? "blocked" : "ready",
+      violations: violationList,
+      events
+    };
+  }
+
+  function createMarketingConversionEventRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const nowText = withTimezone(now.toISOString(), nextData.timezone || "Asia/Tokyo");
+    const route = nextData.campaignRoutes.find((item) => clean(item.id) === clean(input.campaignRouteId))
+      || nextData.campaignRoutes.find((item) => clean(item.routeKey) === clean(input.routeKey))
+      || nextData.campaignRoutes[0];
+    if (!route) throw new Error("Create a campaign route before creating marketing conversion readiness.");
+    const eventType = clean(input.eventType || route.primaryConversion) || "conversion_readiness";
+    const event = {
+      id: `conversion-${stamp(now)}-${nextData.marketingConversionEvents.length + 1}`,
+      title: clean(input.title) || `${clean(route.name) || "Campaign"} ${eventType} KPI`,
+      campaignRouteId: clean(route.id),
+      campaignId: clean(route.campaignId),
+      routeKey: clean(route.routeKey),
+      regionScope: clean(route.regionScope),
+      sourceChannel: clean(input.sourceChannel || route.channel),
+      offerBundle: clean(route.offerBundle),
+      audienceTier: clean(route.audienceTier) || "19plus",
+      eventType,
+      conversionStage: clean(input.conversionStage) || "readiness",
+      primaryConversion: clean(input.primaryConversion || route.primaryConversion || eventType),
+      status: clean(input.status) || "planned",
+      readinessStatus: clean(input.readinessStatus) || "provider-deferred",
+      conversionValueJpy: Number(input.conversionValueJpy || 0),
+      publicMetric: input.publicMetric === true || input.publicMetric === "true",
+      customerVisible: false,
+      customerSafe: true,
+      localOnly: true,
+      livePixelEnabled: false,
+      externalAdApiWrite: false,
+      invasiveTracking: false,
+      storesPersonalData: false,
+      productionAnalyticsCredential: false,
+      webhookEnabled: false,
+      crossSiteIdentifier: false,
+      analyticsProvider: "provider-neutral ledger",
+      attributionPolicy: "first-party-route-key-only",
+      copyPolicy: clean(input.copyPolicy || route.copyPolicy),
+      readinessChecks: ["route-key-preserved", "primary-conversion-defined", "no-live-pixel", "no-external-ad-api-write", "first-party-ledger-only", "no-invasive-tracking", "no-analytics-credentials"],
+      monitorKpis: Array.isArray(route.monitorKpis) ? route.monitorKpis.slice(0, 4) : ["Route Health"],
+      nextActionAt: withTimezone(input.nextActionAt, nextData.timezone || "Asia/Tokyo") || nowText,
+      occurredAt: clean(input.occurredAt) ? withTimezone(input.occurredAt, nextData.timezone || "Asia/Tokyo") : "",
+      createdAt: nowText,
+      updatedAt: nowText,
+      receiptIds: [],
+      notes: clean(input.note) || "Marketing conversion KPI readiness created without live pixels or external analytics writes."
+    };
+    if (event.audienceTier === "under19") {
+      event.readinessChecks.push("guardian-consent-required", "no-paid-action-before-consent");
+    }
+    const receipt = {
+      id: `receipt-marketing-conversion-${stamp(now)}`,
+      kind: "marketing-conversion",
+      status: "complete",
+      createdAt: nowText,
+      note: `${event.title}: local KPI readiness created with provider-neutral attribution.`
+    };
+    event.receiptIds.push(receipt.id);
+    nextData.marketingConversionEvents.unshift(event);
+    nextData.receipts.unshift(receipt);
+    return {
+      data: nextData,
+      records: {
+        event,
+        receipt
+      }
+    };
+  }
+
+  function transitionMarketingConversionEventRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const nowText = withTimezone(now.toISOString(), nextData.timezone || "Asia/Tokyo");
+    const event = nextData.marketingConversionEvents.find((item) => clean(item.id) === clean(input.eventId));
+    if (!event) throw new Error("Select a marketing conversion event before applying an action.");
+    const action = clean(input.action) || "verify";
+    const note = clean(input.note) || "Marketing conversion readiness reviewed.";
+    const ensureChecks = (checks) => {
+      event.readinessChecks = Array.isArray(event.readinessChecks) ? event.readinessChecks : [];
+      for (const check of checks) {
+        if (!event.readinessChecks.includes(check)) event.readinessChecks.push(check);
+      }
+    };
+
+    if (action === "verify") {
+      event.status = "complete";
+      event.readinessStatus = "kpi-ready";
+      event.conversionStage = event.conversionStage || "readiness";
+      ensureChecks(["route-key-preserved", "primary-conversion-defined"]);
+    } else if (action === "record-view") {
+      event.status = "recorded";
+      event.eventType = event.eventType || "offer_view";
+      event.conversionStage = "awareness";
+      event.occurredAt = nowText;
+      ensureChecks(["route-key-preserved"]);
+    } else if (action === "record-conversion") {
+      event.status = "converted";
+      event.conversionStage = "converted";
+      event.occurredAt = nowText;
+      ensureChecks(["route-key-preserved", "primary-conversion-defined"]);
+    } else if (action === "qualify") {
+      event.status = "qualified";
+      event.conversionStage = "qualified";
+      event.readinessStatus = "kpi-ready";
+      ensureChecks(["route-key-preserved", "primary-conversion-defined"]);
+    } else if (action === "block") {
+      event.status = "blocked";
+      event.readinessStatus = "blocked";
+    } else {
+      event.status = action;
+    }
+
+    ensureChecks(["no-live-pixel", "no-external-ad-api-write", "first-party-ledger-only", "no-invasive-tracking", "no-analytics-credentials"]);
+    if (clean(event.audienceTier) === "under19") {
+      ensureChecks(["guardian-consent-required", "no-paid-action-before-consent"]);
+    }
+    event.localOnly = true;
+    event.customerVisible = false;
+    event.customerSafe = true;
+    event.livePixelEnabled = false;
+    event.externalAdApiWrite = false;
+    event.invasiveTracking = false;
+    event.storesPersonalData = false;
+    event.productionAnalyticsCredential = false;
+    event.webhookEnabled = false;
+    event.crossSiteIdentifier = false;
+    event.analyticsProvider = "provider-neutral ledger";
+    event.attributionPolicy = "first-party-route-key-only";
+    event.updatedAt = nowText;
+    event.notes = note;
+
+    const receipt = {
+      id: `receipt-marketing-conversion-${stamp(now)}`,
+      kind: "marketing-conversion",
+      status: event.status === "blocked" ? "blocked" : "complete",
+      createdAt: nowText,
+      note: `${event.title}: ${action} recorded without live pixels or external ad writes. ${note}`
+    };
+    const healthCheck = {
+      id: `monitor-check-marketing-conversion-${stamp(now)}`,
+      title: "Marketing Conversion KPI Readiness",
+      status: event.status === "blocked" ? "blocked" : "complete",
+      target: "monitor-marketing-conversions",
+      effect: "marketing-conversion-readiness",
+      createdAt: nowText,
+      summary: `${event.title} is ${event.readinessStatus}; attribution remains first-party and provider-neutral.`,
+      receiptId: receipt.id,
+      visibility: "internal",
+      customerVisible: false
+    };
+
+    event.receiptIds = Array.isArray(event.receiptIds) ? event.receiptIds : [];
+    event.receiptIds.push(receipt.id);
+    nextData.receipts.unshift(receipt);
+    nextData.monitorHealthChecks.unshift(healthCheck);
+
+    return {
+      data: nextData,
+      records: {
+        event,
+        receipt,
+        healthCheck
+      }
+    };
+  }
+
   function summarizeMemoryState(currentData, options = {}) {
     const data = normalizedOperatingData(currentData);
     const nowText = clean(options.now) || "2026-06-01T12:00:00+09:00";
@@ -4335,6 +4817,7 @@
     const scheduleControls = summarizeScheduleControlState(data);
     const handoffs = summarizeAgentHandoffState(data);
     const marketing = summarizeMarketingState(data);
+    const marketingConversion = summarizeMarketingConversionState(data);
     const calendarExport = createCalendarExport(data, { now: nowText });
     const timeline = monitorTimelineItems(data);
     const terminalStatuses = new Set(["complete", "sent", "paid-recorded", "declined", "returned", "canceled", "accepted", "rejected", "rolled-back"]);
@@ -4360,6 +4843,8 @@
       calendarEntries: calendarExport.counts.total,
       campaignRoutes: marketing.total,
       readyCampaignRoutes: marketing.ready,
+      marketingConversionEvents: marketingConversion.eventCount,
+      marketingConversionReady: marketingConversion.readyEvents,
       copyComplianceViolations: marketing.copyViolations
     };
     const summaryByKey = {
@@ -4367,7 +4852,7 @@
       queue: `${baseSummary.queue} queued records`,
       "visible-updates": `${baseSummary.visibleUpdates} visible updates`,
       pipeline: `${revenue.pipelineCount} opportunities; ${baseSummary.pipelineValueJpy} JPY pipeline`,
-      marketing: `${marketing.ready} ready campaigns; ${marketing.copyViolations} copy policy violations`
+      marketing: `${marketing.ready} ready campaigns; ${marketingConversion.readyEvents} KPI events; ${marketing.copyViolations} copy policy violations`
     };
     const routes = data.routePlacements.map((route) => ({
       id: clean(route.id),
@@ -5345,6 +5830,7 @@
       ...currentData.engagements.map((item) => ({ kind: "engagement", id: item.id, title: item.packageId || item.id, status: item.status, time: item.onboardingDueAt || item.acceptedAt, owner: item.owner || "owner pending" })),
       ...currentData.packageGameplans.map((item) => ({ kind: "gameplan", id: item.id, title: item.title, status: item.status, time: item.nextMilestoneAt, owner: item.laborModel || "delivery plan" })),
       ...currentData.campaignRoutes.map((item) => ({ kind: "campaign route", id: item.id, title: item.name || item.routeKey, status: item.status || item.readinessStatus, time: item.goLiveAt || item.startAt, owner: item.channel || item.owner || "channel pending" })),
+      ...(currentData.marketingConversionEvents || []).map((item) => ({ kind: "marketing conversion", id: item.id, title: item.title, status: item.status || item.readinessStatus, time: item.nextActionAt || item.occurredAt || item.updatedAt || item.createdAt, owner: item.eventType || item.primaryConversion || "conversion" })),
       ...currentData.workPlans.map((item) => ({ kind: "agent work plan", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.approvalStatus || item.owner || "approval pending" })),
       ...currentData.agentHandoffs.map((item) => ({ kind: "agent handoff", id: item.id, title: item.title, status: item.status, time: item.nextActionAt, owner: item.approvalStatus || "approval pending" })),
       ...currentData.monitorHealthChecks.map((item) => ({ kind: "monitor check", id: item.id, title: item.title, status: item.status, time: item.createdAt, owner: item.target || item.owner || "monitor" })),
@@ -5384,6 +5870,7 @@
     const scheduleControls = summarizeScheduleControlState(data);
     const handoffs = summarizeAgentHandoffState(data);
     const marketing = summarizeMarketingState(data);
+    const marketingConversion = summarizeMarketingConversionState(data);
     const calendarExport = createCalendarExport(data, { now: nowText });
     const calendarProvider = summarizeCalendarProviderState(data, { now: nowText, calendarExport });
     const persistence = summarizePersistenceState(data, { now: nowText });
@@ -5435,6 +5922,10 @@
       if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
     for (const item of timeline.filter((entry) => entry.kind === "auth/session role").slice(0, 4)) {
+      if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
+      if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
+    }
+    for (const item of timeline.filter((entry) => entry.kind === "marketing conversion").slice(0, 5)) {
       if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
       if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
@@ -5509,6 +6000,14 @@
         severity: "high",
         title: "Under-19 Route Guard Missing",
         detail: `${marketing.under19Routes - marketing.guardianRequiredRoutes} under-19 route lacks guardian consent protection.`
+      });
+    }
+    if (marketingConversion.violations.length) {
+      risks.push({
+        id: "marketing-conversion-readiness-violation",
+        severity: "high",
+        title: "Marketing Conversion KPI Readiness",
+        detail: marketingConversion.violations[0]
       });
     }
     if (scope.warnings.length) {
@@ -5696,6 +6195,12 @@
         synapsePlacementMode: routePlacement.placementMode,
         campaignRoutes: marketing.total,
         readyCampaignRoutes: marketing.ready,
+        marketingConversionEvents: marketingConversion.eventCount,
+        marketingConversionReady: marketingConversion.readyEvents,
+        marketingConversionRecorded: marketingConversion.recordedEvents,
+        marketingConversionNoLiveTracking: marketingConversion.noLiveTracking,
+        marketingConversionPotentialValueJpy: marketingConversion.potentialValueJpy,
+        marketingConversionViolations: marketingConversion.violations.length,
         copyComplianceViolations: marketing.copyViolations,
         under19CampaignRoutes: marketing.under19Routes,
         marketingChannels: marketing.channelCount,
@@ -5736,6 +6241,7 @@
       scheduleControls,
       handoffs,
       marketing,
+      marketingConversion,
       calendarProvider,
       librarySync,
       accessGateways,
@@ -5773,6 +6279,7 @@
     const notificationProvider = summarizeNotificationProviderState(data);
     const paymentProvider = summarizePaymentProviderState(data);
     const authSession = summarizeAuthSessionRoleState(data);
+    const marketingConversion = summarizeMarketingConversionState(data);
     const routePlacement = summarizeRoutePlacementState(data, { now: now.toISOString() });
     const accessGateway = summarizeAccessGatewayState(data, { now: now.toISOString(), routePlacement });
     const librarySync = summarizeLibrarySyncState(data, { now: now.toISOString(), persistence });
@@ -5794,6 +6301,7 @@
       notificationProvider,
       paymentProvider,
       authSession,
+      marketingConversion,
       routePlacement,
       accessGateway,
       librarySync,
@@ -5826,6 +6334,8 @@
     transitionPaymentProviderHandoffRecords,
     createAuthSessionRoleHandoffRecords,
     transitionAuthSessionRoleHandoffRecords,
+    createMarketingConversionEventRecords,
+    transitionMarketingConversionEventRecords,
     createQuoteEstimateRecords,
     transitionQuoteEstimateRecords,
     createReminderRuleRecords,
@@ -5862,6 +6372,7 @@
     summarizeNotificationProviderState,
     summarizePaymentProviderState,
     summarizeAuthSessionRoleState,
+    summarizeMarketingConversionState,
     summarizeAccessPosture,
     summarizeMemoryState,
     summarizeScopeState,

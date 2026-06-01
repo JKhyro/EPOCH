@@ -11,6 +11,9 @@ any spend or outreach begins.
 ## Campaign Route Model
 
 - `campaignRoutes`: public, admin, and monitor-ready campaign records.
+- `marketingConversionEvents`: local conversion KPI records linked to campaign
+  routes before any live ad pixel, external ad API, or analytics provider is
+  selected.
 - `routeKey`: stable route family and stage, such as
   `ja/offers/english-accelerator/intake` or
   `services/crm-database/workflow-audit`.
@@ -29,6 +32,31 @@ any spend or outreach begins.
 - `monitorKpis`: route health, submission-to-enrollment, cohort fill, under-19
   compliance, premium add-on conversion, queue-to-delivery SLA, and copy-policy
   checks.
+
+## Conversion KPI Readiness
+
+EPOCH measures conversion readiness with first-party route attribution only.
+The local KPI layer should answer which route is ready for views, diagnostic
+submissions, writing-sample submissions, consultation bookings, and guarded
+under-19 compatibility requests.
+
+Required seed coverage:
+
+- Japan English offer view readiness.
+- Japan diagnostic submit KPI.
+- Teacher review submission KPI.
+- Global support consultation KPI.
+- Under-19 compatibility request KPI.
+
+Every KPI record must keep `livePixelEnabled`, `externalAdApiWrite`,
+`invasiveTracking`, `storesPersonalData`, `productionAnalyticsCredential`,
+`webhookEnabled`, and `crossSiteIdentifier` false. The readiness checks must
+include `no-live-pixel`, `no-external-ad-api-write`,
+`first-party-ledger-only`, `no-invasive-tracking`, and
+`no-analytics-credentials`.
+
+Provider selection is deferred until the route, offer, legal/privacy posture,
+and consent boundary are explicit.
 
 ## Route Families
 
@@ -100,6 +128,10 @@ EPOCH MONITOR should report:
 - public, admin, and monitor route coverage
 - copy-policy violations
 - under-19 guardian-gate coverage
+- conversion KPI readiness
+- no-live-tracking count
+- potential JPY conversion value
+- conversion-readiness violations
 - channel count and offer-bundle count
 - go-live windows in the calendar export
 
@@ -110,5 +142,7 @@ EPOCH MONITOR should report:
 - Each route has a channel, campaign id, owner, approver, and go-live time.
 - Public copy avoids forbidden terms and contains required workflow language.
 - Under-19 routes are guardian-gated before payment or enrollment.
+- Conversion KPIs are linked to campaign routes and remain first-party,
+  provider-neutral, and no-live-tracking.
 - Campaign routes appear in the operating ledger, monitor report, and calendar
   export.

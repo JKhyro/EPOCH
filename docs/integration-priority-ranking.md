@@ -123,7 +123,26 @@ Current EPOCH-side auth/session slice:
   OAuth clients, credentials, tokens, external sessions, identity-provider
   writes, or customer-visible notification events.
 
-### 6. LIBRARY Durable Operating Ledger Persistence
+### 6. Marketing Conversion Analytics Readiness
+
+Marketing conversion analytics should stay local and provider-neutral until
+campaign routes, privacy posture, and consent boundaries are explicit. EPOCH
+should prove KPI records before any ad pixel, analytics credential, external ad
+API write, webhook, or cross-site identifier exists.
+
+Current EPOCH-side marketing conversion slice:
+
+- `marketingConversionEvents` records route-attributed KPI events for Japan,
+  global, submission-first, service-support, and under-19 guarded routes.
+- `summarizeMarketingConversionState` exposes ready KPIs, recorded events,
+  no-live-tracking posture, potential JPY value, and violations to EPOCH
+  MONITOR.
+- `transitionMarketingConversionEventRecords` creates internal monitor health
+  checks and `marketing-conversion` receipts without live pixels, external ad
+  API writes, invasive tracking, analytics credentials, webhooks, personal-data
+  storage, cross-site identifiers, or customer-visible notification events.
+
+### 7. LIBRARY Durable Operating Ledger Persistence
 
 The local JSON ledger proves the shape, but durable persistence should move to
 LIBRARY once the first notification and calendar contracts are stable.
@@ -147,7 +166,7 @@ Current EPOCH-side slice:
 - Live LIBRARY API/database mutation remains out of scope until this handoff
   contract is stable and verified.
 
-### 7. SYMBIOSIS And ANVIL Agentic Work Handoff
+### 8. SYMBIOSIS And ANVIL Agentic Work Handoff
 
 After EPOCH can notify people and preserve records, the ARA revenue loop should
 use EPOCH to schedule and track agent-created work. SYMBIOSIS can expose
@@ -164,7 +183,7 @@ them into work plans.
 - Keep out for now: agents mutating customer-facing records without approval,
   audit receipts, and rollback rules.
 
-### 8. SYNAPSE Shell Placement And Suite Navigation
+### 9. SYNAPSE Shell Placement And Suite Navigation
 
 SYNAPSE should embed or link to EPOCH once the monitor and core operating flows
 are durable enough to present as a suite surface.
@@ -193,10 +212,12 @@ are durable enough to present as a suite surface.
 3. Define TEMPO-aligned time primitives and export-ready schedule entries.
 4. Add provider-neutral production auth/session role readiness before live
    adapters.
-5. Move the operating ledger from browser-local JSON into durable LIBRARY
+5. Add local marketing conversion KPI readiness before live ad or analytics
+   adapters.
+6. Move the operating ledger from browser-local JSON into durable LIBRARY
    persistence.
-6. Add SYMBIOSIS/ANVIL handoff records for agent-created revenue work.
-7. Add SYNAPSE route placement after the operational contracts are stable.
+7. Add SYMBIOSIS/ANVIL handoff records for agent-created revenue work.
+8. Add SYNAPSE route placement after the operational contracts are stable.
 
 ## Acceptance For Issue 2
 

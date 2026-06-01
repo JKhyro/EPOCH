@@ -39,6 +39,7 @@ const requiredCollections = [
   "curriculumFrameworks",
   "packageGameplans",
   "campaignRoutes",
+  "marketingConversionEvents",
   "leads",
   "opportunities",
   "routePlacements",
@@ -199,7 +200,12 @@ for (const id of [
   "auth-session-role-select",
   "auth-session-role-action",
   "auth-session-role-apply",
-  "auth-session-role-confirmation"
+  "auth-session-role-confirmation",
+  "marketing-conversion-form",
+  "marketing-conversion-select",
+  "marketing-conversion-action",
+  "marketing-conversion-apply",
+  "marketing-conversion-confirmation"
 ]) {
   if (!html.includes(`id="${id}"`)) fail(`web surface missing ${id}`);
 }
@@ -274,6 +280,9 @@ for (const phrase of ["Payment Providers", "Payment Provider Handoffs", "Apply P
 }
 for (const phrase of ["Auth Sessions", "Auth Session Role Handoffs", "Apply Auth Session Role Action"]) {
   if (!html.includes(phrase)) fail(`auth/session role HTML missing phrase ${phrase}`);
+}
+for (const phrase of ["Marketing Conversion KPIs", "Apply Marketing Conversion KPI Action", "monitor-marketing-conversions", "live pixels, ad API writes, credentials, webhooks, and invasive tracking remain deferred"]) {
+  if (!html.includes(phrase)) fail(`marketing conversion HTML missing phrase ${phrase}`);
 }
 for (const phrase of [
   "SCAFFOLD-aligned",
@@ -362,11 +371,15 @@ for (const phrase of [
   "renderStudentGameplans",
   "renderCampaignRoutes",
   "summarizeMarketingState",
+  "summarizeMarketingConversionState",
   "summarizeCurriculumState",
   "Curriculum Readiness",
   "Campaign Readiness",
+  "Conversion KPIs",
   "monitor-campaigns",
+  "monitor-marketing-conversions",
   "campaign route",
+  "marketing conversion",
   "monitor-curriculum",
   "gameplan-ready",
   "marketRoute",
@@ -437,11 +450,13 @@ for (const phrase of [
   "transitionNotificationProviderHandoffRecords",
   "transitionPaymentProviderHandoffRecords",
   "transitionAuthSessionRoleHandoffRecords",
+  "transitionMarketingConversionEventRecords",
   "summarizeLibrarySyncState",
   "summarizeCalendarProviderState",
   "summarizeNotificationProviderState",
   "summarizePaymentProviderState",
   "summarizeAuthSessionRoleState",
+  "summarizeMarketingConversionState",
   "summarizeAccessGatewayState",
   "renderAccessGatewayOptions",
   "renderLibrarySyncOptions",
@@ -467,11 +482,14 @@ for (const phrase of [
   "Auth / Session Roles",
   "Auth Session Role Handoffs",
   "Auth Session Role Updated",
+  "Marketing Conversion KPIs",
+  "Marketing Conversion KPI Updated",
   "renderAgentHandoffOptions",
   "renderNotificationDeliveryOptions",
   "renderNotificationProviderOptions",
   "renderPaymentProviderOptions",
   "renderAuthSessionRoleOptions",
+  "renderMarketingConversionOptions",
   "renderQuoteOptions",
   "renderReminderControlOptions",
   "wireAgentHandoffForm",
@@ -479,6 +497,7 @@ for (const phrase of [
   "wireNotificationProviderForm",
   "wirePaymentProviderForm",
   "wireAuthSessionRoleForm",
+  "wireMarketingConversionForm",
   "wireQuotePaymentForm",
   "wireReminderControlForm",
   "Opportunity Pipeline",
@@ -535,6 +554,7 @@ for (const phrase of [
   "notification-provider-console",
   "payment-provider-console",
   "auth-session-role-console",
+  "marketing-conversion-console",
   "monitor-action-button",
   "button-meta",
   "monitor-command-strip",
@@ -596,6 +616,34 @@ if (!data.authSessionRoleHandoffs.some((item) => item.surface === "admin" && ite
 if (!data.authSessionRoleHandoffs.some((item) => item.surface === "monitor" && item.publicExposure === "denied" && item.rawSurface === true)) fail("auth/session roles missing monitor raw denial readiness");
 if (!data.authSessionRoleHandoffs.every((item) => item.productionAuthEnabled === false && item.identityProviderWrite === false && item.storesCredentials === false && item.storesTokens === false && item.oauthClientConfigured === false && item.externalSessionEnabled === false && item.readinessChecks.includes("no-live-auth"))) {
   fail("auth/session role handoffs must remain no-live-auth with no provider writes, credentials, tokens, OAuth clients, or external sessions");
+}
+if (!Array.isArray(data.marketingConversionEvents) || data.marketingConversionEvents.length < 5) fail("seed data missing marketing conversion KPI records");
+if (!data.receipts.some((item) => item.kind === "marketing-conversion")) fail("seed data missing marketing-conversion receipt");
+if (!data.monitorHealthChecks.some((item) => item.target === "monitor-marketing-conversions" && item.effect === "marketing-conversion-readiness")) fail("seed data missing marketing conversion monitor health check");
+const conversionEventTypes = new Set(data.marketingConversionEvents.map((item) => item.eventType));
+for (const eventType of ["offer_view", "diagnostic_submit", "portfolio_submit", "consult_booking", "compatibility_request"]) {
+  if (!conversionEventTypes.has(eventType)) fail(`marketing conversion events missing ${eventType}`);
+}
+if (!data.marketingConversionEvents.some((item) => item.regionScope === "jp" && item.routeKey.startsWith("ja/offers/"))) fail("marketing conversion events missing Japan route KPI");
+if (!data.marketingConversionEvents.some((item) => item.regionScope === "global" && item.routeKey.startsWith("global/offers/"))) fail("marketing conversion events missing global route KPI");
+if (!data.marketingConversionEvents.some((item) => item.offerBundle === "teacher-review" && item.readinessChecks.includes("submission-first"))) fail("marketing conversion events missing submission-first teacher-review KPI");
+const under19Conversion = data.marketingConversionEvents.find((item) => item.audienceTier === "under19");
+if (!under19Conversion) fail("marketing conversion events missing under-19 guarded KPI");
+if (!under19Conversion.readinessChecks.includes("guardian-consent-required") || !under19Conversion.readinessChecks.includes("no-paid-action-before-consent")) {
+  fail("under-19 marketing conversion KPI missing guardian consent or no-paid-action checks");
+}
+for (const event of data.marketingConversionEvents) {
+  if (!data.campaignRoutes.some((route) => route.id === event.campaignRouteId)) fail(`marketing conversion event ${event.id} references missing campaign route`);
+  if (event.livePixelEnabled !== false || event.externalAdApiWrite !== false || event.invasiveTracking !== false || event.storesPersonalData !== false || event.productionAnalyticsCredential !== false || event.webhookEnabled !== false || event.crossSiteIdentifier !== false) {
+    fail(`marketing conversion event ${event.id} enabled a live tracking or external-write safeguard`);
+  }
+  if (event.localOnly !== true || event.customerVisible !== false || event.customerSafe !== true || event.analyticsProvider !== "provider-neutral ledger" || event.attributionPolicy !== "first-party-route-key-only") {
+    fail(`marketing conversion event ${event.id} lost local/provider-neutral attribution posture`);
+  }
+  for (const requiredCheck of ["no-live-pixel", "no-external-ad-api-write", "first-party-ledger-only", "no-invasive-tracking", "no-analytics-credentials"]) {
+    if (!event.readinessChecks.includes(requiredCheck)) fail(`marketing conversion event ${event.id} missing ${requiredCheck}`);
+  }
+  if (!Array.isArray(event.monitorKpis) || !event.monitorKpis.length) fail(`marketing conversion event ${event.id} missing monitor KPIs`);
 }
 if (!data.monitorMemory.some((item) => item.status === "stale")) fail("monitor memory should demonstrate stale-note risk");
 
@@ -685,6 +733,8 @@ if (typeof recordTools.createPaymentProviderHandoffRecords !== "function") fail(
 if (typeof recordTools.transitionPaymentProviderHandoffRecords !== "function") fail("operating helpers missing transitionPaymentProviderHandoffRecords");
 if (typeof recordTools.createAuthSessionRoleHandoffRecords !== "function") fail("operating helpers missing createAuthSessionRoleHandoffRecords");
 if (typeof recordTools.transitionAuthSessionRoleHandoffRecords !== "function") fail("operating helpers missing transitionAuthSessionRoleHandoffRecords");
+if (typeof recordTools.createMarketingConversionEventRecords !== "function") fail("operating helpers missing createMarketingConversionEventRecords");
+if (typeof recordTools.transitionMarketingConversionEventRecords !== "function") fail("operating helpers missing transitionMarketingConversionEventRecords");
 if (typeof recordTools.createQuoteEstimateRecords !== "function") fail("operating helpers missing createQuoteEstimateRecords");
 if (typeof recordTools.transitionQuoteEstimateRecords !== "function") fail("operating helpers missing transitionQuoteEstimateRecords");
 if (typeof recordTools.createReminderRuleRecords !== "function") fail("operating helpers missing createReminderRuleRecords");
@@ -709,6 +759,7 @@ if (typeof recordTools.summarizeCalendarProviderState !== "function") fail("oper
 if (typeof recordTools.summarizeNotificationProviderState !== "function") fail("operating helpers missing summarizeNotificationProviderState");
 if (typeof recordTools.summarizePaymentProviderState !== "function") fail("operating helpers missing summarizePaymentProviderState");
 if (typeof recordTools.summarizeAuthSessionRoleState !== "function") fail("operating helpers missing summarizeAuthSessionRoleState");
+if (typeof recordTools.summarizeMarketingConversionState !== "function") fail("operating helpers missing summarizeMarketingConversionState");
 if (typeof recordTools.summarizeAccessPosture !== "function") fail("operating helpers missing summarizeAccessPosture");
 if (typeof recordTools.summarizeMemoryState !== "function") fail("operating helpers missing summarizeMemoryState");
 if (typeof recordTools.summarizeRoutePlacementState !== "function") fail("operating helpers missing summarizeRoutePlacementState");
@@ -916,6 +967,61 @@ if (marketingSummary.copyViolations !== 0) fail("marketing summary reported copy
 if (marketingSummary.under19Routes !== marketingSummary.guardianRequiredRoutes) fail("marketing summary under-19 routes are not guardian gated");
 if (marketingSummary.serviceRoutes < 2) fail("marketing summary missing adjacent service routes");
 
+const marketingConversionSummary = recordTools.summarizeMarketingConversionState(data);
+if (marketingConversionSummary.eventCount !== data.marketingConversionEvents.length) fail("marketing conversion summary total is wrong");
+if (marketingConversionSummary.readyEvents !== data.marketingConversionEvents.length) fail("marketing conversion summary missing ready KPI events");
+if (marketingConversionSummary.noLiveTracking !== data.marketingConversionEvents.length) fail("marketing conversion summary no-live-tracking count is wrong");
+if (marketingConversionSummary.providerDeferred !== data.marketingConversionEvents.length) fail("marketing conversion summary provider-neutral count is wrong");
+if (marketingConversionSummary.jpEvents < 3) fail("marketing conversion summary missing Japan KPI events");
+if (marketingConversionSummary.globalEvents < 1) fail("marketing conversion summary missing global KPI event");
+if (marketingConversionSummary.highIntentEvents < 3) fail("marketing conversion summary missing high-intent KPI events");
+if (marketingConversionSummary.under19GuardedEvents < 1) fail("marketing conversion summary missing under-19 guarded KPI event");
+if (marketingConversionSummary.potentialValueJpy <= 0) fail("marketing conversion summary missing potential JPY value");
+if (marketingConversionSummary.violations.length !== 0) fail("marketing conversion summary should not report seed violations");
+
+const malformedConversionData = recordTools.cloneData(data);
+malformedConversionData.marketingConversionEvents[0] = {
+  ...malformedConversionData.marketingConversionEvents[0],
+  livePixelEnabled: true,
+  externalAdApiWrite: true,
+  invasiveTracking: true,
+  storesPersonalData: true,
+  productionAnalyticsCredential: true,
+  webhookEnabled: true,
+  crossSiteIdentifier: true,
+  readinessChecks: []
+};
+const malformedConversionSummary = recordTools.summarizeMarketingConversionState(malformedConversionData);
+if (malformedConversionSummary.status !== "blocked" || malformedConversionSummary.violations.length < 2) fail("marketing conversion summary did not flag live tracking/provider violations");
+
+const conversionCreateResult = recordTools.createMarketingConversionEventRecords(data, {
+  campaignRouteId: "campaign-services-crm-database",
+  eventType: "consult_booking",
+  conversionValueJpy: 180000,
+  note: "Verifier created a local CRM audit conversion KPI without live tracking."
+}, { now: "2026-06-01T12:06:00+09:00" });
+if (conversionCreateResult.data.marketingConversionEvents.length !== data.marketingConversionEvents.length + 1) fail("marketing conversion create did not add an event");
+if (conversionCreateResult.records.event.livePixelEnabled || conversionCreateResult.records.event.externalAdApiWrite || conversionCreateResult.records.event.invasiveTracking || conversionCreateResult.records.event.productionAnalyticsCredential || conversionCreateResult.records.event.webhookEnabled) {
+  fail("marketing conversion create enabled live tracking, provider writes, credentials, or webhooks");
+}
+if (conversionCreateResult.records.receipt.kind !== "marketing-conversion") fail("marketing conversion create missing receipt kind");
+
+const conversionTransitionResult = recordTools.transitionMarketingConversionEventRecords(data, {
+  eventId: "conversion-ja-diagnostic-submit",
+  action: "record-conversion",
+  note: "Verifier recorded a local diagnostic conversion without live pixels, external ad writes, credentials, webhooks, or invasive tracking."
+}, { now: "2026-06-01T12:07:00+09:00" });
+if (conversionTransitionResult.records.event.status !== "converted") fail("marketing conversion transition did not record converted status");
+if (conversionTransitionResult.records.event.conversionStage !== "converted") fail("marketing conversion transition did not update conversion stage");
+if (conversionTransitionResult.records.receipt.kind !== "marketing-conversion") fail("marketing conversion transition missing receipt kind");
+if (conversionTransitionResult.records.healthCheck.target !== "monitor-marketing-conversions") fail("marketing conversion transition missing monitor target");
+if (conversionTransitionResult.records.healthCheck.effect !== "marketing-conversion-readiness") fail("marketing conversion transition missing monitor effect");
+if (conversionTransitionResult.records.healthCheck.customerVisible !== false) fail("marketing conversion health check must remain internal");
+if (conversionTransitionResult.data.notificationEvents.length !== data.notificationEvents.length) fail("marketing conversion transition created a customer-visible notification event");
+if (conversionTransitionResult.records.event.livePixelEnabled || conversionTransitionResult.records.event.externalAdApiWrite || conversionTransitionResult.records.event.invasiveTracking || conversionTransitionResult.records.event.storesPersonalData || conversionTransitionResult.records.event.productionAnalyticsCredential || conversionTransitionResult.records.event.webhookEnabled || conversionTransitionResult.records.event.crossSiteIdentifier) {
+  fail("marketing conversion transition enabled live tracking or external write safeguards");
+}
+
 const checklist = read("../docs/first-commercial-slice-checklist.md");
 for (const phrase of [
   "Public professional offer page",
@@ -929,7 +1035,8 @@ for (const phrase of [
   "Controlled public/customer access gateway record",
   "LIBRARY ledger sync/recovery handoff record",
   "Calendar provider handoff and invitation-readiness record",
-  "Auth/session role handoffs"
+  "Auth/session role handoffs",
+  "Marketing conversion KPI events"
 ]) {
   if (!checklist.includes(phrase)) fail(`checklist missing phrase: ${phrase}`);
 }
@@ -943,7 +1050,10 @@ for (const phrase of [
   "Do not make Japan-facing public copy AI-forward",
   "technical support retainers",
   "ready campaign routes",
-  "copy-policy violations"
+  "copy-policy violations",
+  "marketingConversionEvents",
+  "conversion KPI readiness",
+  "no-live-tracking count"
 ]) {
   if (!marketingAutomationDoc.includes(phrase)) fail(`marketing automation doc missing phrase: ${phrase}`);
 }
@@ -1074,6 +1184,22 @@ for (const phrase of [
   "no-live-auth"
 ]) {
   if (!authSessionRoleContract.includes(phrase)) fail(`auth/session role contract missing phrase: ${phrase}`);
+}
+
+const marketingConversionContract = read("../docs/marketing-conversion-analytics-readiness-contract.md");
+for (const phrase of [
+  "Marketing Conversion Analytics Readiness Contract",
+  "marketingConversionEvents",
+  "SCAFFOLD/HERMES direction",
+  "livePixelEnabled: false",
+  "externalAdApiWrite: false",
+  "Marketing Conversion KPIs",
+  "monitor-marketing-conversions",
+  "no-live-pixel",
+  "no-external-ad-api-write",
+  "provider-neutral ledger"
+]) {
+  if (!marketingConversionContract.includes(phrase)) fail(`marketing conversion contract missing phrase: ${phrase}`);
 }
 
 const reminderContract = read("../docs/reminder-recurrence-availability-contract.md");
@@ -1835,6 +1961,7 @@ if (!monitorReport.revenue) fail("monitor report missing revenue state");
 if (!monitorReport.curriculum) fail("monitor report missing curriculum state");
 if (!monitorReport.notifications) fail("monitor report missing notification state");
 if (!monitorReport.marketing) fail("monitor report missing marketing state");
+if (!monitorReport.marketingConversion) fail("monitor report missing marketing conversion state");
 if (!monitorReport.calendar) fail("monitor report missing calendar export state");
 if (!monitorReport.persistence) fail("monitor report missing persistence state");
 if (!monitorReport.scope) fail("monitor report missing scope state");
@@ -1857,6 +1984,11 @@ if (monitorReport.summary.curriculumFrameworks < 2) fail("monitor summary missin
 if (monitorReport.summary.eikenLevelCount < 7) fail("monitor summary missing EIKEN level count");
 if (monitorReport.summary.campaignRoutes !== data.campaignRoutes.length) fail("monitor summary campaign route count is wrong");
 if (monitorReport.summary.readyCampaignRoutes < 3) fail("monitor summary missing ready campaign route count");
+if (monitorReport.summary.marketingConversionEvents !== data.marketingConversionEvents.length) fail("monitor summary marketing conversion KPI count is wrong");
+if (monitorReport.summary.marketingConversionReady !== data.marketingConversionEvents.length) fail("monitor summary missing ready marketing conversion KPIs");
+if (monitorReport.summary.marketingConversionNoLiveTracking !== data.marketingConversionEvents.length) fail("monitor summary missing no-live-tracking conversion KPIs");
+if (monitorReport.summary.marketingConversionPotentialValueJpy <= 0) fail("monitor summary missing marketing conversion potential value");
+if (monitorReport.summary.marketingConversionViolations !== 0) fail("monitor summary should not report marketing conversion violations for the seed slice");
 if (monitorReport.summary.copyComplianceViolations !== 0) fail("monitor summary should not report campaign copy violations");
 if (monitorReport.summary.rescheduledScheduleEntries < 1) fail("monitor summary missing rescheduled schedule lifecycle count");
 if (monitorReport.summary.canceledScheduleEntries < 1) fail("monitor summary missing canceled schedule lifecycle count");
@@ -1897,6 +2029,7 @@ if (monitorReport.summary.monitorHealthChecks < 2) fail("monitor summary missing
 if (monitorReport.summary.monitorActionReceipts < 2) fail("monitor summary missing monitor action receipts");
 if (monitorReport.summary.operatorActions < 3) fail("monitor summary missing operator actions");
 if (!monitorReport.timeline.some((item) => item.kind === "campaign route")) fail("monitor timeline missing campaign routes");
+if (!monitorReport.timeline.some((item) => item.kind === "marketing conversion")) fail("monitor timeline missing marketing conversion KPIs");
 if (!monitorReport.timeline.some((item) => item.kind === "access gateway")) fail("monitor timeline missing access gateways");
 if (!monitorReport.timeline.some((item) => item.kind === "library sync")) fail("monitor timeline missing LIBRARY sync handoffs");
 if (!monitorReport.timeline.some((item) => item.kind === "calendar provider")) fail("monitor timeline missing calendar provider handoffs");
@@ -1978,6 +2111,7 @@ if (exportedLedger.counts.librarySyncHandoffs !== returnResult.data.librarySyncH
 if (exportedLedger.counts.calendarProviderHandoffs !== returnResult.data.calendarProviderHandoffs.length) fail("ledger export calendar provider handoff count is wrong");
 if (exportedLedger.counts.notificationProviderHandoffs !== returnResult.data.notificationProviderHandoffs.length) fail("ledger export notification provider handoff count is wrong");
 if (exportedLedger.counts.paymentProviderHandoffs !== returnResult.data.paymentProviderHandoffs.length) fail("ledger export payment provider handoff count is wrong");
+if (exportedLedger.counts.marketingConversionEvents !== returnResult.data.marketingConversionEvents.length) fail("ledger export marketing conversion count is wrong");
 if (!exportedLedger.monitor || exportedLedger.monitor.timeline < 1) fail("ledger export missing monitor summary");
 if (exportedLedger.monitor.persistenceRevision !== exportedLedger.persistence.revision) fail("ledger monitor summary missing persistence revision");
 if (!exportedLedger.calendarExport || exportedLedger.calendarExport.entries.length !== calendarExport.entries.length) fail("ledger export missing calendar export entries");
@@ -1988,6 +2122,7 @@ if (!exportedLedger.calendarProvider || exportedLedger.calendarProvider.handoffC
 if (!exportedLedger.notificationProvider || exportedLedger.notificationProvider.handoffCount !== exportedLedger.data.notificationProviderHandoffs.length) fail("ledger export missing notification provider summary");
 if (!exportedLedger.paymentProvider || exportedLedger.paymentProvider.handoffCount !== exportedLedger.data.paymentProviderHandoffs.length) fail("ledger export missing payment provider summary");
 if (!exportedLedger.authSession || exportedLedger.authSession.handoffCount !== exportedLedger.data.authSessionRoleHandoffs.length) fail("ledger export missing auth/session role summary");
+if (!exportedLedger.marketingConversion || exportedLedger.marketingConversion.eventCount !== exportedLedger.data.marketingConversionEvents.length) fail("ledger export missing marketing conversion summary");
 if (exportedLedger.counts.routePlacements !== returnResult.data.routePlacements.length) fail("ledger export route placement count is wrong");
 if (exportedLedger.counts.curriculumFrameworks !== returnResult.data.curriculumFrameworks.length) fail("ledger export curriculum framework count is wrong");
 if (exportedLedger.counts.packageGameplans !== returnResult.data.packageGameplans.length) fail("ledger export package gameplan count is wrong");
@@ -2008,6 +2143,8 @@ if (exportedLedger.monitor.authSessionRoleHandoffs !== returnResult.data.authSes
 if (exportedLedger.monitor.authPublicReady < 1) fail("ledger monitor summary missing public auth readiness");
 if (exportedLedger.monitor.authCustomerReady < 1) fail("ledger monitor summary missing customer auth readiness");
 if (exportedLedger.monitor.authInternalDenied < 2) fail("ledger monitor summary missing internal auth denial readiness");
+if (exportedLedger.monitor.marketingConversionEvents !== returnResult.data.marketingConversionEvents.length) fail("ledger monitor summary missing marketing conversion KPIs");
+if (exportedLedger.monitor.marketingConversionNoLiveTracking !== returnResult.data.marketingConversionEvents.length) fail("ledger monitor summary missing marketing conversion no-live-tracking posture");
 if (exportedLedger.monitor.monitorHealthChecks !== returnResult.data.monitorHealthChecks.length) fail("ledger monitor summary missing monitor health checks");
 
 const persistenceSummary = recordTools.summarizePersistenceState(exportedLedger.data);
@@ -2049,6 +2186,12 @@ if (authSessionLedger.authSession.internalDenied < 2) fail("ledger export missin
 if (authSessionLedger.authSession.noLiveAuth !== authSessionTransition.data.authSessionRoleHandoffs.length) fail("ledger auth/session summary lost no-live-auth readiness");
 if (authSessionLedger.monitor.authSessionRoleViolations !== 0) fail("ledger monitor summary should not report auth/session role violations after transition");
 
+const marketingConversionLedger = recordTools.createOperatingLedger(conversionTransitionResult.data, { now: "2026-06-01T04:43:55.000Z" });
+if (marketingConversionLedger.counts.marketingConversionEvents !== conversionTransitionResult.data.marketingConversionEvents.length) fail("ledger export marketing conversion transition count is wrong");
+if (marketingConversionLedger.marketingConversion.recordedEvents < 1) fail("ledger export missing recorded marketing conversion after transition");
+if (marketingConversionLedger.marketingConversion.noLiveTracking !== conversionTransitionResult.data.marketingConversionEvents.length) fail("ledger marketing conversion summary lost no-live-tracking posture");
+if (marketingConversionLedger.monitor.marketingConversionViolations !== 0) fail("ledger monitor summary should not report marketing conversion violations after transition");
+
 const quoteLedger = recordTools.createOperatingLedger(paymentReadyQuoteResult.data, { now: "2026-06-01T04:44:00.000Z" });
 if (quoteLedger.counts.quotes !== paymentReadyQuoteResult.data.quotes.length) fail("ledger export quote count is wrong");
 if (quoteLedger.monitor.paymentReadyQuotes < 1) fail("ledger monitor summary missing payment-ready quote count");
@@ -2070,6 +2213,7 @@ if (importedLedger.data.calendarProviderHandoffs.length !== returnResult.data.ca
 if (importedLedger.data.notificationProviderHandoffs.length !== returnResult.data.notificationProviderHandoffs.length) fail("ledger import did not preserve notification provider handoffs");
 if (importedLedger.data.paymentProviderHandoffs.length !== returnResult.data.paymentProviderHandoffs.length) fail("ledger import did not preserve payment provider handoffs");
 if (importedLedger.data.authSessionRoleHandoffs.length !== returnResult.data.authSessionRoleHandoffs.length) fail("ledger import did not preserve auth/session role handoffs");
+if (importedLedger.data.marketingConversionEvents.length !== returnResult.data.marketingConversionEvents.length) fail("ledger import did not preserve marketing conversion events");
 if (importedLedger.data.campaignRoutes.length !== returnResult.data.campaignRoutes.length) fail("ledger import did not preserve campaign routes");
 if (importedLedger.data.customers[0].externalStatus !== returnResult.data.customers[0].externalStatus) fail("ledger import did not preserve external status");
 if (importedLedger.data.persistence.checksum !== exportedLedger.persistence.checksum) fail("ledger import did not preserve persistence checksum");
@@ -2122,6 +2266,13 @@ if (importedAuthSessionLedger.data.authSessionRoleHandoffs.length !== authSessio
 if (!importedAuthSessionLedger.data.authSessionRoleHandoffs.some((item) => item.handoffStatus === "raw-surface-denied")) fail("ledger import did not preserve auth/session role transition status");
 if (!importedAuthSessionLedger.data.authSessionRoleHandoffs.every((item) => item.productionAuthEnabled === false && item.identityProviderWrite === false && item.storesCredentials === false && item.storesTokens === false && item.oauthClientConfigured === false && item.externalSessionEnabled === false)) {
   fail("ledger import changed auth/session no-live-auth safeguards");
+}
+
+const importedMarketingConversionLedger = recordTools.importOperatingLedger(data, JSON.stringify(marketingConversionLedger));
+if (importedMarketingConversionLedger.data.marketingConversionEvents.length !== conversionTransitionResult.data.marketingConversionEvents.length) fail("ledger import did not preserve marketing conversion events");
+if (!importedMarketingConversionLedger.data.marketingConversionEvents.some((item) => item.status === "converted")) fail("ledger import did not preserve converted marketing conversion status");
+if (!importedMarketingConversionLedger.data.marketingConversionEvents.every((item) => item.livePixelEnabled === false && item.externalAdApiWrite === false && item.invasiveTracking === false && item.storesPersonalData === false && item.productionAnalyticsCredential === false && item.webhookEnabled === false && item.crossSiteIdentifier === false)) {
+  fail("ledger import changed marketing conversion no-live-tracking safeguards");
 }
 
 const importedQuoteLedger = recordTools.importOperatingLedger(data, JSON.stringify(quoteLedger));
