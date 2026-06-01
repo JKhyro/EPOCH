@@ -245,6 +245,7 @@ h1 {
 
 .intake-layout,
 .submission-layout,
+.opportunity-layout,
 .schedule-layout {
   display: grid;
   grid-template-columns: minmax(320px, 460px) 1fr;
@@ -254,6 +255,7 @@ h1 {
 }
 
 .submission-layout,
+.opportunity-layout,
 .schedule-layout {
   margin: 0 0 18px;
 }
@@ -388,6 +390,7 @@ button.secondary-action {
 
   .intake-layout,
   .submission-layout,
+  .opportunity-layout,
   .schedule-layout,
   .form-row,
   .review-console,

@@ -125,6 +125,7 @@ window.EPOCH_SEED_DATA = {
       "nextActionAt": "2026-06-01T19:30:00+09:00"
     }
   ],
+  "engagements": [],
   "customers": [
     {
       "id": "student-001",
