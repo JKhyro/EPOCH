@@ -67,7 +67,7 @@ function resetData() {
 
 function storageStatusText() {
   const persistence = recordTools.summarizePersistenceState(data);
-  return `Ledger v${recordTools.ledgerVersion} | ${data.customers.length} customers | ${data.engagements.length} engagements | ${data.campaignRoutes.length} campaigns | ${(data.librarySyncHandoffs || []).length} LIBRARY handoffs | ${(data.calendarProviderHandoffs || []).length} calendar handoffs | ${(data.notificationProviderHandoffs || []).length} notification provider handoffs | ${data.notificationEvents.length} updates | ${data.receipts.length} receipts | r${persistence.revision} ${persistence.adapterState} | ${persistence.ledgerId}`;
+  return `Ledger v${recordTools.ledgerVersion} | ${data.customers.length} customers | ${data.engagements.length} engagements | ${data.campaignRoutes.length} campaigns | ${(data.librarySyncHandoffs || []).length} LIBRARY handoffs | ${(data.calendarProviderHandoffs || []).length} calendar handoffs | ${(data.notificationProviderHandoffs || []).length} notification provider handoffs | ${(data.paymentProviderHandoffs || []).length} payment provider handoffs | ${data.notificationEvents.length} updates | ${data.receipts.length} receipts | r${persistence.revision} ${persistence.adapterState} | ${persistence.ledgerId}`;
 }
 
 function formatTime(value) {
@@ -166,6 +166,7 @@ function allOperatingItems() {
     ...(data.notificationEvents || []).map((item) => ({ ...item, kind: "update", time: item.deliverAfterAt || item.createdAt })),
     ...(data.notificationDeliveries || []).map((item) => ({ ...item, kind: "notification delivery", time: item.nextActionAt || item.createdAt })),
     ...(data.notificationProviderHandoffs || []).map((item) => ({ ...item, kind: "notification provider", time: item.nextActionAt || item.updatedAt || item.createdAt })),
+    ...(data.paymentProviderHandoffs || []).map((item) => ({ ...item, kind: "payment provider", time: item.nextActionAt || item.updatedAt || item.createdAt })),
     ...(data.quotes || []).map((item) => ({ ...item, kind: "quote", time: item.nextActionAt || item.validUntil || item.createdAt })),
     ...(data.reminderRules || []).map((item) => ({ ...item, kind: "reminder rule", time: item.nextActionAt || item.reminderAt })),
     ...(data.recurrenceCandidates || []).map((item) => ({ ...item, kind: "recurrence candidate", time: item.nextCandidateAt || item.createdAt })),
@@ -550,6 +551,7 @@ function renderMonitor(items) {
   const notifications = report.notifications || recordTools.summarizeNotificationState(data);
   const notificationProvider = report.notificationProvider || recordTools.summarizeNotificationProviderState(data, { notifications });
   const quotes = report.quotes || recordTools.summarizeQuoteState(data);
+  const paymentProvider = report.paymentProvider || recordTools.summarizePaymentProviderState(data, { quotes });
   const scheduleControls = report.scheduleControls || recordTools.summarizeScheduleControlState(data);
   const handoffs = report.handoffs || recordTools.summarizeAgentHandoffState(data);
   const marketing = report.marketing || recordTools.summarizeMarketingState(data);
@@ -561,7 +563,7 @@ function renderMonitor(items) {
   const persistence = report.persistence || recordTools.summarizePersistenceState(data, { now: `${today}T12:00:00+09:00` });
   const librarySync = report.librarySync || recordTools.summarizeLibrarySyncState(data, { now: `${today}T12:00:00+09:00`, persistence });
   lastMonitorReport = report;
-  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | ${routePlacement.summary.routeCount} SYNAPSE routes | ${accessGateways.gatewayCount} access gates | ${librarySync.handoffCount} LIBRARY handoffs | ${calendarProvider.handoffCount} calendar handoffs | ${notificationProvider.handoffCount} notification provider handoffs | ${marketing.ready} campaign routes ready | ${persistence.adapterState}`;
+  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | ${routePlacement.summary.routeCount} SYNAPSE routes | ${accessGateways.gatewayCount} access gates | ${librarySync.handoffCount} LIBRARY handoffs | ${calendarProvider.handoffCount} calendar handoffs | ${notificationProvider.handoffCount} notification provider handoffs | ${paymentProvider.handoffCount} payment provider handoffs | ${marketing.ready} campaign routes ready | ${persistence.adapterState}`;
   renderMonitorActionConsole(report);
 
   const summaryCards = [
@@ -576,6 +578,7 @@ function renderMonitor(items) {
     record("LIBRARY Sync", `${librarySync.exportHandoffs} export handoff, ${librarySync.recoveryHandoffs} recovery handoff, ${librarySync.searchReady} search-ready.`, [toneChip(librarySync.status, librarySync.violations.length ? "blocked" : librarySync.dirtySnapshotPending ? "overdue" : "complete"), chip(`${librarySync.handoffCount} handoffs`)]),
     record("Calendar Providers", `${calendarProvider.providerReady} provider handoffs, ${calendarProvider.invitationReady} invitation handoff, ${calendarProvider.noLiveSend} no-live-send.`, [toneChip(calendarProvider.status, calendarProvider.status === "ready" ? "complete" : "blocked"), chip(`${calendarProvider.handoffCount} handoffs`)]),
     record("Notification Providers", `${notificationProvider.providerReady} provider handoffs, ${notificationProvider.templateReady} template-ready, ${notificationProvider.consentReady} consent-ready, ${notificationProvider.noLiveSend} no-live-send.`, [toneChip(notificationProvider.status, notificationProvider.status === "ready" ? "complete" : "blocked"), chip(`${notificationProvider.handoffCount} handoffs`)]),
+    record("Payment Providers", `${paymentProvider.providerReady} provider handoffs, ${paymentProvider.invoiceReady} invoice-ready, ${paymentProvider.checkoutReady} checkout-ready, ${paymentProvider.noLivePayment} no-live-payment.`, [toneChip(paymentProvider.status, paymentProvider.status === "ready" ? "complete" : "blocked"), chip(`${paymentProvider.handoffCount} handoffs`)]),
     record("Operator Actions", `${report.operatorActions.length} local action${report.operatorActions.length === 1 ? "" : "s"} are queued in the monitor controls.`, [toneChip(`${report.operatorActions.length} queued`, report.operatorActions.length ? "overdue" : "complete")]),
     record("External Visibility", `${visibleCount} student/customer-visible records are available.`, [chip(`${visibleCount} visible`)]),
     record("Deadline Control", `${deadlines.today} today, ${deadlines.upcoming} upcoming, ${deadlines.overdue} overdue.`, [chip(`${deadlines.owned} owner-linked`, "planned")]),
@@ -673,6 +676,17 @@ function renderMonitor(items) {
   const notificationProviderCards = notificationProvider.handoffs.map((handoff) => record(
     handoff.title,
     `${handoff.targetProvider} | ${handoff.syncMode} | ${handoff.templatePolicy} | ${handoff.consentPolicy} | ${handoff.notes}`,
+    [
+      statusChip(handoff.status),
+      chip(handoff.handoffStatus),
+      chip(handoff.customerSafeStatus),
+      toneChip(`${handoff.violations.length} violations`, handoff.violations.length ? "blocked" : "complete")
+    ]
+  ));
+
+  const paymentProviderCards = paymentProvider.handoffs.map((handoff) => record(
+    handoff.title,
+    `${handoff.targetProvider} | ${handoff.syncMode} | ${handoff.invoicePolicy} | ${handoff.checkoutPolicy} | ${handoff.eligibilityPolicy} | ${handoff.notes}`,
     [
       statusChip(handoff.status),
       chip(handoff.handoffStatus),
@@ -836,6 +850,7 @@ function renderMonitor(items) {
     monitorSection("Agent Handoffs", handoffCards, "monitor-handoffs"),
     monitorSection("Notification Outbox", outboxCards, "monitor-notification-outbox"),
     monitorSection("Notification Provider Handoffs", notificationProviderCards.length ? notificationProviderCards : [record("Notification Providers", "No notification provider handoff records have been created yet.", [chip("empty")])], "monitor-notification-provider"),
+    monitorSection("Payment Provider Handoffs", paymentProviderCards.length ? paymentProviderCards : [record("Payment Providers", "No payment provider handoff records have been created yet.", [chip("empty")])], "monitor-payment-provider"),
     monitorSection("Quote Readiness", quoteCards, "monitor-quotes"),
     monitorSection("Reminder Control", scheduleControlCards, "monitor-reminders"),
     monitorSection("SYNAPSE Placement", routeCards, "monitor-suite"),
@@ -883,6 +898,17 @@ function renderNotificationProviderOptions() {
     return `<option value="${escapeHtml(handoff.id)}">${escapeHtml(handoff.title)} (${escapeHtml(handoff.status)})</option>`;
   });
   select.innerHTML = handoffOptions.length ? handoffOptions.join("") : `<option value="">No notification provider handoffs yet</option>`;
+  if (submit) submit.disabled = !handoffOptions.length;
+}
+
+function renderPaymentProviderOptions() {
+  const select = byId("payment-provider-select");
+  const submit = byId("payment-provider-apply");
+  if (!select) return;
+  const handoffOptions = (data.paymentProviderHandoffs || []).map((handoff) => {
+    return `<option value="${escapeHtml(handoff.id)}">${escapeHtml(handoff.title)} (${escapeHtml(handoff.status)})</option>`;
+  });
+  select.innerHTML = handoffOptions.length ? handoffOptions.join("") : `<option value="">No payment provider handoffs yet</option>`;
   if (submit) submit.disabled = !handoffOptions.length;
 }
 
@@ -1003,6 +1029,7 @@ function renderAll() {
   renderAgentHandoffOptions();
   renderNotificationDeliveryOptions();
   renderNotificationProviderOptions();
+  renderPaymentProviderOptions();
   renderQuoteOptions();
   renderReminderControlOptions();
   renderAccessGatewayOptions();
@@ -1297,6 +1324,41 @@ function wireNotificationProviderForm() {
   });
 }
 
+function wirePaymentProviderForm() {
+  const form = byId("payment-provider-form");
+  const confirmation = byId("payment-provider-confirmation");
+  if (!form || !confirmation) return;
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+    try {
+      const result = recordTools.transitionPaymentProviderHandoffRecords(data, payload, {
+        now: "2026-06-01T15:15:00.000Z"
+      });
+      data = result.data;
+      persistData({
+        adapterState: "modified-local",
+        recoveryNote: "Payment provider handoff changed locally; export a ledger snapshot before live payment provider work."
+      });
+      renderAll();
+      confirmation.innerHTML = record(
+        "Payment Provider Updated",
+        `${result.records.handoff.title} is ${result.records.handoff.handoffStatus}.`,
+        [statusChip(result.records.handoff.status), chip(result.records.handoff.targetProvider), chip(result.records.handoff.eligibilityPolicy)]
+      );
+      form.reset();
+    } catch (error) {
+      confirmation.innerHTML = record(
+        "Payment Provider Blocked",
+        error.message || "Payment provider handoff action could not be applied.",
+        [chip("blocked", "blocked")]
+      );
+    }
+  });
+}
+
 function wireQuotePaymentForm() {
   const form = byId("quote-payment-form");
   const confirmation = byId("quote-payment-confirmation");
@@ -1554,6 +1616,7 @@ function init() {
   wireAgentHandoffForm();
   wireNotificationOutboxForm();
   wireNotificationProviderForm();
+  wirePaymentProviderForm();
   wireQuotePaymentForm();
   wireReminderControlForm();
   wireAccessGatewayForm();

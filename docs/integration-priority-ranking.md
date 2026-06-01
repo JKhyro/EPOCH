@@ -85,7 +85,26 @@ Current EPOCH-side notification provider slice:
   sends, credentials, webhooks, provider writes, or customer-visible notification
   events.
 
-### 4. LIBRARY Durable Operating Ledger Persistence
+### 4. Payment Provider Readiness And Invoice Checkout Handoff
+
+Payment readiness now needs the same no-live-provider staging discipline as
+calendar and notification delivery. EPOCH should prepare invoice and checkout
+handoff records before any processor, webhook, credential, or payment-capture
+integration exists.
+
+Current EPOCH-side payment provider slice:
+
+- `paymentProviderHandoffs` records provider-neutral invoice, checkout, and
+  guardian/eligibility readiness before any live payment adapter exists.
+- `summarizePaymentProviderState` exposes invoice readiness, checkout readiness,
+  payment eligibility gates, no-live-payment posture, and violations to EPOCH
+  MONITOR.
+- `transitionPaymentProviderHandoffRecords` creates internal monitor health
+  checks and `payment-provider-handoff` receipts without live checkout,
+  credentials, webhooks, provider writes, capture, or customer-visible payment
+  events.
+
+### 5. LIBRARY Durable Operating Ledger Persistence
 
 The local JSON ledger proves the shape, but durable persistence should move to
 LIBRARY once the first notification and calendar contracts are stable.
@@ -109,7 +128,7 @@ Current EPOCH-side slice:
 - Live LIBRARY API/database mutation remains out of scope until this handoff
   contract is stable and verified.
 
-### 5. SYMBIOSIS And ANVIL Agentic Work Handoff
+### 6. SYMBIOSIS And ANVIL Agentic Work Handoff
 
 After EPOCH can notify people and preserve records, the ARA revenue loop should
 use EPOCH to schedule and track agent-created work. SYMBIOSIS can expose
@@ -126,7 +145,7 @@ them into work plans.
 - Keep out for now: agents mutating customer-facing records without approval,
   audit receipts, and rollback rules.
 
-### 6. SYNAPSE Shell Placement And Suite Navigation
+### 7. SYNAPSE Shell Placement And Suite Navigation
 
 SYNAPSE should embed or link to EPOCH once the monitor and core operating flows
 are durable enough to present as a suite surface.

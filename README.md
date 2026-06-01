@@ -57,6 +57,9 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   Notification provider handoff records remain provider-neutral and
   no-live-send until a later delivery slice implements live email, LINE, SMS,
   NEXUS, or webhook integration.
+  Payment provider handoff records remain provider-neutral and no-live-payment
+  until a later payment adapter implements invoice sending, checkout sessions,
+  credential storage, processor webhooks, or capture.
 - `web/app.js`: shared renderer and local persistence flow for admin,
   student/customer, monitor, public request, scheduling, submission, and
   review-return views, including local ledger save/load, durable snapshot status,

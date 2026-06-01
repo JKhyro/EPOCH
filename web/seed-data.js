@@ -970,6 +970,116 @@ window.EPOCH_SEED_DATA = {
       "notes": "Customer-safe templates and consent policies must be explicit before live delivery is added."
     }
   ],
+  "paymentProviderHandoffs": [
+    {
+      "id": "payment-provider-invoice-readiness",
+      "title": "Invoice Provider Handoff",
+      "sourceSystem": "EPOCH",
+      "targetProvider": "provider-neutral invoice",
+      "providerKind": "invoice",
+      "syncMode": "payment-provider-readiness",
+      "status": "planned",
+      "handoffStatus": "processor-deferred",
+      "invoicePolicy": "customer-safe-invoice-copy-required",
+      "checkoutPolicy": "checkout-link-deferred",
+      "eligibilityPolicy": "operator-approval-required",
+      "customerSafeStatus": "invoice-copy-ready",
+      "visibility": "internal",
+      "customerVisible": false,
+      "livePaymentEnabled": false,
+      "externalProviderWrite": false,
+      "storesCredentials": false,
+      "webhookEnabled": false,
+      "capturesPayment": false,
+      "paymentProcessorSchema": "epoch.quote-payment",
+      "readinessChecks": ["invoice-copy-ready", "operator-approval-required", "guardian-consent-gate", "no-live-payment"],
+      "nextActionAt": "2026-06-02T13:00:00+09:00",
+      "createdAt": "2026-06-02T00:20:00+09:00",
+      "updatedAt": "2026-06-02T00:20:00+09:00",
+      "receiptIds": ["receipt-payment-provider-seed"],
+      "handoffHistory": [
+        {
+          "action": "seed",
+          "status": "planned",
+          "at": "2026-06-02T00:20:00+09:00",
+          "note": "Invoice provider adapter remains deferred while EPOCH records customer-safe invoice readiness."
+        }
+      ],
+      "notes": "Prepare invoice wording, quote references, and payment eligibility checks before any payment processor work."
+    },
+    {
+      "id": "payment-provider-checkout-readiness",
+      "title": "Checkout Provider Handoff",
+      "sourceSystem": "EPOCH",
+      "targetProvider": "provider-neutral checkout",
+      "providerKind": "checkout",
+      "syncMode": "invoice-checkout-readiness",
+      "status": "planned",
+      "handoffStatus": "processor-deferred",
+      "invoicePolicy": "customer-safe-invoice-copy-required",
+      "checkoutPolicy": "checkout-handoff-ready",
+      "eligibilityPolicy": "operator-approval-required",
+      "customerSafeStatus": "checkout-instructions-ready",
+      "visibility": "internal",
+      "customerVisible": false,
+      "livePaymentEnabled": false,
+      "externalProviderWrite": false,
+      "storesCredentials": false,
+      "webhookEnabled": false,
+      "capturesPayment": false,
+      "paymentProcessorSchema": "epoch.quote-payment",
+      "readinessChecks": ["invoice-copy-ready", "checkout-handoff-ready", "operator-approval-required", "no-live-payment"],
+      "nextActionAt": "2026-06-02T13:30:00+09:00",
+      "createdAt": "2026-06-02T00:21:00+09:00",
+      "updatedAt": "2026-06-02T00:21:00+09:00",
+      "receiptIds": ["receipt-payment-provider-seed"],
+      "handoffHistory": [
+        {
+          "action": "seed",
+          "status": "planned",
+          "at": "2026-06-02T00:21:00+09:00",
+          "note": "Checkout session creation remains deferred while operator handoff data is prepared."
+        }
+      ],
+      "notes": "Record checkout readiness without creating a checkout session, payment link, webhook, or processor write."
+    },
+    {
+      "id": "payment-eligibility-guardian-readiness",
+      "title": "Payment Eligibility And Guardian Gate",
+      "sourceSystem": "EPOCH",
+      "targetProvider": "provider-neutral",
+      "providerKind": "eligibility",
+      "syncMode": "eligibility-guard-readiness",
+      "status": "queued",
+      "handoffStatus": "operator-review-ready",
+      "invoicePolicy": "invoice-blocked-until-eligible",
+      "checkoutPolicy": "checkout-blocked-until-eligible",
+      "eligibilityPolicy": "guardian-consent-and-operator-approval",
+      "customerSafeStatus": "eligibility-review-ready",
+      "visibility": "internal",
+      "customerVisible": false,
+      "livePaymentEnabled": false,
+      "externalProviderWrite": false,
+      "storesCredentials": false,
+      "webhookEnabled": false,
+      "capturesPayment": false,
+      "paymentProcessorSchema": "epoch.quote-payment",
+      "readinessChecks": ["guardian-consent-gate", "payment-eligibility-rule", "operator-approval-required", "no-live-payment"],
+      "nextActionAt": "2026-06-02T14:00:00+09:00",
+      "createdAt": "2026-06-02T00:22:00+09:00",
+      "updatedAt": "2026-06-02T00:22:00+09:00",
+      "receiptIds": ["receipt-payment-provider-seed"],
+      "handoffHistory": [
+        {
+          "action": "seed",
+          "status": "queued",
+          "at": "2026-06-02T00:22:00+09:00",
+          "note": "Under-19 and compatibility-required payment gates stay blocked until consent and operator approval are recorded."
+        }
+      ],
+      "notes": "Payment requests for under-19 or compatibility-required work must remain blocked until eligibility and consent are explicit."
+    }
+  ],
   "quotes": [],
   "reminderRules": [],
   "recurrenceCandidates": [],
@@ -1147,6 +1257,15 @@ window.EPOCH_SEED_DATA = {
       "updatedAt": "2026-06-02T00:13:00+09:00",
       "reviewBy": "2026-06-05T11:00:00+09:00",
       "owner": "Jack"
+    },
+    {
+      "id": "memory-007",
+      "title": "Payment providers are readiness-only",
+      "summary": "Invoice and checkout handoffs can prepare customer-safe payment requests, but live checkout, capture, credentials, and webhooks remain deferred.",
+      "status": "active",
+      "updatedAt": "2026-06-02T00:23:00+09:00",
+      "reviewBy": "2026-06-05T12:00:00+09:00",
+      "owner": "Jack"
     }
   ],
   "accessPosture": {
@@ -1241,6 +1360,21 @@ window.EPOCH_SEED_DATA = {
       "createdAt": "2026-06-02T00:14:00+09:00",
       "visibility": "internal",
       "customerVisible": false
+    },
+    {
+      "id": "monitor-check-seed-payment-provider",
+      "actionId": "seed-payment-provider-baseline",
+      "receiptId": "receipt-payment-provider-seed",
+      "title": "Payment provider baseline",
+      "summary": "EPOCH has internal-only invoice, checkout, and guardian eligibility handoff records without live checkout, capture, credentials, or webhooks.",
+      "status": "complete",
+      "priority": "medium",
+      "effect": "payment-provider-handoff",
+      "target": "monitor-payment-provider",
+      "owner": "Jack",
+      "createdAt": "2026-06-02T00:24:00+09:00",
+      "visibility": "internal",
+      "customerVisible": false
     }
   ],
   "receipts": [
@@ -1283,6 +1417,14 @@ window.EPOCH_SEED_DATA = {
       "status": "complete",
       "createdAt": "2026-06-02T00:14:00+09:00",
       "note": "Notification provider baseline: email, LINE/SMS, and template/consent readiness handoffs are provider-neutral and no-live-send."
+    },
+    {
+      "id": "receipt-payment-provider-seed",
+      "customerId": null,
+      "kind": "payment-provider-handoff",
+      "status": "complete",
+      "createdAt": "2026-06-02T00:24:00+09:00",
+      "note": "Payment provider baseline: invoice, checkout, and guardian eligibility handoffs are provider-neutral and no-live-payment."
     },
     {
       "id": "receipt-001",

@@ -762,7 +762,8 @@ button.secondary-action {
   grid-template-columns: 1fr;
 }
 
-.notification-provider-console {
+.notification-provider-console,
+.payment-provider-console {
   grid-template-columns: 1fr;
 }
 
