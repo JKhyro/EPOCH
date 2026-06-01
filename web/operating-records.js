@@ -14,7 +14,9 @@
   const ledgerVersion = 1;
   const ledgerCollections = [
     "tracks",
+    "offerPackages",
     "leads",
+    "opportunities",
     "customers",
     "cohorts",
     "sessions",
@@ -46,7 +48,7 @@
   }
 
   function ensureCollections(data) {
-    for (const collection of ["leads", "customers", "assignments", "submissions", "reviews", "followups", "receipts"]) {
+    for (const collection of ["offerPackages", "leads", "opportunities", "customers", "assignments", "submissions", "reviews", "followups", "receipts"]) {
       if (!Array.isArray(data[collection])) data[collection] = [];
     }
   }
@@ -110,6 +112,16 @@
     return offerKind === "education" ? "track-eiken-upper" : "track-service-ops";
   }
 
+  function packageForRequest(data, offerKind, packageId, isUnder19) {
+    if (isUnder19) {
+      const under19Package = data.offerPackages.find((item) => item.routing === "compatibility-required");
+      if (under19Package) return under19Package;
+    }
+    return data.offerPackages.find((item) => item.id === packageId)
+      || data.offerPackages.find((item) => item.offerKind === offerKind && item.status === "active")
+      || null;
+  }
+
   function createIntakeRecords(currentData, input, options) {
     const nextData = cloneData(currentData);
     ensureCollections(nextData);
@@ -122,24 +134,37 @@
     const offerKind = clean(input.offerKind) || "education";
     const ageBand = clean(input.ageBand) || "adult";
     const preferredWindow = withTimezone(input.preferredWindow, timezone) || withTimezone(now.toISOString(), timezone);
+    const isUnder19 = ageBand === "under-19";
+    const offerPackage = packageForRequest(nextData, offerKind, clean(input.packageId), isUnder19);
 
     if (!requesterName) throw new Error("requesterName is required");
     if (!requestSummary) throw new Error("requestSummary is required");
 
-    const isUnder19 = ageBand === "under-19";
-    const trackId = trackForOffer(offerKind);
-    const offerLabel = offerLabels[offerKind] || "Commercial service";
+    const trackId = offerPackage?.trackId || trackForOffer(offerKind);
+    const offerLabel = offerPackage?.name || offerLabels[offerKind] || "Commercial service";
     const customerId = `customer-intake-${requestStamp}`;
     const assignmentId = `request-intake-${requestStamp}`;
+    const opportunityId = `opp-intake-${requestStamp}`;
     const nextAction = isUnder19
       ? "Run compatibility and guardian assessment before acceptance"
-      : "Qualify request and propose the first paid diagnostic or service step";
+      : `Qualify ${offerLabel} and propose the first paid step`;
 
     const lead = {
       id: `lead-intake-${requestStamp}`,
       name: `${requesterName} request`,
       trackId,
+      packageId: offerPackage?.id || null,
       status: isUnder19 ? "waiting" : "planned",
+      nextAction,
+      nextActionAt: preferredWindow
+    };
+
+    const opportunity = {
+      id: opportunityId,
+      leadId: lead.id,
+      packageId: offerPackage?.id || null,
+      status: isUnder19 ? "waiting" : "planned",
+      estimatedValueJpy: offerPackage?.priceJpy || 0,
       nextAction,
       nextActionAt: preferredWindow
     };
@@ -148,15 +173,18 @@
       id: customerId,
       displayName: requesterName,
       trackId,
+      packageId: offerPackage?.id || null,
       ageBand,
       externalStatus: isUnder19
         ? "Request received; compatibility and guardian review required before acceptance."
-        : "Request received; next update follows internal review."
+        : `${offerLabel} request received; next update follows internal review.`
     };
 
     const assignment = {
       id: assignmentId,
       customerId,
+      packageId: offerPackage?.id || null,
+      opportunityId,
       title: `${offerLabel} intake request`,
       dueAt: preferredWindow,
       status: "waiting",
@@ -182,6 +210,7 @@
     };
 
     nextData.leads.unshift(lead);
+    nextData.opportunities.unshift(opportunity);
     nextData.customers.unshift(customer);
     nextData.assignments.unshift(assignment);
     nextData.followups.unshift(followup);
@@ -191,6 +220,7 @@
       data: nextData,
       records: {
         lead,
+        opportunity,
         customer,
         assignment,
         followup,
@@ -428,6 +458,7 @@
   function monitorTimelineItems(currentData) {
     return [
       ...currentData.leads.map((item) => ({ kind: "lead", id: item.id, title: item.name, status: item.status, time: item.nextActionAt, owner: item.owner || "intake" })),
+      ...currentData.opportunities.map((item) => ({ kind: "opportunity", id: item.id, title: item.packageId || item.id, status: item.status, time: item.nextActionAt, owner: `${item.estimatedValueJpy || 0} JPY` })),
       ...currentData.sessions.map((item) => ({ kind: "session", id: item.id, title: item.title, status: item.status, time: item.startAt, owner: item.owner || "owner pending" })),
       ...currentData.assignments.map((item) => ({ kind: "request", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.owner || "owner pending" })),
       ...currentData.submissions.map((item) => ({ kind: "submission", id: item.id, title: item.title || item.id, status: item.status, time: item.reviewDueAt, owner: item.owner || "review queue" })),

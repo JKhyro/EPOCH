@@ -179,6 +179,10 @@
           <p>Under-19 applicants require compatibility assessment and guardian agreement before acceptance.</p>
         </article>
       </div>
+      <div class="section-heading compact">
+        <h2>Offer Catalog</h2>
+      </div>
+      <div id="offer-catalog" class="item-list"></div>
       <div class="intake-layout">
         <form id="intake-form" class="intake-form">
           <div class="form-row">
@@ -206,6 +210,12 @@
                 <option value="management_system">Database / CRM / system</option>
               </select>
             </label>
+            <label>
+              Package
+              <select name="packageId" id="intake-package" required></select>
+            </label>
+          </div>
+          <div class="form-row">
             <label>
               Preferred window
               <input name="preferredWindow" type="datetime-local" required />

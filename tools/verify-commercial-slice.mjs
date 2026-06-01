@@ -15,7 +15,9 @@ const requiredStatuses = [
 
 const requiredCollections = [
   "tracks",
+  "offerPackages",
   "leads",
+  "opportunities",
   "customers",
   "cohorts",
   "sessions",
@@ -69,6 +71,7 @@ for (const id of [
   "view-student",
   "view-monitor",
   "view-public",
+  "offer-catalog",
   "schedule-form",
   "schedule-feed",
   "intake-form",
@@ -79,11 +82,12 @@ for (const id of [
   "storage-status",
   "export-ledger",
   "import-ledger",
-  "ledger-json"
+  "ledger-json",
+  "intake-package"
 ]) {
   if (!html.includes(`id="${id}"`)) fail(`web surface missing ${id}`);
 }
-for (const field of ["requesterName", "ageBand", "offerKind", "preferredWindow", "requestSummary"]) {
+for (const field of ["requesterName", "ageBand", "offerKind", "packageId", "preferredWindow", "requestSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`intake form missing field ${field}`);
 }
 for (const field of ["owner", "sessionTitle", "startAt", "endAt", "deadlineAt"]) {
@@ -108,6 +112,8 @@ for (const phrase of [
   "storageStatusText",
   "downloadLedger",
   "wireLedgerControls",
+  "renderOfferCatalog",
+  "renderOfferOptions",
   "renderScheduleFeed",
   "renderIntakeSnapshot",
   "renderSubmissions",
@@ -118,9 +124,17 @@ for (const phrase of [
   "Submission Received",
   "Review Returned",
   "Ledger Exported",
-  "Ledger Imported"
+  "Ledger Imported",
+  "Opportunity Pipeline"
 ]) {
   if (!app.includes(phrase)) fail(`app script missing phrase: ${phrase}`);
+}
+
+if (!data.offerPackages.some((item) => item.id === "pkg-under19-assessment" && item.routing === "compatibility-required")) {
+  fail("offer catalog missing under-19 compatibility package");
+}
+if (!data.offerPackages.some((item) => item.offerKind === "management_system" && item.priceJpy >= 100000)) {
+  fail("offer catalog missing management-system package");
 }
 
 const checklist = read("../docs/first-commercial-slice-checklist.md");
@@ -147,6 +161,7 @@ const intakeResult = recordTools.createIntakeRecords(data, {
   requesterName: "Compatibility prospect",
   ageBand: "under-19",
   offerKind: "education",
+  packageId: "pkg-eiken-writing-monthly",
   preferredWindow: "2026-06-05T19:30",
   requestSummary: "Needs EIKEN writing support but requires fit review."
 }, {
@@ -154,11 +169,14 @@ const intakeResult = recordTools.createIntakeRecords(data, {
 });
 
 if (intakeResult.data.leads.length !== data.leads.length + 1) fail("intake flow did not create a lead");
+if (intakeResult.data.opportunities.length !== data.opportunities.length + 1) fail("intake flow did not create an opportunity");
 if (intakeResult.data.customers.length !== data.customers.length + 1) fail("intake flow did not create a customer");
 if (intakeResult.data.assignments.length !== data.assignments.length + 1) fail("intake flow did not create a visible request");
 if (intakeResult.data.followups.length !== data.followups.length + 1) fail("intake flow did not create a follow-up");
 if (intakeResult.data.receipts.length !== data.receipts.length + 1) fail("intake flow did not create a receipt");
 if (intakeResult.records.lead.status !== "waiting") fail("under-19 intake should wait for compatibility review");
+if (intakeResult.records.opportunity.packageId !== "pkg-under19-assessment") fail("under-19 intake did not route to compatibility package");
+if (intakeResult.records.opportunity.estimatedValueJpy < 60000) fail("under-19 opportunity value does not reflect higher-touch routing");
 if (!intakeResult.records.customer.externalStatus.includes("compatibility")) fail("under-19 intake lacks compatibility messaging");
 if (!intakeResult.records.assignment.externalVisible) fail("intake request is not external-visible");
 

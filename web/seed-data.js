@@ -28,6 +28,74 @@ window.EPOCH_SEED_DATA = {
       "defaultPackage": "Consultation plus managed follow-up"
     }
   ],
+  "offerPackages": [
+    {
+      "id": "pkg-eiken-writing-monthly",
+      "trackId": "track-eiken-upper",
+      "offerKind": "education",
+      "name": "Premium EIKEN Writing Review",
+      "audience": "Adults and serious test candidates",
+      "deliveryModel": "Submission-first monthly review",
+      "priceJpy": 45000,
+      "routing": "submission-first",
+      "status": "active"
+    },
+    {
+      "id": "pkg-eiken-cohort-lab",
+      "trackId": "track-eiken-upper",
+      "offerKind": "education",
+      "name": "EIKEN Cohort Writing Lab",
+      "audience": "Small groups preparing for EIKEN 2, Pre-1, or 1",
+      "deliveryModel": "Cohort plus weekly submissions",
+      "priceJpy": 22000,
+      "routing": "cohort",
+      "status": "active"
+    },
+    {
+      "id": "pkg-under19-assessment",
+      "trackId": "track-eiken-upper",
+      "offerKind": "education",
+      "name": "Under-19 Compatibility Assessment",
+      "audience": "Younger applicants requiring fit review",
+      "deliveryModel": "Compatibility gate before acceptance",
+      "priceJpy": 65000,
+      "routing": "compatibility-required",
+      "status": "restricted"
+    },
+    {
+      "id": "pkg-ops-diagnostic",
+      "trackId": "track-service-ops",
+      "offerKind": "service_ops",
+      "name": "Service Operations Diagnostic",
+      "audience": "Small business and solo operators",
+      "deliveryModel": "Consultation plus managed follow-up",
+      "priceJpy": 30000,
+      "routing": "diagnostic",
+      "status": "active"
+    },
+    {
+      "id": "pkg-tech-support-retainer",
+      "trackId": "track-service-ops",
+      "offerKind": "technical_support",
+      "name": "Remote Technical Support Retainer",
+      "audience": "Operators needing recurring support",
+      "deliveryModel": "Monthly support and request queue",
+      "priceJpy": 80000,
+      "routing": "retainer",
+      "status": "active"
+    },
+    {
+      "id": "pkg-crm-system-build",
+      "trackId": "track-service-ops",
+      "offerKind": "management_system",
+      "name": "Database / CRM System Build",
+      "audience": "Businesses needing lightweight operating systems",
+      "deliveryModel": "Scoped build plus handoff",
+      "priceJpy": 150000,
+      "routing": "project-estimate",
+      "status": "active"
+    }
+  ],
   "leads": [
     {
       "id": "lead-001",
@@ -44,6 +112,17 @@ window.EPOCH_SEED_DATA = {
       "status": "waiting",
       "nextAction": "Guardian and compatibility assessment required before acceptance",
       "nextActionAt": "2026-06-02T17:00:00+09:00"
+    }
+  ],
+  "opportunities": [
+    {
+      "id": "opp-001",
+      "leadId": "lead-001",
+      "packageId": "pkg-eiken-writing-monthly",
+      "status": "planned",
+      "estimatedValueJpy": 45000,
+      "nextAction": "Confirm diagnostic and submission plan",
+      "nextActionAt": "2026-06-01T19:30:00+09:00"
     }
   ],
   "customers": [

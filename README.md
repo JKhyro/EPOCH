@@ -36,7 +36,8 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   student/customer, monitor, public request, scheduling, submission, and
   review-return views, including local ledger save/load plus JSON export/import.
 - `web/seed-data.js`: demo commercial workflow covering leads, tracks, cohorts,
-  sessions, assignments, submissions, reviews, follow-ups, and receipts.
+  offer packages, opportunities, sessions, assignments, submissions, reviews,
+  follow-ups, and receipts.
 - `tools/verify-commercial-slice.mjs`: repository verifier for the first
   commercial slice.
 

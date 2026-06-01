@@ -82,15 +82,46 @@ function trackName(trackId) {
   return track ? track.name : "track pending";
 }
 
+function packageName(packageId) {
+  const offerPackage = data.offerPackages.find((item) => item.id === packageId);
+  return offerPackage ? offerPackage.name : "package pending";
+}
+
+function formatJpy(value) {
+  return `JPY ${Number(value || 0).toLocaleString("en-US")}`;
+}
+
 function allOperatingItems() {
   return [
     ...data.leads.map((item) => ({ ...item, kind: "lead", time: item.nextActionAt })),
+    ...data.opportunities.map((item) => ({ ...item, title: packageName(item.packageId), kind: "opportunity", time: item.nextActionAt })),
     ...data.sessions.map((item) => ({ ...item, kind: "session", time: item.startAt })),
     ...data.assignments.map((item) => ({ ...item, kind: "request", time: item.dueAt })),
     ...data.submissions.map((item) => ({ ...item, kind: "submission", time: item.reviewDueAt })),
     ...data.reviews.map((item) => ({ ...item, kind: "review", time: item.returnedAt })),
     ...data.followups.map((item) => ({ ...item, kind: "follow-up", time: item.nextActionAt }))
   ];
+}
+
+function renderOfferOptions() {
+  const select = byId("intake-package");
+  select.innerHTML = data.offerPackages.map((offerPackage) => {
+    return `<option value="${escapeHtml(offerPackage.id)}">${escapeHtml(`${offerPackage.name} - ${formatJpy(offerPackage.priceJpy)}`)}</option>`;
+  }).join("");
+}
+
+function renderOfferCatalog() {
+  byId("offer-catalog").innerHTML = data.offerPackages.map((offerPackage) => {
+    return record(
+      offerPackage.name,
+      `${offerPackage.audience} | ${offerPackage.deliveryModel}`,
+      [
+        chip(formatJpy(offerPackage.priceJpy)),
+        chip(offerPackage.routing),
+        chip(offerPackage.status)
+      ]
+    );
+  }).join("");
 }
 
 function renderMetrics(items) {
@@ -108,7 +139,7 @@ function renderMetrics(items) {
 
 function renderAdmin(items) {
   const adminItems = items
-    .filter((item) => attentionStatuses.has(item.status) || item.kind === "session" || item.kind === "follow-up" || item.kind === "lead")
+    .filter((item) => attentionStatuses.has(item.status) || item.kind === "session" || item.kind === "follow-up" || item.kind === "lead" || item.kind === "opportunity")
     .slice(0, 10);
 
   byId("admin-actions").innerHTML = adminItems.map((item) => {
@@ -196,6 +227,7 @@ function renderMonitor(items) {
   const visibleCount = data.assignments.filter((item) => item.externalVisible).length;
   const intakeCount = data.leads.filter((item) => item.id.startsWith("lead-intake")).length;
   const reviewingCount = data.submissions.filter((item) => item.status === "reviewing" || item.status === "submitted").length;
+  const opportunityValue = data.opportunities.reduce((total, item) => total + Number(item.estimatedValueJpy || 0), 0);
   const deadlines = recordTools.summarizeDeadlines(data, { now: `${today}T12:00:00+09:00` });
   const report = recordTools.buildMonitorReport(data, { now: `${today}T12:00:00+09:00` });
 
@@ -203,7 +235,8 @@ function renderMonitor(items) {
     record("Monitor Summary", `${report.summary.queue} queued, ${report.summary.timeline} timeline records, ${report.summary.risks} risks.`, [chip(report.summary.health, report.summary.health === "Ready" ? "complete" : "blocked")]),
     record("Queue Attention", `${attentionCount} records need attention now.`, [chip(`${attentionCount} active`, "reviewing")]),
     record("External Visibility", `${visibleCount} student/customer-visible records are available.`, [chip(`${visibleCount} visible`)]),
-    record("Deadline Control", `${deadlines.today} today, ${deadlines.upcoming} upcoming, ${deadlines.overdue} overdue.`, [chip(`${deadlines.owned} owner-linked`, "planned")])
+    record("Deadline Control", `${deadlines.today} today, ${deadlines.upcoming} upcoming, ${deadlines.overdue} overdue.`, [chip(`${deadlines.owned} owner-linked`, "planned")]),
+    record("Opportunity Pipeline", `${data.opportunities.length} opportunities with ${formatJpy(opportunityValue)} estimated value.`, [chip("pipeline", "waiting")])
   ];
 
   const queueCards = report.queue.map((item) => record(
@@ -250,7 +283,7 @@ function renderIntakeSnapshot() {
     return record(
       item.title,
       item.summary || `Visible request due ${formatTime(item.dueAt)}`,
-      [statusChip(item.status), chip("external")]
+      [statusChip(item.status), chip("external"), chip(packageName(item.packageId))]
     );
   }).join("");
 }
@@ -258,6 +291,8 @@ function renderIntakeSnapshot() {
 function renderAll() {
   const items = allOperatingItems();
   renderMetrics(items);
+  renderOfferOptions();
+  renderOfferCatalog();
   renderScheduleOptions();
   renderScheduleFeed();
   renderAdmin(items);
