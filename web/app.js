@@ -65,7 +65,7 @@ function resetData() {
 
 function storageStatusText() {
   const ledger = recordTools.createOperatingLedger(data);
-  return `Ledger v${ledger.version} | ${ledger.counts.customers} customers | ${ledger.counts.engagements} engagements | ${ledger.counts.assignments} requests | ${ledger.counts.receipts} receipts`;
+  return `Ledger v${ledger.version} | ${ledger.counts.customers} customers | ${ledger.counts.engagements} engagements | ${ledger.counts.notificationEvents} updates | ${ledger.counts.receipts} receipts`;
 }
 
 function formatTime(value) {
@@ -106,6 +106,7 @@ function allOperatingItems() {
     ...data.leads.map((item) => ({ ...item, kind: "lead", time: item.nextActionAt })),
     ...data.opportunities.map((item) => ({ ...item, title: packageName(item.packageId), kind: "opportunity", time: item.nextActionAt })),
     ...(data.engagements || []).map((item) => ({ ...item, title: packageName(item.packageId), kind: "engagement", time: item.onboardingDueAt || item.acceptedAt })),
+    ...(data.notificationEvents || []).map((item) => ({ ...item, kind: "update", time: item.deliverAfterAt || item.createdAt })),
     ...data.sessions.map((item) => ({ ...item, kind: "session", time: item.startAt })),
     ...data.assignments.map((item) => ({ ...item, kind: "request", time: item.dueAt })),
     ...data.submissions.map((item) => ({ ...item, kind: "submission", time: item.reviewDueAt })),
@@ -238,6 +239,27 @@ function renderStudentStatus() {
   }).join("");
 }
 
+function renderCustomerUpdates() {
+  const updates = (data.notificationEvents || [])
+    .filter((item) => item.visible)
+    .slice(0, 8);
+
+  byId("customer-update-log").innerHTML = updates.length
+    ? updates.map((update) => {
+      const customer = data.customers.find((item) => item.id === update.customerId);
+      return record(
+        update.title,
+        update.summary,
+        [
+          chip(customer?.displayName || "customer pending"),
+          chip(update.deliveryStatus || "pending"),
+          chip(formatTime(update.deliverAfterAt || update.createdAt))
+        ]
+      );
+    }).join("")
+    : record("Update Log", "No customer-visible updates have been created yet.", [chip("empty")]);
+}
+
 function renderSubmissionOptions() {
   const select = byId("submission-assignment");
   const options = data.assignments
@@ -279,6 +301,7 @@ function renderMonitor(items) {
   const deadlines = recordTools.summarizeDeadlines(data, { now: `${today}T12:00:00+09:00` });
   const report = recordTools.buildMonitorReport(data, { now: `${today}T12:00:00+09:00` });
   const revenue = report.revenue || recordTools.summarizeRevenueState(data);
+  const notifications = report.notifications || recordTools.summarizeNotificationState(data);
   byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | local-first`;
 
   const summaryCards = [
@@ -287,7 +310,8 @@ function renderMonitor(items) {
     record("External Visibility", `${visibleCount} student/customer-visible records are available.`, [chip(`${visibleCount} visible`)]),
     record("Deadline Control", `${deadlines.today} today, ${deadlines.upcoming} upcoming, ${deadlines.overdue} overdue.`, [chip(`${deadlines.owned} owner-linked`, "planned")]),
     record("Opportunity Pipeline", `${revenue.pipelineCount} open opportunities with ${formatJpy(revenue.pipelineValueJpy)} estimated value.`, [chip(`${revenue.waitingCount} waiting`, "waiting"), chip(`${revenue.deferredCount} deferred`)]),
-    record("Engagement Revenue", `${revenue.activeEngagements} active engagements with ${formatJpy(revenue.acceptedValueJpy)} accepted value.`, [chip(`${revenue.acceptedCount} accepted`, "complete"), chip(`${revenue.under19CompatibilityCount} compatibility gates`)])
+    record("Engagement Revenue", `${revenue.activeEngagements} active engagements with ${formatJpy(revenue.acceptedValueJpy)} accepted value.`, [chip(`${revenue.acceptedCount} accepted`, "complete"), chip(`${revenue.under19CompatibilityCount} compatibility gates`)]),
+    record("Update Events", `${notifications.visible} visible updates, ${notifications.pending} pending, ${notifications.blocked} blocked.`, [chip(`${notifications.posted} posted`, "complete"), chip(`${notifications.total} total`)])
   ];
 
   const queueCards = report.queue.map((item) => record(
@@ -351,6 +375,7 @@ function renderAll() {
   renderScheduleFeed();
   renderAdmin(items);
   renderStudentStatus();
+  renderCustomerUpdates();
   renderSubmissionOptions();
   renderSubmissions();
   renderMonitor(items);

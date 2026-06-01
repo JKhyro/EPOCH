@@ -18,6 +18,7 @@ const requiredCollections = [
   "offerPackages",
   "leads",
   "opportunities",
+  "notificationEvents",
   "customers",
   "cohorts",
   "sessions",
@@ -79,6 +80,7 @@ for (const id of [
   "intake-feed",
   "submission-form",
   "submission-feed",
+  "customer-update-log",
   "opportunity-form",
   "engagement-opportunity",
   "opportunity-feed",
@@ -124,6 +126,7 @@ for (const phrase of [
   "buildMonitorReport",
   "summarizeDeadlines",
   "summarizeRevenueState",
+  "summarizeNotificationState",
   "localStorage",
   "storageStatusText",
   "downloadLedger",
@@ -142,6 +145,7 @@ for (const phrase of [
   "renderScheduleFeed",
   "renderIntakeSnapshot",
   "renderSubmissions",
+  "renderCustomerUpdates",
   "monitorSection",
   "monitor-summary",
   "monitor-queue",
@@ -158,6 +162,7 @@ for (const phrase of [
   "Ledger Imported",
   "Opportunity Pipeline",
   "Engagement Revenue",
+  "Update Events",
   "Engagement Accepted",
   "Opportunity Deferred",
   "Opportunity Rejected"
@@ -209,11 +214,13 @@ if (intakeResult.data.customers.length !== data.customers.length + 1) fail("inta
 if (intakeResult.data.assignments.length !== data.assignments.length + 1) fail("intake flow did not create a visible request");
 if (intakeResult.data.followups.length !== data.followups.length + 1) fail("intake flow did not create a follow-up");
 if (intakeResult.data.receipts.length !== data.receipts.length + 1) fail("intake flow did not create a receipt");
+if (intakeResult.data.notificationEvents.length !== data.notificationEvents.length + 1) fail("intake flow did not create a customer update event");
 if (intakeResult.records.lead.status !== "waiting") fail("under-19 intake should wait for compatibility review");
 if (intakeResult.records.opportunity.packageId !== "pkg-under19-assessment") fail("under-19 intake did not route to compatibility package");
 if (intakeResult.records.opportunity.estimatedValueJpy < 60000) fail("under-19 opportunity value does not reflect higher-touch routing");
 if (!intakeResult.records.customer.externalStatus.includes("compatibility")) fail("under-19 intake lacks compatibility messaging");
 if (!intakeResult.records.assignment.externalVisible) fail("intake request is not external-visible");
+if (!intakeResult.records.notificationEvent.visible) fail("intake update event is not customer-visible");
 
 const acceptResult = recordTools.decideOpportunityRecords(intakeResult.data, {
   opportunityId: intakeResult.records.opportunity.id,
@@ -234,15 +241,20 @@ if (acceptResult.data.cohorts.length !== intakeResult.data.cohorts.length + 1) f
 if (acceptResult.data.assignments.length !== intakeResult.data.assignments.length + 1) fail("accept flow did not create first submission plan");
 if (acceptResult.data.followups.length !== intakeResult.data.followups.length + 1) fail("accept flow did not create engagement follow-up");
 if (acceptResult.data.receipts.length !== intakeResult.data.receipts.length + 1) fail("accept flow did not create acceptance receipt");
+if (acceptResult.data.notificationEvents.length !== intakeResult.data.notificationEvents.length + 1) fail("accept flow did not create update event");
 if (acceptResult.records.engagement.status !== "active") fail("accept flow did not create active engagement");
 if (!acceptResult.records.assignment.externalVisible) fail("accept flow did not expose the first submission plan externally");
 if (acceptResult.records.assignment.engagementId !== acceptResult.records.engagement.id) fail("accept flow did not link assignment to engagement");
 if (!acceptResult.data.customers[0].externalStatus.includes("accepted")) fail("accept flow did not update customer external status");
+if (acceptResult.records.notificationEvent.sourceKind !== "engagement") fail("accept flow update event is not sourced to engagement");
 
 const revenueSummary = recordTools.summarizeRevenueState(acceptResult.data);
 if (revenueSummary.activeEngagements < 1) fail("revenue summary did not count active engagement");
 if (revenueSummary.acceptedValueJpy < 60000) fail("revenue summary did not include accepted value");
 if (revenueSummary.acceptedCount < 1) fail("revenue summary did not count accepted opportunity");
+const notificationSummary = recordTools.summarizeNotificationState(acceptResult.data);
+if (notificationSummary.visible < 1) fail("notification summary did not count visible updates");
+if (notificationSummary.posted < 1) fail("notification summary did not count posted updates");
 
 let rejectedDuplicateAccept = false;
 try {
@@ -274,6 +286,7 @@ if (deferResult.data.engagements.length !== intakeResult.data.engagements.length
 if (deferResult.data.followups.length !== intakeResult.data.followups.length + 1) fail("defer flow did not create follow-up");
 if (deferResult.records.receipt.kind !== "opportunity-deferred") fail("defer flow did not create deferred receipt");
 if (!deferResult.data.customers[0].externalStatus.includes("deferred")) fail("defer flow did not update customer external status");
+if (deferResult.data.notificationEvents.length !== intakeResult.data.notificationEvents.length + 1) fail("defer flow did not create update event");
 
 const rejectResult = recordTools.decideOpportunityRecords(intakeResult.data, {
   opportunityId: intakeResult.records.opportunity.id,
@@ -289,6 +302,7 @@ if (rejectResult.records.opportunity.status !== "rejected") fail("reject flow di
 if (rejectResult.data.engagements.length !== intakeResult.data.engagements.length) fail("reject flow should not create an engagement");
 if (rejectResult.records.receipt.kind !== "opportunity-rejected") fail("reject flow did not create rejected receipt");
 if (!rejectResult.data.customers[0].externalStatus.includes("closed")) fail("reject flow did not update customer external status");
+if (rejectResult.data.notificationEvents.length !== intakeResult.data.notificationEvents.length + 1) fail("reject flow did not create update event");
 
 const scheduleResult = recordTools.createScheduleRecords(intakeResult.data, {
   assignmentId: intakeResult.records.assignment.id,
@@ -306,6 +320,7 @@ if (scheduleResult.data.cohorts.length !== intakeResult.data.cohorts.length + 1)
 if (scheduleResult.records.assignment.status !== "planned") fail("schedule flow did not set assignment planned");
 if (scheduleResult.records.session.owner !== "Jack") fail("schedule flow did not assign owner");
 if (!scheduleResult.data.customers[0].externalStatus.includes("scheduled")) fail("schedule flow did not update external status");
+if (scheduleResult.data.notificationEvents.length !== intakeResult.data.notificationEvents.length + 1) fail("schedule flow did not create update event");
 
 const deadlineSummary = recordTools.summarizeDeadlines(scheduleResult.data, { now: "2026-06-01T12:00:00+09:00" });
 if (deadlineSummary.upcoming < 1) fail("deadline summary did not detect upcoming work");
@@ -325,6 +340,7 @@ if (submissionResult.data.reviews.length !== intakeResult.data.reviews.length + 
 if (submissionResult.records.submission.status !== "reviewing") fail("submission should enter reviewing status");
 if (submissionResult.records.review.status !== "reviewing") fail("review should enter reviewing status");
 if (!submissionResult.data.customers[0].externalStatus.includes("review is in progress")) fail("submission flow did not update customer status");
+if (submissionResult.data.notificationEvents.length !== scheduleResult.data.notificationEvents.length + 1) fail("submission flow did not create update event");
 
 const returnResult = recordTools.returnReviewRecords(submissionResult.data, {
   submissionId: submissionResult.records.submission.id,
@@ -337,12 +353,14 @@ if (returnResult.records.submission.status !== "returned") fail("return flow did
 if (returnResult.records.review.status !== "returned") fail("return flow did not update review status");
 if (returnResult.data.receipts.length !== submissionResult.data.receipts.length + 1) fail("return flow did not create a receipt");
 if (!returnResult.data.customers[0].externalStatus.includes("Feedback returned")) fail("return flow did not update external status");
+if (returnResult.data.notificationEvents.length !== submissionResult.data.notificationEvents.length + 1) fail("return flow did not create update event");
 
 const monitorReport = recordTools.buildMonitorReport(returnResult.data, { now: "2026-06-01T12:00:00+09:00" });
 for (const section of ["summary", "queue", "timeline", "risks", "receipts"]) {
   if (!(section in monitorReport)) fail(`monitor report missing section ${section}`);
 }
 if (!monitorReport.revenue) fail("monitor report missing revenue state");
+if (!monitorReport.notifications) fail("monitor report missing notification state");
 if (monitorReport.summary.timeline < 1) fail("monitor report did not include timeline records");
 if (!Array.isArray(monitorReport.queue)) fail("monitor report queue is not an array");
 if (!Array.isArray(monitorReport.receipts) || monitorReport.receipts.length < 1) fail("monitor report receipts missing returned review receipt");
@@ -355,6 +373,7 @@ const exportedLedger = recordTools.createOperatingLedger(returnResult.data, { no
 if (exportedLedger.schema !== "epoch.operating-ledger") fail("ledger export has wrong schema");
 if (exportedLedger.version !== recordTools.ledgerVersion) fail("ledger export has wrong version");
 if (exportedLedger.counts.receipts !== returnResult.data.receipts.length) fail("ledger export receipt count is wrong");
+if (exportedLedger.counts.notificationEvents !== returnResult.data.notificationEvents.length) fail("ledger export update-event count is wrong");
 if (!exportedLedger.monitor || exportedLedger.monitor.timeline < 1) fail("ledger export missing monitor summary");
 
 const engagementLedger = recordTools.createOperatingLedger(acceptResult.data, { now: "2026-06-01T04:35:00.000Z" });
@@ -362,6 +381,7 @@ if (engagementLedger.counts.engagements !== acceptResult.data.engagements.length
 
 const importedLedger = recordTools.importOperatingLedger(data, JSON.stringify(exportedLedger));
 if (importedLedger.data.receipts.length !== returnResult.data.receipts.length) fail("ledger import did not preserve receipts");
+if (importedLedger.data.notificationEvents.length !== returnResult.data.notificationEvents.length) fail("ledger import did not preserve update events");
 if (importedLedger.data.customers[0].externalStatus !== returnResult.data.customers[0].externalStatus) fail("ledger import did not preserve external status");
 
 const importedEngagementLedger = recordTools.importOperatingLedger(data, JSON.stringify(engagementLedger));
