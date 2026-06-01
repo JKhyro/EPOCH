@@ -45,10 +45,11 @@ function loadData() {
   }
 }
 
-function persistData() {
+function persistData(options = {}) {
   try {
-    const ledger = recordTools.createOperatingLedger(data);
+    const ledger = recordTools.createOperatingLedger(data, options);
     window.localStorage.setItem(storageKey, JSON.stringify(ledger));
+    data = ledger.data;
   } catch {
     // Browser storage is optional in this static kickoff surface.
   }
@@ -64,8 +65,8 @@ function resetData() {
 }
 
 function storageStatusText() {
-  const ledger = recordTools.createOperatingLedger(data);
-  return `Ledger v${ledger.version} | ${ledger.counts.customers} customers | ${ledger.counts.engagements} engagements | ${ledger.counts.notificationEvents} updates | ${ledger.counts.receipts} receipts`;
+  const persistence = recordTools.summarizePersistenceState(data);
+  return `Ledger v${recordTools.ledgerVersion} | ${data.customers.length} customers | ${data.engagements.length} engagements | ${data.notificationEvents.length} updates | ${data.receipts.length} receipts | r${persistence.revision} ${persistence.adapterState} | ${persistence.ledgerId}`;
 }
 
 function formatTime(value) {
@@ -304,7 +305,8 @@ function renderMonitor(items) {
   const notifications = report.notifications || recordTools.summarizeNotificationState(data);
   const calendarExport = recordTools.createCalendarExport(data, { now: `${today}T12:00:00+09:00` });
   const calendar = report.calendar || recordTools.summarizeCalendarExport(calendarExport);
-  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | local-first`;
+  const persistence = report.persistence || recordTools.summarizePersistenceState(data, { now: `${today}T12:00:00+09:00` });
+  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | ${persistence.adapterState}`;
 
   const summaryCards = [
     record("Monitor Summary", `${report.summary.queue} queued, ${report.summary.timeline} timeline records, ${report.summary.risks} risks.`, [chip(report.summary.health, report.summary.health === "Ready" ? "complete" : "blocked")]),
@@ -314,7 +316,8 @@ function renderMonitor(items) {
     record("Opportunity Pipeline", `${revenue.pipelineCount} open opportunities with ${formatJpy(revenue.pipelineValueJpy)} estimated value.`, [chip(`${revenue.waitingCount} waiting`, "waiting"), chip(`${revenue.deferredCount} deferred`)]),
     record("Engagement Revenue", `${revenue.activeEngagements} active engagements with ${formatJpy(revenue.acceptedValueJpy)} accepted value.`, [chip(`${revenue.acceptedCount} accepted`, "complete"), chip(`${revenue.under19CompatibilityCount} compatibility gates`)]),
     record("Update Events", `${notifications.visible} visible updates, ${notifications.pending} pending, ${notifications.blocked} blocked.`, [chip(`${notifications.posted} posted`, "complete"), chip(`${notifications.total} total`)]),
-    record("Calendar Export", `${calendar.total} export-ready entries, ${calendar.customerVisible} customer-visible, ${calendar.updateLinked} update-linked.`, [chip(calendarExport.schema), chip(calendarExport.timezone)])
+    record("Calendar Export", `${calendar.total} export-ready entries, ${calendar.customerVisible} customer-visible, ${calendar.updateLinked} update-linked.`, [chip(calendarExport.schema), chip(calendarExport.timezone)]),
+    record("Persistence", `Ledger ${persistence.ledgerId} revision ${persistence.revision}; ${persistence.adapterState}; checksum ${persistence.checksum}.`, [chip(persistence.adapter), chip(persistence.libraryReady ? "library-ready" : "local-only")])
   ];
 
   const queueCards = report.queue.map((item) => record(
@@ -345,11 +348,25 @@ function renderMonitor(items) {
     [statusChip(item.status), chip(formatTime(item.createdAt))]
   ));
 
+  const persistenceCards = [
+    record(
+      "Durable Ledger Boundary",
+      `${persistence.source} snapshot ${persistence.snapshotAt}; parent revision ${persistence.parentRevision || "none"}.`,
+      [chip(`revision ${persistence.revision}`), chip(persistence.adapterState), chip(persistence.libraryReady ? "LIBRARY-ready" : "local-only")]
+    ),
+    record(
+      "Recovery Contract",
+      persistence.recoveryNote,
+      [chip(persistence.ledgerId), chip(persistence.checksum)]
+    )
+  ];
+
   byId("monitor-items").innerHTML = [
     monitorSection("Summary", summaryCards, "monitor-summary"),
     monitorSection("Queue", queueCards, "monitor-queue"),
     monitorSection("Timeline", timelineCards, "monitor-timeline"),
     monitorSection("Calendar Export", calendarCards.length ? calendarCards : [record("Calendar Export", "No export-ready calendar entries have been created yet.", [chip("empty")])], "monitor-calendar"),
+    monitorSection("Persistence", persistenceCards, "monitor-persistence"),
     monitorSection("Risks", riskCards, "monitor-risks"),
     monitorSection("Receipts", receiptCards.length ? receiptCards : [record("Receipts", "No receipts have been created yet.", [chip("empty")])], "monitor-receipts")
   ].join("");
@@ -560,12 +577,19 @@ function wireLedgerControls() {
   exportButton.addEventListener("click", () => {
     const ledger = recordTools.createOperatingLedger(data);
     const text = JSON.stringify(ledger, null, 2);
+    data = ledger.data;
+    try {
+      window.localStorage.setItem(storageKey, text);
+    } catch {
+      // Browser storage is optional in this static kickoff surface.
+    }
     ledgerText.value = text;
     downloadLedger(text);
+    renderAll();
     confirmation.innerHTML = record(
       "Ledger Exported",
       storageStatusText(),
-      [chip("json"), chip("download")]
+      [chip("json"), chip("download"), chip(ledger.persistence.adapterState)]
     );
   });
 
@@ -573,12 +597,15 @@ function wireLedgerControls() {
     try {
       const result = recordTools.importOperatingLedger(data, ledgerText.value);
       data = result.data;
-      persistData();
+      persistData({
+        adapterState: "imported-recovery-snapshot",
+        recoveryNote: "Imported ledger JSON and wrote a browser-local recovery snapshot."
+      });
       renderAll();
       confirmation.innerHTML = record(
         "Ledger Imported",
         storageStatusText(),
-        [chip("validated", "complete"), chip(`v${result.ledger.version}`)]
+        [chip("validated", "complete"), chip(`v${result.ledger.version}`), chip(result.ledger.persistence.adapterState)]
       );
     } catch (error) {
       confirmation.innerHTML = record(

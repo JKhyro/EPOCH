@@ -12,6 +12,8 @@
   };
 
   const ledgerVersion = 1;
+  const persistenceSchema = "epoch.ledger-persistence";
+  const persistenceAdapter = "browser-local-durable-ready";
   const ledgerCollections = [
     "tracks",
     "offerPackages",
@@ -41,6 +43,31 @@
     return now.toISOString().replace(/\D/g, "").slice(0, 14);
   }
 
+  function stableStringify(value) {
+    if (Array.isArray(value)) {
+      return `[${value.map((item) => stableStringify(item)).join(",")}]`;
+    }
+    if (value && typeof value === "object") {
+      return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(",")}}`;
+    }
+    return JSON.stringify(value ?? null);
+  }
+
+  function hashText(value) {
+    let hash = 2166136261;
+    for (let index = 0; index < value.length; index += 1) {
+      hash ^= value.charCodeAt(index);
+      hash = Math.imul(hash, 16777619) >>> 0;
+    }
+    return `fnv1a32-${hash.toString(16).padStart(8, "0")}`;
+  }
+
+  function checksumOperatingData(currentData) {
+    const data = normalizedOperatingData(currentData);
+    delete data.persistence;
+    return hashText(stableStringify(data));
+  }
+
   function withTimezone(value, timezone) {
     const raw = clean(value);
     if (!raw) return null;
@@ -67,6 +94,116 @@
     return nextData;
   }
 
+  function validatePersistenceMetadata(metadata, options = {}) {
+    if (metadata === undefined || metadata === null) return null;
+    if (typeof metadata !== "object" || Array.isArray(metadata)) {
+      throw new Error("ledger persistence metadata must be an object");
+    }
+    if (metadata.schema !== persistenceSchema) {
+      throw new Error("ledger persistence metadata has an unsupported schema");
+    }
+    if (metadata.adapter !== persistenceAdapter) {
+      throw new Error("ledger persistence metadata has an unsupported adapter");
+    }
+    if (!clean(metadata.ledgerId)) throw new Error("ledger persistence metadata is missing a ledger id");
+    if (!Number.isInteger(Number(metadata.revision)) || Number(metadata.revision) < 1) {
+      throw new Error("ledger persistence metadata revision must be a positive integer");
+    }
+    if (metadata.parentRevision !== null && metadata.parentRevision !== undefined && !Number.isInteger(Number(metadata.parentRevision))) {
+      throw new Error("ledger persistence parent revision must be an integer or null");
+    }
+    if (!clean(metadata.source)) throw new Error("ledger persistence metadata is missing a source");
+    if (!clean(metadata.checksum)) throw new Error("ledger persistence metadata is missing a checksum");
+    if (!clean(metadata.snapshotAt)) throw new Error("ledger persistence metadata is missing a snapshot timestamp");
+    if (!clean(metadata.adapterState)) throw new Error("ledger persistence metadata is missing an adapter state");
+
+    const normalized = {
+      schema: persistenceSchema,
+      adapter: persistenceAdapter,
+      ledgerId: clean(metadata.ledgerId),
+      revision: Number(metadata.revision),
+      parentRevision: metadata.parentRevision === undefined || metadata.parentRevision === null
+        ? null
+        : Number(metadata.parentRevision),
+      source: clean(metadata.source),
+      checksum: clean(metadata.checksum),
+      snapshotAt: clean(metadata.snapshotAt),
+      adapterState: clean(metadata.adapterState),
+      state: clean(metadata.state) || clean(metadata.adapterState),
+      libraryReady: metadata.libraryReady !== false,
+      recoveryNote: clean(metadata.recoveryNote) || "No recovery note recorded."
+    };
+
+    if (options.expectedChecksum && normalized.checksum !== options.expectedChecksum) {
+      throw new Error("ledger persistence checksum does not match the ledger data");
+    }
+    return normalized;
+  }
+
+  function createPersistenceMetadata(currentData, options = {}) {
+    const data = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = data.timezone || "Asia/Tokyo";
+    const existing = validatePersistenceMetadata(data.persistence);
+    const checksum = checksumOperatingData(data);
+    const checksumMatches = existing && existing.checksum === checksum;
+
+    if (options.preserveExisting && existing && !checksumMatches) {
+      throw new Error("existing ledger persistence checksum does not match the ledger data");
+    }
+    if (options.preserveExisting && existing) return existing;
+
+    const parentRevision = options.parentRevision === undefined
+      ? existing?.revision || null
+      : (options.parentRevision === null ? null : Number(options.parentRevision));
+    const revision = options.revision
+      ? Number(options.revision)
+      : Math.max(Number(parentRevision || 0), existing?.revision || 0) + 1;
+    const adapterState = clean(options.adapterState) || "durable-ready-snapshot";
+
+    return {
+      schema: persistenceSchema,
+      adapter: persistenceAdapter,
+      ledgerId: clean(options.ledgerId) || existing?.ledgerId || `ledger-${stamp(now)}`,
+      revision,
+      parentRevision,
+      source: clean(options.source) || "browser-local",
+      checksum,
+      snapshotAt: withTimezone(now.toISOString(), timezone),
+      adapterState,
+      state: adapterState,
+      libraryReady: true,
+      recoveryNote: clean(options.recoveryNote) || "Browser-local JSON snapshot; ready for LIBRARY durable persistence."
+    };
+  }
+
+  function summarizePersistenceState(currentData, options = {}) {
+    const data = normalizedOperatingData(currentData);
+    const existing = validatePersistenceMetadata(data.persistence);
+    const checksum = checksumOperatingData(data);
+    const metadata = existing && existing.checksum === checksum ? existing : createPersistenceMetadata(data, {
+      now: options.now,
+      adapterState: existing ? "modified-local" : "live-local",
+      recoveryNote: existing
+        ? "Local ledger has changed since the last durable-ready snapshot."
+        : "Live browser-local ledger; no durable snapshot has been written yet."
+    });
+
+    return {
+      ledgerId: metadata.ledgerId,
+      revision: metadata.revision,
+      parentRevision: metadata.parentRevision,
+      source: metadata.source,
+      adapter: metadata.adapter,
+      adapterState: metadata.adapterState,
+      state: metadata.state,
+      checksum: metadata.checksum,
+      snapshotAt: metadata.snapshotAt,
+      libraryReady: metadata.libraryReady,
+      recoveryNote: metadata.recoveryNote
+    };
+  }
+
   function parseLedgerPayload(payload) {
     if (typeof payload === "string") return JSON.parse(payload);
     return cloneData(payload || {});
@@ -75,6 +212,14 @@
   function operatingDataFromLedgerPayload(payload) {
     const parsed = parseLedgerPayload(payload);
     const candidate = parsed && parsed.data ? parsed.data : parsed;
+    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
+      throw new Error("ledger payload must be an object");
+    }
+    const envelopePersistence = validatePersistenceMetadata(parsed && parsed.persistence);
+    const dataPersistence = validatePersistenceMetadata(candidate.persistence);
+    if (envelopePersistence && dataPersistence && stableStringify(envelopePersistence) !== stableStringify(dataPersistence)) {
+      throw new Error("ledger persistence metadata mismatch between envelope and data");
+    }
     for (const collection of ledgerCollections) {
       if (candidate[collection] !== undefined && !Array.isArray(candidate[collection])) {
         throw new Error(`ledger collection ${collection} must be an array`);
@@ -92,6 +237,14 @@
     }
     if (!normalized.statuses.includes("reviewing") || !normalized.statuses.includes("returned")) {
       throw new Error("ledger statuses are missing required delivery states");
+    }
+    const persistence = envelopePersistence || dataPersistence;
+    if (persistence) {
+      const checksum = checksumOperatingData(normalized);
+      if (persistence.checksum !== checksum) {
+        throw new Error("ledger persistence checksum does not match the ledger data");
+      }
+      normalized.persistence = persistence;
     }
     return normalized;
   }
@@ -960,6 +1113,7 @@
     const revenue = summarizeRevenueState(currentData);
     const notifications = summarizeNotificationState(currentData);
     const calendarExport = createCalendarExport(currentData, { now: nowText });
+    const persistence = summarizePersistenceState(currentData, { now: nowText });
     const timeline = monitorTimelineItems(currentData)
       .sort((a, b) => String(b.time || "").localeCompare(String(a.time || "")));
     const queue = timeline
@@ -1008,11 +1162,14 @@
         visibleUpdates: notifications.visible,
         blockedUpdates: notifications.blocked,
         calendarEntries: calendarExport.counts.total,
-        calendarVisible: calendarExport.counts.customerVisible
+        calendarVisible: calendarExport.counts.customerVisible,
+        persistenceRevision: persistence.revision,
+        persistenceState: persistence.adapterState
       },
       revenue,
       notifications,
       calendar: calendarExport.counts,
+      persistence,
       queue,
       timeline: timeline.slice(0, 10),
       risks,
@@ -1024,12 +1181,23 @@
     const now = options && options.now ? new Date(options.now) : new Date();
     const data = normalizedOperatingData(currentData);
     const exportedAt = withTimezone(now.toISOString(), data.timezone || "Asia/Tokyo");
+    const persistence = createPersistenceMetadata(data, {
+      now: now.toISOString(),
+      source: options && options.source,
+      adapterState: options && options.adapterState,
+      ledgerId: options && options.ledgerId,
+      parentRevision: options && options.parentRevision,
+      preserveExisting: options && options.preserveExisting,
+      recoveryNote: options && options.recoveryNote
+    });
+    data.persistence = persistence;
     const calendarExport = createCalendarExport(data, { now: now.toISOString() });
     return {
       schema: "epoch.operating-ledger",
       version: ledgerVersion,
       exportedAt,
       timezone: data.timezone || "Asia/Tokyo",
+      persistence,
       counts: ledgerCollections.reduce((memo, collection) => {
         memo[collection] = data[collection].length;
         return memo;
@@ -1044,7 +1212,7 @@
 
   function importOperatingLedger(currentData, payload) {
     const importedData = operatingDataFromLedgerPayload(payload);
-    const ledger = createOperatingLedger(importedData);
+    const ledger = createOperatingLedger(importedData, { preserveExisting: true });
     return {
       data: importedData,
       ledger
@@ -1056,6 +1224,7 @@
     cloneData,
     createCalendarExport,
     createOperatingLedger,
+    createPersistenceMetadata,
     decideOpportunityRecords,
     createIntakeRecords,
     createSubmissionRecords,
@@ -1065,6 +1234,7 @@
     buildMonitorReport,
     summarizeCalendarExport,
     summarizeDeadlines,
+    summarizePersistenceState,
     summarizeNotificationState,
     summarizeRevenueState,
     withTimezone

@@ -109,7 +109,7 @@ for (const field of ["opportunityId", "decision", "planStartAt", "planEndAt", "p
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
 }
-for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-calendar"]) {
+for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-calendar", "monitor-persistence"]) {
   if (!html.includes(phrase)) fail(`monitor route surface missing phrase ${phrase}`);
 }
 if (!html.includes("./operating-records.js")) fail("web surface does not load operating-records.js");
@@ -127,6 +127,7 @@ for (const phrase of [
   "buildMonitorReport",
   "summarizeCalendarExport",
   "summarizeDeadlines",
+  "summarizePersistenceState",
   "summarizeRevenueState",
   "summarizeNotificationState",
   "localStorage",
@@ -153,6 +154,7 @@ for (const phrase of [
   "monitor-queue",
   "monitor-timeline",
   "monitor-calendar",
+  "monitor-persistence",
   "monitor-risks",
   "monitor-receipts",
   "monitor-route-status",
@@ -167,6 +169,9 @@ for (const phrase of [
   "Engagement Revenue",
   "Update Events",
   "Calendar Export",
+  "Persistence",
+  "library-ready",
+  "imported-recovery-snapshot",
   "Engagement Accepted",
   "Opportunity Deferred",
   "Opportunity Rejected"
@@ -366,6 +371,9 @@ for (const section of ["summary", "queue", "timeline", "risks", "receipts"]) {
 if (!monitorReport.revenue) fail("monitor report missing revenue state");
 if (!monitorReport.notifications) fail("monitor report missing notification state");
 if (!monitorReport.calendar) fail("monitor report missing calendar export state");
+if (!monitorReport.persistence) fail("monitor report missing persistence state");
+if (!monitorReport.summary.persistenceRevision) fail("monitor summary missing persistence revision");
+if (!monitorReport.summary.persistenceState) fail("monitor summary missing persistence adapter state");
 if (monitorReport.summary.timeline < 1) fail("monitor report did not include timeline records");
 if (!Array.isArray(monitorReport.queue)) fail("monitor report queue is not an array");
 if (!Array.isArray(monitorReport.receipts) || monitorReport.receipts.length < 1) fail("monitor report receipts missing returned review receipt");
@@ -393,10 +401,25 @@ if (acceptedMonitorReport.summary.acceptedValueJpy < 60000) fail("monitor summar
 const exportedLedger = recordTools.createOperatingLedger(returnResult.data, { now: "2026-06-01T04:30:00.000Z" });
 if (exportedLedger.schema !== "epoch.operating-ledger") fail("ledger export has wrong schema");
 if (exportedLedger.version !== recordTools.ledgerVersion) fail("ledger export has wrong version");
+if (!exportedLedger.persistence) fail("ledger export missing persistence metadata");
+if (exportedLedger.persistence.schema !== "epoch.ledger-persistence") fail("ledger persistence metadata has wrong schema");
+if (exportedLedger.persistence.adapter !== "browser-local-durable-ready") fail("ledger persistence metadata has wrong adapter");
+if (!exportedLedger.persistence.ledgerId) fail("ledger persistence metadata missing ledger id");
+if (exportedLedger.persistence.revision !== 1) fail("first ledger snapshot should be revision 1");
+if (exportedLedger.persistence.parentRevision !== null) fail("first ledger snapshot should not have a parent revision");
+if (exportedLedger.persistence.adapterState !== "durable-ready-snapshot") fail("ledger persistence metadata has wrong adapter state");
+if (!exportedLedger.persistence.libraryReady) fail("ledger persistence metadata should be LIBRARY-ready");
+if (!exportedLedger.persistence.checksum.startsWith("fnv1a32-")) fail("ledger persistence metadata has wrong checksum format");
+if (exportedLedger.data.persistence.checksum !== exportedLedger.persistence.checksum) fail("ledger data did not preserve persistence checksum");
 if (exportedLedger.counts.receipts !== returnResult.data.receipts.length) fail("ledger export receipt count is wrong");
 if (exportedLedger.counts.notificationEvents !== returnResult.data.notificationEvents.length) fail("ledger export update-event count is wrong");
 if (!exportedLedger.monitor || exportedLedger.monitor.timeline < 1) fail("ledger export missing monitor summary");
+if (exportedLedger.monitor.persistenceRevision !== exportedLedger.persistence.revision) fail("ledger monitor summary missing persistence revision");
 if (!exportedLedger.calendarExport || exportedLedger.calendarExport.entries.length !== calendarExport.entries.length) fail("ledger export missing calendar export entries");
+
+const persistenceSummary = recordTools.summarizePersistenceState(exportedLedger.data);
+if (persistenceSummary.ledgerId !== exportedLedger.persistence.ledgerId) fail("persistence summary did not preserve ledger id");
+if (persistenceSummary.revision !== exportedLedger.persistence.revision) fail("persistence summary did not preserve revision");
 
 const engagementLedger = recordTools.createOperatingLedger(acceptResult.data, { now: "2026-06-01T04:35:00.000Z" });
 if (engagementLedger.counts.engagements !== acceptResult.data.engagements.length) fail("ledger export engagement count is wrong");
@@ -405,6 +428,18 @@ const importedLedger = recordTools.importOperatingLedger(data, JSON.stringify(ex
 if (importedLedger.data.receipts.length !== returnResult.data.receipts.length) fail("ledger import did not preserve receipts");
 if (importedLedger.data.notificationEvents.length !== returnResult.data.notificationEvents.length) fail("ledger import did not preserve update events");
 if (importedLedger.data.customers[0].externalStatus !== returnResult.data.customers[0].externalStatus) fail("ledger import did not preserve external status");
+if (importedLedger.data.persistence.checksum !== exportedLedger.persistence.checksum) fail("ledger import did not preserve persistence checksum");
+if (importedLedger.ledger.persistence.revision !== exportedLedger.persistence.revision) fail("ledger import did not preserve persistence revision");
+
+const recoveryLedger = recordTools.createOperatingLedger(importedLedger.data, {
+  now: "2026-06-01T04:45:00.000Z",
+  adapterState: "imported-recovery-snapshot",
+  recoveryNote: "Imported ledger JSON and wrote a browser-local recovery snapshot."
+});
+if (recoveryLedger.persistence.revision !== exportedLedger.persistence.revision + 1) fail("recovery snapshot did not advance revision");
+if (recoveryLedger.persistence.parentRevision !== exportedLedger.persistence.revision) fail("recovery snapshot did not retain parent revision");
+if (recoveryLedger.persistence.ledgerId !== exportedLedger.persistence.ledgerId) fail("recovery snapshot did not preserve ledger id");
+if (recoveryLedger.persistence.adapterState !== "imported-recovery-snapshot") fail("recovery snapshot did not record adapter state");
 
 const importedEngagementLedger = recordTools.importOperatingLedger(data, JSON.stringify(engagementLedger));
 if (importedEngagementLedger.data.engagements.length !== acceptResult.data.engagements.length) fail("ledger import did not preserve engagements");
@@ -416,5 +451,26 @@ try {
   rejectedInvalidLedger = true;
 }
 if (!rejectedInvalidLedger) fail("ledger import accepted an invalid statuses field");
+
+const invalidPersistenceLedger = JSON.parse(JSON.stringify(exportedLedger));
+invalidPersistenceLedger.persistence.schema = "invalid.schema";
+invalidPersistenceLedger.data.persistence = invalidPersistenceLedger.persistence;
+let rejectedInvalidPersistence = false;
+try {
+  recordTools.importOperatingLedger(data, JSON.stringify(invalidPersistenceLedger));
+} catch {
+  rejectedInvalidPersistence = true;
+}
+if (!rejectedInvalidPersistence) fail("ledger import accepted invalid persistence metadata");
+
+const tamperedLedger = JSON.parse(JSON.stringify(exportedLedger));
+tamperedLedger.data.receipts = [];
+let rejectedTamperedLedger = false;
+try {
+  recordTools.importOperatingLedger(data, JSON.stringify(tamperedLedger));
+} catch {
+  rejectedTamperedLedger = true;
+}
+if (!rejectedTamperedLedger) fail("ledger import accepted data with stale persistence checksum");
 
 console.log("commercial slice verification passed");
