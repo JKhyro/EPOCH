@@ -92,9 +92,14 @@ service operations without waiting for every future CITADEL integration.
 - Payment provider handoffs prepare provider-neutral invoice, checkout, and
   guardian/eligibility readiness while keeping live checkout, capture,
   credentials, webhooks, and external provider writes disabled.
+- Auth/session role handoffs prepare provider-neutral public intake, customer
+  status, admin, and monitor boundaries while keeping live authentication,
+  OAuth clients, credential storage, token storage, and identity-provider writes
+  disabled.
 - EIKEN 5-1 and professional/service-support offers have reusable frameworks
   and package-level gameplans that support personalized delivery.
 - Japan-wide and global campaign routes define channel, conversion action, copy
   policy, under-19 guard, and monitor KPI coverage before outreach begins.
 - The slice does not depend on production payment capture, public notification
-  delivery, full authentication, or live LIBRARY database/API persistence.
+  delivery, full authentication, live identity-provider sessions, or live
+  LIBRARY database/API persistence.

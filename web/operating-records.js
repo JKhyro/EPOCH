@@ -34,6 +34,7 @@
     "notificationDeliveries",
     "notificationProviderHandoffs",
     "paymentProviderHandoffs",
+    "authSessionRoleHandoffs",
     "quotes",
     "reminderRules",
     "recurrenceCandidates",
@@ -632,6 +633,167 @@
     ];
   }
 
+  function defaultAuthSessionRoleHandoffs() {
+    return [
+      {
+        id: "auth-public-intake-readiness",
+        title: "Public Intake Session Boundary",
+        sourceSystem: "EPOCH",
+        targetProvider: "provider-neutral auth",
+        roleKey: "public-intake",
+        surface: "public",
+        sessionMode: "public-intake-readiness",
+        status: "planned",
+        handoffStatus: "provider-deferred",
+        accessPolicy: "controlled-public-intake-only",
+        visibility: "controlled-public",
+        publicExposure: "controlled-public",
+        publicSurface: true,
+        customerVisible: false,
+        customerSafe: true,
+        rawSurface: false,
+        productionAuthEnabled: false,
+        identityProviderWrite: false,
+        storesCredentials: false,
+        storesTokens: false,
+        oauthClientConfigured: false,
+        externalSessionEnabled: false,
+        authSchema: "epoch.auth-session-role",
+        readinessChecks: ["public-intake-route-only", "customer-safe-copy", "operator-approval-required", "no-live-auth"],
+        nextActionAt: "2026-06-02T15:00:00+09:00",
+        createdAt: "2026-06-02T01:00:00+09:00",
+        updatedAt: "2026-06-02T01:00:00+09:00",
+        receiptIds: ["receipt-auth-session-role-seed"],
+        handoffHistory: [
+          {
+            action: "seed",
+            status: "planned",
+            at: "2026-06-02T01:00:00+09:00",
+            note: "Public intake remains a controlled public route without production login or identity provider writes."
+          }
+        ],
+        notes: "Public intake can stay public, but it must not expose admin, monitor, customer-specific, token, or credential state."
+      },
+      {
+        id: "auth-customer-status-readiness",
+        title: "Customer Status Session Boundary",
+        sourceSystem: "EPOCH",
+        targetProvider: "provider-neutral auth",
+        roleKey: "customer",
+        surface: "student",
+        sessionMode: "customer-session-readiness",
+        status: "planned",
+        handoffStatus: "provider-deferred",
+        accessPolicy: "controlled-customer-status-only",
+        visibility: "controlled-customer",
+        publicExposure: "controlled-customer",
+        publicSurface: false,
+        customerVisible: true,
+        customerSafe: true,
+        rawSurface: false,
+        productionAuthEnabled: false,
+        identityProviderWrite: false,
+        storesCredentials: false,
+        storesTokens: false,
+        oauthClientConfigured: false,
+        externalSessionEnabled: false,
+        authSchema: "epoch.auth-session-role",
+        readinessChecks: ["controlled-customer-route", "customer-safe-status-only", "operator-approval-required", "no-live-auth"],
+        nextActionAt: "2026-06-02T15:30:00+09:00",
+        createdAt: "2026-06-02T01:01:00+09:00",
+        updatedAt: "2026-06-02T01:01:00+09:00",
+        receiptIds: ["receipt-auth-session-role-seed"],
+        handoffHistory: [
+          {
+            action: "seed",
+            status: "planned",
+            at: "2026-06-02T01:01:00+09:00",
+            note: "Customer status is prepared as a controlled customer-safe boundary without production sessions."
+          }
+        ],
+        notes: "Customer status may show customer-safe progress only; admin notes, monitor state, tokens, and credentials stay out."
+      },
+      {
+        id: "auth-admin-operator-readiness",
+        title: "Admin Operator Session Boundary",
+        sourceSystem: "EPOCH",
+        targetProvider: "provider-neutral auth",
+        roleKey: "operator-admin",
+        surface: "admin",
+        sessionMode: "internal-admin-readiness",
+        status: "queued",
+        handoffStatus: "operator-review-ready",
+        accessPolicy: "internal-admin-denied-public",
+        visibility: "internal",
+        publicExposure: "denied",
+        publicSurface: false,
+        customerVisible: false,
+        customerSafe: false,
+        rawSurface: true,
+        productionAuthEnabled: false,
+        identityProviderWrite: false,
+        storesCredentials: false,
+        storesTokens: false,
+        oauthClientConfigured: false,
+        externalSessionEnabled: false,
+        authSchema: "epoch.auth-session-role",
+        readinessChecks: ["admin-denied-public", "operator-only", "no-credential-storage", "no-live-auth"],
+        nextActionAt: "2026-06-02T16:00:00+09:00",
+        createdAt: "2026-06-02T01:02:00+09:00",
+        updatedAt: "2026-06-02T01:02:00+09:00",
+        receiptIds: ["receipt-auth-session-role-seed"],
+        handoffHistory: [
+          {
+            action: "seed",
+            status: "queued",
+            at: "2026-06-02T01:02:00+09:00",
+            note: "Admin is internal-only until a future authenticated operator gateway is selected and verified."
+          }
+        ],
+        notes: "Admin access must remain internal/local-first and denied to public/customer traffic in this readiness slice."
+      },
+      {
+        id: "auth-monitor-denial-readiness",
+        title: "Monitor Session Boundary",
+        sourceSystem: "EPOCH",
+        targetProvider: "provider-neutral auth",
+        roleKey: "monitor-operator",
+        surface: "monitor",
+        sessionMode: "internal-monitor-readiness",
+        status: "queued",
+        handoffStatus: "operator-review-ready",
+        accessPolicy: "raw-monitor-denied-public",
+        visibility: "internal",
+        publicExposure: "denied",
+        publicSurface: false,
+        customerVisible: false,
+        customerSafe: false,
+        rawSurface: true,
+        productionAuthEnabled: false,
+        identityProviderWrite: false,
+        storesCredentials: false,
+        storesTokens: false,
+        oauthClientConfigured: false,
+        externalSessionEnabled: false,
+        authSchema: "epoch.auth-session-role",
+        readinessChecks: ["monitor-denied-public", "operator-only", "no-token-storage", "no-live-auth"],
+        nextActionAt: "2026-06-02T16:30:00+09:00",
+        createdAt: "2026-06-02T01:03:00+09:00",
+        updatedAt: "2026-06-02T01:03:00+09:00",
+        receiptIds: ["receipt-auth-session-role-seed"],
+        handoffHistory: [
+          {
+            action: "seed",
+            status: "queued",
+            at: "2026-06-02T01:03:00+09:00",
+            note: "Monitor remains local/internal and denied to public traffic while production auth remains deferred."
+          }
+        ],
+        notes: "Raw monitor state is not a customer or public surface; future auth must be explicit before exposure changes."
+      }
+    ];
+  }
+
   function normalizedOperatingData(data) {
     const nextData = cloneData(data || {});
     for (const collection of ledgerCollections) {
@@ -655,6 +817,9 @@
     }
     if (!Array.isArray(nextData.paymentProviderHandoffs) || !nextData.paymentProviderHandoffs.length) {
       nextData.paymentProviderHandoffs = defaultPaymentProviderHandoffs();
+    }
+    if (!Array.isArray(nextData.authSessionRoleHandoffs) || !nextData.authSessionRoleHandoffs.length) {
+      nextData.authSessionRoleHandoffs = defaultAuthSessionRoleHandoffs();
     }
     if (!nextData.accessPosture || typeof nextData.accessPosture !== "object") {
       nextData.accessPosture = {
@@ -1686,6 +1851,308 @@
       id: receiptId,
       customerId: null,
       kind: "payment-provider-handoff",
+      status: handoff.status,
+      createdAt: updatedAt,
+      note: `${healthCheck.title}: ${healthCheck.summary}`
+    };
+    nextData.monitorHealthChecks.unshift(healthCheck);
+    nextData.receipts.unshift(receipt);
+
+    return {
+      data: nextData,
+      records: {
+        handoff,
+        healthCheck,
+        receipt
+      }
+    };
+  }
+
+  function summarizeAuthSessionRoleState(currentData) {
+    const data = normalizedOperatingData(currentData);
+    const handoffs = data.authSessionRoleHandoffs.map((handoff) => {
+      const roleKey = clean(handoff.roleKey) || "role-pending";
+      const surface = clean(handoff.surface) || "surface-pending";
+      const sessionMode = clean(handoff.sessionMode) || "auth-session-readiness";
+      const status = clean(handoff.status) || "planned";
+      const visibility = clean(handoff.visibility) || "internal";
+      const publicExposure = clean(handoff.publicExposure) || "denied";
+      const customerVisible = handoff.customerVisible === true;
+      const customerSafe = handoff.customerSafe !== false;
+      const rawSurface = handoff.rawSurface === true || ["admin", "monitor"].includes(surface);
+      const productionAuthEnabled = handoff.productionAuthEnabled === true;
+      const identityProviderWrite = handoff.identityProviderWrite === true;
+      const storesCredentials = handoff.storesCredentials === true;
+      const storesTokens = handoff.storesTokens === true;
+      const oauthClientConfigured = handoff.oauthClientConfigured === true;
+      const externalSessionEnabled = handoff.externalSessionEnabled === true;
+      const readinessChecks = Array.isArray(handoff.readinessChecks) ? handoff.readinessChecks : [];
+      const receiptIds = Array.isArray(handoff.receiptIds) ? handoff.receiptIds : [];
+      const handoffHistory = Array.isArray(handoff.handoffHistory) ? handoff.handoffHistory : [];
+      const violations = [];
+
+      if (productionAuthEnabled || identityProviderWrite || externalSessionEnabled || oauthClientConfigured) {
+        violations.push("Auth/session readiness cannot enable production auth, OAuth clients, external sessions, or identity-provider writes in this slice.");
+      }
+      if (storesCredentials || storesTokens) {
+        violations.push("Auth/session readiness cannot store credentials or tokens in this slice.");
+      }
+      if (!readinessChecks.includes("no-live-auth")) {
+        violations.push("Auth/session readiness must prove no-live-auth.");
+      }
+      if (surface === "public") {
+        if (publicExposure !== "controlled-public" || visibility !== "controlled-public") {
+          violations.push("Public auth/session boundary must remain controlled-public intake only.");
+        }
+        if (!readinessChecks.includes("public-intake-route-only")) {
+          violations.push("Public intake readiness must prove route-only public access.");
+        }
+      }
+      if (surface === "student" || roleKey === "customer") {
+        if (publicExposure !== "controlled-customer" || visibility !== "controlled-customer" || !customerVisible || !customerSafe) {
+          violations.push("Customer auth/session boundary must remain controlled-customer and customer-safe.");
+        }
+        if (!readinessChecks.includes("controlled-customer-route")) {
+          violations.push("Customer readiness must prove a controlled customer route.");
+        }
+      }
+      if (rawSurface) {
+        if (publicExposure !== "denied" || visibility !== "internal" || customerVisible || customerSafe) {
+          violations.push("Raw admin/monitor auth/session boundaries must stay internal, denied, and not customer-visible.");
+        }
+        if (!readinessChecks.some((check) => check.includes("denied-public"))) {
+          violations.push("Raw auth/session boundary must prove public denial.");
+        }
+      }
+      if (status === "complete" && !receiptIds.length) {
+        violations.push("Completed auth/session readiness requires a receipt trail.");
+      }
+
+      return {
+        id: clean(handoff.id),
+        title: clean(handoff.title) || "Auth Session Role Handoff",
+        sourceSystem: clean(handoff.sourceSystem) || "EPOCH",
+        targetProvider: clean(handoff.targetProvider) || "provider-neutral auth",
+        roleKey,
+        surface,
+        sessionMode,
+        status,
+        handoffStatus: clean(handoff.handoffStatus) || "pending",
+        accessPolicy: clean(handoff.accessPolicy) || "policy-pending",
+        visibility,
+        publicExposure,
+        publicSurface: handoff.publicSurface === true,
+        customerVisible,
+        customerSafe,
+        rawSurface,
+        productionAuthEnabled,
+        identityProviderWrite,
+        storesCredentials,
+        storesTokens,
+        oauthClientConfigured,
+        externalSessionEnabled,
+        authSchema: clean(handoff.authSchema) || "epoch.auth-session-role",
+        readinessChecks,
+        nextActionAt: clean(handoff.nextActionAt),
+        updatedAt: clean(handoff.updatedAt),
+        receiptIds,
+        handoffHistory,
+        notes: clean(handoff.notes) || "No auth/session role handoff note recorded.",
+        violations
+      };
+    });
+    const violations = handoffs.flatMap((handoff) => handoff.violations.map((detail) => `${handoff.title || handoff.id}: ${detail}`));
+
+    return {
+      schema: "epoch.auth-session-role-handoff",
+      handoffCount: handoffs.length,
+      publicReady: handoffs.filter((item) => item.surface === "public" && item.publicExposure === "controlled-public").length,
+      customerReady: handoffs.filter((item) => (item.surface === "student" || item.roleKey === "customer") && item.publicExposure === "controlled-customer").length,
+      internalDenied: handoffs.filter((item) => item.rawSurface && item.publicExposure === "denied" && item.visibility === "internal").length,
+      noLiveAuth: handoffs.filter((item) => !item.productionAuthEnabled && !item.identityProviderWrite && !item.externalSessionEnabled && !item.oauthClientConfigured && !item.storesCredentials && !item.storesTokens).length,
+      queued: handoffs.filter((item) => item.status === "queued").length,
+      complete: handoffs.filter((item) => item.status === "complete").length,
+      blocked: handoffs.filter((item) => item.status === "blocked").length,
+      roleCount: new Set(handoffs.map((item) => item.roleKey).filter(Boolean)).size,
+      violations,
+      status: violations.length ? "blocked" : "ready",
+      handoffs
+    };
+  }
+
+  function createAuthSessionRoleHandoffRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const createdAt = withTimezone(now.toISOString(), timezone);
+    const surface = clean(input.surface) || "admin";
+    const rawSurface = input.rawSurface === true || ["admin", "monitor"].includes(surface);
+    const publicExposure = clean(input.publicExposure) || (surface === "public" ? "controlled-public" : surface === "student" ? "controlled-customer" : "denied");
+    const visibility = clean(input.visibility) || (publicExposure === "controlled-public" ? "controlled-public" : publicExposure === "controlled-customer" ? "controlled-customer" : "internal");
+    const handoff = {
+      id: clean(input.id) || `auth-session-role-${stamp(now)}`,
+      title: clean(input.title) || "Auth Session Role Handoff",
+      sourceSystem: "EPOCH",
+      targetProvider: clean(input.targetProvider) || "provider-neutral auth",
+      roleKey: clean(input.roleKey) || (surface === "student" ? "customer" : surface),
+      surface,
+      sessionMode: clean(input.sessionMode) || "auth-session-readiness",
+      status: clean(input.status) || "planned",
+      handoffStatus: clean(input.handoffStatus) || "provider-deferred",
+      accessPolicy: clean(input.accessPolicy) || "provider-neutral-auth-deferred",
+      visibility,
+      publicExposure,
+      publicSurface: surface === "public",
+      customerVisible: publicExposure === "controlled-customer",
+      customerSafe: !rawSurface,
+      rawSurface,
+      productionAuthEnabled: false,
+      identityProviderWrite: false,
+      storesCredentials: false,
+      storesTokens: false,
+      oauthClientConfigured: false,
+      externalSessionEnabled: false,
+      authSchema: "epoch.auth-session-role",
+      readinessChecks: Array.isArray(input.readinessChecks) ? input.readinessChecks : ["operator-approval-required", "no-live-auth"],
+      nextActionAt: withTimezone(input.nextActionAt, timezone) || createdAt,
+      createdAt,
+      updatedAt: createdAt,
+      receiptIds: [],
+      handoffHistory: [
+        {
+          action: "create",
+          status: clean(input.status) || "planned",
+          at: createdAt,
+          note: clean(input.note) || "Auth/session role handoff created for operator review."
+        }
+      ],
+      notes: clean(input.note) || "Auth/session role handoff created for operator review."
+    };
+    nextData.authSessionRoleHandoffs.unshift(handoff);
+    return {
+      data: nextData,
+      records: {
+        handoff
+      }
+    };
+  }
+
+  function transitionAuthSessionRoleHandoffRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const updatedAt = withTimezone(now.toISOString(), timezone);
+    const handoffId = clean(input.handoffId || input.id);
+    const action = clean(input.action) || "verify";
+    const note = clean(input.note) || "Auth/session role handoff reviewed by operator.";
+    const handoff = nextData.authSessionRoleHandoffs.find((item) => item.id === handoffId);
+    if (!handoff) throw new Error("auth/session role handoff not found");
+
+    if (!Array.isArray(handoff.readinessChecks)) handoff.readinessChecks = [];
+    const ensureChecks = (checks) => {
+      for (const check of checks) {
+        if (!handoff.readinessChecks.includes(check)) handoff.readinessChecks.push(check);
+      }
+    };
+
+    if (action === "verify") {
+      handoff.status = "complete";
+      handoff.handoffStatus = "verified-provider-deferred";
+      ensureChecks(["operator-approval-required", "no-live-auth"]);
+    } else if (action === "prepare") {
+      handoff.status = "queued";
+      handoff.handoffStatus = "session-policy-ready";
+      ensureChecks(["operator-approval-required", "no-live-auth"]);
+    } else if (action === "mark-ready") {
+      handoff.status = "queued";
+      handoff.handoffStatus = "auth-boundary-ready-without-live-provider";
+      ensureChecks(["operator-approval-required", "no-live-auth"]);
+    } else if (action === "public-ready") {
+      handoff.status = "queued";
+      handoff.surface = "public";
+      handoff.roleKey = "public-intake";
+      handoff.sessionMode = "public-intake-readiness";
+      handoff.accessPolicy = "controlled-public-intake-only";
+      handoff.visibility = "controlled-public";
+      handoff.publicExposure = "controlled-public";
+      handoff.publicSurface = true;
+      handoff.customerVisible = false;
+      handoff.customerSafe = true;
+      handoff.rawSurface = false;
+      handoff.handoffStatus = "public-intake-ready";
+      ensureChecks(["public-intake-route-only", "customer-safe-copy", "operator-approval-required", "no-live-auth"]);
+    } else if (action === "customer-ready") {
+      handoff.status = "queued";
+      handoff.surface = "student";
+      handoff.roleKey = "customer";
+      handoff.sessionMode = "customer-session-readiness";
+      handoff.accessPolicy = "controlled-customer-status-only";
+      handoff.visibility = "controlled-customer";
+      handoff.publicExposure = "controlled-customer";
+      handoff.publicSurface = false;
+      handoff.customerVisible = true;
+      handoff.customerSafe = true;
+      handoff.rawSurface = false;
+      handoff.handoffStatus = "customer-status-ready";
+      ensureChecks(["controlled-customer-route", "customer-safe-status-only", "operator-approval-required", "no-live-auth"]);
+    } else if (action === "deny-raw") {
+      handoff.status = "complete";
+      handoff.visibility = "internal";
+      handoff.publicExposure = "denied";
+      handoff.publicSurface = false;
+      handoff.customerVisible = false;
+      handoff.customerSafe = false;
+      handoff.rawSurface = true;
+      handoff.handoffStatus = "raw-surface-denied";
+      ensureChecks(["admin-denied-public", "monitor-denied-public", "operator-only", "no-live-auth"]);
+    } else if (action === "block") {
+      handoff.status = "blocked";
+      handoff.handoffStatus = "blocked";
+      ensureChecks(["operator-approval-required", "no-live-auth"]);
+    } else {
+      throw new Error("unsupported auth/session role action");
+    }
+
+    handoff.productionAuthEnabled = false;
+    handoff.identityProviderWrite = false;
+    handoff.storesCredentials = false;
+    handoff.storesTokens = false;
+    handoff.oauthClientConfigured = false;
+    handoff.externalSessionEnabled = false;
+    handoff.authSchema = "epoch.auth-session-role";
+    handoff.updatedAt = updatedAt;
+    handoff.nextActionAt = withTimezone(input.nextActionAt, timezone) || handoff.nextActionAt || updatedAt;
+    handoff.notes = note;
+    if (!Array.isArray(handoff.handoffHistory)) handoff.handoffHistory = [];
+    handoff.handoffHistory.unshift({
+      action,
+      status: handoff.status,
+      at: updatedAt,
+      note
+    });
+
+    const receiptId = `receipt-auth-session-role-${stamp(now)}`;
+    if (!Array.isArray(handoff.receiptIds)) handoff.receiptIds = [];
+    handoff.receiptIds.unshift(receiptId);
+    const healthCheck = {
+      id: `monitor-check-auth-session-role-${stamp(now)}`,
+      actionId: `auth-session-role-${action}`,
+      receiptId,
+      title: `Auth/session role ${action}`,
+      summary: `${handoff.title}: ${note}`,
+      status: handoff.status,
+      priority: action === "block" ? "high" : "medium",
+      effect: "auth-session-role-handoff",
+      target: "monitor-auth-session",
+      owner: clean(input.owner) || "Jack",
+      createdAt: updatedAt,
+      visibility: "internal",
+      customerVisible: false
+    };
+    const receipt = {
+      id: receiptId,
+      customerId: null,
+      kind: "auth-session-role-handoff",
       status: handoff.status,
       createdAt: updatedAt,
       note: `${healthCheck.title}: ${healthCheck.summary}`
@@ -4885,6 +5352,7 @@
       ...(currentData.notificationDeliveries || []).map((item) => ({ kind: "notification delivery", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.createdAt, owner: item.provider || item.channel || "outbox" })),
       ...(currentData.notificationProviderHandoffs || []).map((item) => ({ kind: "notification provider", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.handoffStatus || "notifications" })),
       ...(currentData.paymentProviderHandoffs || []).map((item) => ({ kind: "payment provider", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.handoffStatus || "payments" })),
+      ...(currentData.authSessionRoleHandoffs || []).map((item) => ({ kind: "auth/session role", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.roleKey || item.surface || "auth" })),
       ...(currentData.quotes || []).map((item) => ({ kind: "quote", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.validUntil || item.createdAt, owner: item.paymentStatus || item.approvalStatus || "quote" })),
       ...(currentData.reminderRules || []).map((item) => ({ kind: "reminder rule", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.reminderAt, owner: item.channel || "reminder" })),
       ...(currentData.recurrenceCandidates || []).map((item) => ({ kind: "recurrence candidate", id: item.id, title: item.title, status: item.status, time: item.nextCandidateAt || item.createdAt, owner: item.cadence || "recurrence" })),
@@ -4912,6 +5380,7 @@
     const notificationProvider = summarizeNotificationProviderState(data, { notifications });
     const quotes = summarizeQuoteState(data);
     const paymentProvider = summarizePaymentProviderState(data, { quotes });
+    const authSession = summarizeAuthSessionRoleState(data);
     const scheduleControls = summarizeScheduleControlState(data);
     const handoffs = summarizeAgentHandoffState(data);
     const marketing = summarizeMarketingState(data);
@@ -4942,6 +5411,10 @@
     for (const item of timeline.filter((entry) => ["reminder rule", "recurrence candidate", "availability window"].includes(entry.kind) && activeStatuses.has(entry.status)).slice(0, 3)) {
       if (!queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
+    for (const item of timeline.filter((entry) => entry.kind === "notification delivery").slice(0, 3)) {
+      if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
+      if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
+    }
     for (const item of timeline.filter((entry) => entry.kind === "access gateway").slice(0, 4)) {
       if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
     }
@@ -4958,6 +5431,10 @@
       if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
     for (const item of timeline.filter((entry) => entry.kind === "payment provider").slice(0, 4)) {
+      if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
+      if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
+    }
+    for (const item of timeline.filter((entry) => entry.kind === "auth/session role").slice(0, 4)) {
       if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
       if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
@@ -5090,6 +5567,14 @@
         detail: paymentProvider.violations[0]
       });
     }
+    if (authSession.violations.length) {
+      risks.push({
+        id: "auth-session-role-violation",
+        severity: "high",
+        title: "Auth Session Role Violation",
+        detail: authSession.violations[0]
+      });
+    }
 
     const operatorActions = [];
     if (dirtyLocalState) {
@@ -5170,6 +5655,12 @@
         paymentEligibilityReady: paymentProvider.eligibilityReady,
         paymentProviderNoLivePayment: paymentProvider.noLivePayment,
         paymentProviderViolations: paymentProvider.violations.length,
+        authSessionRoleHandoffs: authSession.handoffCount,
+        authPublicReady: authSession.publicReady,
+        authCustomerReady: authSession.customerReady,
+        authInternalDenied: authSession.internalDenied,
+        authNoLiveAuth: authSession.noLiveAuth,
+        authSessionRoleViolations: authSession.violations.length,
         quotes: quotes.total,
         quoteValueJpy: quotes.valueJpy,
         presentedQuotes: quotes.presented,
@@ -5240,6 +5731,7 @@
       notifications,
       notificationProvider,
       paymentProvider,
+      authSession,
       quotes,
       scheduleControls,
       handoffs,
@@ -5280,6 +5772,7 @@
     const calendarProvider = summarizeCalendarProviderState(data, { now: now.toISOString(), calendarExport });
     const notificationProvider = summarizeNotificationProviderState(data);
     const paymentProvider = summarizePaymentProviderState(data);
+    const authSession = summarizeAuthSessionRoleState(data);
     const routePlacement = summarizeRoutePlacementState(data, { now: now.toISOString() });
     const accessGateway = summarizeAccessGatewayState(data, { now: now.toISOString(), routePlacement });
     const librarySync = summarizeLibrarySyncState(data, { now: now.toISOString(), persistence });
@@ -5300,6 +5793,7 @@
       calendarProvider,
       notificationProvider,
       paymentProvider,
+      authSession,
       routePlacement,
       accessGateway,
       librarySync,
@@ -5330,6 +5824,8 @@
     transitionNotificationProviderHandoffRecords,
     createPaymentProviderHandoffRecords,
     transitionPaymentProviderHandoffRecords,
+    createAuthSessionRoleHandoffRecords,
+    transitionAuthSessionRoleHandoffRecords,
     createQuoteEstimateRecords,
     transitionQuoteEstimateRecords,
     createReminderRuleRecords,
@@ -5365,6 +5861,7 @@
     summarizeCalendarProviderState,
     summarizeNotificationProviderState,
     summarizePaymentProviderState,
+    summarizeAuthSessionRoleState,
     summarizeAccessPosture,
     summarizeMemoryState,
     summarizeScopeState,

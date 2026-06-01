@@ -1080,6 +1080,164 @@ window.EPOCH_SEED_DATA = {
       "notes": "Payment requests for under-19 or compatibility-required work must remain blocked until eligibility and consent are explicit."
     }
   ],
+  "authSessionRoleHandoffs": [
+    {
+      "id": "auth-public-intake-readiness",
+      "title": "Public Intake Session Boundary",
+      "sourceSystem": "EPOCH",
+      "targetProvider": "provider-neutral auth",
+      "roleKey": "public-intake",
+      "surface": "public",
+      "sessionMode": "public-intake-readiness",
+      "status": "planned",
+      "handoffStatus": "provider-deferred",
+      "accessPolicy": "controlled-public-intake-only",
+      "visibility": "controlled-public",
+      "publicExposure": "controlled-public",
+      "publicSurface": true,
+      "customerVisible": false,
+      "customerSafe": true,
+      "rawSurface": false,
+      "productionAuthEnabled": false,
+      "identityProviderWrite": false,
+      "storesCredentials": false,
+      "storesTokens": false,
+      "oauthClientConfigured": false,
+      "externalSessionEnabled": false,
+      "authSchema": "epoch.auth-session-role",
+      "readinessChecks": ["public-intake-route-only", "customer-safe-copy", "operator-approval-required", "no-live-auth"],
+      "nextActionAt": "2026-06-02T15:00:00+09:00",
+      "createdAt": "2026-06-02T01:00:00+09:00",
+      "updatedAt": "2026-06-02T01:00:00+09:00",
+      "receiptIds": ["receipt-auth-session-role-seed"],
+      "handoffHistory": [
+        {
+          "action": "seed",
+          "status": "planned",
+          "at": "2026-06-02T01:00:00+09:00",
+          "note": "Public intake remains a controlled public route without production login or identity provider writes."
+        }
+      ],
+      "notes": "Public intake can stay public, but it must not expose admin, monitor, customer-specific, token, or credential state."
+    },
+    {
+      "id": "auth-customer-status-readiness",
+      "title": "Customer Status Session Boundary",
+      "sourceSystem": "EPOCH",
+      "targetProvider": "provider-neutral auth",
+      "roleKey": "customer",
+      "surface": "student",
+      "sessionMode": "customer-session-readiness",
+      "status": "planned",
+      "handoffStatus": "provider-deferred",
+      "accessPolicy": "controlled-customer-status-only",
+      "visibility": "controlled-customer",
+      "publicExposure": "controlled-customer",
+      "publicSurface": false,
+      "customerVisible": true,
+      "customerSafe": true,
+      "rawSurface": false,
+      "productionAuthEnabled": false,
+      "identityProviderWrite": false,
+      "storesCredentials": false,
+      "storesTokens": false,
+      "oauthClientConfigured": false,
+      "externalSessionEnabled": false,
+      "authSchema": "epoch.auth-session-role",
+      "readinessChecks": ["controlled-customer-route", "customer-safe-status-only", "operator-approval-required", "no-live-auth"],
+      "nextActionAt": "2026-06-02T15:30:00+09:00",
+      "createdAt": "2026-06-02T01:01:00+09:00",
+      "updatedAt": "2026-06-02T01:01:00+09:00",
+      "receiptIds": ["receipt-auth-session-role-seed"],
+      "handoffHistory": [
+        {
+          "action": "seed",
+          "status": "planned",
+          "at": "2026-06-02T01:01:00+09:00",
+          "note": "Customer status is prepared as a controlled customer-safe boundary without production sessions."
+        }
+      ],
+      "notes": "Customer status may show customer-safe progress only; admin notes, monitor state, tokens, and credentials stay out."
+    },
+    {
+      "id": "auth-admin-operator-readiness",
+      "title": "Admin Operator Session Boundary",
+      "sourceSystem": "EPOCH",
+      "targetProvider": "provider-neutral auth",
+      "roleKey": "operator-admin",
+      "surface": "admin",
+      "sessionMode": "internal-admin-readiness",
+      "status": "queued",
+      "handoffStatus": "operator-review-ready",
+      "accessPolicy": "internal-admin-denied-public",
+      "visibility": "internal",
+      "publicExposure": "denied",
+      "publicSurface": false,
+      "customerVisible": false,
+      "customerSafe": false,
+      "rawSurface": true,
+      "productionAuthEnabled": false,
+      "identityProviderWrite": false,
+      "storesCredentials": false,
+      "storesTokens": false,
+      "oauthClientConfigured": false,
+      "externalSessionEnabled": false,
+      "authSchema": "epoch.auth-session-role",
+      "readinessChecks": ["admin-denied-public", "operator-only", "no-credential-storage", "no-live-auth"],
+      "nextActionAt": "2026-06-02T16:00:00+09:00",
+      "createdAt": "2026-06-02T01:02:00+09:00",
+      "updatedAt": "2026-06-02T01:02:00+09:00",
+      "receiptIds": ["receipt-auth-session-role-seed"],
+      "handoffHistory": [
+        {
+          "action": "seed",
+          "status": "queued",
+          "at": "2026-06-02T01:02:00+09:00",
+          "note": "Admin is internal-only until a future authenticated operator gateway is selected and verified."
+        }
+      ],
+      "notes": "Admin access must remain internal/local-first and denied to public/customer traffic in this readiness slice."
+    },
+    {
+      "id": "auth-monitor-denial-readiness",
+      "title": "Monitor Session Boundary",
+      "sourceSystem": "EPOCH",
+      "targetProvider": "provider-neutral auth",
+      "roleKey": "monitor-operator",
+      "surface": "monitor",
+      "sessionMode": "internal-monitor-readiness",
+      "status": "queued",
+      "handoffStatus": "operator-review-ready",
+      "accessPolicy": "raw-monitor-denied-public",
+      "visibility": "internal",
+      "publicExposure": "denied",
+      "publicSurface": false,
+      "customerVisible": false,
+      "customerSafe": false,
+      "rawSurface": true,
+      "productionAuthEnabled": false,
+      "identityProviderWrite": false,
+      "storesCredentials": false,
+      "storesTokens": false,
+      "oauthClientConfigured": false,
+      "externalSessionEnabled": false,
+      "authSchema": "epoch.auth-session-role",
+      "readinessChecks": ["monitor-denied-public", "operator-only", "no-token-storage", "no-live-auth"],
+      "nextActionAt": "2026-06-02T16:30:00+09:00",
+      "createdAt": "2026-06-02T01:03:00+09:00",
+      "updatedAt": "2026-06-02T01:03:00+09:00",
+      "receiptIds": ["receipt-auth-session-role-seed"],
+      "handoffHistory": [
+        {
+          "action": "seed",
+          "status": "queued",
+          "at": "2026-06-02T01:03:00+09:00",
+          "note": "Monitor remains local/internal and denied to public traffic while production auth remains deferred."
+        }
+      ],
+      "notes": "Raw monitor state is not a customer or public surface; future auth must be explicit before exposure changes."
+    }
+  ],
   "quotes": [],
   "reminderRules": [],
   "recurrenceCandidates": [],
@@ -1375,6 +1533,21 @@ window.EPOCH_SEED_DATA = {
       "createdAt": "2026-06-02T00:24:00+09:00",
       "visibility": "internal",
       "customerVisible": false
+    },
+    {
+      "id": "monitor-check-seed-auth-session-role",
+      "actionId": "seed-auth-session-role-baseline",
+      "receiptId": "receipt-auth-session-role-seed",
+      "title": "Auth session role baseline",
+      "summary": "EPOCH has provider-neutral public, customer, admin, and monitor auth/session role readiness records without live identity providers, credentials, or token storage.",
+      "status": "complete",
+      "priority": "medium",
+      "effect": "auth-session-role-handoff",
+      "target": "monitor-auth-session",
+      "owner": "Jack",
+      "createdAt": "2026-06-02T01:04:00+09:00",
+      "visibility": "internal",
+      "customerVisible": false
     }
   ],
   "receipts": [
@@ -1425,6 +1598,14 @@ window.EPOCH_SEED_DATA = {
       "status": "complete",
       "createdAt": "2026-06-02T00:24:00+09:00",
       "note": "Payment provider baseline: invoice, checkout, and guardian eligibility handoffs are provider-neutral and no-live-payment."
+    },
+    {
+      "id": "receipt-auth-session-role-seed",
+      "customerId": null,
+      "kind": "auth-session-role-handoff",
+      "status": "complete",
+      "createdAt": "2026-06-02T01:04:00+09:00",
+      "note": "Auth session role baseline: public, customer, admin, and monitor role handoffs are provider-neutral and no-live-auth."
     },
     {
       "id": "receipt-001",
