@@ -37,6 +37,7 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
 - `docs/marketing-conversion-analytics-readiness-contract.md`
 - `docs/provider-adapter-selection-readiness-contract.md`
 - `docs/sandbox-calendar-adapter-prototype-contract.md`
+- `docs/customer-account-history-contract.md`
 
 ## Current implementation artifacts
 
@@ -77,6 +78,9 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   from EPOCH calendar export data, but still do not call calendar APIs, configure
   OAuth, store secrets, create webhooks, write provider records, send
   invitations, or show customer-visible updates.
+  Durable customer account history records link customer status, submissions,
+  cohorts, service records, receipts, and customer-safe updates while remaining
+  local-only and controlled-customer.
 - `web/app.js`: shared renderer and local persistence flow for admin,
   student/customer, monitor, public request, scheduling, submission, and
   review-return views, including local ledger save/load, durable snapshot status,
@@ -87,7 +91,8 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   sync/recovery controls plus provider-neutral calendar and notification
   provider handoff controls, auth/session readiness controls, and local
   marketing conversion KPI controls, provider adapter go/no-go controls, and a
-  sandbox calendar adapter prototype console.
+  sandbox calendar adapter prototype console, plus customer account history
+  cards for controlled customer-safe status timelines.
 - `web/seed-data.js`: demo commercial workflow covering leads, tracks, cohorts,
   offer packages, curriculum frameworks, package gameplans, opportunities,
   update events, sessions, assignments, submissions, reviews, follow-ups,
@@ -99,7 +104,8 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   local marketing conversion KPI records for Japan, global, submission-first,
   and under-19 guarded routes, plus provider adapter candidate records for
   calendar, notification, payment, auth/session, analytics, and persistence
-  go/no-go readiness, and a local calendar payload-preview prototype.
+  go/no-go readiness, a local calendar payload-preview prototype, and durable
+  customer account history records.
 - `tools/verify-commercial-slice.mjs`: repository verifier for the first
   commercial slice.
 

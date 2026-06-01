@@ -67,7 +67,7 @@ function resetData() {
 
 function storageStatusText() {
   const persistence = recordTools.summarizePersistenceState(data);
-  return `Ledger v${recordTools.ledgerVersion} | ${data.customers.length} customers | ${data.engagements.length} engagements | ${data.campaignRoutes.length} campaigns | ${(data.marketingConversionEvents || []).length} conversion KPIs | ${(data.providerAdapterCandidates || []).length} provider adapters | ${(data.calendarAdapterPrototypes || []).length} calendar prototypes | ${(data.librarySyncHandoffs || []).length} LIBRARY handoffs | ${(data.calendarProviderHandoffs || []).length} calendar handoffs | ${(data.notificationProviderHandoffs || []).length} notification provider handoffs | ${(data.paymentProviderHandoffs || []).length} payment provider handoffs | ${(data.authSessionRoleHandoffs || []).length} auth/session handoffs | ${data.notificationEvents.length} updates | ${data.receipts.length} receipts | r${persistence.revision} ${persistence.adapterState} | ${persistence.ledgerId}`;
+  return `Ledger v${recordTools.ledgerVersion} | ${data.customers.length} customers | ${(data.customerAccountHistories || []).length} account histories | ${data.engagements.length} engagements | ${data.campaignRoutes.length} campaigns | ${(data.marketingConversionEvents || []).length} conversion KPIs | ${(data.providerAdapterCandidates || []).length} provider adapters | ${(data.calendarAdapterPrototypes || []).length} calendar prototypes | ${(data.librarySyncHandoffs || []).length} LIBRARY handoffs | ${(data.calendarProviderHandoffs || []).length} calendar handoffs | ${(data.notificationProviderHandoffs || []).length} notification provider handoffs | ${(data.paymentProviderHandoffs || []).length} payment provider handoffs | ${(data.authSessionRoleHandoffs || []).length} auth/session handoffs | ${data.notificationEvents.length} updates | ${data.receipts.length} receipts | r${persistence.revision} ${persistence.adapterState} | ${persistence.ledgerId}`;
 }
 
 function formatTime(value) {
@@ -419,6 +419,29 @@ function renderStudentStatus() {
   }).join("");
 }
 
+function renderCustomerAccountHistory() {
+  const summary = recordTools.summarizeCustomerAccountHistoryState(data);
+  const histories = summary.histories || [];
+  byId("customer-account-history").innerHTML = histories.length
+    ? histories.map((history) => {
+      const eventPreview = (history.statusTimeline || [])
+        .slice(0, 3)
+        .map((event) => `${event.title}: ${event.summary}`)
+        .join(" | ");
+      return record(
+        history.displayName,
+        eventPreview || history.customerSafeSummary,
+        [
+          toneChip(history.violations.length ? "needs review" : "customer-safe", history.violations.length ? "blocked" : "complete"),
+          chip(`${history.eventCount} events`),
+          chip(`${history.receiptCount} receipts`),
+          chip(history.visibility)
+        ]
+      );
+    }).join("")
+    : record("Account History", "No customer account history records have been created yet.", [chip("empty")]);
+}
+
 function renderCustomerUpdates() {
   const updates = (data.notificationEvents || [])
     .filter((item) => item.visible)
@@ -557,6 +580,7 @@ function renderMonitor(items) {
   const quotes = report.quotes || recordTools.summarizeQuoteState(data);
   const paymentProvider = report.paymentProvider || recordTools.summarizePaymentProviderState(data, { quotes });
   const authSession = report.authSession || recordTools.summarizeAuthSessionRoleState(data);
+  const accountHistory = report.accountHistory || recordTools.summarizeCustomerAccountHistoryState(data);
   const scheduleControls = report.scheduleControls || recordTools.summarizeScheduleControlState(data);
   const handoffs = report.handoffs || recordTools.summarizeAgentHandoffState(data);
   const marketing = report.marketing || recordTools.summarizeMarketingState(data);
@@ -571,7 +595,7 @@ function renderMonitor(items) {
   const persistence = report.persistence || recordTools.summarizePersistenceState(data, { now: `${today}T12:00:00+09:00` });
   const librarySync = report.librarySync || recordTools.summarizeLibrarySyncState(data, { now: `${today}T12:00:00+09:00`, persistence });
   lastMonitorReport = report;
-  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | ${routePlacement.summary.routeCount} SYNAPSE routes | ${accessGateways.gatewayCount} access gates | ${librarySync.handoffCount} LIBRARY handoffs | ${calendarProvider.handoffCount} calendar handoffs | ${calendarAdapter.payloadReady} calendar prototypes ready | ${notificationProvider.handoffCount} notification provider handoffs | ${paymentProvider.handoffCount} payment provider handoffs | ${authSession.handoffCount} auth/session handoffs | ${marketing.ready} campaign routes ready | ${marketingConversion.readyEvents} conversion KPIs ready | ${providerAdapters.readyCandidates} provider adapters ready | ${persistence.adapterState}`;
+  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | ${accountHistory.historyCount} account histories | ${routePlacement.summary.routeCount} SYNAPSE routes | ${accessGateways.gatewayCount} access gates | ${librarySync.handoffCount} LIBRARY handoffs | ${calendarProvider.handoffCount} calendar handoffs | ${calendarAdapter.payloadReady} calendar prototypes ready | ${notificationProvider.handoffCount} notification provider handoffs | ${paymentProvider.handoffCount} payment provider handoffs | ${authSession.handoffCount} auth/session handoffs | ${marketing.ready} campaign routes ready | ${marketingConversion.readyEvents} conversion KPIs ready | ${providerAdapters.readyCandidates} provider adapters ready | ${persistence.adapterState}`;
   renderMonitorActionConsole(report);
 
   const summaryCards = [
@@ -590,6 +614,7 @@ function renderMonitor(items) {
     record("Auth / Session Roles", `${authSession.publicReady} public, ${authSession.customerReady} customer, ${authSession.internalDenied} internal denied, ${authSession.noLiveAuth} no-live-auth.`, [toneChip(authSession.status, authSession.status === "ready" ? "complete" : "blocked"), chip(`${authSession.handoffCount} handoffs`)]),
     record("Operator Actions", `${report.operatorActions.length} local action${report.operatorActions.length === 1 ? "" : "s"} are queued in the monitor controls.`, [toneChip(`${report.operatorActions.length} queued`, report.operatorActions.length ? "overdue" : "complete")]),
     record("External Visibility", `${visibleCount} student/customer-visible records are available.`, [chip(`${visibleCount} visible`)]),
+    record("Account History", `${accountHistory.historyCount} durable customer account histor${accountHistory.historyCount === 1 ? "y" : "ies"} with ${accountHistory.timelineEvents} linked timeline events and ${accountHistory.receiptLinked} receipt-linked record${accountHistory.receiptLinked === 1 ? "" : "s"}.`, [toneChip(accountHistory.status, accountHistory.status === "ready" ? "complete" : "blocked"), chip(`${accountHistory.customerVisibleEvents} customer-safe events`)]),
     record("Deadline Control", `${deadlines.today} today, ${deadlines.upcoming} upcoming, ${deadlines.overdue} overdue.`, [chip(`${deadlines.owned} owner-linked`, "planned")]),
     record("Opportunity Pipeline", `${revenue.pipelineCount} open opportunities with ${formatJpy(revenue.pipelineValueJpy)} estimated value.`, [chip(`${revenue.waitingCount} waiting`, "waiting"), chip(`${revenue.deferredCount} deferred`)]),
     record("Engagement Revenue", `${revenue.activeEngagements} active engagements with ${formatJpy(revenue.acceptedValueJpy)} accepted value.`, [chip(`${revenue.acceptedCount} accepted`, "complete"), chip(`${revenue.under19CompatibilityCount} compatibility gates`)]),
@@ -844,6 +869,23 @@ function renderMonitor(items) {
     ]
   ));
 
+  const accountHistoryCards = accountHistory.histories.map((history) => {
+    const eventPreview = (history.statusTimeline || [])
+      .slice(0, 3)
+      .map((event) => `${event.sourceKind}: ${event.title}`)
+      .join(" | ");
+    return record(
+      history.displayName,
+      `${history.customerSafeSummary} | ${eventPreview || "Timeline pending"}`,
+      [
+        statusChip(history.status),
+        chip(`${history.eventCount} events`),
+        chip(`${history.receiptCount} receipts`),
+        toneChip(`${history.violations.length} violations`, history.violations.length ? "blocked" : "complete")
+      ]
+    );
+  });
+
   const riskCards = report.risks.length
     ? report.risks.map((item) => record(item.title, item.detail, [chip(item.severity, item.severity === "high" ? "blocked" : "overdue")]))
     : [record("Risks", "No active risk records in the current operating surface.", [chip("clear", "complete")])];
@@ -906,6 +948,7 @@ function renderMonitor(items) {
     monitorSection("Marketing Conversion KPIs", marketingConversionCards.length ? marketingConversionCards : [record("Marketing Conversion KPIs", "No local conversion KPI readiness records have been created yet.", [chip("empty")])], "monitor-marketing-conversions"),
     monitorSection("Provider Adapter Go/No-Go", providerAdapterCards.length ? providerAdapterCards : [record("Provider Adapter Go/No-Go", "No provider adapter candidate records have been created yet.", [chip("empty")])], "monitor-provider-adapters"),
     monitorSection("Sandbox Calendar Adapter", calendarAdapterCards.length ? calendarAdapterCards : [record("Sandbox Calendar Adapter", "No sandbox calendar adapter prototype records have been created yet.", [chip("empty")])], "monitor-calendar-adapter"),
+    monitorSection("Customer Account History", accountHistoryCards.length ? accountHistoryCards : [record("Customer Account History", "No durable customer account history records have been created yet.", [chip("empty")])], "monitor-account-history"),
     monitorSection("Agent Handoffs", handoffCards, "monitor-handoffs"),
     monitorSection("Notification Outbox", outboxCards, "monitor-notification-outbox"),
     monitorSection("Notification Provider Handoffs", notificationProviderCards.length ? notificationProviderCards : [record("Notification Providers", "No notification provider handoff records have been created yet.", [chip("empty")])], "monitor-notification-provider"),
@@ -1126,6 +1169,7 @@ function renderAll() {
   renderScheduleFeed();
   renderAdmin(items);
   renderStudentStatus();
+  renderCustomerAccountHistory();
   renderCustomerUpdates();
   renderSubmissionOptions();
   renderSubmissions();

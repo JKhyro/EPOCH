@@ -167,6 +167,17 @@ Current EPOCH-side sandbox calendar adapter prototype slice:
   calls, OAuth clients, secrets, webhooks, provider writes, invitations, or
   customer-visible notification events.
 
+Current EPOCH-side customer account history slice:
+
+- `customerAccountHistories` records controlled customer-safe timelines across
+  status, submissions, cohorts, service records, receipts, and update events.
+- `summarizeCustomerAccountHistoryState` exposes history coverage, timeline
+  events, receipt linkage, local-only posture, and violation counts to EPOCH
+  MONITOR.
+- `createCustomerAccountHistoryRecords` refreshes a customer's account-history
+  snapshot and creates a `customer-account-history` receipt without live
+  provider writes, external sends, or production account integration.
+
 ### 7. LIBRARY Durable Operating Ledger Persistence
 
 The local JSON ledger proves the shape, but durable persistence should move to
