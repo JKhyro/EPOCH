@@ -153,6 +153,15 @@ The repository verifier must cover:
   no-live-api/no-secrets/no-OAuth/no-webhook/no-provider-write enforcement,
   internal `provider-adapter-selection` receipts, export/import preservation,
   monitor summary counts, and the `monitor-provider-adapters` section.
+- Sandbox marketing analytics adapter prototype controls and verifier coverage
+  for `marketingAnalyticsAdapterPrototypes`, local provider-neutral conversion
+  payload previews, marketing KPI and analytics/advertising provider-adapter
+  linkage, no-live-pixel/no-external-ad-write/no-credential/no-webhook/
+  no-provider-write/no-invasive-tracking/no-personal-data/no-cross-site-ID
+  enforcement, under-19 consent gating, internal
+  `marketing-analytics-adapter-prototype` receipts, export/import
+  preservation, monitor summary counts, and the
+  `monitor-marketing-analytics-prototype` section.
 - Sandbox calendar adapter prototype controls and verifier coverage for
   `calendarAdapterPrototypes`, local calendar payload previews,
   provider-go/no-go linkage, no-live-api/no-secrets/no-OAuth/no-webhook,

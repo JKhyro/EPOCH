@@ -40,6 +40,7 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
 - `docs/sandbox-notification-provider-prototype-contract.md`
 - `docs/sandbox-payment-provider-prototype-contract.md`
 - `docs/sandbox-auth-provider-prototype-contract.md`
+- `docs/sandbox-marketing-analytics-adapter-prototype-contract.md`
 - `docs/customer-account-history-contract.md`
 
 ## Current implementation artifacts
@@ -77,6 +78,12 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   selected and reviewed.
   Provider adapter candidate records remain sandbox-only and no-live-provider
   until a later go/no-go decision explicitly permits a scoped live prototype.
+  Sandbox marketing analytics adapter prototype records can generate local
+  provider-neutral conversion payload previews from marketing KPI records, but
+  still do not attach live pixels, write ad APIs, store analytics credentials,
+  create webhooks, write provider records, track people invasively, store
+  personal data, create cross-site identifiers, expose public proof surfaces,
+  or permit under-19 paid action before consent.
   Sandbox calendar adapter prototype records can generate local payload previews
   from EPOCH calendar export data, but still do not call calendar APIs, configure
   OAuth, store secrets, create webhooks, write provider records, send
@@ -110,7 +117,8 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   sync/recovery controls plus provider-neutral calendar and notification
   provider handoff controls, auth/session readiness controls, and local
   marketing conversion KPI controls, provider adapter go/no-go controls,
-  sandbox calendar adapter prototype console, sandbox notification provider
+  sandbox marketing analytics adapter prototype console, sandbox calendar
+  adapter prototype console, sandbox notification provider
   prototype console, sandbox payment provider prototype console, sandbox auth
   provider prototype console, plus customer account history cards for controlled
   customer-safe status timelines.
@@ -125,7 +133,8 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   local marketing conversion KPI records for Japan, global, submission-first,
   and under-19 guarded routes, plus provider adapter candidate records for
   calendar, notification, payment, auth/session, analytics, and persistence
-  go/no-go readiness, a local calendar payload-preview prototype, and durable
+  go/no-go readiness, sandbox marketing analytics conversion-preview records,
+  a local calendar payload-preview prototype, and durable
   customer account history records, plus sandbox notification provider
   message-preview, sandbox payment provider checkout-preview, and sandbox auth
   provider access-preview prototypes.

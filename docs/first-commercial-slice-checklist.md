@@ -39,6 +39,7 @@ service operations without waiting for every future CITADEL integration.
 - Notification provider handoff and template/consent readiness record.
 - Marketing conversion KPI event linked to a campaign route.
 - Provider adapter candidate and go/no-go readiness record.
+- Sandbox marketing analytics adapter prototype record.
 - Sandbox notification provider prototype record.
 - Sandbox payment provider prototype record.
 - Durable customer account history record.
