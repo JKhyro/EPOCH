@@ -18,6 +18,7 @@ int main(void) {
 
     assert(strcmp(epoch_status_label(EPOCH_STATUS_SUBMITTED), "submitted") == 0);
     assert(strcmp(epoch_status_label(EPOCH_STATUS_PROPOSED), "proposed") == 0);
+    assert(strcmp(epoch_status_label(EPOCH_STATUS_AVAILABLE), "available") == 0);
     assert(strcmp(epoch_status_label(EPOCH_STATUS_RETRY_READY), "retry-ready") == 0);
     assert(strcmp(epoch_status_label(EPOCH_STATUS_PAYMENT_BLOCKED), "payment-blocked") == 0);
     assert(strcmp(epoch_status_label(EPOCH_STATUS_ACKNOWLEDGED), "acknowledged") == 0);
@@ -27,6 +28,8 @@ int main(void) {
     assert(status == EPOCH_STATUS_IN_PROGRESS);
     assert(epoch_status_from_label("queued", &status) == 1);
     assert(status == EPOCH_STATUS_QUEUED);
+    assert(epoch_status_from_label("snoozed", &status) == 1);
+    assert(status == EPOCH_STATUS_SNOOZED);
     assert(epoch_status_from_label("paid-recorded", &status) == 1);
     assert(status == EPOCH_STATUS_PAID_RECORDED);
     assert(epoch_status_is_terminal(EPOCH_STATUS_RETURNED) == 1);

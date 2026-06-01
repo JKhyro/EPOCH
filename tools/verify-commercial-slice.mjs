@@ -7,6 +7,8 @@ const requiredStatuses = [
   "proposed",
   "draft",
   "presented",
+  "available",
+  "unavailable",
   "queued",
   "submitted",
   "reviewing",
@@ -19,6 +21,7 @@ const requiredStatuses = [
   "in-progress",
   "sent",
   "failed",
+  "snoozed",
   "retry-ready",
   "payment-ready",
   "payment-blocked",
@@ -84,6 +87,9 @@ if (!Array.isArray(data.workPlans)) fail("seed data missing workPlans collection
 if (!Array.isArray(data.agentHandoffs)) fail("seed data missing agentHandoffs collection");
 if (!Array.isArray(data.notificationDeliveries)) fail("seed data missing notificationDeliveries collection");
 if (!Array.isArray(data.quotes)) fail("seed data missing quotes collection");
+if (!Array.isArray(data.reminderRules)) fail("seed data missing reminderRules collection");
+if (!Array.isArray(data.recurrenceCandidates)) fail("seed data missing recurrenceCandidates collection");
+if (!Array.isArray(data.availabilityWindows)) fail("seed data missing availabilityWindows collection");
 
 const header = read("../native/epoch_core.h");
 const source = read("../native/epoch_core.c");
@@ -142,7 +148,16 @@ for (const id of [
   "quote-opportunity",
   "quote-action",
   "quote-payment-apply",
-  "quote-payment-confirmation"
+  "quote-payment-confirmation",
+  "reminder-control-form",
+  "reminder-control-kind",
+  "reminder-control-action",
+  "reminder-rule-select",
+  "recurrence-candidate-select",
+  "availability-window-select",
+  "reminder-source",
+  "reminder-control-apply",
+  "reminder-control-confirmation"
 ]) {
   if (!html.includes(`id="${id}"`)) fail(`web surface missing ${id}`);
 }
@@ -172,6 +187,9 @@ for (const field of ["deliveryId", "action", "provider", "channel", "nextActionA
 }
 for (const field of ["quoteId", "opportunityId", "action", "amountJpy", "nextActionAt", "guardianConsentRecorded", "note"]) {
   if (!html.includes(`name="${field}"`)) fail(`quote payment form missing field ${field}`);
+}
+for (const field of ["controlKind", "action", "reminderId", "recurrenceId", "availabilityId", "sourceId", "startAt", "endAt", "cadence", "capacity", "note"]) {
+  if (!html.includes(`name="${field}"`)) fail(`reminder control form missing field ${field}`);
 }
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
@@ -299,6 +317,7 @@ for (const phrase of [
   "monitor-suite",
   "monitor-notification-outbox",
   "monitor-quotes",
+  "monitor-reminders",
   "monitor-calendar",
   "monitor-persistence",
   "monitor-access",
@@ -331,12 +350,20 @@ for (const phrase of [
   "transitionNotificationDeliveryRecords",
   "createQuoteEstimateRecords",
   "transitionQuoteEstimateRecords",
+  "createReminderRuleRecords",
+  "transitionReminderRuleRecords",
+  "createRecurrenceCandidateRecords",
+  "transitionRecurrenceCandidateRecords",
+  "createAvailabilityWindowRecords",
+  "transitionAvailabilityWindowRecords",
   "renderAgentHandoffOptions",
   "renderNotificationDeliveryOptions",
   "renderQuoteOptions",
+  "renderReminderControlOptions",
   "wireAgentHandoffForm",
   "wireNotificationOutboxForm",
   "wireQuotePaymentForm",
+  "wireReminderControlForm",
   "Opportunity Pipeline",
   "Engagement Revenue",
   "Update Events",
@@ -349,6 +376,8 @@ for (const phrase of [
   "Quote Readiness",
   "Quote Created",
   "Quote Updated",
+  "Reminder Control",
+  "Schedule Control Updated",
   "SYNAPSE Placement",
   "no-duplicate-ui",
   "link-only",
@@ -382,6 +411,7 @@ for (const phrase of [
   "handoff-console",
   "outbox-console",
   "quote-console",
+  "reminder-console",
   "monitor-action-button",
   "button-meta",
   "monitor-command-strip",
@@ -484,9 +514,16 @@ if (typeof recordTools.createNotificationOutboxRecords !== "function") fail("ope
 if (typeof recordTools.transitionNotificationDeliveryRecords !== "function") fail("operating helpers missing transitionNotificationDeliveryRecords");
 if (typeof recordTools.createQuoteEstimateRecords !== "function") fail("operating helpers missing createQuoteEstimateRecords");
 if (typeof recordTools.transitionQuoteEstimateRecords !== "function") fail("operating helpers missing transitionQuoteEstimateRecords");
+if (typeof recordTools.createReminderRuleRecords !== "function") fail("operating helpers missing createReminderRuleRecords");
+if (typeof recordTools.transitionReminderRuleRecords !== "function") fail("operating helpers missing transitionReminderRuleRecords");
+if (typeof recordTools.createRecurrenceCandidateRecords !== "function") fail("operating helpers missing createRecurrenceCandidateRecords");
+if (typeof recordTools.transitionRecurrenceCandidateRecords !== "function") fail("operating helpers missing transitionRecurrenceCandidateRecords");
+if (typeof recordTools.createAvailabilityWindowRecords !== "function") fail("operating helpers missing createAvailabilityWindowRecords");
+if (typeof recordTools.transitionAvailabilityWindowRecords !== "function") fail("operating helpers missing transitionAvailabilityWindowRecords");
 if (typeof recordTools.createMonitorActionRecords !== "function") fail("operating helpers missing createMonitorActionRecords");
 if (typeof recordTools.summarizeAgentHandoffState !== "function") fail("operating helpers missing summarizeAgentHandoffState");
 if (typeof recordTools.summarizeQuoteState !== "function") fail("operating helpers missing summarizeQuoteState");
+if (typeof recordTools.summarizeScheduleControlState !== "function") fail("operating helpers missing summarizeScheduleControlState");
 if (typeof recordTools.summarizeAccessPosture !== "function") fail("operating helpers missing summarizeAccessPosture");
 if (typeof recordTools.summarizeMemoryState !== "function") fail("operating helpers missing summarizeMemoryState");
 if (typeof recordTools.summarizeRoutePlacementState !== "function") fail("operating helpers missing summarizeRoutePlacementState");
@@ -606,6 +643,18 @@ for (const phrase of [
   "No live checkout"
 ]) {
   if (!quotePaymentContract.includes(phrase)) fail(`quote/payment contract missing phrase: ${phrase}`);
+}
+
+const reminderContract = read("../docs/reminder-recurrence-availability-contract.md");
+for (const phrase of [
+  "Reminder Recurrence And Availability Contract",
+  "reminderRules",
+  "recurrenceCandidates",
+  "availabilityWindows",
+  "Customer-safe visibility",
+  "does not create external calendar events"
+]) {
+  if (!reminderContract.includes(phrase)) fail(`reminder/recurrence/availability contract missing phrase: ${phrase}`);
 }
 
 const attention = [
@@ -1132,6 +1181,101 @@ const deadlineSummary = recordTools.summarizeDeadlines(scheduleResult.data, { no
 if (deadlineSummary.upcoming < 1) fail("deadline summary did not detect upcoming work");
 if (deadlineSummary.owned < 1) fail("deadline summary did not detect owner-linked work");
 
+const reminderResult = recordTools.createReminderRuleRecords(scheduleResult.data, {
+  sourceKind: "session",
+  sourceId: scheduleResult.records.session.id,
+  customerId: scheduleResult.records.session.customerId,
+  title: "Confirm diagnostic session",
+  reminderAt: "2026-06-05T18:30",
+  leadMinutes: 60,
+  channel: "operator-dashboard",
+  customerVisible: "false"
+}, {
+  now: "2026-06-01T03:02:00.000Z"
+});
+if (reminderResult.data.reminderRules.length !== scheduleResult.data.reminderRules.length + 1) fail("reminder rule did not create a record");
+if (reminderResult.records.reminder.status !== "planned") fail("reminder rule should start planned");
+if (reminderResult.records.receipt.kind !== "reminder-rule-created") fail("reminder rule missing created receipt");
+const snoozedReminderResult = recordTools.transitionReminderRuleRecords(reminderResult.data, {
+  reminderId: reminderResult.records.reminder.id,
+  action: "snooze",
+  nextActionAt: "2026-06-05T18:45",
+  note: "Move reminder closer to the session."
+}, {
+  now: "2026-06-01T03:03:00.000Z"
+});
+if (snoozedReminderResult.records.reminder.status !== "snoozed") fail("reminder snooze did not set snoozed status");
+if (snoozedReminderResult.records.reminder.reminderAt !== "2026-06-05T18:45:00+09:00") fail("reminder snooze did not update reminderAt");
+const completedReminderResult = recordTools.transitionReminderRuleRecords(snoozedReminderResult.data, {
+  reminderId: reminderResult.records.reminder.id,
+  action: "complete",
+  note: "Reminder acknowledged by operator."
+}, {
+  now: "2026-06-01T03:04:00.000Z"
+});
+if (completedReminderResult.records.reminder.status !== "complete") fail("reminder complete did not set complete status");
+if (completedReminderResult.records.reminder.receiptIds.length < 3) fail("reminder did not retain receipt trail");
+
+const recurrenceResult = recordTools.createRecurrenceCandidateRecords(completedReminderResult.data, {
+  sourceKind: "engagement",
+  sourceId: acceptResult.records.engagement.id,
+  customerId: acceptResult.records.engagement.customerId,
+  title: "Weekly writing review candidate",
+  cadence: "weekly",
+  nextCandidateAt: "2026-06-12T19:30",
+  customerVisible: "false"
+}, {
+  now: "2026-06-01T03:05:00.000Z"
+});
+if (recurrenceResult.records.recurrence.status !== "proposed") fail("recurrence candidate should start proposed");
+if (recurrenceResult.records.recurrence.autoCreateSessions) fail("recurrence candidate should not auto-create sessions");
+const approvedRecurrenceResult = recordTools.transitionRecurrenceCandidateRecords(recurrenceResult.data, {
+  recurrenceId: recurrenceResult.records.recurrence.id,
+  action: "approve",
+  note: "Cadence is viable for this engagement."
+}, {
+  now: "2026-06-01T03:06:00.000Z"
+});
+if (approvedRecurrenceResult.records.recurrence.status !== "approved") fail("recurrence approval did not set approved status");
+if (approvedRecurrenceResult.data.sessions.length !== recurrenceResult.data.sessions.length) fail("recurrence approval should not auto-create sessions");
+
+const availabilityResult = recordTools.createAvailabilityWindowRecords(approvedRecurrenceResult.data, {
+  owner: "Jack",
+  title: "Evening review capacity",
+  startAt: "2026-06-06T19:00",
+  endAt: "2026-06-06T21:00",
+  capacity: 2,
+  serviceLane: "education",
+  customerVisible: "false"
+}, {
+  now: "2026-06-01T03:07:00.000Z"
+});
+if (availabilityResult.records.availability.status !== "available") fail("availability window should start available");
+if (availabilityResult.records.receipt.kind !== "availability-window-created") fail("availability window missing created receipt");
+const blockedAvailabilityResult = recordTools.transitionAvailabilityWindowRecords(availabilityResult.data, {
+  availabilityId: availabilityResult.records.availability.id,
+  action: "block",
+  note: "Window reserved for existing student work."
+}, {
+  now: "2026-06-01T03:08:00.000Z"
+});
+if (blockedAvailabilityResult.records.availability.status !== "blocked") fail("availability block did not set blocked status");
+const reopenedAvailabilityResult = recordTools.transitionAvailabilityWindowRecords(blockedAvailabilityResult.data, {
+  availabilityId: availabilityResult.records.availability.id,
+  action: "reopen",
+  note: "Window reopened after conflict cleared."
+}, {
+  now: "2026-06-01T03:09:00.000Z"
+});
+if (reopenedAvailabilityResult.records.availability.status !== "available") fail("availability reopen did not set available status");
+const scheduleControlSummary = recordTools.summarizeScheduleControlState(reopenedAvailabilityResult.data);
+if (scheduleControlSummary.reminders < 1 || scheduleControlSummary.approvedRecurrence < 1 || scheduleControlSummary.availabilityWindows < 1 || scheduleControlSummary.availableWindows < 1) fail("schedule control summary missing reminder, recurrence, or availability window");
+const scheduleControlMonitor = recordTools.buildMonitorReport(reopenedAvailabilityResult.data, { now: "2026-06-01T12:00:00+09:00" });
+if (scheduleControlMonitor.summary.reminderRules < 1) fail("monitor summary missing reminder rules");
+if (scheduleControlMonitor.summary.recurrenceCandidates < 1) fail("monitor summary missing recurrence candidates");
+if (scheduleControlMonitor.summary.availabilityWindows < 1) fail("monitor summary missing availability windows");
+if (!scheduleControlMonitor.queue.some((item) => item.kind === "recurrence candidate")) fail("monitor queue missing recurrence candidate");
+
 const rescheduleResult = recordTools.rescheduleScheduleRecords(scheduleResult.data, {
   sessionId: scheduleResult.records.session.id,
   startAt: "2026-06-05T20:30",
@@ -1268,6 +1412,11 @@ if (!outboxCalendarExport.entries.some((entry) => entry.sourceKind === "notifica
 const quoteCalendarExport = recordTools.createCalendarExport(paymentReadyQuoteResult.data, { now: "2026-06-01T12:00:00+09:00" });
 if (!quoteCalendarExport.entries.some((entry) => entry.sourceKind === "quote" && entry.timeKind === "quote-validity-window")) fail("calendar export missing quote validity window");
 
+const scheduleControlCalendarExport = recordTools.createCalendarExport(reopenedAvailabilityResult.data, { now: "2026-06-01T12:00:00+09:00" });
+if (!scheduleControlCalendarExport.entries.some((entry) => entry.sourceKind === "reminder-rule" && entry.timeKind === "reminder-window")) fail("calendar export missing reminder window");
+if (!scheduleControlCalendarExport.entries.some((entry) => entry.sourceKind === "recurrence-candidate" && entry.timeKind === "recurrence-review-window")) fail("calendar export missing recurrence candidate window");
+if (!scheduleControlCalendarExport.entries.some((entry) => entry.sourceKind === "availability-window" && entry.timeKind === "availability-window")) fail("calendar export missing availability window");
+
 const acceptedMonitorReport = recordTools.buildMonitorReport(acceptResult.data, { now: "2026-06-01T12:00:00+09:00" });
 if (acceptedMonitorReport.revenue.activeEngagements < 1) fail("monitor revenue did not count active engagement");
 if (acceptedMonitorReport.summary.acceptedValueJpy < 60000) fail("monitor summary did not expose accepted value");
@@ -1334,6 +1483,12 @@ const quoteLedger = recordTools.createOperatingLedger(paymentReadyQuoteResult.da
 if (quoteLedger.counts.quotes !== paymentReadyQuoteResult.data.quotes.length) fail("ledger export quote count is wrong");
 if (quoteLedger.monitor.paymentReadyQuotes < 1) fail("ledger monitor summary missing payment-ready quote count");
 
+const scheduleControlLedger = recordTools.createOperatingLedger(reopenedAvailabilityResult.data, { now: "2026-06-01T04:45:00.000Z" });
+if (scheduleControlLedger.counts.reminderRules !== reopenedAvailabilityResult.data.reminderRules.length) fail("ledger export reminder count is wrong");
+if (scheduleControlLedger.counts.recurrenceCandidates !== reopenedAvailabilityResult.data.recurrenceCandidates.length) fail("ledger export recurrence count is wrong");
+if (scheduleControlLedger.counts.availabilityWindows !== reopenedAvailabilityResult.data.availabilityWindows.length) fail("ledger export availability count is wrong");
+if (scheduleControlLedger.monitor.availabilityWindows < 1) fail("ledger monitor summary missing availability windows");
+
 const importedLedger = recordTools.importOperatingLedger(data, JSON.stringify(exportedLedger));
 if (importedLedger.data.receipts.length !== returnResult.data.receipts.length) fail("ledger import did not preserve receipts");
 if (importedLedger.data.monitorHealthChecks.length !== returnResult.data.monitorHealthChecks.length) fail("ledger import did not preserve monitor health checks");
@@ -1376,6 +1531,12 @@ const importedQuoteLedger = recordTools.importOperatingLedger(data, JSON.stringi
 if (importedQuoteLedger.data.quotes.length !== paymentReadyQuoteResult.data.quotes.length) fail("ledger import did not preserve quote records");
 if (!importedQuoteLedger.data.quotes.some((item) => item.status === "payment-ready")) fail("ledger import did not preserve payment-ready quote status");
 if (!importedQuoteLedger.data.quotes.some((item) => Array.isArray(item.quoteHistory) && item.quoteHistory.length >= 5)) fail("ledger import did not preserve quote history");
+
+const importedScheduleControlLedger = recordTools.importOperatingLedger(data, JSON.stringify(scheduleControlLedger));
+if (importedScheduleControlLedger.data.reminderRules.length !== reopenedAvailabilityResult.data.reminderRules.length) fail("ledger import did not preserve reminder rules");
+if (importedScheduleControlLedger.data.recurrenceCandidates.length !== reopenedAvailabilityResult.data.recurrenceCandidates.length) fail("ledger import did not preserve recurrence candidates");
+if (importedScheduleControlLedger.data.availabilityWindows.length !== reopenedAvailabilityResult.data.availabilityWindows.length) fail("ledger import did not preserve availability windows");
+if (!importedScheduleControlLedger.data.availabilityWindows.some((item) => Array.isArray(item.availabilityHistory) && item.availabilityHistory.length >= 3)) fail("ledger import did not preserve availability history");
 
 let rejectedInvalidLedger = false;
 try {

@@ -13,6 +13,8 @@ static const EpochStatusName EPOCH_STATUS_NAMES[] = {
     {EPOCH_STATUS_PROPOSED, "proposed"},
     {EPOCH_STATUS_DRAFT, "draft"},
     {EPOCH_STATUS_PRESENTED, "presented"},
+    {EPOCH_STATUS_AVAILABLE, "available"},
+    {EPOCH_STATUS_UNAVAILABLE, "unavailable"},
     {EPOCH_STATUS_QUEUED, "queued"},
     {EPOCH_STATUS_SUBMITTED, "submitted"},
     {EPOCH_STATUS_REVIEWING, "reviewing"},
@@ -25,6 +27,7 @@ static const EpochStatusName EPOCH_STATUS_NAMES[] = {
     {EPOCH_STATUS_IN_PROGRESS, "in-progress"},
     {EPOCH_STATUS_SENT, "sent"},
     {EPOCH_STATUS_FAILED, "failed"},
+    {EPOCH_STATUS_SNOOZED, "snoozed"},
     {EPOCH_STATUS_RETRY_READY, "retry-ready"},
     {EPOCH_STATUS_PAYMENT_READY, "payment-ready"},
     {EPOCH_STATUS_PAYMENT_BLOCKED, "payment-blocked"},
@@ -86,9 +89,11 @@ int epoch_operating_entry_needs_attention(const EpochOperatingEntry *entry) {
            entry->status == EPOCH_STATUS_PROPOSED ||
            entry->status == EPOCH_STATUS_DRAFT ||
            entry->status == EPOCH_STATUS_PRESENTED ||
+           entry->status == EPOCH_STATUS_UNAVAILABLE ||
            entry->status == EPOCH_STATUS_QUEUED ||
            entry->status == EPOCH_STATUS_DISPATCHED ||
            entry->status == EPOCH_STATUS_FAILED ||
+           entry->status == EPOCH_STATUS_SNOOZED ||
            entry->status == EPOCH_STATUS_RETRY_READY ||
            entry->status == EPOCH_STATUS_PAYMENT_READY ||
            entry->status == EPOCH_STATUS_PAYMENT_BLOCKED ||
