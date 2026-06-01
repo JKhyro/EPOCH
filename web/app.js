@@ -98,6 +98,15 @@ function packageName(packageId) {
   return offerPackage ? offerPackage.name : "package pending";
 }
 
+function frameworkName(frameworkId) {
+  const framework = (data.curriculumFrameworks || []).find((item) => item.id === frameworkId);
+  return framework ? framework.title : "framework pending";
+}
+
+function gameplanForPackage(packageId) {
+  return (data.packageGameplans || []).find((item) => item.packageId === packageId);
+}
+
 function formatJpy(value) {
   return `JPY ${Number(value || 0).toLocaleString("en-US")}`;
 }
@@ -107,6 +116,7 @@ function allOperatingItems() {
     ...data.leads.map((item) => ({ ...item, kind: "lead", time: item.nextActionAt })),
     ...data.opportunities.map((item) => ({ ...item, title: packageName(item.packageId), kind: "opportunity", time: item.nextActionAt })),
     ...(data.engagements || []).map((item) => ({ ...item, title: packageName(item.packageId), kind: "engagement", time: item.onboardingDueAt || item.acceptedAt })),
+    ...(data.packageGameplans || []).map((item) => ({ ...item, kind: "gameplan", time: item.nextMilestoneAt })),
     ...(data.workPlans || []).map((item) => ({ ...item, kind: "agent work plan", time: item.dueAt })),
     ...(data.agentHandoffs || []).map((item) => ({ ...item, kind: "agent handoff", time: item.nextActionAt })),
     ...(data.notificationEvents || []).map((item) => ({ ...item, kind: "update", time: item.deliverAfterAt || item.createdAt })),
@@ -127,6 +137,7 @@ function renderOfferOptions() {
 
 function renderOfferCatalog() {
   byId("offer-catalog").innerHTML = data.offerPackages.map((offerPackage) => {
+    const gameplan = gameplanForPackage(offerPackage.id);
     return record(
       offerPackage.name,
       `${offerPackage.audience} | ${offerPackage.deliveryModel} | ${offerPackage.marketRoute || "Japan-wide remote"}`,
@@ -134,7 +145,58 @@ function renderOfferCatalog() {
         chip(formatJpy(offerPackage.priceJpy)),
         chip(offerPackage.routing),
         chip(offerPackage.status),
-        chip(offerPackage.laborModel || "tracked delivery")
+        chip(offerPackage.laborModel || "tracked delivery"),
+        chip(gameplan ? "gameplan-ready" : "gameplan-pending", gameplan ? "complete" : "waiting")
+      ]
+    );
+  }).join("");
+}
+
+function renderCurriculumFrameworks() {
+  byId("curriculum-frameworks").innerHTML = (data.curriculumFrameworks || []).map((framework) => {
+    const levels = Array.isArray(framework.levels) ? framework.levels.join(", ") : "adaptive";
+    const modules = Array.isArray(framework.modules) ? framework.modules.slice(0, 3).join(" | ") : "modules pending";
+    return record(
+      framework.title,
+      `${framework.positioning} Modules: ${modules}`,
+      [
+        statusChip(framework.status),
+        chip(`${levels}`),
+        chip(framework.cadence || "cadence pending")
+      ]
+    );
+  }).join("");
+}
+
+function renderAdminGameplans() {
+  const gameplans = data.packageGameplans || [];
+  byId("admin-gameplans").innerHTML = gameplans.map((gameplan) => {
+    return record(
+      gameplan.title,
+      `${packageName(gameplan.packageId)} | ${frameworkName(gameplan.frameworkId)} | ${gameplan.internalReadiness}`,
+      [
+        statusChip(gameplan.status),
+        chip(gameplan.laborModel || "delivery model pending"),
+        chip(formatTime(gameplan.nextMilestoneAt))
+      ]
+    );
+  }).join("");
+}
+
+function renderStudentGameplans() {
+  const customers = data.customers || [];
+  byId("student-gameplans").innerHTML = customers.map((customer) => {
+    const gameplan = (data.packageGameplans || []).find((item) => item.id === customer.gameplanId)
+      || gameplanForPackage(customer.packageId);
+    return record(
+      customer.displayName,
+      gameplan
+        ? `${gameplan.customerVisibleSummary} Next milestone: ${formatTime(gameplan.nextMilestoneAt)}`
+        : "No personalized gameplan has been assigned yet.",
+      [
+        chip(gameplan ? gameplan.title : "gameplan pending"),
+        chip(customer.ageBand),
+        chip(gameplan ? gameplan.laborModel : "unassigned")
       ]
     );
   }).join("");
@@ -305,6 +367,7 @@ function renderMonitor(items) {
   const deadlines = recordTools.summarizeDeadlines(data, { now: `${today}T12:00:00+09:00` });
   const report = recordTools.buildMonitorReport(data, { now: `${today}T12:00:00+09:00` });
   const revenue = report.revenue || recordTools.summarizeRevenueState(data);
+  const curriculum = report.curriculum || recordTools.summarizeCurriculumState(data);
   const notifications = report.notifications || recordTools.summarizeNotificationState(data);
   const handoffs = report.handoffs || recordTools.summarizeAgentHandoffState(data);
   const routePlacement = report.routePlacement || recordTools.summarizeRoutePlacementState(data, { now: `${today}T12:00:00+09:00` });
@@ -320,6 +383,7 @@ function renderMonitor(items) {
     record("Deadline Control", `${deadlines.today} today, ${deadlines.upcoming} upcoming, ${deadlines.overdue} overdue.`, [chip(`${deadlines.owned} owner-linked`, "planned")]),
     record("Opportunity Pipeline", `${revenue.pipelineCount} open opportunities with ${formatJpy(revenue.pipelineValueJpy)} estimated value.`, [chip(`${revenue.waitingCount} waiting`, "waiting"), chip(`${revenue.deferredCount} deferred`)]),
     record("Engagement Revenue", `${revenue.activeEngagements} active engagements with ${formatJpy(revenue.acceptedValueJpy)} accepted value.`, [chip(`${revenue.acceptedCount} accepted`, "complete"), chip(`${revenue.under19CompatibilityCount} compatibility gates`)]),
+    record("Curriculum Readiness", `${curriculum.frameworks} frameworks, ${curriculum.activeGameplans} active/planned gameplans, ${curriculum.eikenLevelCount} EIKEN levels represented.`, [chip(`${curriculum.submissionFirstGameplans} submission-first`), chip(`${curriculum.under19GuardedGameplans} guarded`)]),
     record("Update Events", `${notifications.visible} visible updates, ${notifications.pending} pending, ${notifications.blocked} blocked.`, [chip(`${notifications.posted} posted`, "complete"), chip(`${notifications.total} total`)]),
     record("Agent Handoffs", `${handoffs.handoffs} handoffs, ${handoffs.workPlans} work plans, ${handoffs.pendingApprovals} pending approval.`, [chip(`${handoffs.monitorVisible} monitor-visible`), chip(`${handoffs.customerVisibleBlocked} customer-visible`)]),
     record("SYNAPSE Placement", `${routePlacement.summary.routeCount} routes, ${routePlacement.placementMode}, ${routePlacement.access}.`, [chip(routePlacement.targetSystem), chip(routePlacement.duplicateUi ? "duplicate-ui" : "no-duplicate-ui"), chip(routePlacement.summary.monitorHref)]),
@@ -367,6 +431,19 @@ function renderMonitor(items) {
     [statusChip(route.status), chip(route.visibility), chip(route.placement === "link" ? "link-only" : route.placement)]
   ));
 
+  const curriculumCards = [
+    ...(data.curriculumFrameworks || []).map((framework) => record(
+      framework.title,
+      `${framework.diagnostic} | ${framework.cadence}`,
+      [statusChip(framework.status), chip(Array.isArray(framework.levels) ? framework.levels.join("/") : "adaptive"), chip(framework.trackId)]
+    )),
+    ...(data.packageGameplans || []).map((gameplan) => record(
+      gameplan.title,
+      `${packageName(gameplan.packageId)} | ${gameplan.internalReadiness}`,
+      [statusChip(gameplan.status), chip(gameplan.laborModel), chip(formatTime(gameplan.nextMilestoneAt))]
+    ))
+  ];
+
   const riskCards = report.risks.length
     ? report.risks.map((item) => record(item.title, item.detail, [chip(item.severity, item.severity === "high" ? "blocked" : "overdue")]))
     : [record("Risks", "No active risk records in the current operating surface.", [chip("clear", "complete")])];
@@ -394,6 +471,7 @@ function renderMonitor(items) {
     monitorSection("Summary", summaryCards, "monitor-summary"),
     monitorSection("Queue", queueCards, "monitor-queue"),
     monitorSection("Timeline", timelineCards, "monitor-timeline"),
+    monitorSection("Curriculum / Gameplans", curriculumCards, "monitor-curriculum"),
     monitorSection("Agent Handoffs", handoffCards, "monitor-handoffs"),
     monitorSection("SYNAPSE Placement", routeCards, "monitor-suite"),
     monitorSection("Calendar Export", calendarCards.length ? calendarCards : [record("Calendar Export", "No export-ready calendar entries have been created yet.", [chip("empty")])], "monitor-calendar"),
@@ -426,6 +504,9 @@ function renderAll() {
   renderMetrics(items);
   renderOfferOptions();
   renderOfferCatalog();
+  renderCurriculumFrameworks();
+  renderAdminGameplans();
+  renderStudentGameplans();
   renderOpportunityOptions();
   renderOpportunityFeed();
   renderEngagementFeed();

@@ -23,6 +23,8 @@ service operations without waiting for every future CITADEL integration.
 - Lead or prospect.
 - Student/customer.
 - Program or service track.
+- Curriculum framework.
+- Package gameplan.
 - Cohort or engagement.
 - Session.
 - Assignment or service request.
@@ -49,6 +51,8 @@ service operations without waiting for every future CITADEL integration.
 - Accept, defer, or reject an opportunity from the internal admin surface.
 - Convert accepted opportunities into an engagement, onboarding session,
   first submission plan, follow-up, and receipt.
+- Show the package gameplan that explains cadence, milestones, and internal
+  delivery readiness before the work becomes recurring labor.
 - Create a submission or request window.
 - Record when work is submitted.
 - Record when review or feedback is returned.
@@ -69,5 +73,7 @@ service operations without waiting for every future CITADEL integration.
 - The monitor can summarize health without manually reading every record.
 - Public, admin, student/customer, and monitor surfaces share one aligned visual
   system while keeping public intake distinct from the internal control room.
+- EIKEN 5-1 and professional/service-support offers have reusable frameworks
+  and package-level gameplans that support personalized delivery.
 - The slice does not depend on production payment, public notification delivery,
   full authentication, or deep LIBRARY persistence.
