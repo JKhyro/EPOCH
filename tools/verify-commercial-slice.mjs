@@ -4,11 +4,18 @@ import vm from "node:vm";
 const requiredStatuses = [
   "planned",
   "waiting",
+  "proposed",
   "submitted",
   "reviewing",
   "returned",
   "overdue",
   "blocked",
+  "approved",
+  "dispatched",
+  "acknowledged",
+  "in-progress",
+  "rejected",
+  "rolled-back",
   "canceled",
   "complete"
 ];
@@ -69,7 +76,7 @@ if (!Array.isArray(data.agentHandoffs)) fail("seed data missing agentHandoffs co
 const header = read("../native/epoch_core.h");
 const source = read("../native/epoch_core.c");
 for (const status of requiredStatuses) {
-  const enumName = `EPOCH_STATUS_${status.toUpperCase()}`;
+  const enumName = `EPOCH_STATUS_${status.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`;
   if (!header.includes(enumName)) fail(`native header missing ${enumName}`);
   if (!source.includes(`"${status}"`)) fail(`native source missing label ${status}`);
 }
@@ -107,7 +114,12 @@ for (const id of [
   "intake-package",
   "monitor-operator-status",
   "monitor-action-buttons",
-  "monitor-action-receipts"
+  "monitor-action-receipts",
+  "agent-handoff-form",
+  "agent-handoff-select",
+  "agent-handoff-action",
+  "agent-handoff-transition",
+  "agent-handoff-confirmation"
 ]) {
   if (!html.includes(`id="${id}"`)) fail(`web surface missing ${id}`);
 }
@@ -128,6 +140,9 @@ for (const field of ["sessionId", "action", "nextActionAt", "reason"]) {
 }
 for (const field of ["opportunityId", "decision", "planStartAt", "planEndAt", "planDueAt", "decisionNote"]) {
   if (!html.includes(`name="${field}"`)) fail(`opportunity form missing field ${field}`);
+}
+for (const field of ["handoffId", "action", "nextActionAt", "customerVisibleApproved", "note", "customerSummary"]) {
+  if (!html.includes(`name="${field}"`)) fail(`agent handoff form missing field ${field}`);
 }
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
@@ -280,10 +295,15 @@ for (const phrase of [
   "renderMonitorActionConsole",
   "runMonitorAction",
   "createMonitorActionRecords",
+  "transitionAgentHandoffRecords",
+  "renderAgentHandoffOptions",
+  "wireAgentHandoffForm",
   "Opportunity Pipeline",
   "Engagement Revenue",
   "Update Events",
   "Agent Handoffs",
+  "ARA Handoff Updated",
+  "agent-handoff-transition",
   "SYNAPSE Placement",
   "no-duplicate-ui",
   "link-only",
@@ -314,6 +334,7 @@ for (const phrase of [
   "control-rail",
   "operator-control-panel",
   "operator-action-console",
+  "handoff-console",
   "monitor-action-button",
   "button-meta",
   "monitor-command-strip",
@@ -651,6 +672,20 @@ if (handoffSummary.workPlans < 1 || handoffSummary.handoffs < 1) fail("handoff s
 if (handoffSummary.pendingApprovals < 1) fail("handoff summary did not count pending approvals");
 if (handoffSummary.customerVisibleBlocked !== 0) fail("handoff summary found customer-visible handoffs before approval");
 
+let rejectedEarlyDispatch = false;
+try {
+  recordTools.transitionAgentHandoffRecords(handoffResult.data, {
+    handoffId: handoffResult.records.handoff.id,
+    action: "dispatch",
+    note: "Invalid early dispatch attempt."
+  }, {
+    now: "2026-06-01T03:06:00.000Z"
+  });
+} catch {
+  rejectedEarlyDispatch = true;
+}
+if (!rejectedEarlyDispatch) fail("agent handoff allowed dispatch before approval");
+
 const routePlacementSummary = recordTools.summarizeRoutePlacementState(handoffResult.data, { now: "2026-06-01T12:00:00+09:00" });
 if (routePlacementSummary.schema !== "epoch.synapse-route-placement") fail("route placement summary has wrong schema");
 if (routePlacementSummary.targetSystem !== "SYNAPSE") fail("route placement summary has wrong target system");
@@ -675,6 +710,129 @@ try {
   rejectedDuplicateHandoff = true;
 }
 if (!rejectedDuplicateHandoff) fail("agent handoff allowed duplicate active handoff for one engagement");
+
+const approvedHandoffResult = recordTools.transitionAgentHandoffRecords(handoffResult.data, {
+  handoffId: handoffResult.records.handoff.id,
+  action: "approve",
+  actor: "Jack",
+  note: "Operator approved the ARA work plan for dispatch.",
+  nextActionAt: "2026-06-06T21:00"
+}, {
+  now: "2026-06-01T03:07:00.000Z"
+});
+if (approvedHandoffResult.records.handoff.status !== "approved") fail("agent handoff approval did not set approved status");
+if (approvedHandoffResult.records.workPlan.status !== "approved") fail("agent handoff approval did not update the work plan");
+if (approvedHandoffResult.records.receipt.kind !== "agent-handoff-approved") fail("agent handoff approval missing receipt kind");
+if (!approvedHandoffResult.records.handoff.transportHistory.some((item) => item.action === "approve")) fail("agent handoff approval missing transport history");
+if (approvedHandoffResult.data.notificationEvents.length !== handoffResult.data.notificationEvents.length) fail("agent handoff approval created a customer update");
+if (approvedHandoffResult.data.customers[0].externalStatus !== acceptedExternalStatus) fail("agent handoff approval changed customer-visible status");
+const approvedMonitorReport = recordTools.buildMonitorReport(approvedHandoffResult.data, { now: "2026-06-01T12:00:00+09:00" });
+if (approvedMonitorReport.summary.approvedHandoffs < 1) fail("monitor summary missing approved handoff count");
+
+const dispatchedHandoffResult = recordTools.transitionAgentHandoffRecords(approvedHandoffResult.data, {
+  handoffId: handoffResult.records.handoff.id,
+  action: "dispatch",
+  actor: "Jack",
+  note: "Approved handoff released to ANVIL.",
+  nextActionAt: "2026-06-06T22:00"
+}, {
+  now: "2026-06-01T03:08:00.000Z"
+});
+if (dispatchedHandoffResult.records.handoff.status !== "dispatched") fail("agent handoff dispatch did not set dispatched status");
+if (!dispatchedHandoffResult.records.handoff.dispatchedAt) fail("agent handoff dispatch missing dispatchedAt");
+if (dispatchedHandoffResult.records.receipt.kind !== "agent-handoff-dispatched") fail("agent handoff dispatch missing receipt kind");
+const dispatchedMonitorReport = recordTools.buildMonitorReport(dispatchedHandoffResult.data, { now: "2026-06-01T12:00:00+09:00" });
+if (dispatchedMonitorReport.summary.dispatchedHandoffs < 1) fail("monitor summary missing dispatched handoff count");
+
+let rejectedRepeatDispatch = false;
+try {
+  recordTools.transitionAgentHandoffRecords(dispatchedHandoffResult.data, {
+    handoffId: handoffResult.records.handoff.id,
+    action: "dispatch",
+    note: "Invalid repeat dispatch attempt."
+  }, {
+    now: "2026-06-01T03:08:30.000Z"
+  });
+} catch {
+  rejectedRepeatDispatch = true;
+}
+if (!rejectedRepeatDispatch) fail("agent handoff allowed repeat dispatch after dispatch");
+
+const acknowledgedHandoffResult = recordTools.transitionAgentHandoffRecords(dispatchedHandoffResult.data, {
+  handoffId: handoffResult.records.handoff.id,
+  action: "acknowledge",
+  actor: "ANVIL",
+  note: "ANVIL acknowledged the handoff package.",
+  nextActionAt: "2026-06-07T09:00"
+}, {
+  now: "2026-06-01T03:09:00.000Z"
+});
+if (acknowledgedHandoffResult.records.handoff.status !== "acknowledged") fail("agent handoff acknowledgement did not set acknowledged status");
+if (!acknowledgedHandoffResult.records.handoff.acknowledgedAt) fail("agent handoff acknowledgement missing acknowledgedAt");
+if (acknowledgedHandoffResult.records.receipt.kind !== "agent-handoff-acknowledged") fail("agent handoff acknowledgement missing receipt kind");
+const acknowledgedMonitorReport = recordTools.buildMonitorReport(acknowledgedHandoffResult.data, { now: "2026-06-01T12:00:00+09:00" });
+if (acknowledgedMonitorReport.summary.acknowledgedHandoffs < 1) fail("monitor summary missing acknowledged handoff count");
+
+const progressedHandoffResult = recordTools.transitionAgentHandoffRecords(acknowledgedHandoffResult.data, {
+  handoffId: handoffResult.records.handoff.id,
+  action: "progress",
+  actor: "ANVIL",
+  note: "ANVIL started the approved work.",
+  nextActionAt: "2026-06-07T12:00"
+}, {
+  now: "2026-06-01T03:10:00.000Z"
+});
+if (progressedHandoffResult.records.handoff.status !== "in-progress") fail("agent handoff progress did not set in-progress status");
+if (progressedHandoffResult.records.receipt.kind !== "agent-handoff-progress") fail("agent handoff progress missing receipt kind");
+const progressedMonitorReport = recordTools.buildMonitorReport(progressedHandoffResult.data, { now: "2026-06-01T12:00:00+09:00" });
+if (progressedMonitorReport.summary.inProgressHandoffs < 1) fail("monitor summary missing in-progress handoff count");
+
+const completedHandoffResult = recordTools.transitionAgentHandoffRecords(progressedHandoffResult.data, {
+  handoffId: handoffResult.records.handoff.id,
+  action: "complete",
+  actor: "Jack",
+  note: "Operator accepted completion receipt internally.",
+  customerVisibleApproved: "false",
+  customerSummary: "Service work completed; operator-approved outcome is recorded."
+}, {
+  now: "2026-06-01T03:11:00.000Z"
+});
+if (completedHandoffResult.records.handoff.status !== "complete") fail("agent handoff completion did not set complete status");
+if (completedHandoffResult.records.receipt.kind !== "agent-handoff-complete") fail("agent handoff completion missing receipt kind");
+if (completedHandoffResult.records.notificationEvent) fail("internal handoff completion created a customer update");
+if (completedHandoffResult.data.customers[0].externalStatus !== acceptedExternalStatus) fail("internal handoff completion changed customer-visible status");
+if (completedHandoffResult.records.handoff.receiptIds.length < 5) fail("agent handoff did not retain receipt trail through lifecycle");
+if (completedHandoffResult.records.handoff.transportHistory.length < 5) fail("agent handoff did not retain transport history through lifecycle");
+const completedMonitorReport = recordTools.buildMonitorReport(completedHandoffResult.data, { now: "2026-06-01T12:00:00+09:00" });
+if (completedMonitorReport.summary.completedHandoffs < 1) fail("monitor summary missing completed handoff count");
+
+let rejectedTerminalProgress = false;
+try {
+  recordTools.transitionAgentHandoffRecords(completedHandoffResult.data, {
+    handoffId: handoffResult.records.handoff.id,
+    action: "progress",
+    note: "Invalid terminal progress attempt."
+  }, {
+    now: "2026-06-01T03:11:30.000Z"
+  });
+} catch {
+  rejectedTerminalProgress = true;
+}
+if (!rejectedTerminalProgress) fail("agent handoff allowed non-rollback mutation after terminal completion");
+
+const visibleCompleteResult = recordTools.transitionAgentHandoffRecords(progressedHandoffResult.data, {
+  handoffId: handoffResult.records.handoff.id,
+  action: "complete",
+  actor: "Jack",
+  note: "Operator approved the customer-safe completion notice.",
+  customerVisibleApproved: "true",
+  customerSummary: "CRM cleanup work is complete and ready for your review."
+}, {
+  now: "2026-06-01T03:12:00.000Z"
+});
+if (!visibleCompleteResult.records.notificationEvent) fail("operator-approved visible completion did not create a customer update");
+if (!visibleCompleteResult.data.customers[0].externalStatus.includes("CRM cleanup work is complete")) fail("visible handoff completion did not update customer-safe status");
+if (recordTools.summarizeAgentHandoffState(visibleCompleteResult.data).customerVisibleBlocked !== 0) fail("visible completed handoff should not be counted as blocked visibility");
 
 let rejectedDuplicateAccept = false;
 try {
@@ -930,6 +1088,10 @@ if (handoffLedger.counts.workPlans !== handoffResult.data.workPlans.length) fail
 if (handoffLedger.counts.agentHandoffs !== handoffResult.data.agentHandoffs.length) fail("ledger export handoff count is wrong");
 if (handoffLedger.monitor.pendingHandoffApprovals < 1) fail("ledger monitor summary missing handoff approvals");
 
+const lifecycleHandoffLedger = recordTools.createOperatingLedger(completedHandoffResult.data, { now: "2026-06-01T04:42:00.000Z" });
+if (lifecycleHandoffLedger.monitor.completedHandoffs < 1) fail("ledger monitor summary missing completed handoff lifecycle count");
+if (lifecycleHandoffLedger.counts.receipts !== completedHandoffResult.data.receipts.length) fail("ledger export did not preserve handoff lifecycle receipts");
+
 const importedLedger = recordTools.importOperatingLedger(data, JSON.stringify(exportedLedger));
 if (importedLedger.data.receipts.length !== returnResult.data.receipts.length) fail("ledger import did not preserve receipts");
 if (importedLedger.data.monitorHealthChecks.length !== returnResult.data.monitorHealthChecks.length) fail("ledger import did not preserve monitor health checks");
@@ -957,6 +1119,11 @@ const importedHandoffLedger = recordTools.importOperatingLedger(data, JSON.strin
 if (importedHandoffLedger.data.workPlans.length !== handoffResult.data.workPlans.length) fail("ledger import did not preserve work plans");
 if (importedHandoffLedger.data.agentHandoffs.length !== handoffResult.data.agentHandoffs.length) fail("ledger import did not preserve agent handoffs");
 if (importedHandoffLedger.data.customers[0].externalStatus !== acceptedExternalStatus) fail("ledger import changed customer-visible state for handoff records");
+
+const importedLifecycleHandoffLedger = recordTools.importOperatingLedger(data, JSON.stringify(lifecycleHandoffLedger));
+if (importedLifecycleHandoffLedger.data.agentHandoffs[0].status !== "complete") fail("ledger import did not preserve completed handoff status");
+if (importedLifecycleHandoffLedger.data.agentHandoffs[0].receiptIds.length < 5) fail("ledger import did not preserve handoff lifecycle receipt ids");
+if (importedLifecycleHandoffLedger.data.agentHandoffs[0].transportHistory.length < 5) fail("ledger import did not preserve handoff transport history");
 
 let rejectedInvalidLedger = false;
 try {

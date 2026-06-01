@@ -4,11 +4,18 @@ window.EPOCH_SEED_DATA = {
   "statuses": [
     "planned",
     "waiting",
+    "proposed",
     "submitted",
     "reviewing",
     "returned",
     "overdue",
     "blocked",
+    "approved",
+    "dispatched",
+    "acknowledged",
+    "in-progress",
+    "rejected",
+    "rolled-back",
     "canceled",
     "complete"
   ],

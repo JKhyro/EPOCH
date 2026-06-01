@@ -1,7 +1,7 @@
 const seedData = window.EPOCH_SEED_DATA;
 const recordTools = window.EPOCH_OPERATING_RECORDS;
 const storageKey = "epoch-commercial-operating-data";
-const attentionStatuses = new Set(["submitted", "reviewing", "overdue", "blocked"]);
+const attentionStatuses = new Set(["proposed", "approved", "dispatched", "acknowledged", "in-progress", "submitted", "reviewing", "overdue", "blocked"]);
 const today = "2026-06-01";
 const viewNames = new Set(["admin", "student", "monitor", "public"]);
 
@@ -563,7 +563,7 @@ function renderMonitor(items) {
     record("Engagement Revenue", `${revenue.activeEngagements} active engagements with ${formatJpy(revenue.acceptedValueJpy)} accepted value.`, [chip(`${revenue.acceptedCount} accepted`, "complete"), chip(`${revenue.under19CompatibilityCount} compatibility gates`)]),
     record("Curriculum Readiness", `${curriculum.frameworks} frameworks, ${curriculum.activeGameplans} active/planned gameplans, ${curriculum.eikenLevelCount} EIKEN levels represented.`, [chip(`${curriculum.submissionFirstGameplans} submission-first`), chip(`${curriculum.under19GuardedGameplans} guarded`)]),
     record("Update Events", `${notifications.visible} visible updates, ${notifications.pending} pending, ${notifications.blocked} blocked.`, [chip(`${notifications.posted} posted`, "complete"), chip(`${notifications.total} total`)]),
-    record("Agent Handoffs", `${handoffs.handoffs} handoffs, ${handoffs.workPlans} work plans, ${handoffs.pendingApprovals} pending approval.`, [chip(`${handoffs.monitorVisible} monitor-visible`), chip(`${handoffs.customerVisibleBlocked} customer-visible`)]),
+    record("Agent Handoffs", `${handoffs.handoffs} handoffs, ${handoffs.workPlans} work plans, ${handoffs.pendingApprovals} pending approval, ${handoffs.dispatched} dispatched, ${handoffs.acknowledged} acknowledged, ${handoffs.complete} complete.`, [chip(`${handoffs.monitorVisible} monitor-visible`), chip(`${handoffs.customerVisibleBlocked} customer-visible`)]),
     record("Campaign Readiness", `${marketing.ready} of ${marketing.total} campaign routes ready across ${marketing.channelCount} channel groups.`, [chip(`${marketing.jp} JP`), chip(`${marketing.global} global`), chip(`${marketing.copyViolations} copy risks`, marketing.copyViolations ? "blocked" : "complete")]),
     record("SYNAPSE Placement", `${routePlacement.summary.routeCount} routes, ${routePlacement.placementMode}, ${routePlacement.access}.`, [chip(routePlacement.targetSystem), chip(routePlacement.duplicateUi ? "duplicate-ui" : "no-duplicate-ui"), chip(routePlacement.summary.monitorHref)]),
     record("Calendar Export", `${calendar.total} export-ready entries, ${calendar.customerVisible} customer-visible, ${calendar.updateLinked} update-linked.`, [chip(calendarExport.schema), chip(calendarExport.timezone)]),
@@ -631,8 +631,8 @@ function renderMonitor(items) {
     })),
     ...(data.agentHandoffs || []).map((item) => ({
       title: item.title,
-      body: `${item.sourceSystem} -> ${item.targetSystem} | ${formatTime(item.nextActionAt)} | ${item.rollbackRule}`,
-      chips: [statusChip(item.status), chip(item.approvalStatus), chip(item.customerVisible ? "customer-visible" : "internal-only")]
+      body: `${item.sourceSystem} -> ${item.targetSystem} | ${formatTime(item.nextActionAt)} | ${item.lastNote || item.rollbackRule}`,
+      chips: [statusChip(item.status), chip(item.approvalStatus), chip(item.customerVisible ? "customer-visible" : "internal-only"), chip(`${Array.isArray(item.receiptIds) ? item.receiptIds.length : 0} receipts`)]
     }))
   ];
   const handoffCards = handoffItems.length
@@ -738,6 +738,17 @@ function renderLedgerStatus() {
   byId("storage-status").textContent = storageStatusText();
 }
 
+function renderAgentHandoffOptions() {
+  const select = byId("agent-handoff-select");
+  const submit = byId("agent-handoff-transition");
+  const handoffs = data.agentHandoffs || [];
+  const options = handoffs.map((handoff) => {
+    return `<option value="${escapeHtml(handoff.id)}">${escapeHtml(handoff.title)} (${escapeHtml(handoff.status)})</option>`;
+  });
+  select.innerHTML = options.length ? options.join("") : `<option value="">No ARA handoff records yet</option>`;
+  if (submit) submit.disabled = !options.length;
+}
+
 function renderIntakeSnapshot() {
   const requests = data.assignments
     .filter((item) => item.externalVisible)
@@ -773,6 +784,7 @@ function renderAll() {
   renderSubmissionOptions();
   renderSubmissions();
   renderMonitor(items);
+  renderAgentHandoffOptions();
   renderIntakeSnapshot();
   renderLedgerStatus();
 }
@@ -972,6 +984,26 @@ function wireReviewReturn() {
   });
 }
 
+function wireAgentHandoffForm() {
+  const form = byId("agent-handoff-form");
+  const confirmation = byId("agent-handoff-confirmation");
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const result = recordTools.transitionAgentHandoffRecords(data, Object.fromEntries(formData.entries()));
+    data = result.data;
+    persistData();
+    renderAll();
+    confirmation.innerHTML = record(
+      "ARA Handoff Updated",
+      `${result.records.handoff.title} moved to ${result.records.handoff.status} with ${result.records.receipt.kind}.`,
+      [statusChip(result.records.handoff.status), chip(result.records.handoff.approvalStatus), chip(result.records.notificationEvent ? "customer-update" : "internal-only")]
+    );
+    form.reset();
+  });
+}
+
 function downloadLedger(text) {
   const blob = new Blob([text], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -1044,6 +1076,7 @@ function init() {
   wireIntakeForm();
   wireSubmissionForm();
   wireReviewReturn();
+  wireAgentHandoffForm();
   wireLedgerControls();
 }
 
