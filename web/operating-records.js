@@ -370,12 +370,79 @@
     };
   }
 
+  function monitorTimelineItems(currentData) {
+    return [
+      ...currentData.leads.map((item) => ({ kind: "lead", id: item.id, title: item.name, status: item.status, time: item.nextActionAt, owner: item.owner || "intake" })),
+      ...currentData.sessions.map((item) => ({ kind: "session", id: item.id, title: item.title, status: item.status, time: item.startAt, owner: item.owner || "owner pending" })),
+      ...currentData.assignments.map((item) => ({ kind: "request", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.owner || "owner pending" })),
+      ...currentData.submissions.map((item) => ({ kind: "submission", id: item.id, title: item.title || item.id, status: item.status, time: item.reviewDueAt, owner: item.owner || "review queue" })),
+      ...currentData.reviews.map((item) => ({ kind: "review", id: item.id, title: item.summary, status: item.status, time: item.returnedAt, owner: item.owner || "Jack" })),
+      ...currentData.followups.map((item) => ({ kind: "follow-up", id: item.id, title: item.title, status: item.status, time: item.nextActionAt, owner: item.owner || "operations" })),
+      ...currentData.receipts.map((item) => ({ kind: "receipt", id: item.id, title: item.note, status: item.status, time: item.createdAt, owner: item.kind || "receipt" }))
+    ].filter((item) => item.time || item.status);
+  }
+
+  function buildMonitorReport(currentData, options) {
+    const nowText = clean(options && options.now) || "2026-06-01T12:00:00+09:00";
+    const terminalStatuses = new Set(["complete", "returned", "canceled"]);
+    const activeStatuses = new Set(["waiting", "submitted", "reviewing", "overdue", "blocked"]);
+    const timeline = monitorTimelineItems(currentData)
+      .sort((a, b) => String(b.time || "").localeCompare(String(a.time || "")));
+    const queue = timeline
+      .filter((item) => activeStatuses.has(item.status))
+      .slice(0, 8);
+    const overdue = timeline.filter((item) => item.status === "overdue" || (item.time && item.time < nowText && !terminalStatuses.has(item.status)));
+    const blocked = timeline.filter((item) => item.status === "blocked");
+    const stale = timeline.filter((item) => item.time && item.time < nowText && item.status === "planned");
+    const risks = [];
+
+    if (blocked.length) {
+      risks.push({
+        id: "blocked-work",
+        severity: "high",
+        title: "Blocked Work",
+        detail: `${blocked.length} record needs source files, decision, or unblock action.`
+      });
+    }
+    if (overdue.length) {
+      risks.push({
+        id: "overdue-work",
+        severity: "high",
+        title: "Overdue Work",
+        detail: `${overdue.length} record is overdue or past its control time.`
+      });
+    }
+    if (stale.length) {
+      risks.push({
+        id: "stale-planned-work",
+        severity: "medium",
+        title: "Stale Planned Work",
+        detail: `${stale.length} planned record has passed its scheduled control time.`
+      });
+    }
+
+    return {
+      summary: {
+        health: risks.length ? "Attention" : "Ready",
+        queue: queue.length,
+        timeline: timeline.length,
+        risks: risks.length,
+        receipts: currentData.receipts.length
+      },
+      queue,
+      timeline: timeline.slice(0, 10),
+      risks,
+      receipts: currentData.receipts.slice(0, 8)
+    };
+  }
+
   window.EPOCH_OPERATING_RECORDS = {
     cloneData,
     createIntakeRecords,
     createSubmissionRecords,
     createScheduleRecords,
     returnReviewRecords,
+    buildMonitorReport,
     summarizeDeadlines,
     withTimezone
   };
