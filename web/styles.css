@@ -770,6 +770,11 @@ button.secondary-action {
   grid-template-columns: 1fr;
 }
 
+.access-gateway-console {
+  grid-template-columns: 1fr;
+  border-color: var(--accent-border);
+}
+
 .operator-action-console {
   display: grid;
   gap: 12px;

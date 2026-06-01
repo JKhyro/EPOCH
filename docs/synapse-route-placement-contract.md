@@ -36,6 +36,12 @@ Stable route entries currently cover:
   `#student`
 - `synapse-epoch-intake`: public intake surface at `#public`
 
+Route placement is cross-checked against the EPOCH controlled access gateway
+records in `accessGateways`. SYNAPSE placement may link to public intake and
+customer-safe status routes, but raw admin and raw EPOCH MONITOR routes must
+remain internal/local-only unless a future authenticated gateway contract
+explicitly replaces this rule.
+
 ## Placement Rules
 
 - EPOCH owns route metadata and operating-state summaries for its own surfaces.
@@ -63,6 +69,8 @@ Stable route entries currently cover:
 - `summary.pendingHandoffApprovals`: operator approval count
 - `summary.calendarEntries`: calendar-export entry count
 - `summary.monitorHref`: the canonical monitor route
+- controlled public/customer access posture is reported by
+  `summarizeAccessGatewayState()`
 
 Detailed queue inspection, remote polling, and bidirectional workflow control
 remain outside this contract.

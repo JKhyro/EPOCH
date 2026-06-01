@@ -169,6 +169,7 @@ function allOperatingItems() {
     ...(data.reminderRules || []).map((item) => ({ ...item, kind: "reminder rule", time: item.nextActionAt || item.reminderAt })),
     ...(data.recurrenceCandidates || []).map((item) => ({ ...item, kind: "recurrence candidate", time: item.nextCandidateAt || item.createdAt })),
     ...(data.availabilityWindows || []).map((item) => ({ ...item, kind: "availability window", time: item.startAt || item.createdAt })),
+    ...(data.accessGateways || []).map((item) => ({ ...item, kind: "access gateway", title: item.label, time: item.updatedAt || item.lastVerifiedAt || item.createdAt })),
     ...data.sessions.map((item) => ({ ...item, kind: "session", time: item.startAt })),
     ...data.assignments.map((item) => ({ ...item, kind: "request", time: item.dueAt })),
     ...data.submissions.map((item) => ({ ...item, kind: "submission", time: item.reviewDueAt })),
@@ -549,11 +550,12 @@ function renderMonitor(items) {
   const handoffs = report.handoffs || recordTools.summarizeAgentHandoffState(data);
   const marketing = report.marketing || recordTools.summarizeMarketingState(data);
   const routePlacement = report.routePlacement || recordTools.summarizeRoutePlacementState(data, { now: `${today}T12:00:00+09:00` });
+  const accessGateways = report.accessGateways || recordTools.summarizeAccessGatewayState(data, { now: `${today}T12:00:00+09:00`, routePlacement });
   const calendarExport = recordTools.createCalendarExport(data, { now: `${today}T12:00:00+09:00` });
   const calendar = report.calendar || recordTools.summarizeCalendarExport(calendarExport);
   const persistence = report.persistence || recordTools.summarizePersistenceState(data, { now: `${today}T12:00:00+09:00` });
   lastMonitorReport = report;
-  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | ${routePlacement.summary.routeCount} SYNAPSE routes | ${marketing.ready} campaign routes ready | ${persistence.adapterState}`;
+  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | ${routePlacement.summary.routeCount} SYNAPSE routes | ${accessGateways.gatewayCount} access gates | ${marketing.ready} campaign routes ready | ${persistence.adapterState}`;
   renderMonitorActionConsole(report);
 
   const summaryCards = [
@@ -564,6 +566,7 @@ function renderMonitor(items) {
     record("Scope Health", `${report.scope.allowedCount} allowed surfaces, ${report.scope.blockedCount} blocked surfaces, ${report.summary.scopeWarnings} warning${report.summary.scopeWarnings === 1 ? "" : "s"}.`, [toneChip(report.scope.status, report.scope.status === "ready" ? "complete" : "overdue"), chip(report.scope.owner || "owner pending")]),
     record("Memory Health", `${report.memory.total} monitor note${report.memory.total === 1 ? "" : "s"} with ${report.memory.staleCount} stale and ${report.memory.watchCount} due soon.`, [toneChip(report.memory.status, report.memory.staleCount ? "blocked" : report.memory.watchCount ? "overdue" : "complete"), chip(report.memory.latestUpdate ? formatTime(report.memory.latestUpdate) : "no update")]),
     record("Safe Access", `${report.access.mode}, raw monitor ${report.access.rawMonitor}, raw admin ${report.access.rawAdmin}.`, [toneChip(`${report.summary.safeAccessViolations} warnings`, report.summary.safeAccessViolations ? "blocked" : "complete"), chip(report.access.defaultPublicPolicy)]),
+    record("Access Gateway", `${accessGateways.controlledPublic} public, ${accessGateways.controlledCustomer} customer, ${accessGateways.deniedRaw} raw denied.`, [toneChip(accessGateways.status, accessGateways.status === "ready" ? "complete" : "blocked"), chip(`${accessGateways.gatewayCount} gates`)]),
     record("Operator Actions", `${report.operatorActions.length} local action${report.operatorActions.length === 1 ? "" : "s"} are queued in the monitor controls.`, [toneChip(`${report.operatorActions.length} queued`, report.operatorActions.length ? "overdue" : "complete")]),
     record("External Visibility", `${visibleCount} student/customer-visible records are available.`, [chip(`${visibleCount} visible`)]),
     record("Deadline Control", `${deadlines.today} today, ${deadlines.upcoming} upcoming, ${deadlines.overdue} overdue.`, [chip(`${deadlines.owned} owner-linked`, "planned")]),
@@ -693,6 +696,17 @@ function renderMonitor(items) {
     [statusChip(route.status), chip(route.visibility), chip(route.placement === "link" ? "link-only" : route.placement)]
   ));
 
+  const gatewayCards = accessGateways.gateways.map((gateway) => record(
+    gateway.label,
+    `${gateway.surface} | ${gateway.href} | ${gateway.policy} | ${gateway.notes}`,
+    [
+      statusChip(gateway.status),
+      chip(gateway.publicExposure),
+      chip(gateway.verificationStatus),
+      toneChip(`${gateway.violations.length} violations`, gateway.violations.length ? "blocked" : "complete")
+    ]
+  ));
+
   const curriculumCards = [
     ...(data.curriculumFrameworks || []).map((framework) => record(
       framework.title,
@@ -740,6 +754,11 @@ function renderMonitor(items) {
       [chip(routePlacement.summary.controlledCustomerRoutes ? `${routePlacement.summary.controlledCustomerRoutes} controlled` : "none"), chip(report.access.safeGateway)]
     ),
     record(
+      "Gateway Contract",
+      `${accessGateways.gatewayCount} gateway records with ${accessGateways.controlledPublic} controlled public, ${accessGateways.controlledCustomer} controlled customer, and ${accessGateways.deniedRaw} raw denial rules.`,
+      [toneChip(accessGateways.status, accessGateways.status === "ready" ? "complete" : "blocked"), chip(accessGateways.schema)]
+    ),
+    record(
       "Operator Rule",
       report.access.operatorRule,
       [toneChip(`${report.access.violations.length} violations`, report.access.violations.length ? "blocked" : "complete"), chip(report.access.lastVerifiedAt ? formatTime(report.access.lastVerifiedAt) : "not verified")]
@@ -777,6 +796,7 @@ function renderMonitor(items) {
     monitorSection("Quote Readiness", quoteCards, "monitor-quotes"),
     monitorSection("Reminder Control", scheduleControlCards, "monitor-reminders"),
     monitorSection("SYNAPSE Placement", routeCards, "monitor-suite"),
+    monitorSection("Access Gateway Records", gatewayCards.length ? gatewayCards : [record("Access Gateway", "No access gateway records have been created yet.", [chip("empty")])], "monitor-access-gateways"),
     monitorSection("Calendar Export", calendarCards.length ? calendarCards : [record("Calendar Export", "No export-ready calendar entries have been created yet.", [chip("empty")])], "monitor-calendar"),
     monitorSection("Persistence", persistenceCards, "monitor-persistence"),
     monitorSection("Safe Access", accessCards, "monitor-access"),
@@ -856,6 +876,17 @@ function renderReminderControlOptions() {
   }
 }
 
+function renderAccessGatewayOptions() {
+  const select = byId("access-gateway-select");
+  const submit = byId("access-gateway-apply");
+  if (!select) return;
+  const gatewayOptions = (data.accessGateways || []).map((gateway) => {
+    return `<option value="${escapeHtml(gateway.id)}">${escapeHtml(gateway.label)} (${escapeHtml(gateway.publicExposure || gateway.visibility)})</option>`;
+  });
+  select.innerHTML = gatewayOptions.length ? gatewayOptions.join("") : `<option value="">No access gateway records yet</option>`;
+  if (submit) submit.disabled = !gatewayOptions.length;
+}
+
 function renderIntakeSnapshot() {
   const requests = data.assignments
     .filter((item) => item.externalVisible)
@@ -895,6 +926,7 @@ function renderAll() {
   renderNotificationDeliveryOptions();
   renderQuoteOptions();
   renderReminderControlOptions();
+  renderAccessGatewayOptions();
   renderIntakeSnapshot();
   renderLedgerStatus();
 }
@@ -1226,6 +1258,41 @@ function wireReminderControlForm() {
   });
 }
 
+function wireAccessGatewayForm() {
+  const form = byId("access-gateway-form");
+  const confirmation = byId("access-gateway-confirmation");
+  if (!form || !confirmation) return;
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+    try {
+      const result = recordTools.transitionAccessGatewayRecords(data, payload, {
+        now: "2026-06-01T03:30:00.000Z"
+      });
+      data = result.data;
+      persistData({
+        adapterState: "modified-local",
+        recoveryNote: "Access gateway posture changed locally; export a ledger snapshot before external route placement."
+      });
+      renderAll();
+      confirmation.innerHTML = record(
+        "Access Gateway Updated",
+        `${result.records.gateway.label} is ${result.records.gateway.verificationStatus}.`,
+        [statusChip(result.records.gateway.status), chip(result.records.gateway.publicExposure), chip(result.records.gateway.policy)]
+      );
+      form.reset();
+    } catch (error) {
+      confirmation.innerHTML = record(
+        "Access Gateway Blocked",
+        error.message || "Access gateway action could not be applied.",
+        [chip("blocked", "blocked")]
+      );
+    }
+  });
+}
+
 function downloadLedger(text) {
   const blob = new Blob([text], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -1302,6 +1369,7 @@ function init() {
   wireNotificationOutboxForm();
   wireQuotePaymentForm();
   wireReminderControlForm();
+  wireAccessGatewayForm();
   wireLedgerControls();
 }
 

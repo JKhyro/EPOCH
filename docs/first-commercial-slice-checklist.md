@@ -33,6 +33,7 @@ service operations without waiting for every future CITADEL integration.
 - Review/feedback item.
 - Follow-up item.
 - Receipt or outcome note.
+- Controlled public/customer access gateway record.
 
 ## Required operating states
 
@@ -74,6 +75,9 @@ service operations without waiting for every future CITADEL integration.
 - The monitor can summarize health without manually reading every record.
 - Public, admin, student/customer, and monitor surfaces share one aligned visual
   system while keeping public intake distinct from the internal control room.
+- Public intake and customer-safe status are explicitly controlled through
+  gateway records, while raw admin and EPOCH MONITOR exposure remain denied by
+  default.
 - EIKEN 5-1 and professional/service-support offers have reusable frameworks
   and package-level gameplans that support personalized delivery.
 - Japan-wide and global campaign routes define channel, conversion action, copy
