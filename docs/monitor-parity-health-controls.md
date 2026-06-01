@@ -75,4 +75,7 @@ The repository verifier must cover:
 - ARA handoff lifecycle controls and verifier coverage for approval, dispatch,
   acknowledgement, in-progress, completed, terminal-lock, receipt trail,
   transport history, and the customer-visible completion approval boundary.
+- Notification outbox controls and verifier coverage for queued, dispatched,
+  sent, failed, blocked, retry-ready, receipt-backed delivery handoff records
+  that preserve customer-safe visibility boundaries.
 

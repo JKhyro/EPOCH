@@ -11,6 +11,7 @@ static const EpochStatusName EPOCH_STATUS_NAMES[] = {
     {EPOCH_STATUS_PLANNED, "planned"},
     {EPOCH_STATUS_WAITING, "waiting"},
     {EPOCH_STATUS_PROPOSED, "proposed"},
+    {EPOCH_STATUS_QUEUED, "queued"},
     {EPOCH_STATUS_SUBMITTED, "submitted"},
     {EPOCH_STATUS_REVIEWING, "reviewing"},
     {EPOCH_STATUS_RETURNED, "returned"},
@@ -20,6 +21,9 @@ static const EpochStatusName EPOCH_STATUS_NAMES[] = {
     {EPOCH_STATUS_DISPATCHED, "dispatched"},
     {EPOCH_STATUS_ACKNOWLEDGED, "acknowledged"},
     {EPOCH_STATUS_IN_PROGRESS, "in-progress"},
+    {EPOCH_STATUS_SENT, "sent"},
+    {EPOCH_STATUS_FAILED, "failed"},
+    {EPOCH_STATUS_RETRY_READY, "retry-ready"},
     {EPOCH_STATUS_REJECTED, "rejected"},
     {EPOCH_STATUS_ROLLED_BACK, "rolled-back"},
     {EPOCH_STATUS_CANCELED, "canceled"},
@@ -57,6 +61,7 @@ int epoch_status_from_label(const char *label, EpochOperatingStatus *out_status)
 
 int epoch_status_is_terminal(EpochOperatingStatus status) {
     return status == EPOCH_STATUS_RETURNED ||
+           status == EPOCH_STATUS_SENT ||
            status == EPOCH_STATUS_REJECTED ||
            status == EPOCH_STATUS_ROLLED_BACK ||
            status == EPOCH_STATUS_CANCELED ||
@@ -71,6 +76,10 @@ int epoch_operating_entry_needs_attention(const EpochOperatingEntry *entry) {
     return entry->status == EPOCH_STATUS_OVERDUE ||
            entry->status == EPOCH_STATUS_BLOCKED ||
            entry->status == EPOCH_STATUS_PROPOSED ||
+           entry->status == EPOCH_STATUS_QUEUED ||
+           entry->status == EPOCH_STATUS_DISPATCHED ||
+           entry->status == EPOCH_STATUS_FAILED ||
+           entry->status == EPOCH_STATUS_RETRY_READY ||
            entry->status == EPOCH_STATUS_SUBMITTED ||
            entry->status == EPOCH_STATUS_REVIEWING ||
            entry->status == EPOCH_STATUS_IN_PROGRESS;

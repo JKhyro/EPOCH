@@ -1,7 +1,7 @@
 const seedData = window.EPOCH_SEED_DATA;
 const recordTools = window.EPOCH_OPERATING_RECORDS;
 const storageKey = "epoch-commercial-operating-data";
-const attentionStatuses = new Set(["proposed", "approved", "dispatched", "acknowledged", "in-progress", "submitted", "reviewing", "overdue", "blocked"]);
+const attentionStatuses = new Set(["proposed", "queued", "approved", "dispatched", "acknowledged", "in-progress", "failed", "retry-ready", "submitted", "reviewing", "overdue", "blocked"]);
 const today = "2026-06-01";
 const viewNames = new Set(["admin", "student", "monitor", "public"]);
 
@@ -164,6 +164,7 @@ function allOperatingItems() {
     ...(data.workPlans || []).map((item) => ({ ...item, kind: "agent work plan", time: item.dueAt })),
     ...(data.agentHandoffs || []).map((item) => ({ ...item, kind: "agent handoff", time: item.nextActionAt })),
     ...(data.notificationEvents || []).map((item) => ({ ...item, kind: "update", time: item.deliverAfterAt || item.createdAt })),
+    ...(data.notificationDeliveries || []).map((item) => ({ ...item, kind: "notification delivery", time: item.nextActionAt || item.createdAt })),
     ...data.sessions.map((item) => ({ ...item, kind: "session", time: item.startAt })),
     ...data.assignments.map((item) => ({ ...item, kind: "request", time: item.dueAt })),
     ...data.submissions.map((item) => ({ ...item, kind: "submission", time: item.reviewDueAt })),
@@ -418,7 +419,8 @@ function renderCustomerUpdates() {
         update.summary,
         [
           chip(customer?.displayName || "customer pending"),
-          chip(update.deliveryStatus || "pending"),
+          chip(update.outboxStatus || update.deliveryStatus || "pending"),
+          chip(update.deliveryProvider || update.channel || "customer-update"),
           chip(formatTime(update.deliverAfterAt || update.createdAt))
         ]
       );
@@ -563,6 +565,7 @@ function renderMonitor(items) {
     record("Engagement Revenue", `${revenue.activeEngagements} active engagements with ${formatJpy(revenue.acceptedValueJpy)} accepted value.`, [chip(`${revenue.acceptedCount} accepted`, "complete"), chip(`${revenue.under19CompatibilityCount} compatibility gates`)]),
     record("Curriculum Readiness", `${curriculum.frameworks} frameworks, ${curriculum.activeGameplans} active/planned gameplans, ${curriculum.eikenLevelCount} EIKEN levels represented.`, [chip(`${curriculum.submissionFirstGameplans} submission-first`), chip(`${curriculum.under19GuardedGameplans} guarded`)]),
     record("Update Events", `${notifications.visible} visible updates, ${notifications.pending} pending, ${notifications.blocked} blocked.`, [chip(`${notifications.posted} posted`, "complete"), chip(`${notifications.total} total`)]),
+    record("Notification Outbox", `${notifications.outbox} delivery handoff records, ${notifications.queued} queued, ${notifications.sent} sent, ${notifications.failed} failed.`, [chip(`${notifications.retryReady} retry-ready`), chip(`${notifications.missingOutbox} missing outbox`, notifications.missingOutbox ? "blocked" : "complete")]),
     record("Agent Handoffs", `${handoffs.handoffs} handoffs, ${handoffs.workPlans} work plans, ${handoffs.pendingApprovals} pending approval, ${handoffs.dispatched} dispatched, ${handoffs.acknowledged} acknowledged, ${handoffs.complete} complete.`, [chip(`${handoffs.monitorVisible} monitor-visible`), chip(`${handoffs.customerVisibleBlocked} customer-visible`)]),
     record("Campaign Readiness", `${marketing.ready} of ${marketing.total} campaign routes ready across ${marketing.channelCount} channel groups.`, [chip(`${marketing.jp} JP`), chip(`${marketing.global} global`), chip(`${marketing.copyViolations} copy risks`, marketing.copyViolations ? "blocked" : "complete")]),
     record("SYNAPSE Placement", `${routePlacement.summary.routeCount} routes, ${routePlacement.placementMode}, ${routePlacement.access}.`, [chip(routePlacement.targetSystem), chip(routePlacement.duplicateUi ? "duplicate-ui" : "no-duplicate-ui"), chip(routePlacement.summary.monitorHref)]),
@@ -638,6 +641,14 @@ function renderMonitor(items) {
   const handoffCards = handoffItems.length
     ? handoffItems.slice(0, 8).map((item) => record(item.title, item.body, item.chips))
     : [record("Agent Handoffs", "No SYMBIOSIS/ANVIL handoff records have been proposed yet.", [chip("empty")])];
+
+  const outboxCards = (data.notificationDeliveries || []).length
+    ? data.notificationDeliveries.slice(0, 8).map((item) => record(
+      item.title,
+      `${item.provider} | ${item.channel} | ${formatTime(item.nextActionAt || item.createdAt)} | ${item.lastNote || item.summary}`,
+      [statusChip(item.status), chip(item.customerVisible ? "customer-safe" : "internal"), chip(`${Array.isArray(item.receiptIds) ? item.receiptIds.length : 0} receipts`)]
+    ))
+    : [record("Notification Outbox", "No customer-safe updates have been queued for delivery handoff yet.", [chip("empty")])];
 
   const routeCards = routePlacement.routes.map((route) => record(
     route.label,
@@ -725,6 +736,7 @@ function renderMonitor(items) {
     monitorSection("Curriculum / Gameplans", curriculumCards, "monitor-curriculum"),
     monitorSection("Campaign Routes", campaignCards.length ? campaignCards : [record("Campaign Routes", "No campaign route records have been created yet.", [chip("empty")])], "monitor-campaigns"),
     monitorSection("Agent Handoffs", handoffCards, "monitor-handoffs"),
+    monitorSection("Notification Outbox", outboxCards, "monitor-notification-outbox"),
     monitorSection("SYNAPSE Placement", routeCards, "monitor-suite"),
     monitorSection("Calendar Export", calendarCards.length ? calendarCards : [record("Calendar Export", "No export-ready calendar entries have been created yet.", [chip("empty")])], "monitor-calendar"),
     monitorSection("Persistence", persistenceCards, "monitor-persistence"),
@@ -747,6 +759,16 @@ function renderAgentHandoffOptions() {
   });
   select.innerHTML = options.length ? options.join("") : `<option value="">No ARA handoff records yet</option>`;
   if (submit) submit.disabled = !options.length;
+}
+
+function renderNotificationDeliveryOptions() {
+  const select = byId("notification-delivery-select");
+  if (!select) return;
+  const deliveries = data.notificationDeliveries || [];
+  const options = deliveries.map((delivery) => {
+    return `<option value="${escapeHtml(delivery.id)}">${escapeHtml(delivery.title)} (${escapeHtml(delivery.status)})</option>`;
+  });
+  select.innerHTML = options.length ? options.join("") : `<option value="">Queue visible updates first</option>`;
 }
 
 function renderIntakeSnapshot() {
@@ -785,6 +807,7 @@ function renderAll() {
   renderSubmissions();
   renderMonitor(items);
   renderAgentHandoffOptions();
+  renderNotificationDeliveryOptions();
   renderIntakeSnapshot();
   renderLedgerStatus();
 }
@@ -1004,6 +1027,41 @@ function wireAgentHandoffForm() {
   });
 }
 
+function wireNotificationOutboxForm() {
+  const form = byId("notification-outbox-form");
+  const confirmation = byId("notification-outbox-confirmation");
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+    try {
+      const result = payload.action === "queue"
+        ? recordTools.createNotificationOutboxRecords(data, payload)
+        : recordTools.transitionNotificationDeliveryRecords(data, payload);
+      data = result.data;
+      persistData();
+      renderAll();
+      const delivery = result.records.delivery || result.records.deliveries?.[0];
+      const count = result.records.deliveries ? result.records.deliveries.length : 1;
+      confirmation.innerHTML = record(
+        payload.action === "queue" ? "Outbox Queued" : "Delivery Updated",
+        payload.action === "queue"
+          ? `${count} customer-safe update${count === 1 ? "" : "s"} queued for provider-neutral delivery handoff.`
+          : `${delivery.title} moved to ${delivery.status}.`,
+        [statusChip(delivery?.status || "queued"), chip(payload.provider || delivery?.provider || "operator-dispatch")]
+      );
+      form.reset();
+    } catch (error) {
+      confirmation.innerHTML = record(
+        "Outbox Action Blocked",
+        error.message || "Notification outbox action could not be applied.",
+        [chip("blocked", "blocked")]
+      );
+    }
+  });
+}
+
 function downloadLedger(text) {
   const blob = new Blob([text], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -1077,6 +1135,7 @@ function init() {
   wireSubmissionForm();
   wireReviewReturn();
   wireAgentHandoffForm();
+  wireNotificationOutboxForm();
   wireLedgerControls();
 }
 

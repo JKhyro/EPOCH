@@ -28,6 +28,7 @@
     "routePlacements",
     "monitorHealthChecks",
     "notificationEvents",
+    "notificationDeliveries",
     "customers",
     "cohorts",
     "sessions",
@@ -165,6 +166,7 @@
         "planned",
         "waiting",
         "proposed",
+        "queued",
         "submitted",
         "reviewing",
         "returned",
@@ -174,6 +176,9 @@
         "dispatched",
         "acknowledged",
         "in-progress",
+        "sent",
+        "failed",
+        "retry-ready",
         "rejected",
         "rolled-back",
         "canceled",
@@ -422,6 +427,239 @@
       visible: details.visible !== false,
       createdAt: withTimezone(now.toISOString(), timezone),
       deliverAfterAt: withTimezone(details.deliverAfterAt, timezone) || withTimezone(now.toISOString(), timezone)
+    };
+  }
+
+  function notificationDeliveryInitialStatus(event) {
+    if (clean(event.deliveryStatus) === "blocked" || clean(event.status) === "blocked") return "blocked";
+    return "queued";
+  }
+
+  function findNotificationDeliveryBundle(data, input) {
+    const deliveryId = clean(input.deliveryId || input.notificationDeliveryId);
+    const eventId = clean(input.notificationEventId || input.updateEventId);
+    const delivery = deliveryId
+      ? data.notificationDeliveries.find((item) => item.id === deliveryId)
+      : data.notificationDeliveries.find((item) => item.notificationEventId === eventId);
+
+    if (!delivery) throw new Error("deliveryId is required");
+
+    const event = data.notificationEvents.find((item) => item.id === delivery.notificationEventId) || null;
+    return {
+      delivery,
+      event,
+      customer: customerById(data, delivery.customerId)
+    };
+  }
+
+  function addNotificationDeliveryReceipt(record, receiptId) {
+    if (!record) return;
+    if (!Array.isArray(record.receiptIds)) record.receiptIds = [];
+    if (!record.receiptIds.includes(receiptId)) record.receiptIds.unshift(receiptId);
+  }
+
+  function appendNotificationDeliveryHistory(record, entry) {
+    if (!record) return;
+    if (!Array.isArray(record.deliveryHistory)) record.deliveryHistory = [];
+    record.deliveryHistory.unshift(entry);
+  }
+
+  function createNotificationOutboxRecords(currentData, input = {}, options = {}) {
+    const nextData = cloneData(currentData);
+    ensureCollections(nextData);
+
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const requestStamp = stamp(now);
+    const eventId = clean(input.notificationEventId || input.updateEventId);
+    const provider = clean(input.provider) || "operator-dispatch";
+    const channel = clean(input.channel) || "customer-update";
+    const actor = clean(input.actor || input.owner) || "Jack";
+    const includeInternal = input.includeInternal === true || clean(input.includeInternal) === "true";
+    const candidateEvents = nextData.notificationEvents
+      .filter((event) => !eventId || event.id === eventId)
+      .filter((event) => includeInternal || event.visible !== false)
+      .filter((event) => !nextData.notificationDeliveries.some((delivery) => delivery.notificationEventId === event.id));
+
+    if (eventId && !nextData.notificationEvents.some((event) => event.id === eventId)) {
+      throw new Error("notificationEventId not found");
+    }
+
+    const deliveries = [];
+    const receipts = [];
+    const events = [];
+
+    for (const event of candidateEvents) {
+      const initialStatus = notificationDeliveryInitialStatus(event);
+      const deliveryId = `delivery-${event.id}-${requestStamp}`;
+      const receiptId = `receipt-notification-outbox-${event.id}-${requestStamp}`;
+      const nextActionAt = withTimezone(input.nextActionAt || event.deliverAfterAt || event.createdAt, timezone) || withTimezone(now.toISOString(), timezone);
+      const delivery = {
+        id: deliveryId,
+        notificationEventId: event.id,
+        customerId: event.customerId || null,
+        sourceKind: "notification",
+        sourceId: event.id,
+        provider,
+        channel: clean(input.channel) || event.channel || channel,
+        audience: event.audience || "customer",
+        title: event.title,
+        summary: event.summary,
+        status: initialStatus,
+        deliveryStatus: initialStatus,
+        customerVisible: event.visible !== false,
+        createdAt: withTimezone(now.toISOString(), timezone),
+        nextActionAt,
+        attemptCount: 0,
+        receiptIds: [receiptId],
+        deliveryHistory: [{
+          action: "queue",
+          at: withTimezone(now.toISOString(), timezone),
+          actor,
+          nextStatus: initialStatus,
+          receiptId,
+          note: initialStatus === "blocked" ? "Visible update entered the outbox blocked." : "Visible update queued for provider-neutral delivery handoff."
+        }]
+      };
+      const receipt = {
+        id: receiptId,
+        customerId: event.customerId || null,
+        kind: initialStatus === "blocked" ? "notification-outbox-blocked" : "notification-outbox-queued",
+        status: initialStatus === "blocked" ? "blocked" : "complete",
+        createdAt: withTimezone(now.toISOString(), timezone),
+        sourceKind: "notification-delivery",
+        sourceId: delivery.id,
+        notificationEventId: event.id,
+        provider,
+        channel: delivery.channel,
+        note: `${actor} prepared ${event.id} for ${provider} delivery as ${initialStatus}.`
+      };
+
+      event.outboxDeliveryId = delivery.id;
+      event.outboxStatus = initialStatus;
+      event.deliveryProvider = provider;
+      event.deliveryChannel = delivery.channel;
+      event.deliveryStatus = initialStatus;
+      addNotificationDeliveryReceipt(event, receipt.id);
+
+      nextData.notificationDeliveries.unshift(delivery);
+      nextData.receipts.unshift(receipt);
+      deliveries.push(delivery);
+      receipts.push(receipt);
+      events.push(event);
+    }
+
+    return {
+      data: nextData,
+      records: {
+        deliveries,
+        receipts,
+        events
+      }
+    };
+  }
+
+  function transitionNotificationDeliveryRecords(currentData, input = {}, options = {}) {
+    const nextData = cloneData(currentData);
+    ensureCollections(nextData);
+
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const requestStamp = stamp(now);
+    const action = clean(input.action) || "dispatch";
+    const actor = clean(input.actor || input.owner) || "Jack";
+    const note = clean(input.note || input.summary) || `Notification delivery ${action} recorded.`;
+    const eventAt = withTimezone(now.toISOString(), timezone);
+    const nextActionAt = withTimezone(input.nextActionAt, timezone) || eventAt;
+    const { delivery, event } = findNotificationDeliveryBundle(nextData, input);
+    const previousStatus = delivery.status || "queued";
+    const stateByAction = {
+      dispatch: { status: "dispatched", receiptKind: "notification-delivery-dispatched" },
+      sent: { status: "sent", receiptKind: "notification-delivery-sent" },
+      fail: { status: "failed", receiptKind: "notification-delivery-failed" },
+      block: { status: "blocked", receiptKind: "notification-delivery-blocked" },
+      retry: { status: "retry-ready", receiptKind: "notification-delivery-retry-ready" }
+    };
+
+    if (!stateByAction[action]) {
+      throw new Error("action must be dispatch, sent, fail, block, or retry");
+    }
+    if (previousStatus === "sent") {
+      throw new Error("sent notification deliveries are terminal");
+    }
+    if (action === "dispatch" && !["queued", "retry-ready"].includes(previousStatus)) {
+      throw new Error("notification delivery must be queued or retry-ready before dispatch");
+    }
+    if (action === "sent" && previousStatus !== "dispatched") {
+      throw new Error("notification delivery must be dispatched before sent");
+    }
+    if (action === "retry" && !["failed", "blocked"].includes(previousStatus)) {
+      throw new Error("notification delivery must fail or block before retry");
+    }
+
+    const transition = stateByAction[action];
+    const receipt = {
+      id: `receipt-notification-delivery-${action}-${requestStamp}`,
+      customerId: delivery.customerId || null,
+      kind: transition.receiptKind,
+      status: action === "fail" || action === "block" ? "blocked" : "complete",
+      createdAt: eventAt,
+      sourceKind: "notification-delivery",
+      sourceId: delivery.id,
+      notificationEventId: delivery.notificationEventId,
+      provider: clean(input.provider || delivery.provider) || "operator-dispatch",
+      channel: clean(input.channel || delivery.channel) || "customer-update",
+      note: `${actor} moved ${delivery.id} from ${previousStatus} to ${transition.status}. ${note}`
+    };
+
+    delivery.status = transition.status;
+    delivery.deliveryStatus = transition.status;
+    delivery.updatedAt = eventAt;
+    delivery.nextActionAt = nextActionAt;
+    delivery.lastActor = actor;
+    delivery.lastNote = note;
+    delivery.provider = receipt.provider;
+    delivery.channel = receipt.channel;
+    if (action === "dispatch") {
+      delivery.dispatchedAt = eventAt;
+      delivery.attemptCount = Number(delivery.attemptCount || 0) + 1;
+    }
+    if (action === "sent") delivery.sentAt = eventAt;
+    if (action === "fail") {
+      delivery.failedAt = eventAt;
+      delivery.lastError = clean(input.error || input.lastError) || note;
+    }
+    if (action === "retry") delivery.retryReadyAt = eventAt;
+
+    addNotificationDeliveryReceipt(delivery, receipt.id);
+    appendNotificationDeliveryHistory(delivery, {
+      action,
+      at: eventAt,
+      actor,
+      previousStatus,
+      nextStatus: transition.status,
+      receiptId: receipt.id,
+      note
+    });
+
+    if (event) {
+      event.outboxStatus = transition.status;
+      event.deliveryStatus = transition.status;
+      event.deliveryProvider = delivery.provider;
+      event.deliveryChannel = delivery.channel;
+      event.updatedAt = eventAt;
+      addNotificationDeliveryReceipt(event, receipt.id);
+    }
+
+    nextData.receipts.unshift(receipt);
+
+    return {
+      data: nextData,
+      records: {
+        delivery,
+        notificationEvent: event,
+        receipt
+      }
     };
   }
 
@@ -1753,13 +1991,24 @@
 
   function summarizeNotificationState(currentData) {
     const events = Array.isArray(currentData.notificationEvents) ? currentData.notificationEvents : [];
+    const deliveries = Array.isArray(currentData.notificationDeliveries) ? currentData.notificationDeliveries : [];
+    const deliveryStatus = (status) => deliveries.filter((item) => item.status === status || item.deliveryStatus === status).length;
 
     return {
       total: events.length,
       visible: events.filter((item) => item.visible).length,
       pending: events.filter((item) => item.deliveryStatus === "pending").length,
-      posted: events.filter((item) => item.deliveryStatus === "posted").length,
-      blocked: events.filter((item) => item.deliveryStatus === "blocked" || item.status === "blocked").length
+      posted: events.filter((item) => item.deliveryStatus === "posted" || item.deliveryStatus === "sent").length,
+      blocked: events.filter((item) => item.deliveryStatus === "blocked" || item.status === "blocked").length,
+      outbox: deliveries.length,
+      queued: deliveryStatus("queued"),
+      dispatched: deliveryStatus("dispatched"),
+      sent: deliveryStatus("sent"),
+      failed: deliveryStatus("failed"),
+      retryReady: deliveryStatus("retry-ready"),
+      outboxBlocked: deliveryStatus("blocked"),
+      receiptLinks: deliveries.reduce((total, item) => total + (Array.isArray(item.receiptIds) ? item.receiptIds.length : 0), 0),
+      missingOutbox: events.filter((item) => item.visible !== false && !deliveries.some((delivery) => delivery.notificationEventId === item.id)).length
     };
   }
 
@@ -1965,8 +2214,8 @@
     const marketing = summarizeMarketingState(data);
     const calendarExport = createCalendarExport(data, { now: nowText });
     const timeline = monitorTimelineItems(data);
-    const terminalStatuses = new Set(["complete", "returned", "canceled", "accepted", "rejected", "rolled-back"]);
-    const queue = timeline.filter((item) => ["waiting", "deferred", "submitted", "reviewing", "overdue", "blocked", "proposed", "approved", "dispatched", "acknowledged", "in-progress"].includes(item.status));
+    const terminalStatuses = new Set(["complete", "sent", "returned", "canceled", "accepted", "rejected", "rolled-back"]);
+    const queue = timeline.filter((item) => ["waiting", "deferred", "queued", "submitted", "reviewing", "overdue", "blocked", "proposed", "approved", "dispatched", "acknowledged", "in-progress", "failed", "retry-ready"].includes(item.status));
     const risks = timeline.filter((item) => item.status === "blocked" || item.status === "overdue" || (item.time && item.time < nowText && !terminalStatuses.has(item.status)));
     const receipts = Array.isArray(data.receipts) ? data.receipts : [];
     const baseSummary = {
@@ -1979,6 +2228,7 @@
       curriculumFrameworks: curriculum.frameworks,
       activeGameplans: curriculum.activeGameplans,
       visibleUpdates: notifications.visible,
+      notificationOutbox: notifications.outbox,
       pendingHandoffApprovals: handoffs.pendingApprovals,
       calendarEntries: calendarExport.counts.total,
       campaignRoutes: marketing.total,
@@ -2223,6 +2473,21 @@
       }, timezone));
     }
 
+    for (const delivery of data.notificationDeliveries) {
+      entries.push(createCalendarEntry(data, {
+        sourceKind: "notification-delivery",
+        sourceId: delivery.id,
+        title: delivery.title,
+        timeKind: "delivery-window",
+        dueAt: delivery.nextActionAt,
+        status: delivery.status,
+        owner: delivery.provider || delivery.channel,
+        customerId: delivery.customerId,
+        externalVisible: delivery.customerVisible,
+        updateEventId: delivery.notificationEventId
+      }, timezone));
+    }
+
     const normalizedEntries = entries
       .filter((item) => item.startAt || item.endAt || item.dueAt)
       .sort((a, b) => String(a.startAt || a.dueAt || "").localeCompare(String(b.startAt || b.dueAt || "")));
@@ -2263,6 +2528,7 @@
       ...currentData.agentHandoffs.map((item) => ({ kind: "agent handoff", id: item.id, title: item.title, status: item.status, time: item.nextActionAt, owner: item.approvalStatus || "approval pending" })),
       ...currentData.monitorHealthChecks.map((item) => ({ kind: "monitor check", id: item.id, title: item.title, status: item.status, time: item.createdAt, owner: item.target || item.owner || "monitor" })),
       ...currentData.notificationEvents.map((item) => ({ kind: "update", id: item.id, title: item.title, status: item.status, time: item.deliverAfterAt || item.createdAt, owner: item.deliveryStatus || "pending" })),
+      ...(currentData.notificationDeliveries || []).map((item) => ({ kind: "notification delivery", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.createdAt, owner: item.provider || item.channel || "outbox" })),
       ...currentData.sessions.map((item) => ({ kind: "session", id: item.id, title: item.title, status: item.status, time: item.startAt, owner: item.owner || "owner pending" })),
       ...currentData.assignments.map((item) => ({ kind: "request", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.owner || "owner pending" })),
       ...currentData.submissions.map((item) => ({ kind: "submission", id: item.id, title: item.title || item.id, status: item.status, time: item.reviewDueAt, owner: item.owner || "review queue" })),
@@ -2276,7 +2542,7 @@
     const data = normalizedOperatingData(currentData);
     const nowText = clean(options && options.now) || "2026-06-01T12:00:00+09:00";
     const terminalStatuses = new Set(["complete", "returned", "canceled", "accepted", "rejected", "rolled-back"]);
-    const activeStatuses = new Set(["waiting", "deferred", "submitted", "reviewing", "overdue", "blocked", "proposed", "approved", "dispatched", "acknowledged", "in-progress"]);
+    const activeStatuses = new Set(["waiting", "deferred", "queued", "submitted", "reviewing", "overdue", "blocked", "proposed", "approved", "dispatched", "acknowledged", "in-progress", "failed", "retry-ready"]);
     const revenue = summarizeRevenueState(data);
     const curriculum = summarizeCurriculumState(data);
     const notifications = summarizeNotificationState(data);
@@ -2448,6 +2714,14 @@
         submissionFirstGameplans: curriculum.submissionFirstGameplans,
         visibleUpdates: notifications.visible,
         blockedUpdates: notifications.blocked,
+        notificationOutbox: notifications.outbox,
+        queuedNotifications: notifications.queued,
+        dispatchedNotifications: notifications.dispatched,
+        sentNotifications: notifications.sent,
+        failedNotifications: notifications.failed,
+        retryReadyNotifications: notifications.retryReady,
+        outboxBlockedNotifications: notifications.outboxBlocked,
+        missingNotificationOutbox: notifications.missingOutbox,
         agentHandoffs: handoffs.handoffs,
         pendingHandoffApprovals: handoffs.pendingApprovals,
         approvedHandoffs: handoffs.approved,
@@ -2552,6 +2826,8 @@
     createPersistenceMetadata,
     createAgentHandoffRecords,
     transitionAgentHandoffRecords,
+    createNotificationOutboxRecords,
+    transitionNotificationDeliveryRecords,
     createMonitorActionRecords,
     decideOpportunityRecords,
     createIntakeRecords,

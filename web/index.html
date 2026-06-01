@@ -411,8 +411,49 @@
               </label>
               <button type="submit" id="agent-handoff-transition">Apply ARA Handoff Transition</button>
             </form>
+            <form id="notification-outbox-form" class="review-console outbox-console">
+              <div class="form-row">
+                <label>
+                  Notification delivery
+                  <select name="deliveryId" id="notification-delivery-select"></select>
+                </label>
+                <label>
+                  Outbox action
+                  <select name="action" id="notification-outbox-action" required>
+                    <option value="queue">Queue visible updates</option>
+                    <option value="dispatch">Dispatch</option>
+                    <option value="sent">Sent</option>
+                    <option value="fail">Failed</option>
+                    <option value="block">Block</option>
+                    <option value="retry">Retry ready</option>
+                  </select>
+                </label>
+              </div>
+              <div class="form-row">
+                <label>
+                  Provider
+                  <input name="provider" value="operator-dispatch" />
+                </label>
+                <label>
+                  Channel
+                  <input name="channel" value="customer-update" />
+                </label>
+              </div>
+              <div class="form-row">
+                <label>
+                  Next action
+                  <input name="nextActionAt" type="datetime-local" />
+                </label>
+                <label>
+                  Delivery note
+                  <input name="note" value="Provider-neutral notification delivery update." />
+                </label>
+              </div>
+              <button type="submit" id="notification-outbox-apply">Apply Notification Outbox Action</button>
+            </form>
             <div id="review-confirmation" class="confirmation"></div>
             <div id="agent-handoff-confirmation" class="confirmation"></div>
+            <div id="notification-outbox-confirmation" class="confirmation"></div>
           </section>
           <div id="monitor-items" class="monitor-grid"></div>
         </div>
