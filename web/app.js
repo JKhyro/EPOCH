@@ -1,7 +1,7 @@
 const seedData = window.EPOCH_SEED_DATA;
 const recordTools = window.EPOCH_OPERATING_RECORDS;
 const storageKey = "epoch-commercial-operating-data";
-const attentionStatuses = new Set(["proposed", "queued", "approved", "dispatched", "acknowledged", "in-progress", "failed", "retry-ready", "submitted", "reviewing", "overdue", "blocked"]);
+const attentionStatuses = new Set(["proposed", "draft", "presented", "queued", "approved", "dispatched", "acknowledged", "in-progress", "failed", "retry-ready", "payment-ready", "payment-blocked", "submitted", "reviewing", "overdue", "blocked"]);
 const today = "2026-06-01";
 const viewNames = new Set(["admin", "student", "monitor", "public"]);
 
@@ -165,6 +165,7 @@ function allOperatingItems() {
     ...(data.agentHandoffs || []).map((item) => ({ ...item, kind: "agent handoff", time: item.nextActionAt })),
     ...(data.notificationEvents || []).map((item) => ({ ...item, kind: "update", time: item.deliverAfterAt || item.createdAt })),
     ...(data.notificationDeliveries || []).map((item) => ({ ...item, kind: "notification delivery", time: item.nextActionAt || item.createdAt })),
+    ...(data.quotes || []).map((item) => ({ ...item, kind: "quote", time: item.nextActionAt || item.validUntil || item.createdAt })),
     ...data.sessions.map((item) => ({ ...item, kind: "session", time: item.startAt })),
     ...data.assignments.map((item) => ({ ...item, kind: "request", time: item.dueAt })),
     ...data.submissions.map((item) => ({ ...item, kind: "submission", time: item.reviewDueAt })),
@@ -540,6 +541,7 @@ function renderMonitor(items) {
   const revenue = report.revenue || recordTools.summarizeRevenueState(data);
   const curriculum = report.curriculum || recordTools.summarizeCurriculumState(data);
   const notifications = report.notifications || recordTools.summarizeNotificationState(data);
+  const quotes = report.quotes || recordTools.summarizeQuoteState(data);
   const handoffs = report.handoffs || recordTools.summarizeAgentHandoffState(data);
   const marketing = report.marketing || recordTools.summarizeMarketingState(data);
   const routePlacement = report.routePlacement || recordTools.summarizeRoutePlacementState(data, { now: `${today}T12:00:00+09:00` });
@@ -566,6 +568,7 @@ function renderMonitor(items) {
     record("Curriculum Readiness", `${curriculum.frameworks} frameworks, ${curriculum.activeGameplans} active/planned gameplans, ${curriculum.eikenLevelCount} EIKEN levels represented.`, [chip(`${curriculum.submissionFirstGameplans} submission-first`), chip(`${curriculum.under19GuardedGameplans} guarded`)]),
     record("Update Events", `${notifications.visible} visible updates, ${notifications.pending} pending, ${notifications.blocked} blocked.`, [chip(`${notifications.posted} posted`, "complete"), chip(`${notifications.total} total`)]),
     record("Notification Outbox", `${notifications.outbox} delivery handoff records, ${notifications.queued} queued, ${notifications.sent} sent, ${notifications.failed} failed.`, [chip(`${notifications.retryReady} retry-ready`), chip(`${notifications.missingOutbox} missing outbox`, notifications.missingOutbox ? "blocked" : "complete")]),
+    record("Quote Readiness", `${quotes.total} quote records worth ${formatJpy(quotes.valueJpy)} with ${quotes.paymentReady} payment-ready and ${quotes.paymentBlocked} blocked.`, [chip(`${quotes.under19Blocked} under-19 gated`, quotes.under19Blocked ? "blocked" : "complete"), chip(`${quotes.paidRecorded} paid-recorded`)]),
     record("Agent Handoffs", `${handoffs.handoffs} handoffs, ${handoffs.workPlans} work plans, ${handoffs.pendingApprovals} pending approval, ${handoffs.dispatched} dispatched, ${handoffs.acknowledged} acknowledged, ${handoffs.complete} complete.`, [chip(`${handoffs.monitorVisible} monitor-visible`), chip(`${handoffs.customerVisibleBlocked} customer-visible`)]),
     record("Campaign Readiness", `${marketing.ready} of ${marketing.total} campaign routes ready across ${marketing.channelCount} channel groups.`, [chip(`${marketing.jp} JP`), chip(`${marketing.global} global`), chip(`${marketing.copyViolations} copy risks`, marketing.copyViolations ? "blocked" : "complete")]),
     record("SYNAPSE Placement", `${routePlacement.summary.routeCount} routes, ${routePlacement.placementMode}, ${routePlacement.access}.`, [chip(routePlacement.targetSystem), chip(routePlacement.duplicateUi ? "duplicate-ui" : "no-duplicate-ui"), chip(routePlacement.summary.monitorHref)]),
@@ -649,6 +652,14 @@ function renderMonitor(items) {
       [statusChip(item.status), chip(item.customerVisible ? "customer-safe" : "internal"), chip(`${Array.isArray(item.receiptIds) ? item.receiptIds.length : 0} receipts`)]
     ))
     : [record("Notification Outbox", "No customer-safe updates have been queued for delivery handoff yet.", [chip("empty")])];
+
+  const quoteCards = (data.quotes || []).length
+    ? data.quotes.slice(0, 8).map((item) => record(
+      item.title,
+      `${formatJpy(item.amountJpy)} | ${item.customerSafeStatus || item.summary}`,
+      [statusChip(item.status), chip(item.paymentStatus), chip(item.guardianConsentRequired ? "guardian-consent-required" : "payment-gate-clear")]
+    ))
+    : [record("Quote Readiness", "No quote or estimate records have been created yet.", [chip("empty")])];
 
   const routeCards = routePlacement.routes.map((route) => record(
     route.label,
@@ -737,6 +748,7 @@ function renderMonitor(items) {
     monitorSection("Campaign Routes", campaignCards.length ? campaignCards : [record("Campaign Routes", "No campaign route records have been created yet.", [chip("empty")])], "monitor-campaigns"),
     monitorSection("Agent Handoffs", handoffCards, "monitor-handoffs"),
     monitorSection("Notification Outbox", outboxCards, "monitor-notification-outbox"),
+    monitorSection("Quote Readiness", quoteCards, "monitor-quotes"),
     monitorSection("SYNAPSE Placement", routeCards, "monitor-suite"),
     monitorSection("Calendar Export", calendarCards.length ? calendarCards : [record("Calendar Export", "No export-ready calendar entries have been created yet.", [chip("empty")])], "monitor-calendar"),
     monitorSection("Persistence", persistenceCards, "monitor-persistence"),
@@ -769,6 +781,23 @@ function renderNotificationDeliveryOptions() {
     return `<option value="${escapeHtml(delivery.id)}">${escapeHtml(delivery.title)} (${escapeHtml(delivery.status)})</option>`;
   });
   select.innerHTML = options.length ? options.join("") : `<option value="">Queue visible updates first</option>`;
+}
+
+function renderQuoteOptions() {
+  const quoteSelect = byId("quote-select");
+  const opportunitySelect = byId("quote-opportunity");
+  if (quoteSelect) {
+    const quoteOptions = (data.quotes || []).map((quote) => {
+      return `<option value="${escapeHtml(quote.id)}">${escapeHtml(quote.title)} (${escapeHtml(quote.status)})</option>`;
+    });
+    quoteSelect.innerHTML = quoteOptions.length ? quoteOptions.join("") : `<option value="">Create a quote first</option>`;
+  }
+  if (opportunitySelect) {
+    const opportunityOptions = (data.opportunities || []).map((opportunity) => {
+      return `<option value="${escapeHtml(opportunity.id)}">${escapeHtml(`${packageName(opportunity.packageId)} - ${opportunity.status}`)}</option>`;
+    });
+    opportunitySelect.innerHTML = opportunityOptions.join("");
+  }
 }
 
 function renderIntakeSnapshot() {
@@ -808,6 +837,7 @@ function renderAll() {
   renderMonitor(items);
   renderAgentHandoffOptions();
   renderNotificationDeliveryOptions();
+  renderQuoteOptions();
   renderIntakeSnapshot();
   renderLedgerStatus();
 }
@@ -1062,6 +1092,37 @@ function wireNotificationOutboxForm() {
   });
 }
 
+function wireQuotePaymentForm() {
+  const form = byId("quote-payment-form");
+  const confirmation = byId("quote-payment-confirmation");
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+    try {
+      const result = payload.action === "create"
+        ? recordTools.createQuoteEstimateRecords(data, payload)
+        : recordTools.transitionQuoteEstimateRecords(data, payload);
+      data = result.data;
+      persistData();
+      renderAll();
+      confirmation.innerHTML = record(
+        payload.action === "create" ? "Quote Created" : "Quote Updated",
+        `${result.records.quote.title} is ${result.records.quote.status}; ${result.records.quote.customerSafeStatus}`,
+        [statusChip(result.records.quote.status), chip(result.records.quote.paymentStatus), chip(`${result.records.quote.amountJpy} JPY`)]
+      );
+      form.reset();
+    } catch (error) {
+      confirmation.innerHTML = record(
+        "Quote Action Blocked",
+        error.message || "Quote/payment readiness action could not be applied.",
+        [chip("blocked", "blocked")]
+      );
+    }
+  });
+}
+
 function downloadLedger(text) {
   const blob = new Blob([text], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -1136,6 +1197,7 @@ function init() {
   wireReviewReturn();
   wireAgentHandoffForm();
   wireNotificationOutboxForm();
+  wireQuotePaymentForm();
   wireLedgerControls();
 }
 
