@@ -43,6 +43,7 @@ const requiredCollections = [
   "opportunities",
   "routePlacements",
   "accessGateways",
+  "librarySyncHandoffs",
   "monitorHealthChecks",
   "notificationEvents",
   "customers",
@@ -92,6 +93,7 @@ if (!Array.isArray(data.reminderRules)) fail("seed data missing reminderRules co
 if (!Array.isArray(data.recurrenceCandidates)) fail("seed data missing recurrenceCandidates collection");
 if (!Array.isArray(data.availabilityWindows)) fail("seed data missing availabilityWindows collection");
 if (!Array.isArray(data.accessGateways)) fail("seed data missing accessGateways collection");
+if (!Array.isArray(data.librarySyncHandoffs)) fail("seed data missing librarySyncHandoffs collection");
 
 const header = read("../native/epoch_core.h");
 const source = read("../native/epoch_core.c");
@@ -164,7 +166,12 @@ for (const id of [
   "access-gateway-select",
   "access-gateway-action",
   "access-gateway-apply",
-  "access-gateway-confirmation"
+  "access-gateway-confirmation",
+  "library-sync-form",
+  "library-sync-select",
+  "library-sync-action",
+  "library-sync-apply",
+  "library-sync-confirmation"
 ]) {
   if (!html.includes(`id="${id}"`)) fail(`web surface missing ${id}`);
 }
@@ -201,10 +208,13 @@ for (const field of ["controlKind", "action", "reminderId", "recurrenceId", "ava
 for (const field of ["gatewayId", "action", "note"]) {
   if (!html.includes(`name="${field}"`)) fail(`access gateway form missing field ${field}`);
 }
+for (const field of ["handoffId", "action", "note"]) {
+  if (!html.includes(`name="${field}"`)) fail(`LIBRARY sync form missing field ${field}`);
+}
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
 }
-for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-command-strip", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-persistence", "monitor-scope", "monitor-memory", "monitor-access"]) {
+for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-command-strip", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-library-sync", "monitor-persistence", "monitor-scope", "monitor-memory", "monitor-access"]) {
   if (!html.includes(phrase)) fail(`monitor route surface missing phrase ${phrase}`);
 }
 for (const phrase of ["monitor-curriculum", "Package Gameplans", "Personalized Gameplan", "Curriculum Frameworks"]) {
@@ -212,6 +222,9 @@ for (const phrase of ["monitor-curriculum", "Package Gameplans", "Personalized G
 }
 for (const phrase of ["Controlled gateway", "Access Gateways", "Apply Access Gateway Action"]) {
   if (!html.includes(phrase)) fail(`access gateway HTML missing phrase ${phrase}`);
+}
+for (const phrase of ["LIBRARY handoff", "LIBRARY Sync", "Apply LIBRARY Sync Action"]) {
+  if (!html.includes(phrase)) fail(`LIBRARY sync HTML missing phrase ${phrase}`);
 }
 for (const phrase of [
   "SCAFFOLD-aligned",
@@ -370,12 +383,19 @@ for (const phrase of [
   "createAvailabilityWindowRecords",
   "transitionAvailabilityWindowRecords",
   "transitionAccessGatewayRecords",
+  "transitionLibrarySyncHandoffRecords",
+  "summarizeLibrarySyncState",
   "summarizeAccessGatewayState",
   "renderAccessGatewayOptions",
+  "renderLibrarySyncOptions",
   "wireAccessGatewayForm",
+  "wireLibrarySyncForm",
   "Access Gateway",
   "Access Gateway Records",
   "Access Gateway Updated",
+  "LIBRARY Sync",
+  "LIBRARY Sync Handoffs",
+  "LIBRARY Sync Updated",
   "renderAgentHandoffOptions",
   "renderNotificationDeliveryOptions",
   "renderQuoteOptions",
@@ -433,6 +453,7 @@ for (const phrase of [
   "quote-console",
   "reminder-console",
   "access-gateway-console",
+  "library-sync-console",
   "monitor-action-button",
   "button-meta",
   "monitor-command-strip",
@@ -448,8 +469,10 @@ if (!data.monitorScope || typeof data.monitorScope !== "object") fail("seed data
 if (!Array.isArray(data.monitorMemory) || data.monitorMemory.length < 3) fail("seed data missing monitor memory notes");
 if (!data.accessPosture || typeof data.accessPosture !== "object") fail("seed data missing access posture contract");
 if (!Array.isArray(data.accessGateways) || data.accessGateways.length < 4) fail("seed data missing controlled access gateway records");
+if (!Array.isArray(data.librarySyncHandoffs) || data.librarySyncHandoffs.length < 2) fail("seed data missing LIBRARY sync handoff records");
 if (!Array.isArray(data.monitorHealthChecks) || data.monitorHealthChecks.length < 2) fail("seed data missing ledger-backed monitor health checks");
 if (!data.receipts.some((item) => item.kind === "monitor-check")) fail("seed data missing monitor-check receipt");
+if (!data.receipts.some((item) => item.kind === "library-sync-handoff")) fail("seed data missing LIBRARY sync handoff receipt");
 if (data.accessPosture.defaultPublicPolicy !== "deny-by-default") fail("access posture must default to deny-by-default");
 if (data.accessPosture.rawMonitor !== "local-only") fail("access posture must keep raw monitor local-only");
 if (data.accessPosture.safeGateway !== "controlled-public-customer-gateway") fail("access posture must name the controlled public/customer gateway");
@@ -457,6 +480,9 @@ if (!data.accessGateways.some((item) => item.surface === "public" && item.public
 if (!data.accessGateways.some((item) => item.surface === "student" && item.publicExposure === "controlled-customer")) fail("access gateways missing controlled customer status");
 if (!data.accessGateways.some((item) => item.surface === "admin" && item.publicExposure === "denied")) fail("access gateways missing raw admin denial");
 if (!data.accessGateways.some((item) => item.surface === "monitor" && item.publicExposure === "denied")) fail("access gateways missing raw monitor denial");
+if (!data.librarySyncHandoffs.some((item) => item.targetSystem === "LIBRARY" && item.syncMode === "ledger-snapshot")) fail("LIBRARY sync handoffs missing EPOCH-to-LIBRARY ledger snapshot");
+if (!data.librarySyncHandoffs.some((item) => item.sourceSystem === "LIBRARY" && item.syncMode === "recovery-import")) fail("LIBRARY sync handoffs missing recovery import route");
+if (!data.librarySyncHandoffs.every((item) => item.visibility === "internal" && item.customerVisible === false)) fail("LIBRARY sync handoffs must be internal-only");
 if (!data.monitorMemory.some((item) => item.status === "stale")) fail("monitor memory should demonstrate stale-note risk");
 
 if (!data.offerPackages.some((item) => item.id === "pkg-under19-assessment" && item.routing === "compatibility-required")) {
@@ -549,11 +575,14 @@ if (typeof recordTools.createAvailabilityWindowRecords !== "function") fail("ope
 if (typeof recordTools.transitionAvailabilityWindowRecords !== "function") fail("operating helpers missing transitionAvailabilityWindowRecords");
 if (typeof recordTools.createAccessGatewayRecords !== "function") fail("operating helpers missing createAccessGatewayRecords");
 if (typeof recordTools.transitionAccessGatewayRecords !== "function") fail("operating helpers missing transitionAccessGatewayRecords");
+if (typeof recordTools.createLibrarySyncHandoffRecords !== "function") fail("operating helpers missing createLibrarySyncHandoffRecords");
+if (typeof recordTools.transitionLibrarySyncHandoffRecords !== "function") fail("operating helpers missing transitionLibrarySyncHandoffRecords");
 if (typeof recordTools.createMonitorActionRecords !== "function") fail("operating helpers missing createMonitorActionRecords");
 if (typeof recordTools.summarizeAgentHandoffState !== "function") fail("operating helpers missing summarizeAgentHandoffState");
 if (typeof recordTools.summarizeQuoteState !== "function") fail("operating helpers missing summarizeQuoteState");
 if (typeof recordTools.summarizeScheduleControlState !== "function") fail("operating helpers missing summarizeScheduleControlState");
 if (typeof recordTools.summarizeAccessGatewayState !== "function") fail("operating helpers missing summarizeAccessGatewayState");
+if (typeof recordTools.summarizeLibrarySyncState !== "function") fail("operating helpers missing summarizeLibrarySyncState");
 if (typeof recordTools.summarizeAccessPosture !== "function") fail("operating helpers missing summarizeAccessPosture");
 if (typeof recordTools.summarizeMemoryState !== "function") fail("operating helpers missing summarizeMemoryState");
 if (typeof recordTools.summarizeRoutePlacementState !== "function") fail("operating helpers missing summarizeRoutePlacementState");
@@ -586,6 +615,18 @@ brokenGatewayData.accessGateways = brokenGatewayData.accessGateways.map((item) =
 const brokenGatewaySummary = recordTools.summarizeAccessGatewayState(brokenGatewayData, { now: "2026-06-01T12:00:00+09:00" });
 if (brokenGatewaySummary.status !== "blocked" || !brokenGatewaySummary.violations.length) fail("access gateway summary should block raw monitor exposure");
 
+const librarySyncSummary = recordTools.summarizeLibrarySyncState(data, { now: "2026-06-01T12:00:00+09:00" });
+if (librarySyncSummary.handoffCount < 2) fail("LIBRARY sync summary missing handoff count");
+if (librarySyncSummary.exportHandoffs < 1) fail("LIBRARY sync summary missing export handoff");
+if (librarySyncSummary.recoveryHandoffs < 1) fail("LIBRARY sync summary missing recovery handoff");
+if (librarySyncSummary.searchReady < 1) fail("LIBRARY sync summary missing search-ready handoff");
+if (librarySyncSummary.backupReady < 2) fail("LIBRARY sync summary missing backup-ready handoffs");
+if (librarySyncSummary.violations.length !== 0) fail("LIBRARY sync summary should not report seed violations");
+const brokenLibraryData = recordTools.cloneData(data);
+brokenLibraryData.librarySyncHandoffs = brokenLibraryData.librarySyncHandoffs.map((item) => item.id === "library-sync-operating-ledger" ? { ...item, targetSystem: "PUBLIC", visibility: "controlled-customer", customerVisible: true } : item);
+const brokenLibrarySummary = recordTools.summarizeLibrarySyncState(brokenLibraryData, { now: "2026-06-01T12:00:00+09:00" });
+if (brokenLibrarySummary.status !== "blocked" || brokenLibrarySummary.violations.length < 2) fail("LIBRARY sync summary should block public/customer-visible handoff records");
+
 const gatewayTransition = recordTools.transitionAccessGatewayRecords(data, {
   gatewayId: "gateway-public-intake",
   action: "verify",
@@ -597,6 +638,19 @@ if (gatewayTransition.data.receipts.filter((item) => item.kind === "access-gatew
 if (gatewayTransition.data.monitorHealthChecks.length !== data.monitorHealthChecks.length + 1) fail("access gateway transition should add a monitor health check");
 if (gatewayTransition.data.notificationEvents.length !== data.notificationEvents.length) fail("access gateway transition must not create customer-visible notification events");
 if (gatewayTransition.records.healthCheck.customerVisible !== false) fail("access gateway health check must remain internal");
+
+const librarySyncTransition = recordTools.transitionLibrarySyncHandoffRecords(data, {
+  handoffId: "library-sync-operating-ledger",
+  action: "mark-ready",
+  note: "Verifier marked the EPOCH ledger handoff ready without touching live LIBRARY storage."
+}, { now: "2026-06-01T12:06:00+09:00" });
+if (librarySyncTransition.records.handoff.handoffStatus !== "ready-for-library") fail("LIBRARY sync transition did not mark ready-for-library");
+if (librarySyncTransition.data.receipts.filter((item) => item.kind === "library-sync-handoff").length !== data.receipts.filter((item) => item.kind === "library-sync-handoff").length + 1) {
+  fail("LIBRARY sync transition should add a library-sync-handoff receipt");
+}
+if (librarySyncTransition.data.monitorHealthChecks.length !== data.monitorHealthChecks.length + 1) fail("LIBRARY sync transition should add a monitor health check");
+if (librarySyncTransition.data.notificationEvents.length !== data.notificationEvents.length) fail("LIBRARY sync transition must not create customer-visible notification events");
+if (librarySyncTransition.records.healthCheck.customerVisible !== false) fail("LIBRARY sync health check must remain internal");
 
 const monitorActionResult = recordTools.createMonitorActionRecords(data, {
   actionId: "verify-safe-access-check",
@@ -634,7 +688,8 @@ for (const phrase of [
   "Curriculum framework",
   "Package gameplan",
   "Campaign route",
-  "Controlled public/customer access gateway record"
+  "Controlled public/customer access gateway record",
+  "LIBRARY ledger sync/recovery handoff record"
 ]) {
   if (!checklist.includes(phrase)) fail(`checklist missing phrase: ${phrase}`);
 }
@@ -700,6 +755,18 @@ for (const phrase of [
   "transitionAccessGatewayRecords"
 ]) {
   if (!accessGatewayContract.includes(phrase)) fail(`access gateway contract missing phrase: ${phrase}`);
+}
+
+const librarySyncContract = read("../docs/library-ledger-sync-recovery-contract.md");
+for (const phrase of [
+  "LIBRARY Ledger Sync And Recovery Contract",
+  "librarySyncHandoffs",
+  "summarizeLibrarySyncState",
+  "transitionLibrarySyncHandoffRecords",
+  "library-sync-handoff",
+  "customer-visible notification events"
+]) {
+  if (!librarySyncContract.includes(phrase)) fail(`LIBRARY sync contract missing phrase: ${phrase}`);
 }
 
 const quotePaymentContract = read("../docs/quote-payment-readiness-contract.md");
@@ -1427,6 +1494,7 @@ if (!monitorReport.scope) fail("monitor report missing scope state");
 if (!monitorReport.memory) fail("monitor report missing memory state");
 if (!monitorReport.access) fail("monitor report missing access state");
 if (!monitorReport.accessGateways) fail("monitor report missing access gateway state");
+if (!monitorReport.librarySync) fail("monitor report missing LIBRARY sync state");
 if (!Array.isArray(monitorReport.monitorHealthChecks)) fail("monitor report missing monitor health checks");
 if (!Array.isArray(monitorReport.operatorActions)) fail("monitor report missing operator actions");
 if (!monitorReport.routePlacement) fail("monitor report missing SYNAPSE route placement state");
@@ -1450,11 +1518,16 @@ if (monitorReport.summary.controlledPublicGateways < 1) fail("monitor summary mi
 if (monitorReport.summary.controlledCustomerGateways < 1) fail("monitor summary missing controlled customer gateway count");
 if (monitorReport.summary.deniedRawGateways < 2) fail("monitor summary missing raw denial gateway count");
 if (monitorReport.summary.accessGatewayViolations !== 0) fail("monitor summary should not report access gateway violations for the seed slice");
+if (monitorReport.summary.librarySyncHandoffs < 2) fail("monitor summary missing LIBRARY sync handoff count");
+if (monitorReport.summary.libraryExportHandoffs < 1) fail("monitor summary missing LIBRARY export handoff count");
+if (monitorReport.summary.libraryRecoveryHandoffs < 1) fail("monitor summary missing LIBRARY recovery handoff count");
+if (monitorReport.summary.librarySyncViolations !== 0) fail("monitor summary should not report LIBRARY sync violations for the seed slice");
 if (monitorReport.summary.monitorHealthChecks < 2) fail("monitor summary missing monitor health checks");
 if (monitorReport.summary.monitorActionReceipts < 2) fail("monitor summary missing monitor action receipts");
 if (monitorReport.summary.operatorActions < 3) fail("monitor summary missing operator actions");
 if (!monitorReport.timeline.some((item) => item.kind === "campaign route")) fail("monitor timeline missing campaign routes");
 if (!monitorReport.timeline.some((item) => item.kind === "access gateway")) fail("monitor timeline missing access gateways");
+if (!monitorReport.timeline.some((item) => item.kind === "library sync")) fail("monitor timeline missing LIBRARY sync handoffs");
 if (!monitorReport.timeline.some((item) => item.kind === "monitor check")) fail("monitor timeline missing monitor health checks");
 if (monitorReport.summary.timeline < 1) fail("monitor report did not include timeline records");
 if (!Array.isArray(monitorReport.queue)) fail("monitor report queue is not an array");
@@ -1526,17 +1599,20 @@ if (exportedLedger.counts.receipts !== returnResult.data.receipts.length) fail("
 if (exportedLedger.counts.monitorHealthChecks !== returnResult.data.monitorHealthChecks.length) fail("ledger export monitor health check count is wrong");
 if (exportedLedger.counts.notificationEvents !== returnResult.data.notificationEvents.length) fail("ledger export update-event count is wrong");
 if (exportedLedger.counts.accessGateways !== returnResult.data.accessGateways.length) fail("ledger export access gateway count is wrong");
+if (exportedLedger.counts.librarySyncHandoffs !== returnResult.data.librarySyncHandoffs.length) fail("ledger export LIBRARY sync handoff count is wrong");
 if (!exportedLedger.monitor || exportedLedger.monitor.timeline < 1) fail("ledger export missing monitor summary");
 if (exportedLedger.monitor.persistenceRevision !== exportedLedger.persistence.revision) fail("ledger monitor summary missing persistence revision");
 if (!exportedLedger.calendarExport || exportedLedger.calendarExport.entries.length !== calendarExport.entries.length) fail("ledger export missing calendar export entries");
 if (!exportedLedger.routePlacement || exportedLedger.routePlacement.summary.routeCount !== exportedLedger.data.routePlacements.length) fail("ledger export missing route placement summary");
 if (!exportedLedger.accessGateway || exportedLedger.accessGateway.gatewayCount !== exportedLedger.data.accessGateways.length) fail("ledger export missing access gateway summary");
+if (!exportedLedger.librarySync || exportedLedger.librarySync.handoffCount !== exportedLedger.data.librarySyncHandoffs.length) fail("ledger export missing LIBRARY sync summary");
 if (exportedLedger.counts.routePlacements !== returnResult.data.routePlacements.length) fail("ledger export route placement count is wrong");
 if (exportedLedger.counts.curriculumFrameworks !== returnResult.data.curriculumFrameworks.length) fail("ledger export curriculum framework count is wrong");
 if (exportedLedger.counts.packageGameplans !== returnResult.data.packageGameplans.length) fail("ledger export package gameplan count is wrong");
 if (exportedLedger.counts.campaignRoutes !== returnResult.data.campaignRoutes.length) fail("ledger export campaign route count is wrong");
 if (exportedLedger.monitor.campaignRoutes !== returnResult.data.campaignRoutes.length) fail("ledger monitor summary missing campaign routes");
 if (exportedLedger.monitor.accessGatewayRoutes !== returnResult.data.accessGateways.length) fail("ledger monitor summary missing access gateway routes");
+if (exportedLedger.monitor.librarySyncHandoffs !== returnResult.data.librarySyncHandoffs.length) fail("ledger monitor summary missing LIBRARY sync handoff routes");
 if (exportedLedger.monitor.monitorHealthChecks !== returnResult.data.monitorHealthChecks.length) fail("ledger monitor summary missing monitor health checks");
 
 const persistenceSummary = recordTools.summarizePersistenceState(exportedLedger.data);
@@ -1576,6 +1652,7 @@ if (importedLedger.data.monitorHealthChecks.length !== returnResult.data.monitor
 if (importedLedger.data.notificationEvents.length !== returnResult.data.notificationEvents.length) fail("ledger import did not preserve update events");
 if (importedLedger.data.routePlacements.length !== returnResult.data.routePlacements.length) fail("ledger import did not preserve route placements");
 if (importedLedger.data.accessGateways.length !== returnResult.data.accessGateways.length) fail("ledger import did not preserve access gateways");
+if (importedLedger.data.librarySyncHandoffs.length !== returnResult.data.librarySyncHandoffs.length) fail("ledger import did not preserve LIBRARY sync handoffs");
 if (importedLedger.data.campaignRoutes.length !== returnResult.data.campaignRoutes.length) fail("ledger import did not preserve campaign routes");
 if (importedLedger.data.customers[0].externalStatus !== returnResult.data.customers[0].externalStatus) fail("ledger import did not preserve external status");
 if (importedLedger.data.persistence.checksum !== exportedLedger.persistence.checksum) fail("ledger import did not preserve persistence checksum");

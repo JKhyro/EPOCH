@@ -770,7 +770,8 @@ button.secondary-action {
   grid-template-columns: 1fr;
 }
 
-.access-gateway-console {
+.access-gateway-console,
+.library-sync-console {
   grid-template-columns: 1fr;
   border-color: var(--accent-border);
 }

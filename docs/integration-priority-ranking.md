@@ -75,6 +75,17 @@ LIBRARY once the first notification and calendar contracts are stable.
 - Keep out for now: deep vector retrieval or analytics before plain durable
   records and backup/recovery exist.
 
+Current EPOCH-side slice:
+
+- `librarySyncHandoffs` records the internal-only EPOCH-to-LIBRARY snapshot
+  handoff and the LIBRARY-to-EPOCH recovery import handoff.
+- `summarizeLibrarySyncState` exposes sync readiness, recovery readiness,
+  search readiness, backup readiness, and violations to EPOCH MONITOR.
+- `transitionLibrarySyncHandoffRecords` creates internal monitor health checks
+  and `library-sync-handoff` receipts without creating customer-visible updates.
+- Live LIBRARY API/database mutation remains out of scope until this handoff
+  contract is stable and verified.
+
 ### 5. SYMBIOSIS And ANVIL Agentic Work Handoff
 
 After EPOCH can notify people and preserve records, the ARA revenue loop should
