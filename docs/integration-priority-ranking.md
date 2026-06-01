@@ -180,6 +180,20 @@ Current EPOCH-side sandbox notification provider prototype slice:
   email, LINE, SMS, NEXUS, OAuth clients, secrets, webhooks, provider writes,
   production behavior, or customer-visible notification events.
 
+Current EPOCH-side sandbox payment provider prototype slice:
+
+- `paymentProviderPrototypes` records local payment payload-preview prototypes
+  linked to payment provider adapter candidates and invoice/checkout handoff
+  readiness.
+- `summarizePaymentProviderPrototypeState` exposes payload-ready,
+  sandbox-only, local-only, no-live-payment, no-secrets,
+  no-customer-visible-payment, no-capture, legal/tax/privacy review, under-19
+  guard, and violation counts to EPOCH MONITOR.
+- `transitionPaymentProviderPrototypeRecords` creates internal monitor health
+  checks and `payment-provider-prototype` receipts without live checkout,
+  invoice sending, capture, refunds, OAuth clients, secrets, webhooks, provider
+  writes, production behavior, or customer-visible payment requests.
+
 Current EPOCH-side customer account history slice:
 
 - `customerAccountHistories` records controlled customer-safe timelines across

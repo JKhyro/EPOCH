@@ -40,6 +40,7 @@ service operations without waiting for every future CITADEL integration.
 - Marketing conversion KPI event linked to a campaign route.
 - Provider adapter candidate and go/no-go readiness record.
 - Sandbox notification provider prototype record.
+- Sandbox payment provider prototype record.
 - Durable customer account history record.
 
 ## Required operating states
@@ -115,6 +116,10 @@ service operations without waiting for every future CITADEL integration.
   previews from customer-safe update records while keeping live email, LINE,
   SMS, NEXUS, OAuth, secrets, webhooks, provider writes, and customer-visible
   sends disabled.
+- Sandbox payment provider prototypes prepare local payment payload previews
+  from quote, opportunity, and package readiness records while keeping live
+  checkout, invoice sending, capture, refunds, OAuth, secrets, webhooks,
+  provider writes, and customer-visible payment requests disabled.
 - Durable customer account history links status, submissions, cohorts, service
   records, receipts, and customer-safe updates while remaining local-only and
   controlled-customer.

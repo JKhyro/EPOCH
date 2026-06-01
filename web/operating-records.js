@@ -24,6 +24,7 @@
     "providerAdapterCandidates",
     "calendarAdapterPrototypes",
     "notificationProviderPrototypes",
+    "paymentProviderPrototypes",
     "leads",
     "opportunities",
     "engagements",
@@ -1330,6 +1331,86 @@
     ];
   }
 
+  function defaultPaymentProviderPrototypes() {
+    return [
+      {
+        id: "payment-provider-sandbox-checkout-preview",
+        title: "Payment Provider Sandbox Checkout Preview",
+        providerCandidateId: "provider-adapter-payment-checkout",
+        sourceHandoffId: "payment-provider-checkout-readiness",
+        adapterFamily: "payment",
+        targetProvider: "provider-neutral invoice / checkout",
+        adapterMode: "sandbox-payment-payload-preview",
+        status: "queued",
+        prototypeStatus: "payload-ready",
+        sandboxOnly: true,
+        localOnly: true,
+        livePaymentEnabled: false,
+        liveCheckoutEnabled: false,
+        liveCaptureEnabled: false,
+        liveRefundEnabled: false,
+        invoiceSendEnabled: false,
+        checkoutSessionCreated: false,
+        paymentLinkCreated: false,
+        capturesPayment: false,
+        externalProviderWrite: false,
+        productionEnabled: false,
+        secretsPresent: false,
+        credentialsStored: false,
+        storesCredentials: false,
+        oauthConfigured: false,
+        webhookEnabled: false,
+        customerVisible: false,
+        customerSafe: false,
+        legalReviewRequired: true,
+        taxReviewRequired: true,
+        privacyReviewRequired: true,
+        under19Guarded: true,
+        paymentProcessorSchema: "epoch.quote-payment",
+        payloadMode: "provider-neutral-payment-json-preview",
+        payloadSource: "epoch.quote-payment",
+        payloadEntryCount: 2,
+        readinessChecks: ["provider-candidate-required", "payment-provider-handoff-required", "quote-payment-schema-stable", "legal-review-required", "tax-review-required", "privacy-boundary-required", "under19-eligibility-gate", "sandbox-only-before-go-live", "operator-approval-required", "no-live-payment", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-checkout-session", "no-payment-capture", "no-refunds", "no-invoice-send", "no-customer-visible-payment-request"],
+        payloadPreview: [
+          {
+            uid: "epoch-payment-preview-eiken-monthly",
+            title: "Premium EIKEN Writing Review payment preview",
+            provider: "provider-neutral",
+            amountJpy: 45000,
+            currency: "JPY",
+            customerName: "Adult writing student",
+            packageId: "pkg-eiken-writing-monthly",
+            source: "opportunity:opp-001",
+            status: "preview-only",
+            paymentStatus: "not-created",
+            checkoutSession: "not-created",
+            customerSafe: true
+          },
+          {
+            uid: "epoch-payment-preview-under19-gate",
+            title: "Under-19 compatibility assessment blocked payment preview",
+            provider: "provider-neutral",
+            amountJpy: 65000,
+            currency: "JPY",
+            customerName: "Under-19 compatibility review",
+            packageId: "pkg-under19-assessment",
+            source: "package:pkg-under19-assessment",
+            status: "blocked-preview-only",
+            paymentStatus: "guardian-consent-required",
+            checkoutSession: "not-created",
+            customerSafe: true
+          }
+        ],
+        blockers: ["No legal/tax/privacy review signoff", "No checkout credential storage", "No webhook signing secret", "No live payment capture or refund path", "Under-19 payment requests remain blocked before guardian consent"],
+        nextActionAt: "2026-06-04T12:00:00+09:00",
+        createdAt: "2026-06-02T07:00:00+09:00",
+        updatedAt: "2026-06-02T07:00:00+09:00",
+        receiptIds: ["receipt-payment-provider-prototype-seed"],
+        notes: "Local payment payload preview only; live checkout, invoice sending, capture, refunds, OAuth, secrets, webhooks, provider writes, and customer-visible payment requests remain disabled."
+      }
+    ];
+  }
+
   function normalizedOperatingData(data) {
     const nextData = cloneData(data || {});
     for (const collection of ledgerCollections) {
@@ -1368,6 +1449,9 @@
     }
     if (!Array.isArray(nextData.notificationProviderPrototypes) || !nextData.notificationProviderPrototypes.length) {
       nextData.notificationProviderPrototypes = defaultNotificationProviderPrototypes();
+    }
+    if (!Array.isArray(nextData.paymentProviderPrototypes) || !nextData.paymentProviderPrototypes.length) {
+      nextData.paymentProviderPrototypes = defaultPaymentProviderPrototypes();
     }
     nextData.customerAccountHistories = reconcileCustomerAccountHistories(nextData);
     if (!nextData.accessPosture || typeof nextData.accessPosture !== "object") {
@@ -6443,6 +6527,441 @@
     };
   }
 
+  function paymentProviderPayloadPreview(currentData, limit = 4) {
+    const data = normalizedOperatingData(currentData);
+    const customersById = data.customers.reduce((memo, customer) => {
+      memo[customer.id] = customer;
+      return memo;
+    }, {});
+    const leadsById = data.leads.reduce((memo, lead) => {
+      memo[lead.id] = lead;
+      return memo;
+    }, {});
+    const packagesById = data.offerPackages.reduce((memo, offerPackage) => {
+      memo[offerPackage.id] = offerPackage;
+      return memo;
+    }, {});
+    const quoteItems = data.quotes.map((quote) => {
+      const customer = customersById[quote.customerId] || {};
+      const offerPackage = packagesById[quote.packageId] || {};
+      return {
+        uid: `epoch-payment-quote-${clean(quote.id)}`,
+        title: clean(quote.title) || `${clean(offerPackage.name) || "Service"} payment preview`,
+        provider: "provider-neutral",
+        amountJpy: Number(quote.amountJpy || offerPackage.priceJpy || 0),
+        currency: clean(quote.currency) || "JPY",
+        customerId: clean(quote.customerId),
+        customerName: clean(customer.name) || "customer",
+        packageId: clean(quote.packageId),
+        source: `quote:${clean(quote.id)}`,
+        status: "preview-only",
+        paymentStatus: clean(quote.paymentStatus) || "not-created",
+        checkoutSession: "not-created",
+        under19Guarded: quote.under19 === true || quote.guardianConsentRequired === true,
+        customerSafe: true
+      };
+    });
+    const opportunityItems = data.opportunities.map((opportunity) => {
+      const lead = leadsById[opportunity.leadId] || {};
+      const offerPackage = packagesById[opportunity.packageId] || {};
+      const under19Guarded = clean(offerPackage.routing) === "compatibility-required" || clean(lead.name).toLowerCase().includes("under-19");
+      return {
+        uid: `epoch-payment-opportunity-${clean(opportunity.id)}`,
+        title: `${clean(offerPackage.name) || clean(opportunity.packageId) || "Service"} payment preview`,
+        provider: "provider-neutral",
+        amountJpy: Number(opportunity.estimatedValueJpy || offerPackage.priceJpy || 0),
+        currency: "JPY",
+        customerId: "",
+        customerName: clean(lead.name) || "prospect",
+        packageId: clean(opportunity.packageId),
+        source: `opportunity:${clean(opportunity.id)}`,
+        status: under19Guarded ? "blocked-preview-only" : "preview-only",
+        paymentStatus: under19Guarded ? "guardian-consent-required" : "not-created",
+        checkoutSession: "not-created",
+        under19Guarded,
+        customerSafe: true
+      };
+    });
+    const packageItems = data.offerPackages
+      .filter((offerPackage) => clean(offerPackage.routing) === "compatibility-required")
+      .map((offerPackage) => ({
+        uid: `epoch-payment-package-${clean(offerPackage.id)}`,
+        title: `${clean(offerPackage.name) || "Compatibility package"} blocked payment preview`,
+        provider: "provider-neutral",
+        amountJpy: Number(offerPackage.priceJpy || 0),
+        currency: "JPY",
+        customerId: "",
+        customerName: "Under-19 compatibility review",
+        packageId: clean(offerPackage.id),
+        source: `package:${clean(offerPackage.id)}`,
+        status: "blocked-preview-only",
+        paymentStatus: "guardian-consent-required",
+        checkoutSession: "not-created",
+        under19Guarded: true,
+        customerSafe: true
+      }));
+
+    return (quoteItems.length ? quoteItems : [...opportunityItems, ...packageItems]).slice(0, limit);
+  }
+
+  function summarizePaymentProviderPrototypeState(currentData, options = {}) {
+    const data = normalizedOperatingData(currentData);
+    const providerAdapters = options.providerAdapters || summarizeProviderAdapterSelectionState(data);
+    const paymentProvider = options.paymentProvider || summarizePaymentProviderState(data);
+    const candidateById = providerAdapters.candidates.reduce((memo, candidate) => {
+      memo[candidate.id] = candidate;
+      return memo;
+    }, {});
+    const handoffById = paymentProvider.handoffs.reduce((memo, handoff) => {
+      memo[handoff.id] = handoff;
+      return memo;
+    }, {});
+    const requiredChecks = ["provider-candidate-required", "payment-provider-handoff-required", "quote-payment-schema-stable", "legal-review-required", "tax-review-required", "privacy-boundary-required", "under19-eligibility-gate", "sandbox-only-before-go-live", "operator-approval-required", "no-live-payment", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-checkout-session", "no-payment-capture", "no-refunds", "no-invoice-send", "no-customer-visible-payment-request"];
+    const prototypes = data.paymentProviderPrototypes.map((prototype) => {
+      const providerCandidateId = clean(prototype.providerCandidateId);
+      const sourceHandoffId = clean(prototype.sourceHandoffId);
+      const candidate = candidateById[providerCandidateId] || null;
+      const handoff = handoffById[sourceHandoffId] || null;
+      const readinessChecks = Array.isArray(prototype.readinessChecks) ? prototype.readinessChecks : [];
+      const payloadPreview = Array.isArray(prototype.payloadPreview) ? prototype.payloadPreview : [];
+      const receiptIds = Array.isArray(prototype.receiptIds) ? prototype.receiptIds : [];
+      const blockers = Array.isArray(prototype.blockers) ? prototype.blockers : [];
+      const livePaymentEnabled = prototype.livePaymentEnabled === true;
+      const liveCheckoutEnabled = prototype.liveCheckoutEnabled === true;
+      const liveCaptureEnabled = prototype.liveCaptureEnabled === true;
+      const liveRefundEnabled = prototype.liveRefundEnabled === true;
+      const invoiceSendEnabled = prototype.invoiceSendEnabled === true;
+      const checkoutSessionCreated = prototype.checkoutSessionCreated === true;
+      const paymentLinkCreated = prototype.paymentLinkCreated === true;
+      const capturesPayment = prototype.capturesPayment === true;
+      const externalProviderWrite = prototype.externalProviderWrite === true;
+      const productionEnabled = prototype.productionEnabled === true;
+      const secretsPresent = prototype.secretsPresent === true;
+      const credentialsStored = prototype.credentialsStored === true;
+      const storesCredentials = prototype.storesCredentials === true;
+      const oauthConfigured = prototype.oauthConfigured === true;
+      const webhookEnabled = prototype.webhookEnabled === true;
+      const customerVisible = prototype.customerVisible === true;
+      const legalReviewRequired = prototype.legalReviewRequired !== false;
+      const taxReviewRequired = prototype.taxReviewRequired !== false;
+      const privacyReviewRequired = prototype.privacyReviewRequired !== false;
+      const under19Guarded = prototype.under19Guarded !== false;
+      const violations = [];
+
+      if (clean(prototype.adapterFamily || "payment") !== "payment") {
+        violations.push("Payment provider prototype must stay in the payment adapter family.");
+      }
+      if (!candidate || candidate.providerFamily !== "payment") {
+        violations.push("Payment provider prototype must link to a payment provider adapter candidate.");
+      } else if (candidate.violations.length) {
+        violations.push("Linked payment provider adapter candidate has readiness violations.");
+      }
+      if (!handoff) {
+        violations.push("Payment provider prototype must link to a payment provider handoff.");
+      } else if (handoff.violations.length) {
+        violations.push("Linked payment provider handoff has readiness violations.");
+      }
+      if (prototype.sandboxOnly === false || prototype.localOnly === false) {
+        violations.push("Payment provider prototype must remain sandbox-only and local-only.");
+      }
+      if (livePaymentEnabled || liveCheckoutEnabled || liveCaptureEnabled || liveRefundEnabled || invoiceSendEnabled || checkoutSessionCreated || paymentLinkCreated || capturesPayment || externalProviderWrite || productionEnabled) {
+        violations.push("Payment provider prototype cannot enable live checkout, invoice sending, payment capture, refunds, production behavior, payment links, checkout sessions, or provider writes.");
+      }
+      if (secretsPresent || credentialsStored || storesCredentials || oauthConfigured || webhookEnabled) {
+        violations.push("Payment provider prototype cannot store secrets, credentials, OAuth clients, or webhooks.");
+      }
+      if (customerVisible) {
+        violations.push("Payment provider prototype must remain internal and not create customer-visible payment requests.");
+      }
+      if (!legalReviewRequired || !taxReviewRequired || !privacyReviewRequired) {
+        violations.push("Payment provider prototype must keep legal, tax, and privacy review requirements visible.");
+      }
+      if (!under19Guarded) {
+        violations.push("Payment provider prototype must preserve under-19 eligibility gating.");
+      }
+      for (const required of requiredChecks) {
+        if (!readinessChecks.includes(required)) {
+          violations.push(`Payment provider prototype must include ${required}.`);
+        }
+      }
+      if (!payloadPreview.length) violations.push("Payment provider prototype must include a local payment payload preview.");
+      if (!blockers.length) violations.push("Payment provider prototype must define blockers before live payment provider work.");
+      if (clean(prototype.status) === "complete" && !receiptIds.length) {
+        violations.push("Completed payment provider prototype requires a receipt trail.");
+      }
+
+      return {
+        id: clean(prototype.id),
+        title: clean(prototype.title) || "Payment Provider Prototype",
+        providerCandidateId,
+        sourceHandoffId,
+        adapterFamily: clean(prototype.adapterFamily) || "payment",
+        targetProvider: clean(prototype.targetProvider) || candidate?.targetProvider || handoff?.targetProvider || "provider-neutral payment",
+        adapterMode: clean(prototype.adapterMode) || "sandbox-payment-payload-preview",
+        status: clean(prototype.status) || "planned",
+        prototypeStatus: clean(prototype.prototypeStatus) || "payload-pending",
+        sandboxOnly: prototype.sandboxOnly !== false,
+        localOnly: prototype.localOnly !== false,
+        livePaymentEnabled,
+        liveCheckoutEnabled,
+        liveCaptureEnabled,
+        liveRefundEnabled,
+        invoiceSendEnabled,
+        checkoutSessionCreated,
+        paymentLinkCreated,
+        capturesPayment,
+        externalProviderWrite,
+        productionEnabled,
+        secretsPresent,
+        credentialsStored,
+        storesCredentials,
+        oauthConfigured,
+        webhookEnabled,
+        customerVisible,
+        customerSafe: prototype.customerSafe === true,
+        legalReviewRequired,
+        taxReviewRequired,
+        privacyReviewRequired,
+        under19Guarded,
+        paymentProcessorSchema: clean(prototype.paymentProcessorSchema) || "epoch.quote-payment",
+        payloadMode: clean(prototype.payloadMode) || "provider-neutral-payment-json-preview",
+        payloadSource: clean(prototype.payloadSource) || "epoch.quote-payment",
+        payloadEntryCount: payloadPreview.length,
+        readinessChecks,
+        payloadPreview,
+        blockers,
+        nextActionAt: clean(prototype.nextActionAt),
+        createdAt: clean(prototype.createdAt),
+        updatedAt: clean(prototype.updatedAt),
+        receiptIds,
+        notes: clean(prototype.notes) || "No sandbox payment provider prototype note recorded.",
+        violations
+      };
+    });
+    const violations = prototypes.flatMap((prototype) => prototype.violations.map((detail) => `${prototype.title}: ${detail}`));
+
+    return {
+      schema: "epoch.payment-provider-prototype",
+      prototypeCount: prototypes.length,
+      payloadReady: prototypes.filter((prototype) => ["payload-ready", "sandbox-approved", "operator-reviewed"].includes(prototype.prototypeStatus)).length,
+      sandboxOnly: prototypes.filter((prototype) => prototype.sandboxOnly).length,
+      localOnly: prototypes.filter((prototype) => prototype.localOnly).length,
+      noLivePayment: prototypes.filter((prototype) => !prototype.livePaymentEnabled && !prototype.liveCheckoutEnabled && !prototype.liveCaptureEnabled && !prototype.liveRefundEnabled && !prototype.invoiceSendEnabled && !prototype.checkoutSessionCreated && !prototype.paymentLinkCreated && !prototype.capturesPayment && !prototype.externalProviderWrite && !prototype.productionEnabled).length,
+      noSecrets: prototypes.filter((prototype) => !prototype.secretsPresent && !prototype.credentialsStored && !prototype.storesCredentials && !prototype.oauthConfigured && !prototype.webhookEnabled).length,
+      noCustomerVisiblePayment: prototypes.filter((prototype) => !prototype.customerVisible).length,
+      noPaymentCapture: prototypes.filter((prototype) => !prototype.capturesPayment && !prototype.liveCaptureEnabled).length,
+      legalTaxPrivacyReady: prototypes.filter((prototype) => prototype.legalReviewRequired && prototype.taxReviewRequired && prototype.privacyReviewRequired).length,
+      under19Guarded: prototypes.filter((prototype) => prototype.under19Guarded).length,
+      candidateLinked: prototypes.filter((prototype) => candidateById[prototype.providerCandidateId]?.providerFamily === "payment").length,
+      handoffLinked: prototypes.filter((prototype) => handoffById[prototype.sourceHandoffId]).length,
+      payloadEntries: prototypes.reduce((total, prototype) => total + prototype.payloadEntryCount, 0),
+      status: violations.length ? "blocked" : "ready",
+      violations,
+      prototypes
+    };
+  }
+
+  function createPaymentProviderPrototypeRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const nowText = withTimezone(now.toISOString(), timezone);
+    const candidateId = clean(input.providerCandidateId || input.candidateId) || clean(nextData.providerAdapterCandidates.find((item) => clean(item.providerFamily) === "payment")?.id);
+    const candidate = nextData.providerAdapterCandidates.find((item) => clean(item.id) === candidateId);
+    if (!candidate || clean(candidate.providerFamily) !== "payment") throw new Error("payment provider adapter candidate is required");
+    if (candidate.liveApiCalls || candidate.productionEnabled || candidate.externalProviderWrite || candidate.secretsPresent || candidate.credentialsStored || candidate.oauthConfigured || candidate.webhookEnabled) {
+      throw new Error("payment provider adapter candidate is not safe for sandbox prototype");
+    }
+    const sourceHandoffId = clean(input.sourceHandoffId || input.handoffId) || clean((Array.isArray(candidate.sourceHandoffIds) ? candidate.sourceHandoffIds[0] : "") || nextData.paymentProviderHandoffs[0]?.id);
+    const sourceHandoff = nextData.paymentProviderHandoffs.find((item) => clean(item.id) === sourceHandoffId);
+    if (!sourceHandoff) throw new Error("payment provider handoff is required for sandbox prototype");
+    if (sourceHandoff.livePaymentEnabled || sourceHandoff.externalProviderWrite || sourceHandoff.storesCredentials || sourceHandoff.webhookEnabled || sourceHandoff.capturesPayment || sourceHandoff.customerVisible) {
+      throw new Error("payment provider handoff is not safe for sandbox prototype");
+    }
+    const payloadPreview = paymentProviderPayloadPreview(nextData, Number(input.payloadLimit) || 4);
+    if (!payloadPreview.length) throw new Error("payment records have no quote or opportunity payload to preview");
+    const prototype = {
+      id: clean(input.id) || `payment-provider-prototype-${stamp(now)}-${nextData.paymentProviderPrototypes.length + 1}`,
+      title: clean(input.title) || `${candidate.targetProvider || "Payment"} Sandbox Payment Provider Prototype`,
+      providerCandidateId: candidate.id,
+      sourceHandoffId: sourceHandoff.id,
+      adapterFamily: "payment",
+      targetProvider: clean(input.targetProvider) || candidate.targetProvider || sourceHandoff.targetProvider || "provider-neutral payment",
+      adapterMode: clean(input.adapterMode) || "sandbox-payment-payload-preview",
+      status: clean(input.status) || "queued",
+      prototypeStatus: clean(input.prototypeStatus) || "payload-ready",
+      sandboxOnly: true,
+      localOnly: true,
+      livePaymentEnabled: false,
+      liveCheckoutEnabled: false,
+      liveCaptureEnabled: false,
+      liveRefundEnabled: false,
+      invoiceSendEnabled: false,
+      checkoutSessionCreated: false,
+      paymentLinkCreated: false,
+      capturesPayment: false,
+      externalProviderWrite: false,
+      productionEnabled: false,
+      secretsPresent: false,
+      credentialsStored: false,
+      storesCredentials: false,
+      oauthConfigured: false,
+      webhookEnabled: false,
+      customerVisible: false,
+      customerSafe: false,
+      legalReviewRequired: true,
+      taxReviewRequired: true,
+      privacyReviewRequired: true,
+      under19Guarded: true,
+      paymentProcessorSchema: "epoch.quote-payment",
+      payloadMode: clean(input.payloadMode) || "provider-neutral-payment-json-preview",
+      payloadSource: "epoch.quote-payment",
+      payloadEntryCount: payloadPreview.length,
+      readinessChecks: ["provider-candidate-required", "payment-provider-handoff-required", "quote-payment-schema-stable", "legal-review-required", "tax-review-required", "privacy-boundary-required", "under19-eligibility-gate", "sandbox-only-before-go-live", "operator-approval-required", "no-live-payment", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-checkout-session", "no-payment-capture", "no-refunds", "no-invoice-send", "no-customer-visible-payment-request"],
+      payloadPreview,
+      blockers: Array.isArray(input.blockers) ? input.blockers : ["No legal/tax/privacy review signoff", "No checkout credential storage", "No webhook signing secret", "No live payment capture or refund path", "Under-19 payment requests remain blocked before guardian consent"],
+      nextActionAt: withTimezone(input.nextActionAt, timezone) || nowText,
+      createdAt: nowText,
+      updatedAt: nowText,
+      receiptIds: [],
+      notes: clean(input.note) || "Sandbox payment provider prototype created from EPOCH quote/payment readiness records without live provider behavior."
+    };
+    const receipt = {
+      id: `receipt-payment-provider-prototype-${stamp(now)}`,
+      kind: "payment-provider-prototype",
+      status: "complete",
+      createdAt: nowText,
+      note: `${prototype.title}: local payment payload preview created without live checkout, invoice sending, capture, refunds, OAuth, secrets, webhooks, provider writes, or customer-visible payment requests.`
+    };
+    const healthCheck = {
+      id: `monitor-check-payment-prototype-${stamp(now)}`,
+      title: "Sandbox Payment Provider Prototype",
+      status: "complete",
+      target: "monitor-payment-prototype",
+      effect: "payment-provider-sandbox-proof",
+      createdAt: nowText,
+      summary: `${prototype.title} generated ${payloadPreview.length} local payment payload preview items from quote/payment readiness records.`,
+      receiptId: receipt.id,
+      visibility: "internal",
+      customerVisible: false
+    };
+    prototype.receiptIds.push(receipt.id);
+    nextData.paymentProviderPrototypes.unshift(prototype);
+    nextData.receipts.unshift(receipt);
+    nextData.monitorHealthChecks.unshift(healthCheck);
+
+    return {
+      data: nextData,
+      records: {
+        prototype,
+        receipt,
+        healthCheck
+      }
+    };
+  }
+
+  function transitionPaymentProviderPrototypeRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const nowText = withTimezone(now.toISOString(), timezone);
+    const prototype = nextData.paymentProviderPrototypes.find((item) => clean(item.id) === clean(input.prototypeId || input.id));
+    if (!prototype) throw new Error("Select a sandbox payment provider prototype before applying an action.");
+    const action = clean(input.action) || "generate-preview";
+    const note = clean(input.note) || "Sandbox payment provider prototype reviewed without live provider behavior.";
+    const ensureChecks = (checks) => {
+      prototype.readinessChecks = Array.isArray(prototype.readinessChecks) ? prototype.readinessChecks : [];
+      for (const check of checks) {
+        if (!prototype.readinessChecks.includes(check)) prototype.readinessChecks.push(check);
+      }
+    };
+
+    if (action === "generate-preview") {
+      prototype.payloadPreview = paymentProviderPayloadPreview(nextData, Number(input.payloadLimit) || 4);
+      prototype.payloadEntryCount = prototype.payloadPreview.length;
+      prototype.status = "queued";
+      prototype.prototypeStatus = "payload-ready";
+    } else if (action === "approve-sandbox") {
+      prototype.status = "approved";
+      prototype.prototypeStatus = "sandbox-approved";
+    } else if (action === "mark-reviewed") {
+      prototype.status = "complete";
+      prototype.prototypeStatus = "operator-reviewed";
+    } else if (action === "defer") {
+      prototype.status = "waiting";
+      prototype.prototypeStatus = "deferred";
+    } else if (action === "block") {
+      prototype.status = "blocked";
+      prototype.prototypeStatus = "blocked";
+    } else {
+      throw new Error("unsupported sandbox payment provider action");
+    }
+
+    ensureChecks(["provider-candidate-required", "payment-provider-handoff-required", "quote-payment-schema-stable", "legal-review-required", "tax-review-required", "privacy-boundary-required", "under19-eligibility-gate", "sandbox-only-before-go-live", "operator-approval-required", "no-live-payment", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-checkout-session", "no-payment-capture", "no-refunds", "no-invoice-send", "no-customer-visible-payment-request"]);
+    prototype.adapterFamily = "payment";
+    prototype.sandboxOnly = true;
+    prototype.localOnly = true;
+    prototype.livePaymentEnabled = false;
+    prototype.liveCheckoutEnabled = false;
+    prototype.liveCaptureEnabled = false;
+    prototype.liveRefundEnabled = false;
+    prototype.invoiceSendEnabled = false;
+    prototype.checkoutSessionCreated = false;
+    prototype.paymentLinkCreated = false;
+    prototype.capturesPayment = false;
+    prototype.externalProviderWrite = false;
+    prototype.productionEnabled = false;
+    prototype.secretsPresent = false;
+    prototype.credentialsStored = false;
+    prototype.storesCredentials = false;
+    prototype.oauthConfigured = false;
+    prototype.webhookEnabled = false;
+    prototype.customerVisible = false;
+    prototype.customerSafe = false;
+    prototype.legalReviewRequired = true;
+    prototype.taxReviewRequired = true;
+    prototype.privacyReviewRequired = true;
+    prototype.under19Guarded = true;
+    prototype.paymentProcessorSchema = "epoch.quote-payment";
+    prototype.payloadSource = "epoch.quote-payment";
+    prototype.updatedAt = nowText;
+    prototype.notes = note;
+
+    const receipt = {
+      id: `receipt-payment-provider-prototype-${stamp(now)}`,
+      kind: "payment-provider-prototype",
+      status: prototype.status === "blocked" ? "blocked" : "complete",
+      createdAt: nowText,
+      note: `${prototype.title}: ${action} recorded without live checkout, invoice sending, capture, refunds, OAuth, secrets, webhooks, provider writes, or customer-visible payment requests. ${note}`
+    };
+    const healthCheck = {
+      id: `monitor-check-payment-prototype-${stamp(now)}`,
+      title: "Sandbox Payment Provider Prototype",
+      status: prototype.status === "blocked" ? "blocked" : "complete",
+      target: "monitor-payment-prototype",
+      effect: "payment-provider-sandbox-proof",
+      createdAt: nowText,
+      summary: `${prototype.title} is ${prototype.prototypeStatus}; payment behavior remains sandbox/local only.`,
+      receiptId: receipt.id,
+      visibility: "internal",
+      customerVisible: false
+    };
+
+    prototype.receiptIds = Array.isArray(prototype.receiptIds) ? prototype.receiptIds : [];
+    prototype.receiptIds.push(receipt.id);
+    nextData.receipts.unshift(receipt);
+    nextData.monitorHealthChecks.unshift(healthCheck);
+
+    return {
+      data: nextData,
+      records: {
+        prototype,
+        receipt,
+        healthCheck
+      }
+    };
+  }
+
   function summarizeMemoryState(currentData, options = {}) {
     const data = normalizedOperatingData(currentData);
     const nowText = clean(options.now) || "2026-06-01T12:00:00+09:00";
@@ -6479,6 +6998,8 @@
     const providerAdapters = summarizeProviderAdapterSelectionState(data);
     const calendarExport = createCalendarExport(data, { now: nowText });
     const calendarAdapter = summarizeCalendarAdapterPrototypeState(data, { now: nowText, calendarExport, providerAdapters });
+    const paymentProvider = summarizePaymentProviderState(data, { quotes });
+    const paymentPrototype = summarizePaymentProviderPrototypeState(data, { providerAdapters, paymentProvider });
     const timeline = monitorTimelineItems(data);
     const terminalStatuses = new Set(["complete", "sent", "paid-recorded", "declined", "returned", "canceled", "accepted", "rejected", "rolled-back"]);
     const queue = timeline.filter((item) => ["waiting", "deferred", "draft", "presented", "queued", "submitted", "reviewing", "overdue", "blocked", "proposed", "approved", "dispatched", "acknowledged", "in-progress", "failed", "snoozed", "retry-ready", "payment-ready", "payment-blocked", "unavailable"].includes(item.status));
@@ -6509,6 +7030,8 @@
       providerAdapterReady: providerAdapters.readyCandidates,
       calendarAdapterPrototypes: calendarAdapter.prototypeCount,
       calendarAdapterPayloadReady: calendarAdapter.payloadReady,
+      paymentProviderPrototypes: paymentPrototype.prototypeCount,
+      paymentPrototypePayloadReady: paymentPrototype.payloadReady,
       copyComplianceViolations: marketing.copyViolations
     };
     const summaryByKey = {
@@ -6516,7 +7039,7 @@
       queue: `${baseSummary.queue} queued records`,
       "visible-updates": `${baseSummary.visibleUpdates} visible updates`,
       pipeline: `${revenue.pipelineCount} opportunities; ${baseSummary.pipelineValueJpy} JPY pipeline`,
-      marketing: `${marketing.ready} ready campaigns; ${marketingConversion.readyEvents} KPI events; ${providerAdapters.readyCandidates} provider candidates; ${calendarAdapter.payloadReady} calendar prototypes; ${marketing.copyViolations} copy policy violations`
+      marketing: `${marketing.ready} ready campaigns; ${marketingConversion.readyEvents} KPI events; ${providerAdapters.readyCandidates} provider candidates; ${calendarAdapter.payloadReady} calendar prototypes; ${paymentPrototype.payloadReady} payment prototypes; ${marketing.copyViolations} copy policy violations`
     };
     const routes = data.routePlacements.map((route) => ({
       id: clean(route.id),
@@ -7498,6 +8021,7 @@
       ...(currentData.providerAdapterCandidates || []).map((item) => ({ kind: "provider adapter", id: item.id, title: item.title, status: item.status || item.readinessStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.providerFamily || item.targetProvider || "provider" })),
       ...(currentData.calendarAdapterPrototypes || []).map((item) => ({ kind: "calendar adapter", id: item.id, title: item.title, status: item.status || item.prototypeStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.adapterMode || "calendar" })),
       ...(currentData.notificationProviderPrototypes || []).map((item) => ({ kind: "notification prototype", id: item.id, title: item.title, status: item.status || item.prototypeStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.adapterMode || "notification" })),
+      ...(currentData.paymentProviderPrototypes || []).map((item) => ({ kind: "payment prototype", id: item.id, title: item.title, status: item.status || item.prototypeStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.adapterMode || "payment" })),
       ...(currentData.customerAccountHistories || []).map((item) => ({ kind: "account history", id: item.id, title: item.displayName || item.id, status: item.status, time: item.updatedAt || item.reviewedAt, owner: item.visibility || "customer history" })),
       ...currentData.workPlans.map((item) => ({ kind: "agent work plan", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.approvalStatus || item.owner || "approval pending" })),
       ...currentData.agentHandoffs.map((item) => ({ kind: "agent handoff", id: item.id, title: item.title, status: item.status, time: item.nextActionAt, owner: item.approvalStatus || "approval pending" })),
@@ -7541,6 +8065,7 @@
     const marketing = summarizeMarketingState(data);
     const marketingConversion = summarizeMarketingConversionState(data);
     const providerAdapters = summarizeProviderAdapterSelectionState(data);
+    const paymentPrototype = summarizePaymentProviderPrototypeState(data, { providerAdapters, paymentProvider });
     const calendarExport = createCalendarExport(data, { now: nowText });
     const calendarAdapter = summarizeCalendarAdapterPrototypeState(data, { now: nowText, calendarExport, providerAdapters });
     const notificationPrototype = summarizeNotificationProviderPrototypeState(data, { providerAdapters, notificationProvider });
@@ -7594,6 +8119,10 @@
       if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
     for (const item of timeline.filter((entry) => entry.kind === "payment provider").slice(0, 4)) {
+      if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
+      if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
+    }
+    for (const item of timeline.filter((entry) => entry.kind === "payment prototype").slice(0, 4)) {
       if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
       if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
@@ -7777,6 +8306,14 @@
         detail: paymentProvider.violations[0]
       });
     }
+    if (paymentPrototype.violations.length) {
+      risks.push({
+        id: "payment-provider-prototype-violation",
+        severity: "high",
+        title: "Sandbox Payment Provider",
+        detail: paymentPrototype.violations[0]
+      });
+    }
     if (authSession.violations.length) {
       risks.push({
         id: "auth-session-role-violation",
@@ -7881,6 +8418,17 @@
         paymentEligibilityReady: paymentProvider.eligibilityReady,
         paymentProviderNoLivePayment: paymentProvider.noLivePayment,
         paymentProviderViolations: paymentProvider.violations.length,
+        paymentProviderPrototypes: paymentPrototype.prototypeCount,
+        paymentPrototypePayloadReady: paymentPrototype.payloadReady,
+        paymentPrototypeSandboxOnly: paymentPrototype.sandboxOnly,
+        paymentPrototypeLocalOnly: paymentPrototype.localOnly,
+        paymentPrototypeNoLivePayment: paymentPrototype.noLivePayment,
+        paymentPrototypeNoSecrets: paymentPrototype.noSecrets,
+        paymentPrototypeNoCustomerVisiblePayment: paymentPrototype.noCustomerVisiblePayment,
+        paymentPrototypeNoPaymentCapture: paymentPrototype.noPaymentCapture,
+        paymentPrototypeLegalTaxPrivacyReady: paymentPrototype.legalTaxPrivacyReady,
+        paymentPrototypeUnder19Guarded: paymentPrototype.under19Guarded,
+        paymentPrototypeViolations: paymentPrototype.violations.length,
         authSessionRoleHandoffs: authSession.handoffCount,
         authPublicReady: authSession.publicReady,
         authCustomerReady: authSession.customerReady,
@@ -7988,6 +8536,7 @@
       notificationProvider,
       notificationPrototype,
       paymentProvider,
+      paymentPrototype,
       authSession,
       accountHistory,
       quotes,
@@ -8039,6 +8588,7 @@
     const providerAdapters = summarizeProviderAdapterSelectionState(data);
     const calendarAdapter = summarizeCalendarAdapterPrototypeState(data, { now: now.toISOString(), calendarExport, providerAdapters });
     const notificationPrototype = summarizeNotificationProviderPrototypeState(data, { providerAdapters, notificationProvider });
+    const paymentPrototype = summarizePaymentProviderPrototypeState(data, { providerAdapters, paymentProvider });
     const routePlacement = summarizeRoutePlacementState(data, { now: now.toISOString() });
     const accessGateway = summarizeAccessGatewayState(data, { now: now.toISOString(), routePlacement });
     const librarySync = summarizeLibrarySyncState(data, { now: now.toISOString(), persistence });
@@ -8060,6 +8610,7 @@
       notificationProvider,
       notificationPrototype,
       paymentProvider,
+      paymentPrototype,
       authSession,
       accountHistory,
       marketingConversion,
@@ -8105,6 +8656,8 @@
     transitionCalendarAdapterPrototypeRecords,
     createNotificationProviderPrototypeRecords,
     transitionNotificationProviderPrototypeRecords,
+    createPaymentProviderPrototypeRecords,
+    transitionPaymentProviderPrototypeRecords,
     createCustomerAccountHistoryRecords,
     createQuoteEstimateRecords,
     transitionQuoteEstimateRecords,
@@ -8146,6 +8699,7 @@
     summarizeProviderAdapterSelectionState,
     summarizeCalendarAdapterPrototypeState,
     summarizeNotificationProviderPrototypeState,
+    summarizePaymentProviderPrototypeState,
     summarizeCustomerAccountHistoryState,
     summarizeAccessPosture,
     summarizeMemoryState,

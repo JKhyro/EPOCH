@@ -22,6 +22,7 @@ EPOCH MONITOR must expose these local operator sections:
 - LIBRARY Sync
 - Calendar Providers
 - Notification Providers
+- Sandbox Payment Provider
 - Marketing Conversion KPIs
 - Provider Adapter Go/No-Go
 - Customer Account History
@@ -50,6 +51,9 @@ The current action classes are:
 - Calendar provider handoff and invitation-readiness review.
 - Notification provider handoff, template readiness, and consent-readiness
   review.
+- Sandbox payment provider prototype review for local payment payload previews
+  before live checkout, capture, refunds, invoice sending, credentials,
+  webhooks, provider writes, or customer-visible payment requests.
 - Marketing conversion KPI readiness for route-attributed, first-party,
   no-live-tracking campaign measurement.
 - Provider adapter go/no-go readiness for sandbox-only candidate selection
@@ -161,6 +165,14 @@ The repository verifier must cover:
   no-webhook/no-provider-write/no-customer-visible-send enforcement, internal
   `notification-provider-prototype` receipts, export/import preservation,
   monitor summary counts, and the `monitor-notification-prototype` section.
+- Sandbox payment provider prototype controls and verifier coverage for
+  `paymentProviderPrototypes`, local payment payload previews, payment provider
+  handoff and provider-adapter linkage, legal/tax/privacy review posture,
+  under-19 eligibility gating, no-live-payment/no-secrets/no-OAuth/no-webhook/
+  no-provider-write/no-checkout-session/no-payment-capture/no-refund/
+  no-invoice-send/no-customer-visible-payment enforcement, internal
+  `payment-provider-prototype` receipts, export/import preservation, monitor
+  summary counts, and the `monitor-payment-prototype` section.
 - Customer account history controls and verifier coverage for
   `customerAccountHistories`, controlled-customer status timelines,
   submission/cohort/service/receipt linkage, local-only enforcement, no live
