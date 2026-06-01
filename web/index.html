@@ -344,6 +344,7 @@
         <button type="button" class="mode-button" data-monitor-target="monitor-calendar-adapter">Cal Adapter</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-notification-prototype">Notify Proof</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-payment-prototype">Pay Proof</button>
+        <button type="button" class="mode-button" data-monitor-target="monitor-auth-prototype">Auth Proof</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-account-history">History</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-controls">Controls</button>
       </div>
@@ -366,6 +367,7 @@
           <button type="button" data-monitor-target="monitor-calendar-adapter">Sandbox Calendar Adapter</button>
           <button type="button" data-monitor-target="monitor-notification-prototype">Sandbox Notification Provider</button>
           <button type="button" data-monitor-target="monitor-payment-prototype">Sandbox Payment Provider</button>
+          <button type="button" data-monitor-target="monitor-auth-prototype">Sandbox Auth Provider</button>
           <button type="button" data-monitor-target="monitor-account-history">Customer Account History</button>
           <button type="button" data-monitor-target="monitor-handoffs">Agent Handoffs</button>
           <button type="button" data-monitor-target="monitor-notification-provider">Notification Providers</button>
@@ -674,6 +676,29 @@
               </label>
               <button type="submit" id="payment-prototype-apply">Apply Sandbox Payment Provider Action</button>
             </form>
+            <form id="auth-prototype-form" class="review-console auth-prototype-console">
+              <div class="form-row">
+                <label>
+                  Sandbox Auth Provider
+                  <select name="prototypeId" id="auth-prototype-select" required></select>
+                </label>
+                <label>
+                  Prototype action
+                  <select name="action" id="auth-prototype-action" required>
+                    <option value="generate-preview">Generate local preview</option>
+                    <option value="approve-sandbox">Approve sandbox proof</option>
+                    <option value="mark-reviewed">Mark operator reviewed</option>
+                    <option value="defer">Defer prototype</option>
+                    <option value="block">Block prototype</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                Prototype note
+                <input name="note" value="Sandbox auth provider reviewed; production login, OAuth, secrets, credentials, token storage, refresh-token storage, webhooks, provider writes, external sessions, customer-visible auth behavior, and raw admin/monitor exposure remain disabled." />
+              </label>
+              <button type="submit" id="auth-prototype-apply">Apply Sandbox Auth Provider Action</button>
+            </form>
             <form id="quote-payment-form" class="review-console quote-console">
               <div class="form-row">
                 <label>
@@ -873,6 +898,7 @@
             <div id="calendar-adapter-confirmation" class="confirmation"></div>
             <div id="notification-prototype-confirmation" class="confirmation"></div>
             <div id="payment-prototype-confirmation" class="confirmation"></div>
+            <div id="auth-prototype-confirmation" class="confirmation"></div>
             <div id="quote-payment-confirmation" class="confirmation"></div>
             <div id="reminder-control-confirmation" class="confirmation"></div>
             <div id="access-gateway-confirmation" class="confirmation"></div>

@@ -120,6 +120,11 @@ service operations without waiting for every future CITADEL integration.
   from quote, opportunity, and package readiness records while keeping live
   checkout, invoice sending, capture, refunds, OAuth, secrets, webhooks,
   provider writes, and customer-visible payment requests disabled.
+- Sandbox auth provider prototypes prepare local access payload previews for
+  public intake, customer status, raw admin denial, and raw monitor denial while
+  keeping production login, OAuth, secrets, credentials, token storage,
+  refresh-token storage, webhooks, provider writes, external sessions, and
+  customer-visible auth behavior disabled.
 - Durable customer account history links status, submissions, cohorts, service
   records, receipts, and customer-safe updates while remaining local-only and
   controlled-customer.

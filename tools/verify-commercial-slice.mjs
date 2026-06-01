@@ -44,6 +44,7 @@ const requiredCollections = [
   "calendarAdapterPrototypes",
   "notificationProviderPrototypes",
   "paymentProviderPrototypes",
+  "authProviderPrototypes",
   "leads",
   "opportunities",
   "routePlacements",
@@ -110,6 +111,7 @@ if (!Array.isArray(data.paymentProviderHandoffs)) fail("seed data missing paymen
 if (!Array.isArray(data.authSessionRoleHandoffs)) fail("seed data missing authSessionRoleHandoffs collection");
 if (!Array.isArray(data.calendarAdapterPrototypes)) fail("seed data missing calendarAdapterPrototypes collection");
 if (!Array.isArray(data.paymentProviderPrototypes)) fail("seed data missing paymentProviderPrototypes collection");
+if (!Array.isArray(data.authProviderPrototypes)) fail("seed data missing authProviderPrototypes collection");
 if (!Array.isArray(data.customerAccountHistories)) fail("seed data missing customerAccountHistories collection");
 
 const header = read("../native/epoch_core.h");
@@ -234,7 +236,12 @@ for (const id of [
   "payment-prototype-select",
   "payment-prototype-action",
   "payment-prototype-apply",
-  "payment-prototype-confirmation"
+  "payment-prototype-confirmation",
+  "auth-prototype-form",
+  "auth-prototype-select",
+  "auth-prototype-action",
+  "auth-prototype-apply",
+  "auth-prototype-confirmation"
 ]) {
   if (!html.includes(`id="${id}"`)) fail(`web surface missing ${id}`);
 }
@@ -283,6 +290,9 @@ for (const field of ["prototypeId", "action", "note"]) {
 for (const field of ["prototypeId", "action", "note"]) {
   if (!html.includes(`name="${field}"`)) fail(`sandbox payment provider form missing field ${field}`);
 }
+for (const field of ["prototypeId", "action", "note"]) {
+  if (!html.includes(`name="${field}"`)) fail(`sandbox auth provider form missing field ${field}`);
+}
 for (const field of ["handoffId", "action", "note"]) {
   if (!html.includes(`name="${field}"`)) fail(`payment provider form missing field ${field}`);
 }
@@ -292,7 +302,7 @@ for (const field of ["handoffId", "action", "note"]) {
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
 }
-for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-command-strip", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-library-sync", "monitor-calendar-provider", "monitor-notification-provider", "monitor-notification-prototype", "monitor-payment-provider", "monitor-payment-prototype", "monitor-auth-session", "monitor-persistence", "monitor-scope", "monitor-memory", "monitor-access"]) {
+for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-command-strip", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-library-sync", "monitor-calendar-provider", "monitor-notification-provider", "monitor-notification-prototype", "monitor-payment-provider", "monitor-payment-prototype", "monitor-auth-prototype", "monitor-auth-session", "monitor-persistence", "monitor-scope", "monitor-memory", "monitor-access"]) {
   if (!html.includes(phrase)) fail(`monitor route surface missing phrase ${phrase}`);
 }
 for (const phrase of ["monitor-curriculum", "Package Gameplans", "Personalized Gameplan", "Curriculum Frameworks"]) {
@@ -315,6 +325,9 @@ for (const phrase of ["Payment Providers", "Payment Provider Handoffs", "Apply P
 }
 for (const phrase of ["Sandbox Payment Provider", "Apply Sandbox Payment Provider Action", "monitor-payment-prototype", "live checkout, invoice sending, capture, refunds, OAuth, secrets, webhooks, provider writes, and customer-visible payment requests remain disabled"]) {
   if (!html.includes(phrase)) fail(`sandbox payment provider HTML missing phrase ${phrase}`);
+}
+for (const phrase of ["Sandbox Auth Provider", "Apply Sandbox Auth Provider Action", "monitor-auth-prototype", "production login, OAuth, secrets, credentials, token storage, refresh-token storage, webhooks, provider writes, external sessions, customer-visible auth behavior, and raw admin/monitor exposure remain disabled"]) {
+  if (!html.includes(phrase)) fail(`sandbox auth provider HTML missing phrase ${phrase}`);
 }
 for (const phrase of ["Auth Sessions", "Auth Session Role Handoffs", "Apply Auth Session Role Action"]) {
   if (!html.includes(phrase)) fail(`auth/session role HTML missing phrase ${phrase}`);
@@ -421,6 +434,7 @@ for (const phrase of [
   "summarizeMarketingConversionState",
   "summarizeProviderAdapterSelectionState",
   "summarizeCalendarAdapterPrototypeState",
+  "summarizeAuthProviderPrototypeState",
   "summarizeCustomerAccountHistoryState",
   "summarizeCurriculumState",
   "Curriculum Readiness",
@@ -428,16 +442,19 @@ for (const phrase of [
   "Conversion KPIs",
   "Provider Adapters",
   "Sandbox Calendar Adapter",
+  "Sandbox Auth Provider",
   "Customer Account History",
   "monitor-campaigns",
   "monitor-marketing-conversions",
   "monitor-provider-adapters",
   "monitor-calendar-adapter",
+  "monitor-auth-prototype",
   "monitor-account-history",
   "campaign route",
   "marketing conversion",
   "provider adapter",
   "calendar adapter",
+  "auth prototype",
   "account history",
   "monitor-curriculum",
   "gameplan-ready",
@@ -513,6 +530,7 @@ for (const phrase of [
   "transitionMarketingConversionEventRecords",
   "transitionProviderAdapterCandidateRecords",
   "transitionCalendarAdapterPrototypeRecords",
+  "transitionAuthProviderPrototypeRecords",
   "summarizeLibrarySyncState",
   "summarizeCalendarProviderState",
   "summarizeNotificationProviderState",
@@ -521,6 +539,7 @@ for (const phrase of [
   "summarizeMarketingConversionState",
   "summarizeProviderAdapterSelectionState",
   "summarizeCalendarAdapterPrototypeState",
+  "summarizeAuthProviderPrototypeState",
   "summarizeCustomerAccountHistoryState",
   "summarizeAccessGatewayState",
   "renderAccessGatewayOptions",
@@ -552,6 +571,7 @@ for (const phrase of [
   "Provider Adapter Go/No-Go",
   "Provider Adapter Go/No-Go Updated",
   "Sandbox Calendar Adapter Updated",
+  "Sandbox Auth Provider Updated",
   "Customer Account History",
   "renderAgentHandoffOptions",
   "renderNotificationDeliveryOptions",
@@ -561,6 +581,7 @@ for (const phrase of [
   "renderMarketingConversionOptions",
   "renderProviderAdapterOptions",
   "renderCalendarAdapterOptions",
+  "renderAuthPrototypeOptions",
   "renderQuoteOptions",
   "renderReminderControlOptions",
   "wireAgentHandoffForm",
@@ -571,6 +592,7 @@ for (const phrase of [
   "wireMarketingConversionForm",
   "wireProviderAdapterForm",
   "wireCalendarAdapterForm",
+  "wireAuthPrototypeForm",
   "wireQuotePaymentForm",
   "wireReminderControlForm",
   "Opportunity Pipeline",
@@ -632,6 +654,7 @@ for (const phrase of [
   "calendar-adapter-console",
   "notification-prototype-console",
   "payment-prototype-console",
+  "auth-prototype-console",
   "monitor-action-button",
   "button-meta",
   "monitor-command-strip",
@@ -816,6 +839,30 @@ for (const prototype of data.paymentProviderPrototypes) {
   if (!Array.isArray(prototype.payloadPreview) || !prototype.payloadPreview.length) fail(`payment provider prototype ${prototype.id} missing local payload preview`);
   if (!Array.isArray(prototype.blockers) || !prototype.blockers.length) fail(`payment provider prototype ${prototype.id} missing blockers`);
 }
+if (!Array.isArray(data.authProviderPrototypes) || data.authProviderPrototypes.length < 1) fail("seed data missing sandbox auth provider prototype records");
+if (!data.receipts.some((item) => item.kind === "auth-provider-prototype")) fail("seed data missing auth-provider-prototype receipt");
+if (!data.monitorHealthChecks.some((item) => item.target === "monitor-auth-prototype" && item.effect === "auth-provider-sandbox-proof")) fail("seed data missing sandbox auth provider monitor health check");
+for (const prototype of data.authProviderPrototypes) {
+  if (!data.providerAdapterCandidates.some((item) => item.id === prototype.providerCandidateId && item.providerFamily === "auth-session")) fail(`auth provider prototype ${prototype.id} does not link to an auth-session provider adapter candidate`);
+  if (!Array.isArray(prototype.sourceHandoffIds) || !prototype.sourceHandoffIds.some((id) => data.authSessionRoleHandoffs.some((item) => item.id === id))) fail(`auth provider prototype ${prototype.id} does not link to auth/session role handoffs`);
+  if (prototype.adapterFamily !== "auth-session") fail(`auth provider prototype ${prototype.id} is not in the auth-session family`);
+  if (prototype.sandboxOnly !== true || prototype.localOnly !== true) fail(`auth provider prototype ${prototype.id} must remain sandbox/local only`);
+  if (prototype.liveAuthEnabled !== false || prototype.liveLoginEnabled !== false || prototype.productionAuthEnabled !== false || prototype.identityProviderWrite !== false || prototype.externalProviderWrite !== false || prototype.externalSessionEnabled !== false) {
+    fail(`auth provider prototype ${prototype.id} enabled live auth provider behavior`);
+  }
+  if (prototype.oauthClientConfigured !== false || prototype.oauthConfigured !== false || prototype.secretsPresent !== false || prototype.credentialsStored !== false || prototype.storesCredentials !== false || prototype.storesTokens !== false || prototype.tokenStorageEnabled !== false || prototype.refreshTokenStorageEnabled !== false || prototype.webhookEnabled !== false) {
+    fail(`auth provider prototype ${prototype.id} enabled OAuth, secrets, credentials, tokens, refresh-token storage, or webhooks`);
+  }
+  if (prototype.customerVisible !== false || prototype.customerSafe !== false) fail(`auth provider prototype ${prototype.id} should remain internal-only`);
+  if (prototype.rawAdminExposure !== false || prototype.rawMonitorExposure !== false) fail(`auth provider prototype ${prototype.id} exposed raw admin or monitor routes`);
+  for (const requiredCheck of ["provider-candidate-required", "auth-session-role-handoff-required", "auth-boundary-schema-stable", "public-intake-route-only", "controlled-customer-route", "raw-admin-denied-public", "raw-monitor-denied-public", "sandbox-only-before-go-live", "operator-approval-required", "privacy-boundary-required", "consent-boundary-required", "no-live-auth", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-credential-storage", "no-token-storage", "no-refresh-token-storage", "no-external-session", "no-customer-visible-auth"]) {
+    if (!prototype.readinessChecks.includes(requiredCheck)) fail(`auth provider prototype ${prototype.id} missing ${requiredCheck}`);
+  }
+  if (!Array.isArray(prototype.payloadPreview) || prototype.payloadPreview.length < 4) fail(`auth provider prototype ${prototype.id} missing local access payload previews`);
+  if (!prototype.payloadPreview.some((item) => item.surface === "admin" && item.publicExposure === "denied")) fail(`auth provider prototype ${prototype.id} missing raw admin denial preview`);
+  if (!prototype.payloadPreview.some((item) => item.surface === "monitor" && item.publicExposure === "denied")) fail(`auth provider prototype ${prototype.id} missing raw monitor denial preview`);
+  if (!Array.isArray(prototype.blockers) || !prototype.blockers.length) fail(`auth provider prototype ${prototype.id} missing blockers`);
+}
 if (!Array.isArray(data.customerAccountHistories) || data.customerAccountHistories.length < data.customers.length) fail("seed data missing durable customer account history records");
 if (!data.receipts.some((item) => item.kind === "customer-account-history" || item.id === "receipt-client-request-seed")) fail("seed data missing customer account history receipt evidence");
 for (const history of data.customerAccountHistories) {
@@ -924,6 +971,8 @@ if (typeof recordTools.createProviderAdapterCandidateRecords !== "function") fai
 if (typeof recordTools.transitionProviderAdapterCandidateRecords !== "function") fail("operating helpers missing transitionProviderAdapterCandidateRecords");
 if (typeof recordTools.createCalendarAdapterPrototypeRecords !== "function") fail("operating helpers missing createCalendarAdapterPrototypeRecords");
 if (typeof recordTools.transitionCalendarAdapterPrototypeRecords !== "function") fail("operating helpers missing transitionCalendarAdapterPrototypeRecords");
+if (typeof recordTools.createAuthProviderPrototypeRecords !== "function") fail("operating helpers missing createAuthProviderPrototypeRecords");
+if (typeof recordTools.transitionAuthProviderPrototypeRecords !== "function") fail("operating helpers missing transitionAuthProviderPrototypeRecords");
 if (typeof recordTools.createCustomerAccountHistoryRecords !== "function") fail("operating helpers missing createCustomerAccountHistoryRecords");
 if (typeof recordTools.createQuoteEstimateRecords !== "function") fail("operating helpers missing createQuoteEstimateRecords");
 if (typeof recordTools.transitionQuoteEstimateRecords !== "function") fail("operating helpers missing transitionQuoteEstimateRecords");
@@ -952,6 +1001,7 @@ if (typeof recordTools.summarizeAuthSessionRoleState !== "function") fail("opera
 if (typeof recordTools.summarizeMarketingConversionState !== "function") fail("operating helpers missing summarizeMarketingConversionState");
 if (typeof recordTools.summarizeProviderAdapterSelectionState !== "function") fail("operating helpers missing summarizeProviderAdapterSelectionState");
 if (typeof recordTools.summarizeCalendarAdapterPrototypeState !== "function") fail("operating helpers missing summarizeCalendarAdapterPrototypeState");
+if (typeof recordTools.summarizeAuthProviderPrototypeState !== "function") fail("operating helpers missing summarizeAuthProviderPrototypeState");
 if (typeof recordTools.summarizeCustomerAccountHistoryState !== "function") fail("operating helpers missing summarizeCustomerAccountHistoryState");
 if (typeof recordTools.summarizeAccessPosture !== "function") fail("operating helpers missing summarizeAccessPosture");
 if (typeof recordTools.summarizeMemoryState !== "function") fail("operating helpers missing summarizeMemoryState");
@@ -1458,6 +1508,77 @@ if (paymentPrototypeTransitionResult.records.prototype.livePaymentEnabled || pay
   fail("payment prototype transition enabled live provider or secret safeguards");
 }
 
+const authPrototypeSummary = recordTools.summarizeAuthProviderPrototypeState(data);
+if (authPrototypeSummary.prototypeCount !== data.authProviderPrototypes.length) fail("auth prototype summary total is wrong");
+if (authPrototypeSummary.payloadReady < 1) fail("auth prototype summary missing payload-ready prototype");
+if (authPrototypeSummary.sandboxOnly !== data.authProviderPrototypes.length) fail("auth prototype summary missing sandbox-only prototypes");
+if (authPrototypeSummary.localOnly !== data.authProviderPrototypes.length) fail("auth prototype summary missing local-only prototypes");
+if (authPrototypeSummary.noLiveAuth !== data.authProviderPrototypes.length) fail("auth prototype summary no-live-auth count is wrong");
+if (authPrototypeSummary.noSecrets !== data.authProviderPrototypes.length) fail("auth prototype summary no-secrets count is wrong");
+if (authPrototypeSummary.noCredentialStorage !== data.authProviderPrototypes.length) fail("auth prototype summary no-credential-storage count is wrong");
+if (authPrototypeSummary.noTokenStorage !== data.authProviderPrototypes.length) fail("auth prototype summary no-token-storage count is wrong");
+if (authPrototypeSummary.noExternalSession !== data.authProviderPrototypes.length) fail("auth prototype summary no-external-session count is wrong");
+if (authPrototypeSummary.noCustomerVisibleAuth !== data.authProviderPrototypes.length) fail("auth prototype summary no-customer-visible-auth count is wrong");
+if (authPrototypeSummary.rawAdminDenied !== data.authProviderPrototypes.length) fail("auth prototype summary raw-admin denial count is wrong");
+if (authPrototypeSummary.rawMonitorDenied !== data.authProviderPrototypes.length) fail("auth prototype summary raw-monitor denial count is wrong");
+if (authPrototypeSummary.violations.length !== 0) fail("auth prototype summary should not report seed violations");
+
+const malformedAuthPrototypeData = recordTools.cloneData(data);
+malformedAuthPrototypeData.authProviderPrototypes[0] = {
+  ...malformedAuthPrototypeData.authProviderPrototypes[0],
+  liveAuthEnabled: true,
+  liveLoginEnabled: true,
+  productionAuthEnabled: true,
+  identityProviderWrite: true,
+  externalProviderWrite: true,
+  externalSessionEnabled: true,
+  oauthClientConfigured: true,
+  oauthConfigured: true,
+  secretsPresent: true,
+  credentialsStored: true,
+  storesCredentials: true,
+  storesTokens: true,
+  tokenStorageEnabled: true,
+  refreshTokenStorageEnabled: true,
+  webhookEnabled: true,
+  customerVisible: true,
+  rawAdminExposure: true,
+  rawMonitorExposure: true,
+  readinessChecks: [],
+  payloadPreview: []
+};
+const malformedAuthPrototypeSummary = recordTools.summarizeAuthProviderPrototypeState(malformedAuthPrototypeData);
+if (malformedAuthPrototypeSummary.status !== "blocked" || malformedAuthPrototypeSummary.violations.length < 4) fail("auth prototype summary did not flag live auth/secret/raw-exposure violations");
+
+const authPrototypeCreateResult = recordTools.createAuthProviderPrototypeRecords(data, {
+  providerCandidateId: "provider-adapter-auth-session",
+  note: "Verifier created a local auth/session access payload preview without live identity-provider behavior."
+}, { now: "2026-06-01T12:19:00+09:00" });
+if (authPrototypeCreateResult.data.authProviderPrototypes.length !== data.authProviderPrototypes.length + 1) fail("auth prototype create did not add a prototype");
+if (authPrototypeCreateResult.records.prototype.liveAuthEnabled || authPrototypeCreateResult.records.prototype.liveLoginEnabled || authPrototypeCreateResult.records.prototype.productionAuthEnabled || authPrototypeCreateResult.records.prototype.identityProviderWrite || authPrototypeCreateResult.records.prototype.externalProviderWrite || authPrototypeCreateResult.records.prototype.externalSessionEnabled || authPrototypeCreateResult.records.prototype.oauthClientConfigured || authPrototypeCreateResult.records.prototype.oauthConfigured || authPrototypeCreateResult.records.prototype.secretsPresent || authPrototypeCreateResult.records.prototype.credentialsStored || authPrototypeCreateResult.records.prototype.storesCredentials || authPrototypeCreateResult.records.prototype.storesTokens || authPrototypeCreateResult.records.prototype.tokenStorageEnabled || authPrototypeCreateResult.records.prototype.refreshTokenStorageEnabled || authPrototypeCreateResult.records.prototype.webhookEnabled) {
+  fail("auth prototype create enabled live auth provider behavior, secrets, OAuth, tokens, refresh-token storage, or webhooks");
+}
+if (!authPrototypeCreateResult.records.prototype.payloadPreview.length) fail("auth prototype create did not generate a payload preview");
+if (!authPrototypeCreateResult.records.prototype.payloadPreview.some((item) => item.surface === "monitor" && item.publicExposure === "denied")) fail("auth prototype create did not preserve raw monitor denial preview");
+if (authPrototypeCreateResult.records.receipt.kind !== "auth-provider-prototype") fail("auth prototype create missing receipt kind");
+if (authPrototypeCreateResult.records.healthCheck.target !== "monitor-auth-prototype") fail("auth prototype create missing monitor target");
+if (authPrototypeCreateResult.data.notificationEvents.length !== data.notificationEvents.length) fail("auth prototype create created a customer-visible notification event");
+
+const authPrototypeTransitionResult = recordTools.transitionAuthProviderPrototypeRecords(data, {
+  prototypeId: "auth-provider-sandbox-access-preview",
+  action: "approve-sandbox",
+  note: "Verifier approved sandbox auth access proof without production login, OAuth, secrets, credentials, tokens, webhooks, provider writes, external sessions, or customer-visible auth behavior."
+}, { now: "2026-06-01T12:20:00+09:00" });
+if (authPrototypeTransitionResult.records.prototype.status !== "approved") fail("auth prototype transition did not approve sandbox status");
+if (authPrototypeTransitionResult.records.prototype.prototypeStatus !== "sandbox-approved") fail("auth prototype transition did not set sandbox-approved state");
+if (authPrototypeTransitionResult.records.receipt.kind !== "auth-provider-prototype") fail("auth prototype transition missing receipt kind");
+if (authPrototypeTransitionResult.records.healthCheck.effect !== "auth-provider-sandbox-proof") fail("auth prototype transition missing monitor effect");
+if (authPrototypeTransitionResult.records.healthCheck.customerVisible !== false) fail("auth prototype health check must remain internal");
+if (authPrototypeTransitionResult.data.notificationEvents.length !== data.notificationEvents.length) fail("auth prototype transition created a customer-visible notification event");
+if (authPrototypeTransitionResult.records.prototype.liveAuthEnabled || authPrototypeTransitionResult.records.prototype.liveLoginEnabled || authPrototypeTransitionResult.records.prototype.productionAuthEnabled || authPrototypeTransitionResult.records.prototype.identityProviderWrite || authPrototypeTransitionResult.records.prototype.externalProviderWrite || authPrototypeTransitionResult.records.prototype.externalSessionEnabled || authPrototypeTransitionResult.records.prototype.oauthClientConfigured || authPrototypeTransitionResult.records.prototype.oauthConfigured || authPrototypeTransitionResult.records.prototype.secretsPresent || authPrototypeTransitionResult.records.prototype.credentialsStored || authPrototypeTransitionResult.records.prototype.storesCredentials || authPrototypeTransitionResult.records.prototype.storesTokens || authPrototypeTransitionResult.records.prototype.tokenStorageEnabled || authPrototypeTransitionResult.records.prototype.refreshTokenStorageEnabled || authPrototypeTransitionResult.records.prototype.webhookEnabled || authPrototypeTransitionResult.records.prototype.customerVisible || authPrototypeTransitionResult.records.prototype.rawAdminExposure || authPrototypeTransitionResult.records.prototype.rawMonitorExposure) {
+  fail("auth prototype transition enabled live provider, token, secret, customer-visible, or raw-exposure safeguards");
+}
+
 const accountHistorySummary = recordTools.summarizeCustomerAccountHistoryState(data);
 if (accountHistorySummary.historyCount !== data.customers.length) fail("account history summary should cover every customer");
 if (accountHistorySummary.timelineEvents < data.customerAccountHistories.length) fail("account history summary missing timeline events");
@@ -1509,6 +1630,7 @@ for (const phrase of [
   "Marketing conversion KPI events",
   "Provider adapter candidates",
   "Sandbox calendar adapter prototypes",
+  "Sandbox auth provider prototypes",
   "Durable customer account history"
 ]) {
   if (!checklist.includes(phrase)) fail(`checklist missing phrase: ${phrase}`);
@@ -1747,6 +1869,27 @@ for (const phrase of [
   "no-customer-visible-payment-request"
 ]) {
   if (!paymentPrototypeContract.includes(phrase)) fail(`sandbox payment provider contract missing phrase: ${phrase}`);
+}
+
+const authPrototypeContract = read("../docs/sandbox-auth-provider-prototype-contract.md");
+for (const phrase of [
+  "Sandbox Auth Provider Prototype Contract",
+  "authProviderPrototypes",
+  "monitor-auth-prototype",
+  "transitionAuthProviderPrototypeRecords",
+  "auth-provider-prototype",
+  "sandboxOnly: true",
+  "localOnly: true",
+  "productionAuthEnabled: false",
+  "storesTokens: false",
+  "refreshTokenStorageEnabled: false",
+  "rawAdminExposure: false",
+  "rawMonitorExposure: false",
+  "no-live-auth",
+  "raw admin denial",
+  "raw monitor denial"
+]) {
+  if (!authPrototypeContract.includes(phrase)) fail(`sandbox auth provider contract missing phrase: ${phrase}`);
 }
 
 const accountHistoryContract = read("../docs/customer-account-history-contract.md");
@@ -2541,6 +2684,7 @@ if (!monitorReport.notificationProvider) fail("monitor report missing notificati
 if (!monitorReport.paymentProvider) fail("monitor report missing payment provider state");
 if (!monitorReport.paymentPrototype) fail("monitor report missing sandbox payment provider state");
 if (!monitorReport.authSession) fail("monitor report missing auth/session role state");
+if (!monitorReport.authPrototype) fail("monitor report missing sandbox auth provider state");
 if (!Array.isArray(monitorReport.monitorHealthChecks)) fail("monitor report missing monitor health checks");
 if (!Array.isArray(monitorReport.operatorActions)) fail("monitor report missing operator actions");
 if (!monitorReport.routePlacement) fail("monitor report missing SYNAPSE route placement state");
@@ -2626,6 +2770,19 @@ if (monitorReport.summary.paymentPrototypeNoPaymentCapture !== data.paymentProvi
 if (monitorReport.summary.paymentPrototypeLegalTaxPrivacyReady !== data.paymentProviderPrototypes.length) fail("monitor summary missing legal/tax/privacy payment provider prototypes");
 if (monitorReport.summary.paymentPrototypeUnder19Guarded !== data.paymentProviderPrototypes.length) fail("monitor summary missing under-19 guarded payment provider prototypes");
 if (monitorReport.summary.paymentPrototypeViolations !== 0) fail("monitor summary should not report payment prototype violations for the seed slice");
+if (monitorReport.summary.authProviderPrototypes !== data.authProviderPrototypes.length) fail("monitor summary auth provider prototype count is wrong");
+if (monitorReport.summary.authPrototypePayloadReady < 1) fail("monitor summary missing payload-ready auth provider prototype");
+if (monitorReport.summary.authPrototypeSandboxOnly !== data.authProviderPrototypes.length) fail("monitor summary missing sandbox-only auth provider prototypes");
+if (monitorReport.summary.authPrototypeLocalOnly !== data.authProviderPrototypes.length) fail("monitor summary missing local-only auth provider prototypes");
+if (monitorReport.summary.authPrototypeNoLiveAuth !== data.authProviderPrototypes.length) fail("monitor summary missing no-live-auth provider prototypes");
+if (monitorReport.summary.authPrototypeNoSecrets !== data.authProviderPrototypes.length) fail("monitor summary missing no-secrets auth provider prototypes");
+if (monitorReport.summary.authPrototypeNoCredentialStorage !== data.authProviderPrototypes.length) fail("monitor summary missing no-credential-storage auth provider prototypes");
+if (monitorReport.summary.authPrototypeNoTokenStorage !== data.authProviderPrototypes.length) fail("monitor summary missing no-token-storage auth provider prototypes");
+if (monitorReport.summary.authPrototypeNoExternalSession !== data.authProviderPrototypes.length) fail("monitor summary missing no-external-session auth provider prototypes");
+if (monitorReport.summary.authPrototypeNoCustomerVisibleAuth !== data.authProviderPrototypes.length) fail("monitor summary missing no-customer-visible-auth provider prototypes");
+if (monitorReport.summary.authPrototypeRawAdminDenied !== data.authProviderPrototypes.length) fail("monitor summary missing raw-admin denied auth provider prototypes");
+if (monitorReport.summary.authPrototypeRawMonitorDenied !== data.authProviderPrototypes.length) fail("monitor summary missing raw-monitor denied auth provider prototypes");
+if (monitorReport.summary.authPrototypeViolations !== 0) fail("monitor summary should not report auth prototype violations for the seed slice");
 if (monitorReport.summary.authSessionRoleHandoffs < 4) fail("monitor summary missing auth/session role handoff count");
 if (monitorReport.summary.authPublicReady < 1) fail("monitor summary missing public auth readiness count");
 if (monitorReport.summary.authCustomerReady < 1) fail("monitor summary missing customer auth readiness count");
@@ -2640,6 +2797,7 @@ if (!monitorReport.timeline.some((item) => item.kind === "provider adapter")) fa
 if (!monitorReport.timeline.some((item) => item.kind === "calendar adapter")) fail("monitor timeline missing sandbox calendar adapter prototypes");
 if (!monitorReport.timeline.some((item) => item.kind === "notification prototype")) fail("monitor timeline missing sandbox notification provider prototypes");
 if (!monitorReport.timeline.some((item) => item.kind === "payment prototype")) fail("monitor timeline missing sandbox payment provider prototypes");
+if (!monitorReport.timeline.some((item) => item.kind === "auth prototype")) fail("monitor timeline missing sandbox auth provider prototypes");
 if (!monitorReport.timeline.some((item) => item.kind === "access gateway")) fail("monitor timeline missing access gateways");
 if (!monitorReport.timeline.some((item) => item.kind === "library sync")) fail("monitor timeline missing LIBRARY sync handoffs");
 if (!monitorReport.timeline.some((item) => item.kind === "calendar provider")) fail("monitor timeline missing calendar provider handoffs");
@@ -2726,6 +2884,7 @@ if (exportedLedger.counts.providerAdapterCandidates !== returnResult.data.provid
 if (exportedLedger.counts.calendarAdapterPrototypes !== returnResult.data.calendarAdapterPrototypes.length) fail("ledger export calendar adapter prototype count is wrong");
 if (exportedLedger.counts.notificationProviderPrototypes !== returnResult.data.notificationProviderPrototypes.length) fail("ledger export notification provider prototype count is wrong");
 if (exportedLedger.counts.paymentProviderPrototypes !== returnResult.data.paymentProviderPrototypes.length) fail("ledger export payment provider prototype count is wrong");
+if (exportedLedger.counts.authProviderPrototypes !== returnResult.data.authProviderPrototypes.length) fail("ledger export auth provider prototype count is wrong");
 if (exportedLedger.counts.customerAccountHistories !== exportedLedger.data.customerAccountHistories.length) fail("ledger export account history count is wrong");
 if (!exportedLedger.monitor || exportedLedger.monitor.timeline < 1) fail("ledger export missing monitor summary");
 if (exportedLedger.monitor.persistenceRevision !== exportedLedger.persistence.revision) fail("ledger monitor summary missing persistence revision");
@@ -2742,6 +2901,7 @@ if (!exportedLedger.providerAdapters || exportedLedger.providerAdapters.candidat
 if (!exportedLedger.calendarAdapter || exportedLedger.calendarAdapter.prototypeCount !== exportedLedger.data.calendarAdapterPrototypes.length) fail("ledger export missing calendar adapter summary");
 if (!exportedLedger.notificationPrototype || exportedLedger.notificationPrototype.prototypeCount !== exportedLedger.data.notificationProviderPrototypes.length) fail("ledger export missing notification prototype summary");
 if (!exportedLedger.paymentPrototype || exportedLedger.paymentPrototype.prototypeCount !== exportedLedger.data.paymentProviderPrototypes.length) fail("ledger export missing payment prototype summary");
+if (!exportedLedger.authPrototype || exportedLedger.authPrototype.prototypeCount !== exportedLedger.data.authProviderPrototypes.length) fail("ledger export missing auth prototype summary");
 if (!exportedLedger.accountHistory || exportedLedger.accountHistory.historyCount !== exportedLedger.data.customers.length) fail("ledger export missing account history summary");
 if (exportedLedger.counts.routePlacements !== returnResult.data.routePlacements.length) fail("ledger export route placement count is wrong");
 if (exportedLedger.counts.curriculumFrameworks !== returnResult.data.curriculumFrameworks.length) fail("ledger export curriculum framework count is wrong");
@@ -2778,6 +2938,11 @@ if (exportedLedger.monitor.paymentPrototypeNoLivePayment !== returnResult.data.p
 if (exportedLedger.monitor.paymentPrototypeNoCustomerVisiblePayment !== returnResult.data.paymentProviderPrototypes.length) fail("ledger monitor summary missing payment prototype no-customer-visible-payment posture");
 if (exportedLedger.monitor.paymentPrototypeNoPaymentCapture !== returnResult.data.paymentProviderPrototypes.length) fail("ledger monitor summary missing payment prototype no-capture posture");
 if (exportedLedger.monitor.paymentPrototypeUnder19Guarded !== returnResult.data.paymentProviderPrototypes.length) fail("ledger monitor summary missing payment prototype under-19 guard posture");
+if (exportedLedger.monitor.authProviderPrototypes !== returnResult.data.authProviderPrototypes.length) fail("ledger monitor summary missing auth provider prototypes");
+if (exportedLedger.monitor.authPrototypeNoLiveAuth !== returnResult.data.authProviderPrototypes.length) fail("ledger monitor summary missing auth prototype no-live-auth posture");
+if (exportedLedger.monitor.authPrototypeNoTokenStorage !== returnResult.data.authProviderPrototypes.length) fail("ledger monitor summary missing auth prototype no-token-storage posture");
+if (exportedLedger.monitor.authPrototypeRawAdminDenied !== returnResult.data.authProviderPrototypes.length) fail("ledger monitor summary missing auth prototype raw-admin denial posture");
+if (exportedLedger.monitor.authPrototypeRawMonitorDenied !== returnResult.data.authProviderPrototypes.length) fail("ledger monitor summary missing auth prototype raw-monitor denial posture");
 if (exportedLedger.monitor.accountHistories !== exportedLedger.data.customers.length) fail("ledger monitor summary missing account histories");
 if (exportedLedger.monitor.accountHistoryLocalOnly !== exportedLedger.data.customers.length) fail("ledger monitor summary missing account history local-only posture");
 if (exportedLedger.monitor.accountHistoryViolations !== 0) fail("ledger monitor summary should not report account history violations");
@@ -2857,6 +3022,16 @@ if (paymentPrototypeLedger.paymentPrototype.noPaymentCapture !== paymentPrototyp
 if (paymentPrototypeLedger.paymentPrototype.under19Guarded !== paymentPrototypeTransitionResult.data.paymentProviderPrototypes.length) fail("ledger payment prototype summary lost under-19 guard posture");
 if (paymentPrototypeLedger.monitor.paymentPrototypeViolations !== 0) fail("ledger monitor summary should not report payment prototype violations after transition");
 
+const authPrototypeLedger = recordTools.createOperatingLedger(authPrototypeTransitionResult.data, { now: "2026-06-01T04:43:59.750Z" });
+if (authPrototypeLedger.counts.authProviderPrototypes !== authPrototypeTransitionResult.data.authProviderPrototypes.length) fail("ledger export auth prototype transition count is wrong");
+if (authPrototypeLedger.authPrototype.payloadReady < 1) fail("ledger export missing auth prototype payload readiness after transition");
+if (authPrototypeLedger.authPrototype.noLiveAuth !== authPrototypeTransitionResult.data.authProviderPrototypes.length) fail("ledger auth prototype summary lost no-live-auth posture");
+if (authPrototypeLedger.authPrototype.noTokenStorage !== authPrototypeTransitionResult.data.authProviderPrototypes.length) fail("ledger auth prototype summary lost no-token-storage posture");
+if (authPrototypeLedger.authPrototype.noCustomerVisibleAuth !== authPrototypeTransitionResult.data.authProviderPrototypes.length) fail("ledger auth prototype summary lost no-customer-visible-auth posture");
+if (authPrototypeLedger.authPrototype.rawAdminDenied !== authPrototypeTransitionResult.data.authProviderPrototypes.length) fail("ledger auth prototype summary lost raw-admin denial posture");
+if (authPrototypeLedger.authPrototype.rawMonitorDenied !== authPrototypeTransitionResult.data.authProviderPrototypes.length) fail("ledger auth prototype summary lost raw-monitor denial posture");
+if (authPrototypeLedger.monitor.authPrototypeViolations !== 0) fail("ledger monitor summary should not report auth prototype violations after transition");
+
 const accountHistoryLedger = recordTools.createOperatingLedger(accountHistoryRefreshResult.data, { now: "2026-06-01T04:43:59.500Z" });
 if (accountHistoryLedger.counts.customerAccountHistories !== accountHistoryLedger.data.customers.length) fail("ledger export account history refresh count is wrong");
 if (accountHistoryLedger.accountHistory.historyCount !== accountHistoryLedger.data.customers.length) fail("ledger export missing refreshed account history summary");
@@ -2889,6 +3064,7 @@ if (importedLedger.data.providerAdapterCandidates.length !== returnResult.data.p
 if (importedLedger.data.calendarAdapterPrototypes.length !== returnResult.data.calendarAdapterPrototypes.length) fail("ledger import did not preserve calendar adapter prototypes");
 if (importedLedger.data.notificationProviderPrototypes.length !== returnResult.data.notificationProviderPrototypes.length) fail("ledger import did not preserve notification provider prototypes");
 if (importedLedger.data.paymentProviderPrototypes.length !== returnResult.data.paymentProviderPrototypes.length) fail("ledger import did not preserve payment provider prototypes");
+if (importedLedger.data.authProviderPrototypes.length !== returnResult.data.authProviderPrototypes.length) fail("ledger import did not preserve auth provider prototypes");
 if (importedLedger.data.customerAccountHistories.length !== exportedLedger.data.customerAccountHistories.length) fail("ledger import did not preserve account histories");
 if (importedLedger.data.campaignRoutes.length !== returnResult.data.campaignRoutes.length) fail("ledger import did not preserve campaign routes");
 if (importedLedger.data.customers[0].externalStatus !== returnResult.data.customers[0].externalStatus) fail("ledger import did not preserve external status");
@@ -2977,6 +3153,13 @@ if (importedPaymentPrototypeLedger.data.paymentProviderPrototypes.length !== pay
 if (!importedPaymentPrototypeLedger.data.paymentProviderPrototypes.some((item) => item.prototypeStatus === "sandbox-approved")) fail("ledger import did not preserve payment provider prototype sandbox approval");
 if (!importedPaymentPrototypeLedger.data.paymentProviderPrototypes.every((item) => item.livePaymentEnabled === false && item.liveCheckoutEnabled === false && item.liveCaptureEnabled === false && item.liveRefundEnabled === false && item.invoiceSendEnabled === false && item.checkoutSessionCreated === false && item.paymentLinkCreated === false && item.capturesPayment === false && item.externalProviderWrite === false && item.productionEnabled === false && item.secretsPresent === false && item.credentialsStored === false && item.storesCredentials === false && item.oauthConfigured === false && item.webhookEnabled === false && item.customerVisible === false)) {
   fail("ledger import changed payment prototype no-live-payment safeguards");
+}
+
+const importedAuthPrototypeLedger = recordTools.importOperatingLedger(data, JSON.stringify(authPrototypeLedger));
+if (importedAuthPrototypeLedger.data.authProviderPrototypes.length !== authPrototypeTransitionResult.data.authProviderPrototypes.length) fail("ledger import did not preserve auth provider prototypes after transition");
+if (!importedAuthPrototypeLedger.data.authProviderPrototypes.some((item) => item.prototypeStatus === "sandbox-approved")) fail("ledger import did not preserve auth provider prototype sandbox approval");
+if (!importedAuthPrototypeLedger.data.authProviderPrototypes.every((item) => item.liveAuthEnabled === false && item.liveLoginEnabled === false && item.productionAuthEnabled === false && item.identityProviderWrite === false && item.externalProviderWrite === false && item.externalSessionEnabled === false && item.oauthClientConfigured === false && item.oauthConfigured === false && item.secretsPresent === false && item.credentialsStored === false && item.storesCredentials === false && item.storesTokens === false && item.tokenStorageEnabled === false && item.refreshTokenStorageEnabled === false && item.webhookEnabled === false && item.customerVisible === false && item.rawAdminExposure === false && item.rawMonitorExposure === false)) {
+  fail("ledger import changed auth prototype no-live-auth safeguards");
 }
 
 const importedAccountHistoryLedger = recordTools.importOperatingLedger(data, JSON.stringify(accountHistoryLedger));

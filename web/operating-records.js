@@ -25,6 +25,7 @@
     "calendarAdapterPrototypes",
     "notificationProviderPrototypes",
     "paymentProviderPrototypes",
+    "authProviderPrototypes",
     "leads",
     "opportunities",
     "engagements",
@@ -1411,6 +1412,116 @@
     ];
   }
 
+  function defaultAuthProviderPrototypes() {
+    return [
+      {
+        id: "auth-provider-sandbox-access-preview",
+        title: "Auth Provider Sandbox Access Preview",
+        providerCandidateId: "provider-adapter-auth-session",
+        sourceHandoffIds: ["auth-public-intake-readiness", "auth-customer-status-readiness", "auth-admin-operator-readiness", "auth-monitor-denial-readiness"],
+        adapterFamily: "auth-session",
+        targetProvider: "provider-neutral identity adapter",
+        adapterMode: "sandbox-auth-session-payload-preview",
+        status: "queued",
+        prototypeStatus: "payload-ready",
+        sandboxOnly: true,
+        localOnly: true,
+        liveAuthEnabled: false,
+        liveLoginEnabled: false,
+        productionAuthEnabled: false,
+        identityProviderWrite: false,
+        externalProviderWrite: false,
+        externalSessionEnabled: false,
+        oauthClientConfigured: false,
+        oauthConfigured: false,
+        secretsPresent: false,
+        credentialsStored: false,
+        storesCredentials: false,
+        storesTokens: false,
+        tokenStorageEnabled: false,
+        refreshTokenStorageEnabled: false,
+        webhookEnabled: false,
+        customerVisible: false,
+        customerSafe: false,
+        rawAdminExposure: false,
+        rawMonitorExposure: false,
+        authSchema: "epoch.auth-session-role",
+        payloadMode: "provider-neutral-auth-session-json-preview",
+        payloadSource: "epoch.auth-session-role",
+        payloadEntryCount: 4,
+        readinessChecks: ["provider-candidate-required", "auth-session-role-handoff-required", "auth-boundary-schema-stable", "public-intake-route-only", "controlled-customer-route", "raw-admin-denied-public", "raw-monitor-denied-public", "sandbox-only-before-go-live", "operator-approval-required", "privacy-boundary-required", "consent-boundary-required", "no-live-auth", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-credential-storage", "no-token-storage", "no-refresh-token-storage", "no-external-session", "no-customer-visible-auth"],
+        payloadPreview: [
+          {
+            uid: "epoch-auth-preview-public-intake",
+            title: "Public intake access preview",
+            provider: "provider-neutral",
+            roleKey: "public-intake",
+            surface: "public",
+            accessPolicy: "controlled-public-intake-only",
+            visibility: "controlled-public",
+            publicExposure: "controlled-public",
+            source: "auth-session-role:auth-public-intake-readiness",
+            status: "preview-only",
+            authStatus: "not-created",
+            externalSession: "not-created",
+            customerSafe: true
+          },
+          {
+            uid: "epoch-auth-preview-customer-status",
+            title: "Customer status access preview",
+            provider: "provider-neutral",
+            roleKey: "customer",
+            surface: "student",
+            accessPolicy: "controlled-customer-status-only",
+            visibility: "controlled-customer",
+            publicExposure: "controlled-customer",
+            source: "auth-session-role:auth-customer-status-readiness",
+            status: "preview-only",
+            authStatus: "not-created",
+            externalSession: "not-created",
+            customerSafe: true
+          },
+          {
+            uid: "epoch-auth-preview-admin-denial",
+            title: "Raw admin denial preview",
+            provider: "provider-neutral",
+            roleKey: "operator-admin",
+            surface: "admin",
+            accessPolicy: "internal-admin-denied-public",
+            visibility: "internal",
+            publicExposure: "denied",
+            source: "auth-session-role:auth-admin-operator-readiness",
+            status: "denied-preview-only",
+            authStatus: "not-created",
+            externalSession: "not-created",
+            customerSafe: false
+          },
+          {
+            uid: "epoch-auth-preview-monitor-denial",
+            title: "Raw monitor denial preview",
+            provider: "provider-neutral",
+            roleKey: "monitor-operator",
+            surface: "monitor",
+            accessPolicy: "raw-monitor-denied-public",
+            visibility: "internal",
+            publicExposure: "denied",
+            source: "auth-session-role:auth-monitor-denial-readiness",
+            status: "denied-preview-only",
+            authStatus: "not-created",
+            externalSession: "not-created",
+            customerSafe: false
+          }
+        ],
+        blockers: ["No OAuth client configured", "No credential or token storage", "No refresh-token storage", "No external session gateway", "No identity-provider write path", "Raw admin and monitor routes remain denied before any authenticated gateway work"],
+        nextActionAt: "2026-06-04T13:00:00+09:00",
+        createdAt: "2026-06-02T08:00:00+09:00",
+        updatedAt: "2026-06-02T08:00:00+09:00",
+        receiptIds: ["receipt-auth-provider-prototype-seed"],
+        notes: "Local auth/session payload preview only; production login, OAuth clients, secrets, credentials, token storage, refresh-token storage, webhooks, provider writes, external sessions, and customer-visible auth behavior remain disabled."
+      }
+    ];
+  }
+
   function normalizedOperatingData(data) {
     const nextData = cloneData(data || {});
     for (const collection of ledgerCollections) {
@@ -1452,6 +1563,9 @@
     }
     if (!Array.isArray(nextData.paymentProviderPrototypes) || !nextData.paymentProviderPrototypes.length) {
       nextData.paymentProviderPrototypes = defaultPaymentProviderPrototypes();
+    }
+    if (!Array.isArray(nextData.authProviderPrototypes) || !nextData.authProviderPrototypes.length) {
+      nextData.authProviderPrototypes = defaultAuthProviderPrototypes();
     }
     nextData.customerAccountHistories = reconcileCustomerAccountHistories(nextData);
     if (!nextData.accessPosture || typeof nextData.accessPosture !== "object") {
@@ -6962,6 +7076,399 @@
     };
   }
 
+  function authProviderPayloadPreview(currentData, limit = 4) {
+    const data = normalizedOperatingData(currentData);
+    const handoffs = summarizeAuthSessionRoleState(data).handoffs;
+    return handoffs.slice(0, limit).map((handoff) => ({
+      uid: `epoch-auth-${clean(handoff.id)}`,
+      title: `${handoff.title} access preview`,
+      provider: "provider-neutral",
+      roleKey: handoff.roleKey,
+      surface: handoff.surface,
+      sessionMode: handoff.sessionMode,
+      accessPolicy: handoff.accessPolicy,
+      visibility: handoff.visibility,
+      publicExposure: handoff.publicExposure,
+      rawSurface: handoff.rawSurface,
+      source: `auth-session-role:${handoff.id}`,
+      status: handoff.rawSurface ? "denied-preview-only" : "preview-only",
+      authStatus: "not-created",
+      externalSession: "not-created",
+      identityProviderWrite: false,
+      credentialStorage: false,
+      tokenStorage: false,
+      customerVisible: false,
+      customerSafe: !handoff.rawSurface
+    }));
+  }
+
+  function summarizeAuthProviderPrototypeState(currentData, options = {}) {
+    const data = normalizedOperatingData(currentData);
+    const providerAdapters = options.providerAdapters || summarizeProviderAdapterSelectionState(data);
+    const authSession = options.authSession || summarizeAuthSessionRoleState(data);
+    const candidateById = providerAdapters.candidates.reduce((memo, candidate) => {
+      memo[candidate.id] = candidate;
+      return memo;
+    }, {});
+    const handoffById = authSession.handoffs.reduce((memo, handoff) => {
+      memo[handoff.id] = handoff;
+      return memo;
+    }, {});
+    const requiredChecks = ["provider-candidate-required", "auth-session-role-handoff-required", "auth-boundary-schema-stable", "public-intake-route-only", "controlled-customer-route", "raw-admin-denied-public", "raw-monitor-denied-public", "sandbox-only-before-go-live", "operator-approval-required", "privacy-boundary-required", "consent-boundary-required", "no-live-auth", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-credential-storage", "no-token-storage", "no-refresh-token-storage", "no-external-session", "no-customer-visible-auth"];
+    const prototypes = data.authProviderPrototypes.map((prototype) => {
+      const providerCandidateId = clean(prototype.providerCandidateId);
+      const sourceHandoffIds = Array.isArray(prototype.sourceHandoffIds)
+        ? prototype.sourceHandoffIds.map(clean).filter(Boolean)
+        : [clean(prototype.sourceHandoffId)].filter(Boolean);
+      const candidate = candidateById[providerCandidateId] || null;
+      const linkedHandoffs = sourceHandoffIds.map((id) => handoffById[id]).filter(Boolean);
+      const readinessChecks = Array.isArray(prototype.readinessChecks) ? prototype.readinessChecks : [];
+      const payloadPreview = Array.isArray(prototype.payloadPreview) ? prototype.payloadPreview : [];
+      const receiptIds = Array.isArray(prototype.receiptIds) ? prototype.receiptIds : [];
+      const blockers = Array.isArray(prototype.blockers) ? prototype.blockers : [];
+      const liveAuthEnabled = prototype.liveAuthEnabled === true;
+      const liveLoginEnabled = prototype.liveLoginEnabled === true;
+      const productionAuthEnabled = prototype.productionAuthEnabled === true;
+      const identityProviderWrite = prototype.identityProviderWrite === true;
+      const externalProviderWrite = prototype.externalProviderWrite === true;
+      const externalSessionEnabled = prototype.externalSessionEnabled === true;
+      const oauthClientConfigured = prototype.oauthClientConfigured === true;
+      const oauthConfigured = prototype.oauthConfigured === true;
+      const secretsPresent = prototype.secretsPresent === true;
+      const credentialsStored = prototype.credentialsStored === true;
+      const storesCredentials = prototype.storesCredentials === true;
+      const storesTokens = prototype.storesTokens === true;
+      const tokenStorageEnabled = prototype.tokenStorageEnabled === true;
+      const refreshTokenStorageEnabled = prototype.refreshTokenStorageEnabled === true;
+      const webhookEnabled = prototype.webhookEnabled === true;
+      const customerVisible = prototype.customerVisible === true;
+      const rawAdminExposure = prototype.rawAdminExposure === true;
+      const rawMonitorExposure = prototype.rawMonitorExposure === true;
+      const violations = [];
+
+      if (clean(prototype.adapterFamily || "auth-session") !== "auth-session") {
+        violations.push("Auth provider prototype must stay in the auth-session adapter family.");
+      }
+      if (!candidate || candidate.providerFamily !== "auth-session") {
+        violations.push("Auth provider prototype must link to an auth-session provider adapter candidate.");
+      } else if (candidate.violations.length) {
+        violations.push("Linked auth-session provider adapter candidate has readiness violations.");
+      }
+      if (!linkedHandoffs.length) {
+        violations.push("Auth provider prototype must link to auth/session role handoffs.");
+      } else if (linkedHandoffs.some((handoff) => handoff.violations.length)) {
+        violations.push("Linked auth/session role handoff has readiness violations.");
+      }
+      if (prototype.sandboxOnly === false || prototype.localOnly === false) {
+        violations.push("Auth provider prototype must remain sandbox-only and local-only.");
+      }
+      if (liveAuthEnabled || liveLoginEnabled || productionAuthEnabled || identityProviderWrite || externalProviderWrite || externalSessionEnabled) {
+        violations.push("Auth provider prototype cannot enable live login, production auth, external sessions, provider writes, or identity-provider writes.");
+      }
+      if (oauthClientConfigured || oauthConfigured || secretsPresent || credentialsStored || storesCredentials || storesTokens || tokenStorageEnabled || refreshTokenStorageEnabled || webhookEnabled) {
+        violations.push("Auth provider prototype cannot configure OAuth, secrets, credentials, tokens, refresh-token storage, or webhooks.");
+      }
+      if (customerVisible) {
+        violations.push("Auth provider prototype must remain internal and not create customer-visible auth/session behavior.");
+      }
+      if (rawAdminExposure || rawMonitorExposure) {
+        violations.push("Auth provider prototype must keep raw admin and raw monitor routes denied from public/customer exposure.");
+      }
+      for (const required of requiredChecks) {
+        if (!readinessChecks.includes(required)) {
+          violations.push(`Auth provider prototype must include ${required}.`);
+        }
+      }
+      if (!payloadPreview.length) violations.push("Auth provider prototype must include local auth/session payload previews.");
+      if (!payloadPreview.some((item) => clean(item.surface) === "public" && clean(item.publicExposure) === "controlled-public")) {
+        violations.push("Auth provider prototype must preview controlled public intake access.");
+      }
+      if (!payloadPreview.some((item) => clean(item.publicExposure) === "controlled-customer")) {
+        violations.push("Auth provider prototype must preview controlled customer status access.");
+      }
+      if (!payloadPreview.some((item) => clean(item.surface) === "admin" && clean(item.publicExposure) === "denied")) {
+        violations.push("Auth provider prototype must preview raw admin denial.");
+      }
+      if (!payloadPreview.some((item) => clean(item.surface) === "monitor" && clean(item.publicExposure) === "denied")) {
+        violations.push("Auth provider prototype must preview raw monitor denial.");
+      }
+      if (!blockers.length) violations.push("Auth provider prototype must define blockers before live identity-provider work.");
+      if (clean(prototype.status) === "complete" && !receiptIds.length) {
+        violations.push("Completed auth provider prototype requires a receipt trail.");
+      }
+
+      return {
+        id: clean(prototype.id),
+        title: clean(prototype.title) || "Auth Provider Prototype",
+        providerCandidateId,
+        sourceHandoffIds,
+        adapterFamily: clean(prototype.adapterFamily) || "auth-session",
+        targetProvider: clean(prototype.targetProvider) || candidate?.targetProvider || "provider-neutral auth/session",
+        adapterMode: clean(prototype.adapterMode) || "sandbox-auth-session-payload-preview",
+        status: clean(prototype.status) || "planned",
+        prototypeStatus: clean(prototype.prototypeStatus) || "payload-pending",
+        sandboxOnly: prototype.sandboxOnly !== false,
+        localOnly: prototype.localOnly !== false,
+        liveAuthEnabled,
+        liveLoginEnabled,
+        productionAuthEnabled,
+        identityProviderWrite,
+        externalProviderWrite,
+        externalSessionEnabled,
+        oauthClientConfigured,
+        oauthConfigured,
+        secretsPresent,
+        credentialsStored,
+        storesCredentials,
+        storesTokens,
+        tokenStorageEnabled,
+        refreshTokenStorageEnabled,
+        webhookEnabled,
+        customerVisible,
+        customerSafe: prototype.customerSafe === true,
+        rawAdminExposure,
+        rawMonitorExposure,
+        authSchema: clean(prototype.authSchema) || "epoch.auth-session-role",
+        payloadMode: clean(prototype.payloadMode) || "provider-neutral-auth-session-json-preview",
+        payloadSource: clean(prototype.payloadSource) || "epoch.auth-session-role",
+        payloadEntryCount: payloadPreview.length,
+        readinessChecks,
+        payloadPreview,
+        blockers,
+        nextActionAt: clean(prototype.nextActionAt),
+        createdAt: clean(prototype.createdAt),
+        updatedAt: clean(prototype.updatedAt),
+        receiptIds,
+        notes: clean(prototype.notes) || "No sandbox auth provider prototype note recorded.",
+        violations
+      };
+    });
+    const violations = prototypes.flatMap((prototype) => prototype.violations.map((detail) => `${prototype.title}: ${detail}`));
+
+    return {
+      schema: "epoch.auth-provider-prototype",
+      prototypeCount: prototypes.length,
+      payloadReady: prototypes.filter((prototype) => ["payload-ready", "sandbox-approved", "operator-reviewed"].includes(prototype.prototypeStatus)).length,
+      sandboxOnly: prototypes.filter((prototype) => prototype.sandboxOnly).length,
+      localOnly: prototypes.filter((prototype) => prototype.localOnly).length,
+      noLiveAuth: prototypes.filter((prototype) => !prototype.liveAuthEnabled && !prototype.liveLoginEnabled && !prototype.productionAuthEnabled && !prototype.identityProviderWrite && !prototype.externalProviderWrite && !prototype.externalSessionEnabled).length,
+      noSecrets: prototypes.filter((prototype) => !prototype.secretsPresent && !prototype.credentialsStored && !prototype.storesCredentials && !prototype.oauthClientConfigured && !prototype.oauthConfigured && !prototype.webhookEnabled).length,
+      noCredentialStorage: prototypes.filter((prototype) => !prototype.credentialsStored && !prototype.storesCredentials).length,
+      noTokenStorage: prototypes.filter((prototype) => !prototype.storesTokens && !prototype.tokenStorageEnabled && !prototype.refreshTokenStorageEnabled).length,
+      noExternalSession: prototypes.filter((prototype) => !prototype.externalSessionEnabled).length,
+      noCustomerVisibleAuth: prototypes.filter((prototype) => !prototype.customerVisible).length,
+      rawAdminDenied: prototypes.filter((prototype) => !prototype.rawAdminExposure && prototype.payloadPreview.some((item) => clean(item.surface) === "admin" && clean(item.publicExposure) === "denied")).length,
+      rawMonitorDenied: prototypes.filter((prototype) => !prototype.rawMonitorExposure && prototype.payloadPreview.some((item) => clean(item.surface) === "monitor" && clean(item.publicExposure) === "denied")).length,
+      candidateLinked: prototypes.filter((prototype) => candidateById[prototype.providerCandidateId]?.providerFamily === "auth-session").length,
+      handoffLinked: prototypes.filter((prototype) => prototype.sourceHandoffIds.some((id) => handoffById[id])).length,
+      payloadEntries: prototypes.reduce((total, prototype) => total + prototype.payloadEntryCount, 0),
+      status: violations.length ? "blocked" : "ready",
+      violations,
+      prototypes
+    };
+  }
+
+  function createAuthProviderPrototypeRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const nowText = withTimezone(now.toISOString(), timezone);
+    const candidateId = clean(input.providerCandidateId || input.candidateId) || clean(nextData.providerAdapterCandidates.find((item) => clean(item.providerFamily) === "auth-session")?.id);
+    const candidate = nextData.providerAdapterCandidates.find((item) => clean(item.id) === candidateId);
+    if (!candidate || clean(candidate.providerFamily) !== "auth-session") throw new Error("auth-session provider adapter candidate is required");
+    if (candidate.liveApiCalls || candidate.productionEnabled || candidate.externalProviderWrite || candidate.secretsPresent || candidate.credentialsStored || candidate.oauthConfigured || candidate.webhookEnabled) {
+      throw new Error("auth-session provider adapter candidate is not safe for sandbox prototype");
+    }
+    const sourceHandoffIds = (Array.isArray(input.sourceHandoffIds) && input.sourceHandoffIds.length
+      ? input.sourceHandoffIds
+      : Array.isArray(candidate.sourceHandoffIds)
+        ? candidate.sourceHandoffIds
+        : nextData.authSessionRoleHandoffs.map((handoff) => handoff.id))
+      .map(clean)
+      .filter((id) => nextData.authSessionRoleHandoffs.some((handoff) => clean(handoff.id) === id));
+    if (!sourceHandoffIds.length) throw new Error("auth/session role handoffs are required for sandbox auth provider prototype");
+    const unsafeHandoff = nextData.authSessionRoleHandoffs.find((handoff) => sourceHandoffIds.includes(clean(handoff.id)) && (handoff.productionAuthEnabled || handoff.identityProviderWrite || handoff.storesCredentials || handoff.storesTokens || handoff.oauthClientConfigured || handoff.externalSessionEnabled));
+    if (unsafeHandoff) throw new Error("auth/session role handoff is not safe for sandbox prototype");
+    const payloadPreview = authProviderPayloadPreview(nextData, Number(input.payloadLimit) || 4);
+    if (!payloadPreview.length) throw new Error("auth/session role records have no access payload to preview");
+    const prototype = {
+      id: clean(input.id) || `auth-provider-prototype-${stamp(now)}-${nextData.authProviderPrototypes.length + 1}`,
+      title: clean(input.title) || `${candidate.targetProvider || "Auth"} Sandbox Auth Provider Prototype`,
+      providerCandidateId: candidate.id,
+      sourceHandoffIds,
+      adapterFamily: "auth-session",
+      targetProvider: clean(input.targetProvider) || candidate.targetProvider || "provider-neutral auth/session",
+      adapterMode: clean(input.adapterMode) || "sandbox-auth-session-payload-preview",
+      status: clean(input.status) || "queued",
+      prototypeStatus: clean(input.prototypeStatus) || "payload-ready",
+      sandboxOnly: true,
+      localOnly: true,
+      liveAuthEnabled: false,
+      liveLoginEnabled: false,
+      productionAuthEnabled: false,
+      identityProviderWrite: false,
+      externalProviderWrite: false,
+      externalSessionEnabled: false,
+      oauthClientConfigured: false,
+      oauthConfigured: false,
+      secretsPresent: false,
+      credentialsStored: false,
+      storesCredentials: false,
+      storesTokens: false,
+      tokenStorageEnabled: false,
+      refreshTokenStorageEnabled: false,
+      webhookEnabled: false,
+      customerVisible: false,
+      customerSafe: false,
+      rawAdminExposure: false,
+      rawMonitorExposure: false,
+      authSchema: "epoch.auth-session-role",
+      payloadMode: clean(input.payloadMode) || "provider-neutral-auth-session-json-preview",
+      payloadSource: "epoch.auth-session-role",
+      payloadEntryCount: payloadPreview.length,
+      readinessChecks: ["provider-candidate-required", "auth-session-role-handoff-required", "auth-boundary-schema-stable", "public-intake-route-only", "controlled-customer-route", "raw-admin-denied-public", "raw-monitor-denied-public", "sandbox-only-before-go-live", "operator-approval-required", "privacy-boundary-required", "consent-boundary-required", "no-live-auth", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-credential-storage", "no-token-storage", "no-refresh-token-storage", "no-external-session", "no-customer-visible-auth"],
+      payloadPreview,
+      blockers: Array.isArray(input.blockers) ? input.blockers : ["No OAuth client configured", "No credential or token storage", "No refresh-token storage", "No external session gateway", "No identity-provider write path", "Raw admin and monitor routes remain denied before any authenticated gateway work"],
+      nextActionAt: withTimezone(input.nextActionAt, timezone) || nowText,
+      createdAt: nowText,
+      updatedAt: nowText,
+      receiptIds: [],
+      notes: clean(input.note) || "Sandbox auth provider prototype created from EPOCH auth/session role readiness records without live identity-provider behavior."
+    };
+    const receipt = {
+      id: `receipt-auth-provider-prototype-${stamp(now)}`,
+      kind: "auth-provider-prototype",
+      status: "complete",
+      createdAt: nowText,
+      note: `${prototype.title}: local auth/session payload preview created without production login, OAuth, secrets, credentials, token storage, refresh-token storage, webhooks, provider writes, external sessions, or customer-visible auth behavior.`
+    };
+    const healthCheck = {
+      id: `monitor-check-auth-prototype-${stamp(now)}`,
+      title: "Sandbox Auth Provider Prototype",
+      status: "complete",
+      target: "monitor-auth-prototype",
+      effect: "auth-provider-sandbox-proof",
+      createdAt: nowText,
+      summary: `${prototype.title} generated ${payloadPreview.length} local auth/session payload preview items from role readiness records.`,
+      receiptId: receipt.id,
+      visibility: "internal",
+      customerVisible: false
+    };
+    prototype.receiptIds.push(receipt.id);
+    nextData.authProviderPrototypes.unshift(prototype);
+    nextData.receipts.unshift(receipt);
+    nextData.monitorHealthChecks.unshift(healthCheck);
+
+    return {
+      data: nextData,
+      records: {
+        prototype,
+        receipt,
+        healthCheck
+      }
+    };
+  }
+
+  function transitionAuthProviderPrototypeRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const nowText = withTimezone(now.toISOString(), timezone);
+    const prototype = nextData.authProviderPrototypes.find((item) => clean(item.id) === clean(input.prototypeId || input.id));
+    if (!prototype) throw new Error("Select a sandbox auth provider prototype before applying an action.");
+    const action = clean(input.action) || "generate-preview";
+    const note = clean(input.note) || "Sandbox auth provider prototype reviewed without live identity-provider behavior.";
+    const ensureChecks = (checks) => {
+      prototype.readinessChecks = Array.isArray(prototype.readinessChecks) ? prototype.readinessChecks : [];
+      for (const check of checks) {
+        if (!prototype.readinessChecks.includes(check)) prototype.readinessChecks.push(check);
+      }
+    };
+
+    if (action === "generate-preview") {
+      prototype.payloadPreview = authProviderPayloadPreview(nextData, Number(input.payloadLimit) || 4);
+      prototype.payloadEntryCount = prototype.payloadPreview.length;
+      prototype.status = "queued";
+      prototype.prototypeStatus = "payload-ready";
+    } else if (action === "approve-sandbox") {
+      prototype.status = "approved";
+      prototype.prototypeStatus = "sandbox-approved";
+    } else if (action === "mark-reviewed") {
+      prototype.status = "complete";
+      prototype.prototypeStatus = "operator-reviewed";
+    } else if (action === "defer") {
+      prototype.status = "waiting";
+      prototype.prototypeStatus = "deferred";
+    } else if (action === "block") {
+      prototype.status = "blocked";
+      prototype.prototypeStatus = "blocked";
+    } else {
+      throw new Error("unsupported sandbox auth provider action");
+    }
+
+    ensureChecks(["provider-candidate-required", "auth-session-role-handoff-required", "auth-boundary-schema-stable", "public-intake-route-only", "controlled-customer-route", "raw-admin-denied-public", "raw-monitor-denied-public", "sandbox-only-before-go-live", "operator-approval-required", "privacy-boundary-required", "consent-boundary-required", "no-live-auth", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-credential-storage", "no-token-storage", "no-refresh-token-storage", "no-external-session", "no-customer-visible-auth"]);
+    prototype.adapterFamily = "auth-session";
+    prototype.sandboxOnly = true;
+    prototype.localOnly = true;
+    prototype.liveAuthEnabled = false;
+    prototype.liveLoginEnabled = false;
+    prototype.productionAuthEnabled = false;
+    prototype.identityProviderWrite = false;
+    prototype.externalProviderWrite = false;
+    prototype.externalSessionEnabled = false;
+    prototype.oauthClientConfigured = false;
+    prototype.oauthConfigured = false;
+    prototype.secretsPresent = false;
+    prototype.credentialsStored = false;
+    prototype.storesCredentials = false;
+    prototype.storesTokens = false;
+    prototype.tokenStorageEnabled = false;
+    prototype.refreshTokenStorageEnabled = false;
+    prototype.webhookEnabled = false;
+    prototype.customerVisible = false;
+    prototype.customerSafe = false;
+    prototype.rawAdminExposure = false;
+    prototype.rawMonitorExposure = false;
+    prototype.authSchema = "epoch.auth-session-role";
+    prototype.payloadSource = "epoch.auth-session-role";
+    prototype.updatedAt = nowText;
+    prototype.notes = note;
+
+    const receipt = {
+      id: `receipt-auth-provider-prototype-${stamp(now)}`,
+      kind: "auth-provider-prototype",
+      status: prototype.status === "blocked" ? "blocked" : "complete",
+      createdAt: nowText,
+      note: `${prototype.title}: ${action} recorded without production login, OAuth, secrets, credentials, token storage, refresh-token storage, webhooks, provider writes, external sessions, or customer-visible auth behavior. ${note}`
+    };
+    const healthCheck = {
+      id: `monitor-check-auth-prototype-${stamp(now)}`,
+      title: "Sandbox Auth Provider Prototype",
+      status: prototype.status === "blocked" ? "blocked" : "complete",
+      target: "monitor-auth-prototype",
+      effect: "auth-provider-sandbox-proof",
+      createdAt: nowText,
+      summary: `${prototype.title} is ${prototype.prototypeStatus}; auth/session behavior remains sandbox/local only and raw admin/monitor routes stay denied.`,
+      receiptId: receipt.id,
+      visibility: "internal",
+      customerVisible: false
+    };
+
+    prototype.receiptIds = Array.isArray(prototype.receiptIds) ? prototype.receiptIds : [];
+    prototype.receiptIds.push(receipt.id);
+    nextData.receipts.unshift(receipt);
+    nextData.monitorHealthChecks.unshift(healthCheck);
+
+    return {
+      data: nextData,
+      records: {
+        prototype,
+        receipt,
+        healthCheck
+      }
+    };
+  }
+
   function summarizeMemoryState(currentData, options = {}) {
     const data = normalizedOperatingData(currentData);
     const nowText = clean(options.now) || "2026-06-01T12:00:00+09:00";
@@ -7000,6 +7507,8 @@
     const calendarAdapter = summarizeCalendarAdapterPrototypeState(data, { now: nowText, calendarExport, providerAdapters });
     const paymentProvider = summarizePaymentProviderState(data, { quotes });
     const paymentPrototype = summarizePaymentProviderPrototypeState(data, { providerAdapters, paymentProvider });
+    const authSession = summarizeAuthSessionRoleState(data);
+    const authPrototype = summarizeAuthProviderPrototypeState(data, { providerAdapters, authSession });
     const timeline = monitorTimelineItems(data);
     const terminalStatuses = new Set(["complete", "sent", "paid-recorded", "declined", "returned", "canceled", "accepted", "rejected", "rolled-back"]);
     const queue = timeline.filter((item) => ["waiting", "deferred", "draft", "presented", "queued", "submitted", "reviewing", "overdue", "blocked", "proposed", "approved", "dispatched", "acknowledged", "in-progress", "failed", "snoozed", "retry-ready", "payment-ready", "payment-blocked", "unavailable"].includes(item.status));
@@ -7032,6 +7541,8 @@
       calendarAdapterPayloadReady: calendarAdapter.payloadReady,
       paymentProviderPrototypes: paymentPrototype.prototypeCount,
       paymentPrototypePayloadReady: paymentPrototype.payloadReady,
+      authProviderPrototypes: authPrototype.prototypeCount,
+      authPrototypePayloadReady: authPrototype.payloadReady,
       copyComplianceViolations: marketing.copyViolations
     };
     const summaryByKey = {
@@ -7039,7 +7550,7 @@
       queue: `${baseSummary.queue} queued records`,
       "visible-updates": `${baseSummary.visibleUpdates} visible updates`,
       pipeline: `${revenue.pipelineCount} opportunities; ${baseSummary.pipelineValueJpy} JPY pipeline`,
-      marketing: `${marketing.ready} ready campaigns; ${marketingConversion.readyEvents} KPI events; ${providerAdapters.readyCandidates} provider candidates; ${calendarAdapter.payloadReady} calendar prototypes; ${paymentPrototype.payloadReady} payment prototypes; ${marketing.copyViolations} copy policy violations`
+      marketing: `${marketing.ready} ready campaigns; ${marketingConversion.readyEvents} KPI events; ${providerAdapters.readyCandidates} provider candidates; ${calendarAdapter.payloadReady} calendar prototypes; ${paymentPrototype.payloadReady} payment prototypes; ${authPrototype.payloadReady} auth prototypes; ${marketing.copyViolations} copy policy violations`
     };
     const routes = data.routePlacements.map((route) => ({
       id: clean(route.id),
@@ -8022,6 +8533,7 @@
       ...(currentData.calendarAdapterPrototypes || []).map((item) => ({ kind: "calendar adapter", id: item.id, title: item.title, status: item.status || item.prototypeStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.adapterMode || "calendar" })),
       ...(currentData.notificationProviderPrototypes || []).map((item) => ({ kind: "notification prototype", id: item.id, title: item.title, status: item.status || item.prototypeStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.adapterMode || "notification" })),
       ...(currentData.paymentProviderPrototypes || []).map((item) => ({ kind: "payment prototype", id: item.id, title: item.title, status: item.status || item.prototypeStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.adapterMode || "payment" })),
+      ...(currentData.authProviderPrototypes || []).map((item) => ({ kind: "auth prototype", id: item.id, title: item.title, status: item.status || item.prototypeStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.adapterMode || "auth" })),
       ...(currentData.customerAccountHistories || []).map((item) => ({ kind: "account history", id: item.id, title: item.displayName || item.id, status: item.status, time: item.updatedAt || item.reviewedAt, owner: item.visibility || "customer history" })),
       ...currentData.workPlans.map((item) => ({ kind: "agent work plan", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.approvalStatus || item.owner || "approval pending" })),
       ...currentData.agentHandoffs.map((item) => ({ kind: "agent handoff", id: item.id, title: item.title, status: item.status, time: item.nextActionAt, owner: item.approvalStatus || "approval pending" })),
@@ -8066,6 +8578,7 @@
     const marketingConversion = summarizeMarketingConversionState(data);
     const providerAdapters = summarizeProviderAdapterSelectionState(data);
     const paymentPrototype = summarizePaymentProviderPrototypeState(data, { providerAdapters, paymentProvider });
+    const authPrototype = summarizeAuthProviderPrototypeState(data, { providerAdapters, authSession });
     const calendarExport = createCalendarExport(data, { now: nowText });
     const calendarAdapter = summarizeCalendarAdapterPrototypeState(data, { now: nowText, calendarExport, providerAdapters });
     const notificationPrototype = summarizeNotificationProviderPrototypeState(data, { providerAdapters, notificationProvider });
@@ -8123,6 +8636,10 @@
       if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
     for (const item of timeline.filter((entry) => entry.kind === "payment prototype").slice(0, 4)) {
+      if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
+      if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
+    }
+    for (const item of timeline.filter((entry) => entry.kind === "auth prototype").slice(0, 4)) {
       if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
       if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
@@ -8314,6 +8831,14 @@
         detail: paymentPrototype.violations[0]
       });
     }
+    if (authPrototype.violations.length) {
+      risks.push({
+        id: "auth-provider-prototype-violation",
+        severity: "high",
+        title: "Sandbox Auth Provider",
+        detail: authPrototype.violations[0]
+      });
+    }
     if (authSession.violations.length) {
       risks.push({
         id: "auth-session-role-violation",
@@ -8429,6 +8954,19 @@
         paymentPrototypeLegalTaxPrivacyReady: paymentPrototype.legalTaxPrivacyReady,
         paymentPrototypeUnder19Guarded: paymentPrototype.under19Guarded,
         paymentPrototypeViolations: paymentPrototype.violations.length,
+        authProviderPrototypes: authPrototype.prototypeCount,
+        authPrototypePayloadReady: authPrototype.payloadReady,
+        authPrototypeSandboxOnly: authPrototype.sandboxOnly,
+        authPrototypeLocalOnly: authPrototype.localOnly,
+        authPrototypeNoLiveAuth: authPrototype.noLiveAuth,
+        authPrototypeNoSecrets: authPrototype.noSecrets,
+        authPrototypeNoCredentialStorage: authPrototype.noCredentialStorage,
+        authPrototypeNoTokenStorage: authPrototype.noTokenStorage,
+        authPrototypeNoExternalSession: authPrototype.noExternalSession,
+        authPrototypeNoCustomerVisibleAuth: authPrototype.noCustomerVisibleAuth,
+        authPrototypeRawAdminDenied: authPrototype.rawAdminDenied,
+        authPrototypeRawMonitorDenied: authPrototype.rawMonitorDenied,
+        authPrototypeViolations: authPrototype.violations.length,
         authSessionRoleHandoffs: authSession.handoffCount,
         authPublicReady: authSession.publicReady,
         authCustomerReady: authSession.customerReady,
@@ -8538,6 +9076,7 @@
       paymentProvider,
       paymentPrototype,
       authSession,
+      authPrototype,
       accountHistory,
       quotes,
       scheduleControls,
@@ -8589,6 +9128,7 @@
     const calendarAdapter = summarizeCalendarAdapterPrototypeState(data, { now: now.toISOString(), calendarExport, providerAdapters });
     const notificationPrototype = summarizeNotificationProviderPrototypeState(data, { providerAdapters, notificationProvider });
     const paymentPrototype = summarizePaymentProviderPrototypeState(data, { providerAdapters, paymentProvider });
+    const authPrototype = summarizeAuthProviderPrototypeState(data, { providerAdapters, authSession });
     const routePlacement = summarizeRoutePlacementState(data, { now: now.toISOString() });
     const accessGateway = summarizeAccessGatewayState(data, { now: now.toISOString(), routePlacement });
     const librarySync = summarizeLibrarySyncState(data, { now: now.toISOString(), persistence });
@@ -8612,6 +9152,7 @@
       paymentProvider,
       paymentPrototype,
       authSession,
+      authPrototype,
       accountHistory,
       marketingConversion,
       providerAdapters,
@@ -8658,6 +9199,8 @@
     transitionNotificationProviderPrototypeRecords,
     createPaymentProviderPrototypeRecords,
     transitionPaymentProviderPrototypeRecords,
+    createAuthProviderPrototypeRecords,
+    transitionAuthProviderPrototypeRecords,
     createCustomerAccountHistoryRecords,
     createQuoteEstimateRecords,
     transitionQuoteEstimateRecords,
@@ -8700,6 +9243,7 @@
     summarizeCalendarAdapterPrototypeState,
     summarizeNotificationProviderPrototypeState,
     summarizePaymentProviderPrototypeState,
+    summarizeAuthProviderPrototypeState,
     summarizeCustomerAccountHistoryState,
     summarizeAccessPosture,
     summarizeMemoryState,
