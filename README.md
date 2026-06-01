@@ -34,6 +34,7 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
 - `docs/notification-provider-handoff-template-consent-contract.md`
 - `docs/payment-provider-handoff-invoice-checkout-contract.md`
 - `docs/auth-session-role-readiness-contract.md`
+- `docs/marketing-conversion-analytics-readiness-contract.md`
 
 ## Current implementation artifacts
 
@@ -65,6 +66,9 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   Auth/session role handoff records remain provider-neutral and no-live-auth
   until a later identity-provider slice implements production login, OAuth,
   credential storage, token storage, or external sessions.
+  Marketing conversion KPI records remain provider-neutral, first-party, and
+  no-live-tracking until a later analytics or advertising adapter is explicitly
+  selected and reviewed.
 - `web/app.js`: shared renderer and local persistence flow for admin,
   student/customer, monitor, public request, scheduling, submission, and
   review-return views, including local ledger save/load, durable snapshot status,
@@ -73,7 +77,8 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   body-level active-view state, shared data-view activation, controlled
   public/customer access gateway controls, and internal-only LIBRARY
   sync/recovery controls plus provider-neutral calendar and notification
-  provider handoff controls.
+  provider handoff controls, auth/session readiness controls, and local
+  marketing conversion KPI controls.
 - `web/seed-data.js`: demo commercial workflow covering leads, tracks, cohorts,
   offer packages, curriculum frameworks, package gameplans, opportunities,
   update events, sessions, assignments, submissions, reviews, follow-ups,
@@ -81,7 +86,9 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   It also seeds internal LIBRARY ledger sync/recovery handoff records and
   provider-neutral calendar/invitation-readiness handoff records, plus
   notification provider template/consent readiness, payment provider
-  invoice/checkout readiness, and auth/session role readiness handoff records.
+  invoice/checkout readiness, auth/session role readiness handoff records, and
+  local marketing conversion KPI records for Japan, global, submission-first,
+  and under-19 guarded routes.
 - `tools/verify-commercial-slice.mjs`: repository verifier for the first
   commercial slice.
 

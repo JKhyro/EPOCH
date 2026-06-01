@@ -22,6 +22,7 @@ EPOCH MONITOR must expose these local operator sections:
 - LIBRARY Sync
 - Calendar Providers
 - Notification Providers
+- Marketing Conversion KPIs
 - Controls
 
 The public route may reuse the visual language, but it must not expose raw
@@ -47,6 +48,8 @@ The current action classes are:
 - Calendar provider handoff and invitation-readiness review.
 - Notification provider handoff, template readiness, and consent-readiness
   review.
+- Marketing conversion KPI readiness for route-attributed, first-party,
+  no-live-tracking campaign measurement.
 
 ## Safe access posture
 
@@ -129,3 +132,9 @@ The repository verifier must cover:
   identity-provider write, no credentials, no token storage, internal receipts,
   export/import preservation, raw admin/monitor denial, and no customer-visible
   notification events from auth actions.
+- Marketing conversion analytics readiness controls and verifier coverage for
+  `marketingConversionEvents`, Japan/global/submission/under-19 KPI records,
+  first-party route attribution, no-live-pixel, no external ad API writes, no
+  invasive tracking, no analytics credentials, no webhooks, internal
+  `marketing-conversion` receipts, export/import preservation, monitor summary
+  counts, and the `monitor-marketing-conversions` section.

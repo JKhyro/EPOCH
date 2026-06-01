@@ -67,7 +67,7 @@ function resetData() {
 
 function storageStatusText() {
   const persistence = recordTools.summarizePersistenceState(data);
-  return `Ledger v${recordTools.ledgerVersion} | ${data.customers.length} customers | ${data.engagements.length} engagements | ${data.campaignRoutes.length} campaigns | ${(data.librarySyncHandoffs || []).length} LIBRARY handoffs | ${(data.calendarProviderHandoffs || []).length} calendar handoffs | ${(data.notificationProviderHandoffs || []).length} notification provider handoffs | ${(data.paymentProviderHandoffs || []).length} payment provider handoffs | ${(data.authSessionRoleHandoffs || []).length} auth/session handoffs | ${data.notificationEvents.length} updates | ${data.receipts.length} receipts | r${persistence.revision} ${persistence.adapterState} | ${persistence.ledgerId}`;
+  return `Ledger v${recordTools.ledgerVersion} | ${data.customers.length} customers | ${data.engagements.length} engagements | ${data.campaignRoutes.length} campaigns | ${(data.marketingConversionEvents || []).length} conversion KPIs | ${(data.librarySyncHandoffs || []).length} LIBRARY handoffs | ${(data.calendarProviderHandoffs || []).length} calendar handoffs | ${(data.notificationProviderHandoffs || []).length} notification provider handoffs | ${(data.paymentProviderHandoffs || []).length} payment provider handoffs | ${(data.authSessionRoleHandoffs || []).length} auth/session handoffs | ${data.notificationEvents.length} updates | ${data.receipts.length} receipts | r${persistence.revision} ${persistence.adapterState} | ${persistence.ledgerId}`;
 }
 
 function formatTime(value) {
@@ -161,6 +161,7 @@ function allOperatingItems() {
     ...(data.engagements || []).map((item) => ({ ...item, title: packageName(item.packageId), kind: "engagement", time: item.onboardingDueAt || item.acceptedAt })),
     ...(data.packageGameplans || []).map((item) => ({ ...item, kind: "gameplan", time: item.nextMilestoneAt })),
     ...(data.campaignRoutes || []).map((item) => ({ ...item, kind: "campaign route", title: item.name || item.routeKey, status: item.status || item.readinessStatus, time: item.goLiveAt || item.startAt })),
+    ...(data.marketingConversionEvents || []).map((item) => ({ ...item, kind: "marketing conversion", time: item.nextActionAt || item.occurredAt || item.updatedAt || item.createdAt })),
     ...(data.workPlans || []).map((item) => ({ ...item, kind: "agent work plan", time: item.dueAt })),
     ...(data.agentHandoffs || []).map((item) => ({ ...item, kind: "agent handoff", time: item.nextActionAt })),
     ...(data.notificationEvents || []).map((item) => ({ ...item, kind: "update", time: item.deliverAfterAt || item.createdAt })),
@@ -557,6 +558,7 @@ function renderMonitor(items) {
   const scheduleControls = report.scheduleControls || recordTools.summarizeScheduleControlState(data);
   const handoffs = report.handoffs || recordTools.summarizeAgentHandoffState(data);
   const marketing = report.marketing || recordTools.summarizeMarketingState(data);
+  const marketingConversion = report.marketingConversion || recordTools.summarizeMarketingConversionState(data);
   const routePlacement = report.routePlacement || recordTools.summarizeRoutePlacementState(data, { now: `${today}T12:00:00+09:00` });
   const accessGateways = report.accessGateways || recordTools.summarizeAccessGatewayState(data, { now: `${today}T12:00:00+09:00`, routePlacement });
   const calendarExport = recordTools.createCalendarExport(data, { now: `${today}T12:00:00+09:00` });
@@ -565,7 +567,7 @@ function renderMonitor(items) {
   const persistence = report.persistence || recordTools.summarizePersistenceState(data, { now: `${today}T12:00:00+09:00` });
   const librarySync = report.librarySync || recordTools.summarizeLibrarySyncState(data, { now: `${today}T12:00:00+09:00`, persistence });
   lastMonitorReport = report;
-  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | ${routePlacement.summary.routeCount} SYNAPSE routes | ${accessGateways.gatewayCount} access gates | ${librarySync.handoffCount} LIBRARY handoffs | ${calendarProvider.handoffCount} calendar handoffs | ${notificationProvider.handoffCount} notification provider handoffs | ${paymentProvider.handoffCount} payment provider handoffs | ${authSession.handoffCount} auth/session handoffs | ${marketing.ready} campaign routes ready | ${persistence.adapterState}`;
+  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | ${routePlacement.summary.routeCount} SYNAPSE routes | ${accessGateways.gatewayCount} access gates | ${librarySync.handoffCount} LIBRARY handoffs | ${calendarProvider.handoffCount} calendar handoffs | ${notificationProvider.handoffCount} notification provider handoffs | ${paymentProvider.handoffCount} payment provider handoffs | ${authSession.handoffCount} auth/session handoffs | ${marketing.ready} campaign routes ready | ${marketingConversion.readyEvents} conversion KPIs ready | ${persistence.adapterState}`;
   renderMonitorActionConsole(report);
 
   const summaryCards = [
@@ -594,6 +596,7 @@ function renderMonitor(items) {
     record("Reminder Control", `${scheduleControls.reminders} reminders, ${scheduleControls.recurrenceCandidates} recurrence candidates, ${scheduleControls.availabilityWindows} availability windows.`, [chip(`${scheduleControls.plannedReminders} planned`), chip(`${scheduleControls.availableWindows} available`)]),
     record("Agent Handoffs", `${handoffs.handoffs} handoffs, ${handoffs.workPlans} work plans, ${handoffs.pendingApprovals} pending approval, ${handoffs.dispatched} dispatched, ${handoffs.acknowledged} acknowledged, ${handoffs.complete} complete.`, [chip(`${handoffs.monitorVisible} monitor-visible`), chip(`${handoffs.customerVisibleBlocked} customer-visible`)]),
     record("Campaign Readiness", `${marketing.ready} of ${marketing.total} campaign routes ready across ${marketing.channelCount} channel groups.`, [chip(`${marketing.jp} JP`), chip(`${marketing.global} global`), chip(`${marketing.copyViolations} copy risks`, marketing.copyViolations ? "blocked" : "complete")]),
+    record("Conversion KPIs", `${marketingConversion.readyEvents} of ${marketingConversion.eventCount} KPI events ready; ${marketingConversion.noLiveTracking} no-live-tracking.`, [toneChip(marketingConversion.status, marketingConversion.status === "ready" ? "complete" : "blocked"), chip(formatJpy(marketingConversion.potentialValueJpy))]),
     record("SYNAPSE Placement", `${routePlacement.summary.routeCount} routes, ${routePlacement.placementMode}, ${routePlacement.access}.`, [chip(routePlacement.targetSystem), chip(routePlacement.duplicateUi ? "duplicate-ui" : "no-duplicate-ui"), chip(routePlacement.summary.monitorHref)]),
     record("Calendar Export", `${calendar.total} export-ready entries, ${calendar.customerVisible} customer-visible, ${calendar.updateLinked} update-linked.`, [chip(calendarExport.schema), chip(calendarExport.timezone)]),
     record("Persistence", `Ledger ${persistence.ledgerId} revision ${persistence.revision}; ${persistence.adapterState}; checksum ${persistence.checksum}.`, [chip(persistence.adapter), chip(persistence.libraryReady ? "library-ready" : "local-only")])
@@ -802,6 +805,17 @@ function renderMonitor(items) {
     ]
   ));
 
+  const marketingConversionCards = marketingConversion.events.map((event) => record(
+    event.title,
+    `${event.routeKey} | ${event.eventType} | ${event.attributionPolicy} | ${event.notes}`,
+    [
+      statusChip(event.status),
+      chip(event.readinessStatus),
+      chip(event.regionScope),
+      toneChip(`${event.violations.length} violations`, event.violations.length ? "blocked" : "complete")
+    ]
+  ));
+
   const riskCards = report.risks.length
     ? report.risks.map((item) => record(item.title, item.detail, [chip(item.severity, item.severity === "high" ? "blocked" : "overdue")]))
     : [record("Risks", "No active risk records in the current operating surface.", [chip("clear", "complete")])];
@@ -861,6 +875,7 @@ function renderMonitor(items) {
     monitorSection("Timeline", timelineCards, "monitor-timeline"),
     monitorSection("Curriculum / Gameplans", curriculumCards, "monitor-curriculum"),
     monitorSection("Campaign Routes", campaignCards.length ? campaignCards : [record("Campaign Routes", "No campaign route records have been created yet.", [chip("empty")])], "monitor-campaigns"),
+    monitorSection("Marketing Conversion KPIs", marketingConversionCards.length ? marketingConversionCards : [record("Marketing Conversion KPIs", "No local conversion KPI readiness records have been created yet.", [chip("empty")])], "monitor-marketing-conversions"),
     monitorSection("Agent Handoffs", handoffCards, "monitor-handoffs"),
     monitorSection("Notification Outbox", outboxCards, "monitor-notification-outbox"),
     monitorSection("Notification Provider Handoffs", notificationProviderCards.length ? notificationProviderCards : [record("Notification Providers", "No notification provider handoff records have been created yet.", [chip("empty")])], "monitor-notification-provider"),
@@ -936,6 +951,17 @@ function renderAuthSessionRoleOptions() {
   });
   select.innerHTML = handoffOptions.length ? handoffOptions.join("") : `<option value="">No auth/session role handoffs yet</option>`;
   if (submit) submit.disabled = !handoffOptions.length;
+}
+
+function renderMarketingConversionOptions() {
+  const select = byId("marketing-conversion-select");
+  const submit = byId("marketing-conversion-apply");
+  if (!select) return;
+  const eventOptions = (data.marketingConversionEvents || []).map((event) => {
+    return `<option value="${escapeHtml(event.id)}">${escapeHtml(event.title)} (${escapeHtml(event.status)})</option>`;
+  });
+  select.innerHTML = eventOptions.length ? eventOptions.join("") : `<option value="">No conversion KPI events yet</option>`;
+  if (submit) submit.disabled = !eventOptions.length;
 }
 
 function renderQuoteOptions() {
@@ -1057,6 +1083,7 @@ function renderAll() {
   renderNotificationProviderOptions();
   renderPaymentProviderOptions();
   renderAuthSessionRoleOptions();
+  renderMarketingConversionOptions();
   renderQuoteOptions();
   renderReminderControlOptions();
   renderAccessGatewayOptions();
@@ -1421,6 +1448,41 @@ function wireAuthSessionRoleForm() {
   });
 }
 
+function wireMarketingConversionForm() {
+  const form = byId("marketing-conversion-form");
+  const confirmation = byId("marketing-conversion-confirmation");
+  if (!form || !confirmation) return;
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+    try {
+      const result = recordTools.transitionMarketingConversionEventRecords(data, payload, {
+        now: "2026-06-01T16:45:00.000Z"
+      });
+      data = result.data;
+      persistData({
+        adapterState: "modified-local",
+        recoveryNote: "Marketing conversion KPI readiness changed locally; export a ledger snapshot before live ad or analytics provider work."
+      });
+      renderAll();
+      confirmation.innerHTML = record(
+        "Marketing Conversion KPI Updated",
+        `${result.records.event.title} is ${result.records.event.readinessStatus}.`,
+        [statusChip(result.records.event.status), chip(result.records.event.eventType), chip(result.records.event.analyticsProvider)]
+      );
+      form.reset();
+    } catch (error) {
+      confirmation.innerHTML = record(
+        "Marketing Conversion KPI Blocked",
+        error.message || "Marketing conversion KPI action could not be applied.",
+        [chip("blocked", "blocked")]
+      );
+    }
+  });
+}
+
 function wireQuotePaymentForm() {
   const form = byId("quote-payment-form");
   const confirmation = byId("quote-payment-confirmation");
@@ -1680,6 +1742,7 @@ function init() {
   wireNotificationProviderForm();
   wirePaymentProviderForm();
   wireAuthSessionRoleForm();
+  wireMarketingConversionForm();
   wireQuotePaymentForm();
   wireReminderControlForm();
   wireAccessGatewayForm();
