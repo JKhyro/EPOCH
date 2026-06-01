@@ -16,6 +16,12 @@ package-specific gameplans and customer-visible progress summaries.
   labor model, and under-19 policy.
 - `customers.gameplanId`: optional assignment of a customer to the currently
   visible personalized plan.
+- Intake, opportunity, engagement, session, assignment, submission, receipt, and
+  customer records should preserve `frameworkId`, `gameplanId`, and
+  `gameplanStatus` whenever a package has a linked gameplan.
+- Education intake should preserve the minimum personalization inputs needed
+  for routing: target level, baseline sample state, weakness focus, and
+  available study time.
 
 ## Education Rules
 

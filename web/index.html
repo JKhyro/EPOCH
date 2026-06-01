@@ -474,6 +474,41 @@
           </div>
           <div class="form-row">
             <label>
+              Target level
+              <select name="targetLevel" required>
+                <option value="diagnostic">Diagnostic / not sure</option>
+                <option value="EIKEN 5">EIKEN 5</option>
+                <option value="EIKEN 4">EIKEN 4</option>
+                <option value="EIKEN 3">EIKEN 3</option>
+                <option value="EIKEN Pre-2">EIKEN Pre-2</option>
+                <option value="EIKEN 2">EIKEN 2</option>
+                <option value="EIKEN Pre-1">EIKEN Pre-1</option>
+                <option value="EIKEN 1">EIKEN 1</option>
+                <option value="professional">Professional / business</option>
+              </select>
+            </label>
+            <label>
+              Baseline sample
+              <select name="baselineSampleState" required>
+                <option value="not submitted">Not submitted yet</option>
+                <option value="ready to submit">Ready to submit</option>
+                <option value="needs diagnostic prompt">Needs diagnostic prompt</option>
+                <option value="source files pending">Source files pending</option>
+              </select>
+            </label>
+          </div>
+          <div class="form-row">
+            <label>
+              Weakness focus
+              <input name="weaknessFocus" placeholder="structure, grammar, ideas, timing, CRM cleanup..." required />
+            </label>
+            <label>
+              Available study time
+              <input name="availableStudyTime" placeholder="30 min/day, weekends only, monthly support..." required />
+            </label>
+          </div>
+          <div class="form-row">
+            <label>
               Deadline and timezone
               <input name="deadlineTimezone" placeholder="June 12, JST / UTC+9" required />
             </label>

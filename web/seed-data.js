@@ -200,6 +200,27 @@ window.EPOCH_SEED_DATA = {
       "under19Policy": "Younger candidates require guardian-led compatibility review and higher-touch pricing."
     },
     {
+      "id": "gameplan-under19-compatibility",
+      "packageId": "pkg-under19-assessment",
+      "frameworkId": "framework-eiken-5-to-1-writing",
+      "title": "Under-19 Compatibility Assessment Gameplan",
+      "status": "restricted",
+      "deliveryCadence": "Guardian-led fit review, baseline task, schedule-risk check, and acceptance decision before recurring work.",
+      "personalizationInputs": ["target level", "guardian contact", "baseline sample", "study maturity", "schedule fit"],
+      "milestones": [
+        "Guardian or institution intake confirmed.",
+        "Compatibility diagnostic completed.",
+        "Schedule and behavior fit reviewed.",
+        "Accept, defer, or close decision recorded."
+      ],
+      "customerVisibleSummary": "Younger applicants start with compatibility review before any recurring package is offered.",
+      "internalReadiness": "Restricted route; ready only when guardian-led intake is complete.",
+      "nextMilestoneAt": "2026-06-02T17:00:00+09:00",
+      "laborModel": "high-touch-gated",
+      "liveTouchPolicy": "Live time is assessment-only until fit is proven.",
+      "under19Policy": "Required compatibility gate for all under-19 applicants."
+    },
+    {
       "id": "gameplan-ops-diagnostic",
       "packageId": "pkg-ops-diagnostic",
       "frameworkId": "framework-professional-writing-ops",
@@ -218,6 +239,48 @@ window.EPOCH_SEED_DATA = {
       "nextMilestoneAt": "2026-06-04T16:00:00+09:00",
       "laborModel": "diagnostic",
       "liveTouchPolicy": "Live time is used for scoping; recurring work moves through managed requests.",
+      "under19Policy": "Not applicable; business and adult operator route only."
+    },
+    {
+      "id": "gameplan-tech-support-retainer",
+      "packageId": "pkg-tech-support-retainer",
+      "frameworkId": "framework-professional-writing-ops",
+      "title": "Remote Technical Support Retainer Gameplan",
+      "status": "planned",
+      "deliveryCadence": "Recurring request queue with weekly prioritization, status updates, and monthly operating receipt.",
+      "personalizationInputs": ["systems used", "support boundary", "priority queue", "access rules"],
+      "milestones": [
+        "Support boundary confirmed.",
+        "Request queue opened.",
+        "First support item returned.",
+        "Monthly support receipt issued."
+      ],
+      "customerVisibleSummary": "Recurring support runs through a managed request queue with visible status and monthly receipts.",
+      "internalReadiness": "Ready after diagnostic and access boundary review.",
+      "nextMilestoneAt": "2026-06-07T15:00:00+09:00",
+      "laborModel": "retainer",
+      "liveTouchPolicy": "Live support is reserved for issues that cannot be resolved asynchronously.",
+      "under19Policy": "Not applicable; business and adult operator route only."
+    },
+    {
+      "id": "gameplan-crm-system-build",
+      "packageId": "pkg-crm-system-build",
+      "frameworkId": "framework-professional-writing-ops",
+      "title": "Database / CRM System Build Gameplan",
+      "status": "planned",
+      "deliveryCadence": "Scoped build plan, source-data review, prototype milestone, handoff notes, and follow-up support option.",
+      "personalizationInputs": ["current data shape", "workflow pain", "handoff owner", "acceptance criteria"],
+      "milestones": [
+        "Scope and source data confirmed.",
+        "Prototype milestone scheduled.",
+        "Handoff checklist returned.",
+        "Support or maintenance route selected."
+      ],
+      "customerVisibleSummary": "System builds start with scope and source-data review, then move through prototype and handoff milestones.",
+      "internalReadiness": "Ready for project estimate after diagnostic evidence is available.",
+      "nextMilestoneAt": "2026-06-10T18:00:00+09:00",
+      "laborModel": "project-scoped",
+      "liveTouchPolicy": "Live time is used for scope and handoff; build work remains milestone tracked.",
       "under19Policy": "Not applicable; business and adult operator route only."
     }
   ],
