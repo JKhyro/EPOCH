@@ -472,10 +472,12 @@ function wireOpportunityForm() {
 
 function activateView(viewName, options = {}) {
   const nextView = viewNames.has(viewName) ? viewName : "admin";
-  document.querySelectorAll(".tab").forEach((item) => {
+  document.body.dataset.activeView = nextView;
+  document.querySelectorAll("[data-view]").forEach((item) => {
     const isActive = item.dataset.view === nextView;
     item.classList.toggle("active", isActive);
     item.setAttribute("aria-selected", String(isActive));
+    item.setAttribute("aria-current", isActive ? "true" : "false");
   });
   document.querySelectorAll(".view").forEach((item) => {
     item.classList.toggle("active", item.id === `view-${nextView}`);
@@ -486,7 +488,7 @@ function activateView(viewName, options = {}) {
 }
 
 function wireTabs() {
-  document.querySelectorAll(".tab").forEach((tab) => {
+  document.querySelectorAll("[data-view]").forEach((tab) => {
     tab.addEventListener("click", () => activateView(tab.dataset.view));
   });
   window.addEventListener("hashchange", () => activateView(viewFromRoute(), { updateRoute: false }));

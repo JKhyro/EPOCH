@@ -7,17 +7,51 @@
   <link rel="icon" href="data:," />
   <link rel="stylesheet" href="./styles.css" />
 </head>
-<body>
-  <main class="shell">
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">EPOCH V1</p>
-        <h1>Commercial Operating Surface</h1>
+<body class="epoch-surface" data-active-view="admin">
+  <main class="shell control-shell">
+    <aside class="control-rail" aria-label="EPOCH route tree">
+      <div class="rail-brand">
+        <p class="eyebrow">EPOCH Route Tree</p>
+        <h2>EPOCH MONITOR</h2>
+        <p>Commercial operating lane with scheduling, submissions, receipts, and customer-safe status.</p>
       </div>
-      <div class="status-pill" id="monitor-health">Loading</div>
-    </header>
+      <nav class="tabs rail-tree" aria-label="EPOCH views">
+        <button type="button" class="tab active" data-view="admin">Admin</button>
+        <button type="button" class="tab" data-view="student">Student</button>
+        <button type="button" class="tab" data-view="monitor">Monitor</button>
+        <button type="button" class="tab" data-view="public">Public</button>
+      </nav>
+      <div class="rail-panel">
+        <p class="eyebrow">Control State</p>
+        <div class="status-pill" id="monitor-health">Loading</div>
+        <div class="rail-chips" aria-label="Active operating capabilities">
+          <span class="control-chip">Public intake</span>
+          <span class="control-chip">Local ledger</span>
+          <span class="control-chip">Thread registry</span>
+        </div>
+      </div>
+      <div class="rail-panel thread-registry">
+        <p class="eyebrow">Thread Registry</p>
+        <a href="#monitor" class="monitor-route-link">Direct route</a>
+        <button type="button" data-monitor-target="monitor-controls">Ledger Controls</button>
+        <button type="button" data-monitor-target="monitor-timeline">Timeline</button>
+      </div>
+    </aside>
 
-    <section class="summary-band" aria-label="Operating summary">
+    <section class="workspace-shell" aria-label="EPOCH workspace">
+      <header class="topbar">
+      <div>
+        <p class="eyebrow">EPOCH V1 / SCAFFOLD-aligned</p>
+        <h1>Commercial Operating Surface</h1>
+        <p class="topbar-subtitle">Scheduling, submissions, customer updates, and operating receipts in one local-first control surface.</p>
+      </div>
+      <div class="topbar-controls" aria-label="Surface status">
+        <span class="control-chip">Route tree</span>
+        <span class="control-chip">Ledger controls</span>
+      </div>
+      </header>
+
+      <section class="summary-band" aria-label="Operating summary">
       <div>
         <span class="metric" id="metric-today">0</span>
         <span class="metric-label">today</span>
@@ -34,19 +68,34 @@
         <span class="metric blocked" id="metric-blocked">0</span>
         <span class="metric-label">blocked</span>
       </div>
-    </section>
+      </section>
 
-    <nav class="tabs" aria-label="EPOCH views">
-      <button type="button" class="tab active" data-view="admin">Admin</button>
-      <button type="button" class="tab" data-view="student">Student</button>
-      <button type="button" class="tab" data-view="monitor">Monitor</button>
-      <button type="button" class="tab" data-view="public">Public</button>
-    </nav>
+      <section class="operator-control-panel" aria-label="Operating ledger control panel">
+        <div class="ledger-console">
+          <div>
+            <p class="eyebrow">Operating Control Panel</p>
+            <h3>Operating Ledger</h3>
+            <p id="storage-status">Ledger loading</p>
+          </div>
+          <div class="ledger-actions">
+            <button type="button" id="export-ledger">Export Ledger</button>
+            <button type="button" id="import-ledger" class="secondary-action">Import Ledger</button>
+          </div>
+          <textarea id="ledger-json" rows="8" aria-label="Operating ledger JSON"></textarea>
+        </div>
+        <div id="ledger-confirmation" class="confirmation"></div>
+      </section>
 
     <section id="view-admin" class="view active" aria-label="Internal administration">
       <div class="section-heading">
         <h2>Internal Next Actions</h2>
         <p>Classes, submissions, service requests, and review work that need provider attention.</p>
+      </div>
+      <div class="command-strip" aria-label="Internal operating modes">
+        <button type="button" class="mode-button active" data-view="admin">Admin Queue</button>
+        <button type="button" class="mode-button" data-view="student">Customer Status</button>
+        <button type="button" class="mode-button" data-view="monitor">Monitor</button>
+        <button type="button" class="mode-button" data-view="public">Public Intake</button>
       </div>
       <div class="opportunity-layout">
         <form id="opportunity-form" class="intake-form">
@@ -152,6 +201,11 @@
         <h2>External Status</h2>
         <p>Customer-safe status records for what is due, submitted, returned, and next.</p>
       </div>
+      <div class="command-strip" aria-label="External status controls">
+        <button type="button" class="mode-button active" data-view="student">Student View</button>
+        <button type="button" class="mode-button" data-view="public">Request Intake</button>
+        <button type="button" class="mode-button" data-view="monitor">Monitor Receipts</button>
+      </div>
       <div class="submission-layout">
         <form id="submission-form" class="intake-form">
           <div class="form-row">
@@ -196,6 +250,12 @@
         <h2>EPOCH Monitor</h2>
         <p>Local-first health summary for queue risk, receipts, and delivery state.</p>
       </div>
+      <div class="command-strip monitor-command-strip" aria-label="Monitor command strip">
+        <button type="button" class="mode-button active" data-monitor-target="monitor-summary">Check</button>
+        <button type="button" class="mode-button" data-monitor-target="monitor-queue">Queue</button>
+        <button type="button" class="mode-button" data-monitor-target="monitor-timeline">Timeline</button>
+        <button type="button" class="mode-button" data-monitor-target="monitor-controls">Controls</button>
+      </div>
       <div class="monitor-layout">
         <aside class="monitor-menu" aria-label="Monitor route menu">
           <div>
@@ -225,18 +285,6 @@
               <button type="button" id="return-review">Return Next Review</button>
             </div>
             <div id="review-confirmation" class="confirmation"></div>
-            <div class="ledger-console">
-              <div>
-                <h3>Operating Ledger</h3>
-                <p id="storage-status">Ledger loading</p>
-              </div>
-              <div class="ledger-actions">
-                <button type="button" id="export-ledger">Export Ledger</button>
-                <button type="button" id="import-ledger" class="secondary-action">Import Ledger</button>
-              </div>
-              <textarea id="ledger-json" rows="8" aria-label="Operating ledger JSON"></textarea>
-            </div>
-            <div id="ledger-confirmation" class="confirmation"></div>
           </section>
           <div id="monitor-items" class="monitor-grid"></div>
         </div>
@@ -246,7 +294,7 @@
     <section id="view-public" class="view" aria-label="Public offer surface">
       <div class="public-hero">
         <div>
-          <p class="eyebrow">Japan-wide premium services</p>
+          <p class="eyebrow">Japan-wide premium services / global-ready</p>
           <h2>Exam writing, submission review, and operating support for serious adults.</h2>
           <p>Structured English and service-operations delivery with clear schedules, request tracking, returned feedback, and professional progress updates.</p>
           <div class="hero-actions">
@@ -338,7 +386,7 @@
       <div class="intake-layout">
         <form id="intake-form" class="intake-form">
           <div>
-            <p class="eyebrow">Request intake</p>
+            <p class="eyebrow">Request intake / routed before booking</p>
             <h3>Start with the right first paid step</h3>
             <p>This intake is for serious inquiries only. Share the document type, target result, deadline, and who is submitting so the request can be routed before booking.</p>
           </div>
@@ -433,6 +481,7 @@
           <div id="intake-feed" class="item-list"></div>
         </div>
       </div>
+    </section>
     </section>
   </main>
 

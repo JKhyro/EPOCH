@@ -112,10 +112,11 @@ for (const field of ["opportunityId", "decision", "planStartAt", "planEndAt", "p
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
 }
-for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-persistence"]) {
+for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-command-strip", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-persistence"]) {
   if (!html.includes(phrase)) fail(`monitor route surface missing phrase ${phrase}`);
 }
 for (const phrase of [
+  "SCAFFOLD-aligned",
   "Japan-wide premium services",
   "Request Diagnostic",
   "Compare Packages",
@@ -129,9 +130,24 @@ for (const phrase of [
   "Deadline and timezone",
   "Japan-wide launch routes",
   "Global expansion routes",
+  "routed before booking",
   "Start with the right first paid step"
 ]) {
   if (!html.includes(phrase)) fail(`public offer funnel missing phrase ${phrase}`);
+}
+for (const phrase of [
+  "command-strip",
+  "topbar-controls",
+  "control-chip",
+  "mode-button",
+  "control-shell",
+  "control-rail",
+  "rail-tree",
+  "Thread Registry",
+  "operator-control-panel",
+  "Operating Control Panel"
+]) {
+  if (!html.includes(phrase)) fail(`SCAFFOLD/HERMES alignment surface missing ${phrase}`);
 }
 if (!html.includes("./operating-records.js")) fail("web surface does not load operating-records.js");
 
@@ -161,6 +177,9 @@ for (const phrase of [
   "wireMonitorMenu",
   "wirePublicActions",
   "data-public-target",
+  "[data-view]",
+  "document.body.dataset.activeView",
+  "aria-current",
   "viewFromRoute",
   "routeForView",
   "hashchange",
@@ -211,6 +230,28 @@ for (const phrase of [
   "Opportunity Rejected"
 ]) {
   if (!app.includes(phrase)) fail(`app script missing phrase: ${phrase}`);
+}
+
+const styles = read("../web/styles.css");
+for (const phrase of [
+  "color-scheme: dark",
+  "--bg: #040404",
+  "--panel: #050705",
+  "--text: #5b8f68",
+  "--heading: #8fb99a",
+  "--accent: #0f9b35",
+  "--highlight: #78bd83",
+  "--timeline-card-bg",
+  "--bronze: #8E6142",
+  "control-shell",
+  "control-rail",
+  "operator-control-panel",
+  "monitor-command-strip",
+  "mode-button.active",
+  "font-family: var(--font-mono)",
+  "background: var(--panel-soft)"
+]) {
+  if (!styles.includes(phrase)) fail(`styles missing SCAFFOLD/HERMES alignment phrase: ${phrase}`);
 }
 
 if (!data.offerPackages.some((item) => item.id === "pkg-under19-assessment" && item.routing === "compatibility-required")) {
