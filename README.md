@@ -12,6 +12,9 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
    collapse into unbounded platform scope.
 5. Build revenue-facing platform slices after the integration queue, starting
    with the professional public offer funnel and marketing-ready intake path.
+6. Align the public, admin, student, and monitor web surfaces with the
+   SCAFFOLD/HERMES visual direction without turning the public funnel into an
+   internal monitor page.
 
 ## Current planning artifacts
 
@@ -31,7 +34,9 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   checks.
 - `native/epoch_core_smoke.c`: native smoke test for the core contract.
 - `web/index.html`: static first-slice admin, student/customer, monitor, and
-  public offer-funnel/intake surface.
+  public offer-funnel/intake surface, including a SCAFFOLD/HERMES-style route
+  rail, top operating-ledger control panel, command strips, and an adult-first
+  public intake route.
 - `web/operating-records.js`: browser-local intake-to-operating-record helper
   that turns a public request into lead, customer, request, follow-up, and
   receipt records, then supports opportunity-to-engagement conversion,
@@ -44,7 +49,8 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   student/customer, monitor, public request, scheduling, submission, and
   review-return views, including local ledger save/load, durable snapshot status,
   recovery-import state, JSON export/import, and MONITOR-visible SYNAPSE route
-  placement cards, plus marketing-route and labor-model offer catalog display.
+  placement cards, plus marketing-route and labor-model offer catalog display,
+  body-level active-view state, and shared data-view activation.
 - `web/seed-data.js`: demo commercial workflow covering leads, tracks, cohorts,
   offer packages, opportunities, update events, sessions, assignments,
   submissions, reviews, follow-ups, receipts, SYNAPSE route placements, and

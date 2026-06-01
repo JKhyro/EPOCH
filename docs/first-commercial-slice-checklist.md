@@ -13,6 +13,10 @@ service operations without waiting for every future CITADEL integration.
 - Internal schedule/admin view.
 - Student/customer status view or export-ready status page.
 - EPOCH MONITOR status page for queue, overdue, risk, and receipt visibility.
+- SCAFFOLD/HERMES-aligned route rail, top operating controls, command strips,
+  muted operational cards, and monitor side navigation across the internal
+  surfaces, with the public page using the same visual language in a
+  commercially appropriate way.
 
 ## Required records
 
@@ -63,5 +67,7 @@ service operations without waiting for every future CITADEL integration.
 - A student/customer can see what is due, what was submitted, what was returned,
   and what is next.
 - The monitor can summarize health without manually reading every record.
+- Public, admin, student/customer, and monitor surfaces share one aligned visual
+  system while keeping public intake distinct from the internal control room.
 - The slice does not depend on production payment, public notification delivery,
   full authentication, or deep LIBRARY persistence.
