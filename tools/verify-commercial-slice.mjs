@@ -44,6 +44,7 @@ const requiredCollections = [
   "routePlacements",
   "accessGateways",
   "librarySyncHandoffs",
+  "calendarProviderHandoffs",
   "monitorHealthChecks",
   "notificationEvents",
   "customers",
@@ -94,6 +95,7 @@ if (!Array.isArray(data.recurrenceCandidates)) fail("seed data missing recurrenc
 if (!Array.isArray(data.availabilityWindows)) fail("seed data missing availabilityWindows collection");
 if (!Array.isArray(data.accessGateways)) fail("seed data missing accessGateways collection");
 if (!Array.isArray(data.librarySyncHandoffs)) fail("seed data missing librarySyncHandoffs collection");
+if (!Array.isArray(data.calendarProviderHandoffs)) fail("seed data missing calendarProviderHandoffs collection");
 
 const header = read("../native/epoch_core.h");
 const source = read("../native/epoch_core.c");
@@ -171,7 +173,12 @@ for (const id of [
   "library-sync-select",
   "library-sync-action",
   "library-sync-apply",
-  "library-sync-confirmation"
+  "library-sync-confirmation",
+  "calendar-provider-form",
+  "calendar-provider-select",
+  "calendar-provider-action",
+  "calendar-provider-apply",
+  "calendar-provider-confirmation"
 ]) {
   if (!html.includes(`id="${id}"`)) fail(`web surface missing ${id}`);
 }
@@ -214,7 +221,7 @@ for (const field of ["handoffId", "action", "note"]) {
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
 }
-for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-command-strip", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-library-sync", "monitor-persistence", "monitor-scope", "monitor-memory", "monitor-access"]) {
+for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-command-strip", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-library-sync", "monitor-calendar-provider", "monitor-persistence", "monitor-scope", "monitor-memory", "monitor-access"]) {
   if (!html.includes(phrase)) fail(`monitor route surface missing phrase ${phrase}`);
 }
 for (const phrase of ["monitor-curriculum", "Package Gameplans", "Personalized Gameplan", "Curriculum Frameworks"]) {
@@ -225,6 +232,9 @@ for (const phrase of ["Controlled gateway", "Access Gateways", "Apply Access Gat
 }
 for (const phrase of ["LIBRARY handoff", "LIBRARY Sync", "Apply LIBRARY Sync Action"]) {
   if (!html.includes(phrase)) fail(`LIBRARY sync HTML missing phrase ${phrase}`);
+}
+for (const phrase of ["Calendar handoff", "Calendar Providers", "Apply Calendar Provider Action"]) {
+  if (!html.includes(phrase)) fail(`calendar provider HTML missing phrase ${phrase}`);
 }
 for (const phrase of [
   "SCAFFOLD-aligned",
@@ -384,18 +394,25 @@ for (const phrase of [
   "transitionAvailabilityWindowRecords",
   "transitionAccessGatewayRecords",
   "transitionLibrarySyncHandoffRecords",
+  "transitionCalendarProviderHandoffRecords",
   "summarizeLibrarySyncState",
+  "summarizeCalendarProviderState",
   "summarizeAccessGatewayState",
   "renderAccessGatewayOptions",
   "renderLibrarySyncOptions",
+  "renderCalendarProviderOptions",
   "wireAccessGatewayForm",
   "wireLibrarySyncForm",
+  "wireCalendarProviderForm",
   "Access Gateway",
   "Access Gateway Records",
   "Access Gateway Updated",
   "LIBRARY Sync",
   "LIBRARY Sync Handoffs",
   "LIBRARY Sync Updated",
+  "Calendar Providers",
+  "Calendar Provider Handoffs",
+  "Calendar Provider Updated",
   "renderAgentHandoffOptions",
   "renderNotificationDeliveryOptions",
   "renderQuoteOptions",
@@ -454,6 +471,7 @@ for (const phrase of [
   "reminder-console",
   "access-gateway-console",
   "library-sync-console",
+  "calendar-provider-console",
   "monitor-action-button",
   "button-meta",
   "monitor-command-strip",
@@ -470,9 +488,11 @@ if (!Array.isArray(data.monitorMemory) || data.monitorMemory.length < 3) fail("s
 if (!data.accessPosture || typeof data.accessPosture !== "object") fail("seed data missing access posture contract");
 if (!Array.isArray(data.accessGateways) || data.accessGateways.length < 4) fail("seed data missing controlled access gateway records");
 if (!Array.isArray(data.librarySyncHandoffs) || data.librarySyncHandoffs.length < 2) fail("seed data missing LIBRARY sync handoff records");
+if (!Array.isArray(data.calendarProviderHandoffs) || data.calendarProviderHandoffs.length < 3) fail("seed data missing calendar provider handoff records");
 if (!Array.isArray(data.monitorHealthChecks) || data.monitorHealthChecks.length < 2) fail("seed data missing ledger-backed monitor health checks");
 if (!data.receipts.some((item) => item.kind === "monitor-check")) fail("seed data missing monitor-check receipt");
 if (!data.receipts.some((item) => item.kind === "library-sync-handoff")) fail("seed data missing LIBRARY sync handoff receipt");
+if (!data.receipts.some((item) => item.kind === "calendar-provider-handoff")) fail("seed data missing calendar provider handoff receipt");
 if (data.accessPosture.defaultPublicPolicy !== "deny-by-default") fail("access posture must default to deny-by-default");
 if (data.accessPosture.rawMonitor !== "local-only") fail("access posture must keep raw monitor local-only");
 if (data.accessPosture.safeGateway !== "controlled-public-customer-gateway") fail("access posture must name the controlled public/customer gateway");
@@ -483,6 +503,12 @@ if (!data.accessGateways.some((item) => item.surface === "monitor" && item.publi
 if (!data.librarySyncHandoffs.some((item) => item.targetSystem === "LIBRARY" && item.syncMode === "ledger-snapshot")) fail("LIBRARY sync handoffs missing EPOCH-to-LIBRARY ledger snapshot");
 if (!data.librarySyncHandoffs.some((item) => item.sourceSystem === "LIBRARY" && item.syncMode === "recovery-import")) fail("LIBRARY sync handoffs missing recovery import route");
 if (!data.librarySyncHandoffs.every((item) => item.visibility === "internal" && item.customerVisible === false)) fail("LIBRARY sync handoffs must be internal-only");
+if (!data.calendarProviderHandoffs.some((item) => item.providerKind === "google" && item.targetProvider.includes("Google"))) fail("calendar provider handoffs missing Google readiness");
+if (!data.calendarProviderHandoffs.some((item) => item.providerKind === "microsoft" && item.targetProvider.includes("Microsoft"))) fail("calendar provider handoffs missing Microsoft readiness");
+if (!data.calendarProviderHandoffs.some((item) => item.syncMode === "invitation-readiness" && item.readinessChecks.includes("no-provider-send"))) fail("calendar provider handoffs missing no-send invitation readiness");
+if (!data.calendarProviderHandoffs.every((item) => item.visibility === "internal" && item.customerVisible === false && item.liveSyncEnabled === false && item.sendsInvitations === false && item.externalProviderWrite === false)) {
+  fail("calendar provider handoffs must be internal-only and no-live-send");
+}
 if (!data.monitorMemory.some((item) => item.status === "stale")) fail("monitor memory should demonstrate stale-note risk");
 
 if (!data.offerPackages.some((item) => item.id === "pkg-under19-assessment" && item.routing === "compatibility-required")) {
@@ -577,12 +603,15 @@ if (typeof recordTools.createAccessGatewayRecords !== "function") fail("operatin
 if (typeof recordTools.transitionAccessGatewayRecords !== "function") fail("operating helpers missing transitionAccessGatewayRecords");
 if (typeof recordTools.createLibrarySyncHandoffRecords !== "function") fail("operating helpers missing createLibrarySyncHandoffRecords");
 if (typeof recordTools.transitionLibrarySyncHandoffRecords !== "function") fail("operating helpers missing transitionLibrarySyncHandoffRecords");
+if (typeof recordTools.createCalendarProviderHandoffRecords !== "function") fail("operating helpers missing createCalendarProviderHandoffRecords");
+if (typeof recordTools.transitionCalendarProviderHandoffRecords !== "function") fail("operating helpers missing transitionCalendarProviderHandoffRecords");
 if (typeof recordTools.createMonitorActionRecords !== "function") fail("operating helpers missing createMonitorActionRecords");
 if (typeof recordTools.summarizeAgentHandoffState !== "function") fail("operating helpers missing summarizeAgentHandoffState");
 if (typeof recordTools.summarizeQuoteState !== "function") fail("operating helpers missing summarizeQuoteState");
 if (typeof recordTools.summarizeScheduleControlState !== "function") fail("operating helpers missing summarizeScheduleControlState");
 if (typeof recordTools.summarizeAccessGatewayState !== "function") fail("operating helpers missing summarizeAccessGatewayState");
 if (typeof recordTools.summarizeLibrarySyncState !== "function") fail("operating helpers missing summarizeLibrarySyncState");
+if (typeof recordTools.summarizeCalendarProviderState !== "function") fail("operating helpers missing summarizeCalendarProviderState");
 if (typeof recordTools.summarizeAccessPosture !== "function") fail("operating helpers missing summarizeAccessPosture");
 if (typeof recordTools.summarizeMemoryState !== "function") fail("operating helpers missing summarizeMemoryState");
 if (typeof recordTools.summarizeRoutePlacementState !== "function") fail("operating helpers missing summarizeRoutePlacementState");
@@ -627,6 +656,17 @@ brokenLibraryData.librarySyncHandoffs = brokenLibraryData.librarySyncHandoffs.ma
 const brokenLibrarySummary = recordTools.summarizeLibrarySyncState(brokenLibraryData, { now: "2026-06-01T12:00:00+09:00" });
 if (brokenLibrarySummary.status !== "blocked" || brokenLibrarySummary.violations.length < 2) fail("LIBRARY sync summary should block public/customer-visible handoff records");
 
+const calendarProviderSummary = recordTools.summarizeCalendarProviderState(data, { now: "2026-06-01T12:00:00+09:00" });
+if (calendarProviderSummary.handoffCount < 3) fail("calendar provider summary missing handoff count");
+if (calendarProviderSummary.providerReady < 2) fail("calendar provider summary missing provider readiness handoffs");
+if (calendarProviderSummary.invitationReady < 1) fail("calendar provider summary missing invitation readiness handoff");
+if (calendarProviderSummary.noLiveSend !== data.calendarProviderHandoffs.length) fail("calendar provider summary should prove no-live-send on every handoff");
+if (calendarProviderSummary.violations.length !== 0) fail("calendar provider summary should not report seed violations");
+const brokenCalendarProviderData = recordTools.cloneData(data);
+brokenCalendarProviderData.calendarProviderHandoffs = brokenCalendarProviderData.calendarProviderHandoffs.map((item) => item.id === "calendar-provider-google-readiness" ? { ...item, customerVisible: true, liveSyncEnabled: true, sendsInvitations: true } : item);
+const brokenCalendarProviderSummary = recordTools.summarizeCalendarProviderState(brokenCalendarProviderData, { now: "2026-06-01T12:00:00+09:00" });
+if (brokenCalendarProviderSummary.status !== "blocked" || brokenCalendarProviderSummary.violations.length < 2) fail("calendar provider summary should block live/customer-visible provider handoffs");
+
 const gatewayTransition = recordTools.transitionAccessGatewayRecords(data, {
   gatewayId: "gateway-public-intake",
   action: "verify",
@@ -651,6 +691,22 @@ if (librarySyncTransition.data.receipts.filter((item) => item.kind === "library-
 if (librarySyncTransition.data.monitorHealthChecks.length !== data.monitorHealthChecks.length + 1) fail("LIBRARY sync transition should add a monitor health check");
 if (librarySyncTransition.data.notificationEvents.length !== data.notificationEvents.length) fail("LIBRARY sync transition must not create customer-visible notification events");
 if (librarySyncTransition.records.healthCheck.customerVisible !== false) fail("LIBRARY sync health check must remain internal");
+
+const calendarProviderTransition = recordTools.transitionCalendarProviderHandoffRecords(data, {
+  handoffId: "calendar-provider-invitation-readiness",
+  action: "invite-ready",
+  note: "Verifier marked invitation preview ready without sending a provider invite."
+}, { now: "2026-06-01T12:07:00+09:00" });
+if (calendarProviderTransition.records.handoff.handoffStatus !== "operator-preview-ready") fail("calendar provider transition did not mark operator preview ready");
+if (calendarProviderTransition.data.receipts.filter((item) => item.kind === "calendar-provider-handoff").length !== data.receipts.filter((item) => item.kind === "calendar-provider-handoff").length + 1) {
+  fail("calendar provider transition should add a calendar-provider-handoff receipt");
+}
+if (calendarProviderTransition.data.monitorHealthChecks.length !== data.monitorHealthChecks.length + 1) fail("calendar provider transition should add a monitor health check");
+if (calendarProviderTransition.data.notificationEvents.length !== data.notificationEvents.length) fail("calendar provider transition must not create customer-visible notification events");
+if (calendarProviderTransition.records.healthCheck.customerVisible !== false) fail("calendar provider health check must remain internal");
+if (calendarProviderTransition.records.handoff.liveSyncEnabled || calendarProviderTransition.records.handoff.sendsInvitations || calendarProviderTransition.records.handoff.externalProviderWrite) {
+  fail("calendar provider transition must not enable live sync, provider writes, or invitation sending");
+}
 
 const monitorActionResult = recordTools.createMonitorActionRecords(data, {
   actionId: "verify-safe-access-check",
@@ -689,7 +745,8 @@ for (const phrase of [
   "Package gameplan",
   "Campaign route",
   "Controlled public/customer access gateway record",
-  "LIBRARY ledger sync/recovery handoff record"
+  "LIBRARY ledger sync/recovery handoff record",
+  "Calendar provider handoff and invitation-readiness record"
 ]) {
   if (!checklist.includes(phrase)) fail(`checklist missing phrase: ${phrase}`);
 }
@@ -767,6 +824,19 @@ for (const phrase of [
   "customer-visible notification events"
 ]) {
   if (!librarySyncContract.includes(phrase)) fail(`LIBRARY sync contract missing phrase: ${phrase}`);
+}
+
+const calendarProviderContract = read("../docs/calendar-provider-handoff-invitation-contract.md");
+for (const phrase of [
+  "Calendar Provider Handoff And Invitation-Readiness Contract",
+  "calendarProviderHandoffs",
+  "summarizeCalendarProviderState",
+  "transitionCalendarProviderHandoffRecords",
+  "calendar-provider-handoff",
+  "live provider writes",
+  "customer-visible notification events"
+]) {
+  if (!calendarProviderContract.includes(phrase)) fail(`calendar provider contract missing phrase: ${phrase}`);
 }
 
 const quotePaymentContract = read("../docs/quote-payment-readiness-contract.md");
@@ -1495,6 +1565,7 @@ if (!monitorReport.memory) fail("monitor report missing memory state");
 if (!monitorReport.access) fail("monitor report missing access state");
 if (!monitorReport.accessGateways) fail("monitor report missing access gateway state");
 if (!monitorReport.librarySync) fail("monitor report missing LIBRARY sync state");
+if (!monitorReport.calendarProvider) fail("monitor report missing calendar provider state");
 if (!Array.isArray(monitorReport.monitorHealthChecks)) fail("monitor report missing monitor health checks");
 if (!Array.isArray(monitorReport.operatorActions)) fail("monitor report missing operator actions");
 if (!monitorReport.routePlacement) fail("monitor report missing SYNAPSE route placement state");
@@ -1522,12 +1593,17 @@ if (monitorReport.summary.librarySyncHandoffs < 2) fail("monitor summary missing
 if (monitorReport.summary.libraryExportHandoffs < 1) fail("monitor summary missing LIBRARY export handoff count");
 if (monitorReport.summary.libraryRecoveryHandoffs < 1) fail("monitor summary missing LIBRARY recovery handoff count");
 if (monitorReport.summary.librarySyncViolations !== 0) fail("monitor summary should not report LIBRARY sync violations for the seed slice");
+if (monitorReport.summary.calendarProviderHandoffs < 3) fail("monitor summary missing calendar provider handoff count");
+if (monitorReport.summary.calendarProviderReady < 2) fail("monitor summary missing provider readiness handoff count");
+if (monitorReport.summary.calendarInvitationReady < 1) fail("monitor summary missing invitation-readiness handoff count");
+if (monitorReport.summary.calendarProviderViolations !== 0) fail("monitor summary should not report calendar provider violations for the seed slice");
 if (monitorReport.summary.monitorHealthChecks < 2) fail("monitor summary missing monitor health checks");
 if (monitorReport.summary.monitorActionReceipts < 2) fail("monitor summary missing monitor action receipts");
 if (monitorReport.summary.operatorActions < 3) fail("monitor summary missing operator actions");
 if (!monitorReport.timeline.some((item) => item.kind === "campaign route")) fail("monitor timeline missing campaign routes");
 if (!monitorReport.timeline.some((item) => item.kind === "access gateway")) fail("monitor timeline missing access gateways");
 if (!monitorReport.timeline.some((item) => item.kind === "library sync")) fail("monitor timeline missing LIBRARY sync handoffs");
+if (!monitorReport.timeline.some((item) => item.kind === "calendar provider")) fail("monitor timeline missing calendar provider handoffs");
 if (!monitorReport.timeline.some((item) => item.kind === "monitor check")) fail("monitor timeline missing monitor health checks");
 if (monitorReport.summary.timeline < 1) fail("monitor report did not include timeline records");
 if (!Array.isArray(monitorReport.queue)) fail("monitor report queue is not an array");
@@ -1600,12 +1676,14 @@ if (exportedLedger.counts.monitorHealthChecks !== returnResult.data.monitorHealt
 if (exportedLedger.counts.notificationEvents !== returnResult.data.notificationEvents.length) fail("ledger export update-event count is wrong");
 if (exportedLedger.counts.accessGateways !== returnResult.data.accessGateways.length) fail("ledger export access gateway count is wrong");
 if (exportedLedger.counts.librarySyncHandoffs !== returnResult.data.librarySyncHandoffs.length) fail("ledger export LIBRARY sync handoff count is wrong");
+if (exportedLedger.counts.calendarProviderHandoffs !== returnResult.data.calendarProviderHandoffs.length) fail("ledger export calendar provider handoff count is wrong");
 if (!exportedLedger.monitor || exportedLedger.monitor.timeline < 1) fail("ledger export missing monitor summary");
 if (exportedLedger.monitor.persistenceRevision !== exportedLedger.persistence.revision) fail("ledger monitor summary missing persistence revision");
 if (!exportedLedger.calendarExport || exportedLedger.calendarExport.entries.length !== calendarExport.entries.length) fail("ledger export missing calendar export entries");
 if (!exportedLedger.routePlacement || exportedLedger.routePlacement.summary.routeCount !== exportedLedger.data.routePlacements.length) fail("ledger export missing route placement summary");
 if (!exportedLedger.accessGateway || exportedLedger.accessGateway.gatewayCount !== exportedLedger.data.accessGateways.length) fail("ledger export missing access gateway summary");
 if (!exportedLedger.librarySync || exportedLedger.librarySync.handoffCount !== exportedLedger.data.librarySyncHandoffs.length) fail("ledger export missing LIBRARY sync summary");
+if (!exportedLedger.calendarProvider || exportedLedger.calendarProvider.handoffCount !== exportedLedger.data.calendarProviderHandoffs.length) fail("ledger export missing calendar provider summary");
 if (exportedLedger.counts.routePlacements !== returnResult.data.routePlacements.length) fail("ledger export route placement count is wrong");
 if (exportedLedger.counts.curriculumFrameworks !== returnResult.data.curriculumFrameworks.length) fail("ledger export curriculum framework count is wrong");
 if (exportedLedger.counts.packageGameplans !== returnResult.data.packageGameplans.length) fail("ledger export package gameplan count is wrong");
@@ -1613,6 +1691,7 @@ if (exportedLedger.counts.campaignRoutes !== returnResult.data.campaignRoutes.le
 if (exportedLedger.monitor.campaignRoutes !== returnResult.data.campaignRoutes.length) fail("ledger monitor summary missing campaign routes");
 if (exportedLedger.monitor.accessGatewayRoutes !== returnResult.data.accessGateways.length) fail("ledger monitor summary missing access gateway routes");
 if (exportedLedger.monitor.librarySyncHandoffs !== returnResult.data.librarySyncHandoffs.length) fail("ledger monitor summary missing LIBRARY sync handoff routes");
+if (exportedLedger.monitor.calendarProviderHandoffs !== returnResult.data.calendarProviderHandoffs.length) fail("ledger monitor summary missing calendar provider handoffs");
 if (exportedLedger.monitor.monitorHealthChecks !== returnResult.data.monitorHealthChecks.length) fail("ledger monitor summary missing monitor health checks");
 
 const persistenceSummary = recordTools.summarizePersistenceState(exportedLedger.data);
@@ -1653,6 +1732,7 @@ if (importedLedger.data.notificationEvents.length !== returnResult.data.notifica
 if (importedLedger.data.routePlacements.length !== returnResult.data.routePlacements.length) fail("ledger import did not preserve route placements");
 if (importedLedger.data.accessGateways.length !== returnResult.data.accessGateways.length) fail("ledger import did not preserve access gateways");
 if (importedLedger.data.librarySyncHandoffs.length !== returnResult.data.librarySyncHandoffs.length) fail("ledger import did not preserve LIBRARY sync handoffs");
+if (importedLedger.data.calendarProviderHandoffs.length !== returnResult.data.calendarProviderHandoffs.length) fail("ledger import did not preserve calendar provider handoffs");
 if (importedLedger.data.campaignRoutes.length !== returnResult.data.campaignRoutes.length) fail("ledger import did not preserve campaign routes");
 if (importedLedger.data.customers[0].externalStatus !== returnResult.data.customers[0].externalStatus) fail("ledger import did not preserve external status");
 if (importedLedger.data.persistence.checksum !== exportedLedger.persistence.checksum) fail("ledger import did not preserve persistence checksum");
