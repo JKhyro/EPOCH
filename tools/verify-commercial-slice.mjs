@@ -47,6 +47,7 @@ const requiredCollections = [
   "calendarProviderHandoffs",
   "notificationProviderHandoffs",
   "paymentProviderHandoffs",
+  "authSessionRoleHandoffs",
   "monitorHealthChecks",
   "notificationEvents",
   "customers",
@@ -100,6 +101,7 @@ if (!Array.isArray(data.librarySyncHandoffs)) fail("seed data missing librarySyn
 if (!Array.isArray(data.calendarProviderHandoffs)) fail("seed data missing calendarProviderHandoffs collection");
 if (!Array.isArray(data.notificationProviderHandoffs)) fail("seed data missing notificationProviderHandoffs collection");
 if (!Array.isArray(data.paymentProviderHandoffs)) fail("seed data missing paymentProviderHandoffs collection");
+if (!Array.isArray(data.authSessionRoleHandoffs)) fail("seed data missing authSessionRoleHandoffs collection");
 
 const header = read("../native/epoch_core.h");
 const source = read("../native/epoch_core.c");
@@ -192,7 +194,12 @@ for (const id of [
   "payment-provider-select",
   "payment-provider-action",
   "payment-provider-apply",
-  "payment-provider-confirmation"
+  "payment-provider-confirmation",
+  "auth-session-role-form",
+  "auth-session-role-select",
+  "auth-session-role-action",
+  "auth-session-role-apply",
+  "auth-session-role-confirmation"
 ]) {
   if (!html.includes(`id="${id}"`)) fail(`web surface missing ${id}`);
 }
@@ -238,10 +245,13 @@ for (const field of ["handoffId", "action", "note"]) {
 for (const field of ["handoffId", "action", "note"]) {
   if (!html.includes(`name="${field}"`)) fail(`payment provider form missing field ${field}`);
 }
+for (const field of ["handoffId", "action", "note"]) {
+  if (!html.includes(`name="${field}"`)) fail(`auth/session role form missing field ${field}`);
+}
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
 }
-for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-command-strip", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-library-sync", "monitor-calendar-provider", "monitor-notification-provider", "monitor-payment-provider", "monitor-persistence", "monitor-scope", "monitor-memory", "monitor-access"]) {
+for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-command-strip", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-library-sync", "monitor-calendar-provider", "monitor-notification-provider", "monitor-payment-provider", "monitor-auth-session", "monitor-persistence", "monitor-scope", "monitor-memory", "monitor-access"]) {
   if (!html.includes(phrase)) fail(`monitor route surface missing phrase ${phrase}`);
 }
 for (const phrase of ["monitor-curriculum", "Package Gameplans", "Personalized Gameplan", "Curriculum Frameworks"]) {
@@ -261,6 +271,9 @@ for (const phrase of ["Notification Providers", "Notification Provider Handoffs"
 }
 for (const phrase of ["Payment Providers", "Payment Provider Handoffs", "Apply Payment Provider Action"]) {
   if (!html.includes(phrase)) fail(`payment provider HTML missing phrase ${phrase}`);
+}
+for (const phrase of ["Auth Sessions", "Auth Session Role Handoffs", "Apply Auth Session Role Action"]) {
+  if (!html.includes(phrase)) fail(`auth/session role HTML missing phrase ${phrase}`);
 }
 for (const phrase of [
   "SCAFFOLD-aligned",
@@ -423,10 +436,12 @@ for (const phrase of [
   "transitionCalendarProviderHandoffRecords",
   "transitionNotificationProviderHandoffRecords",
   "transitionPaymentProviderHandoffRecords",
+  "transitionAuthSessionRoleHandoffRecords",
   "summarizeLibrarySyncState",
   "summarizeCalendarProviderState",
   "summarizeNotificationProviderState",
   "summarizePaymentProviderState",
+  "summarizeAuthSessionRoleState",
   "summarizeAccessGatewayState",
   "renderAccessGatewayOptions",
   "renderLibrarySyncOptions",
@@ -449,16 +464,21 @@ for (const phrase of [
   "Payment Providers",
   "Payment Provider Handoffs",
   "Payment Provider Updated",
+  "Auth / Session Roles",
+  "Auth Session Role Handoffs",
+  "Auth Session Role Updated",
   "renderAgentHandoffOptions",
   "renderNotificationDeliveryOptions",
   "renderNotificationProviderOptions",
   "renderPaymentProviderOptions",
+  "renderAuthSessionRoleOptions",
   "renderQuoteOptions",
   "renderReminderControlOptions",
   "wireAgentHandoffForm",
   "wireNotificationOutboxForm",
   "wireNotificationProviderForm",
   "wirePaymentProviderForm",
+  "wireAuthSessionRoleForm",
   "wireQuotePaymentForm",
   "wireReminderControlForm",
   "Opportunity Pipeline",
@@ -514,6 +534,7 @@ for (const phrase of [
   "calendar-provider-console",
   "notification-provider-console",
   "payment-provider-console",
+  "auth-session-role-console",
   "monitor-action-button",
   "button-meta",
   "monitor-command-strip",
@@ -533,12 +554,14 @@ if (!Array.isArray(data.librarySyncHandoffs) || data.librarySyncHandoffs.length 
 if (!Array.isArray(data.calendarProviderHandoffs) || data.calendarProviderHandoffs.length < 3) fail("seed data missing calendar provider handoff records");
 if (!Array.isArray(data.notificationProviderHandoffs) || data.notificationProviderHandoffs.length < 3) fail("seed data missing notification provider handoff records");
 if (!Array.isArray(data.paymentProviderHandoffs) || data.paymentProviderHandoffs.length < 3) fail("seed data missing payment provider handoff records");
+if (!Array.isArray(data.authSessionRoleHandoffs) || data.authSessionRoleHandoffs.length < 4) fail("seed data missing auth/session role handoff records");
 if (!Array.isArray(data.monitorHealthChecks) || data.monitorHealthChecks.length < 2) fail("seed data missing ledger-backed monitor health checks");
 if (!data.receipts.some((item) => item.kind === "monitor-check")) fail("seed data missing monitor-check receipt");
 if (!data.receipts.some((item) => item.kind === "library-sync-handoff")) fail("seed data missing LIBRARY sync handoff receipt");
 if (!data.receipts.some((item) => item.kind === "calendar-provider-handoff")) fail("seed data missing calendar provider handoff receipt");
 if (!data.receipts.some((item) => item.kind === "notification-provider-handoff")) fail("seed data missing notification provider handoff receipt");
 if (!data.receipts.some((item) => item.kind === "payment-provider-handoff")) fail("seed data missing payment provider handoff receipt");
+if (!data.receipts.some((item) => item.kind === "auth-session-role-handoff")) fail("seed data missing auth/session role handoff receipt");
 if (data.accessPosture.defaultPublicPolicy !== "deny-by-default") fail("access posture must default to deny-by-default");
 if (data.accessPosture.rawMonitor !== "local-only") fail("access posture must keep raw monitor local-only");
 if (data.accessPosture.safeGateway !== "controlled-public-customer-gateway") fail("access posture must name the controlled public/customer gateway");
@@ -566,6 +589,13 @@ if (!data.paymentProviderHandoffs.some((item) => item.providerKind === "checkout
 if (!data.paymentProviderHandoffs.some((item) => item.syncMode === "eligibility-guard-readiness" && item.readinessChecks.includes("guardian-consent-gate") && item.readinessChecks.includes("no-live-payment"))) fail("payment provider handoffs missing guardian eligibility no-payment readiness");
 if (!data.paymentProviderHandoffs.every((item) => item.visibility === "internal" && item.customerVisible === false && item.livePaymentEnabled === false && item.externalProviderWrite === false && item.storesCredentials === false && item.webhookEnabled === false && item.capturesPayment === false)) {
   fail("payment provider handoffs must be internal-only with no live checkout, capture, credentials, webhooks, or provider writes");
+}
+if (!data.authSessionRoleHandoffs.some((item) => item.surface === "public" && item.publicExposure === "controlled-public" && item.readinessChecks.includes("public-intake-route-only"))) fail("auth/session roles missing controlled public intake readiness");
+if (!data.authSessionRoleHandoffs.some((item) => item.surface === "student" && item.publicExposure === "controlled-customer" && item.customerSafe === true)) fail("auth/session roles missing controlled customer status readiness");
+if (!data.authSessionRoleHandoffs.some((item) => item.surface === "admin" && item.publicExposure === "denied" && item.rawSurface === true)) fail("auth/session roles missing admin raw denial readiness");
+if (!data.authSessionRoleHandoffs.some((item) => item.surface === "monitor" && item.publicExposure === "denied" && item.rawSurface === true)) fail("auth/session roles missing monitor raw denial readiness");
+if (!data.authSessionRoleHandoffs.every((item) => item.productionAuthEnabled === false && item.identityProviderWrite === false && item.storesCredentials === false && item.storesTokens === false && item.oauthClientConfigured === false && item.externalSessionEnabled === false && item.readinessChecks.includes("no-live-auth"))) {
+  fail("auth/session role handoffs must remain no-live-auth with no provider writes, credentials, tokens, OAuth clients, or external sessions");
 }
 if (!data.monitorMemory.some((item) => item.status === "stale")) fail("monitor memory should demonstrate stale-note risk");
 
@@ -653,6 +683,8 @@ if (typeof recordTools.createNotificationProviderHandoffRecords !== "function") 
 if (typeof recordTools.transitionNotificationProviderHandoffRecords !== "function") fail("operating helpers missing transitionNotificationProviderHandoffRecords");
 if (typeof recordTools.createPaymentProviderHandoffRecords !== "function") fail("operating helpers missing createPaymentProviderHandoffRecords");
 if (typeof recordTools.transitionPaymentProviderHandoffRecords !== "function") fail("operating helpers missing transitionPaymentProviderHandoffRecords");
+if (typeof recordTools.createAuthSessionRoleHandoffRecords !== "function") fail("operating helpers missing createAuthSessionRoleHandoffRecords");
+if (typeof recordTools.transitionAuthSessionRoleHandoffRecords !== "function") fail("operating helpers missing transitionAuthSessionRoleHandoffRecords");
 if (typeof recordTools.createQuoteEstimateRecords !== "function") fail("operating helpers missing createQuoteEstimateRecords");
 if (typeof recordTools.transitionQuoteEstimateRecords !== "function") fail("operating helpers missing transitionQuoteEstimateRecords");
 if (typeof recordTools.createReminderRuleRecords !== "function") fail("operating helpers missing createReminderRuleRecords");
@@ -676,6 +708,7 @@ if (typeof recordTools.summarizeLibrarySyncState !== "function") fail("operating
 if (typeof recordTools.summarizeCalendarProviderState !== "function") fail("operating helpers missing summarizeCalendarProviderState");
 if (typeof recordTools.summarizeNotificationProviderState !== "function") fail("operating helpers missing summarizeNotificationProviderState");
 if (typeof recordTools.summarizePaymentProviderState !== "function") fail("operating helpers missing summarizePaymentProviderState");
+if (typeof recordTools.summarizeAuthSessionRoleState !== "function") fail("operating helpers missing summarizeAuthSessionRoleState");
 if (typeof recordTools.summarizeAccessPosture !== "function") fail("operating helpers missing summarizeAccessPosture");
 if (typeof recordTools.summarizeMemoryState !== "function") fail("operating helpers missing summarizeMemoryState");
 if (typeof recordTools.summarizeRoutePlacementState !== "function") fail("operating helpers missing summarizeRoutePlacementState");
@@ -756,6 +789,18 @@ brokenPaymentProviderData.paymentProviderHandoffs = brokenPaymentProviderData.pa
 const brokenPaymentProviderSummary = recordTools.summarizePaymentProviderState(brokenPaymentProviderData, { now: "2026-06-01T12:00:00+09:00" });
 if (brokenPaymentProviderSummary.status !== "blocked" || brokenPaymentProviderSummary.violations.length < 2) fail("payment provider summary should block live/customer-visible provider handoffs");
 
+const authSessionSeedSummary = recordTools.summarizeAuthSessionRoleState(data, { now: "2026-06-01T12:00:00+09:00" });
+if (authSessionSeedSummary.handoffCount < 4) fail("auth/session role summary missing handoff count");
+if (authSessionSeedSummary.publicReady < 1) fail("auth/session role summary missing public intake readiness");
+if (authSessionSeedSummary.customerReady < 1) fail("auth/session role summary missing customer status readiness");
+if (authSessionSeedSummary.internalDenied < 2) fail("auth/session role summary missing internal raw denial readiness");
+if (authSessionSeedSummary.noLiveAuth !== data.authSessionRoleHandoffs.length) fail("auth/session role summary should prove no-live-auth on every handoff");
+if (authSessionSeedSummary.violations.length !== 0) fail("auth/session role summary should not report seed violations");
+const brokenAuthSessionData = recordTools.cloneData(data);
+brokenAuthSessionData.authSessionRoleHandoffs = brokenAuthSessionData.authSessionRoleHandoffs.map((item) => item.id === "auth-monitor-denial-readiness" ? { ...item, publicExposure: "controlled-public", visibility: "controlled-public", customerVisible: true, customerSafe: true, productionAuthEnabled: true, identityProviderWrite: true, storesCredentials: true, storesTokens: true, oauthClientConfigured: true, externalSessionEnabled: true } : item);
+const brokenAuthSessionSummary = recordTools.summarizeAuthSessionRoleState(brokenAuthSessionData, { now: "2026-06-01T12:00:00+09:00" });
+if (brokenAuthSessionSummary.status !== "blocked" || brokenAuthSessionSummary.violations.length < 2) fail("auth/session role summary should block live/public raw monitor auth handoffs");
+
 const gatewayTransition = recordTools.transitionAccessGatewayRecords(data, {
   gatewayId: "gateway-public-intake",
   action: "verify",
@@ -829,6 +874,22 @@ if (paymentProviderTransition.records.handoff.livePaymentEnabled || paymentProvi
   fail("payment provider transition must not enable live checkout, provider writes, credentials, webhooks, or capture");
 }
 
+const authSessionTransition = recordTools.transitionAuthSessionRoleHandoffRecords(data, {
+  handoffId: "auth-monitor-denial-readiness",
+  action: "deny-raw",
+  note: "Verifier reasserted raw monitor denial without enabling a live identity provider."
+}, { now: "2026-06-01T12:10:00+09:00" });
+if (authSessionTransition.records.handoff.handoffStatus !== "raw-surface-denied") fail("auth/session role transition did not deny raw surface");
+if (authSessionTransition.data.receipts.filter((item) => item.kind === "auth-session-role-handoff").length !== data.receipts.filter((item) => item.kind === "auth-session-role-handoff").length + 1) {
+  fail("auth/session role transition should add an auth-session-role-handoff receipt");
+}
+if (authSessionTransition.data.monitorHealthChecks.length !== data.monitorHealthChecks.length + 1) fail("auth/session role transition should add a monitor health check");
+if (authSessionTransition.data.notificationEvents.length !== data.notificationEvents.length) fail("auth/session role transition must not create customer-visible notification events");
+if (authSessionTransition.records.healthCheck.customerVisible !== false) fail("auth/session role health check must remain internal");
+if (authSessionTransition.records.handoff.productionAuthEnabled || authSessionTransition.records.handoff.identityProviderWrite || authSessionTransition.records.handoff.storesCredentials || authSessionTransition.records.handoff.storesTokens || authSessionTransition.records.handoff.oauthClientConfigured || authSessionTransition.records.handoff.externalSessionEnabled) {
+  fail("auth/session role transition must not enable live auth, provider writes, credentials, tokens, OAuth clients, or external sessions");
+}
+
 const monitorActionResult = recordTools.createMonitorActionRecords(data, {
   actionId: "verify-safe-access-check",
   title: "Verify safe-access check",
@@ -867,7 +928,8 @@ for (const phrase of [
   "Campaign route",
   "Controlled public/customer access gateway record",
   "LIBRARY ledger sync/recovery handoff record",
-  "Calendar provider handoff and invitation-readiness record"
+  "Calendar provider handoff and invitation-readiness record",
+  "Auth/session role handoffs"
 ]) {
   if (!checklist.includes(phrase)) fail(`checklist missing phrase: ${phrase}`);
 }
@@ -999,6 +1061,19 @@ for (const phrase of [
   "no live payment"
 ]) {
   if (!paymentProviderContract.includes(phrase)) fail(`payment provider contract missing phrase: ${phrase}`);
+}
+
+const authSessionRoleContract = read("../docs/auth-session-role-readiness-contract.md");
+for (const phrase of [
+  "Auth Session Role Readiness Contract",
+  "authSessionRoleHandoffs",
+  "productionAuthEnabled: false",
+  "storesTokens: false",
+  "Auth Session Role Handoffs",
+  "identity-provider writes",
+  "no-live-auth"
+]) {
+  if (!authSessionRoleContract.includes(phrase)) fail(`auth/session role contract missing phrase: ${phrase}`);
 }
 
 const reminderContract = read("../docs/reminder-recurrence-availability-contract.md");
@@ -1770,6 +1845,7 @@ if (!monitorReport.librarySync) fail("monitor report missing LIBRARY sync state"
 if (!monitorReport.calendarProvider) fail("monitor report missing calendar provider state");
 if (!monitorReport.notificationProvider) fail("monitor report missing notification provider state");
 if (!monitorReport.paymentProvider) fail("monitor report missing payment provider state");
+if (!monitorReport.authSession) fail("monitor report missing auth/session role state");
 if (!Array.isArray(monitorReport.monitorHealthChecks)) fail("monitor report missing monitor health checks");
 if (!Array.isArray(monitorReport.operatorActions)) fail("monitor report missing operator actions");
 if (!monitorReport.routePlacement) fail("monitor report missing SYNAPSE route placement state");
@@ -1812,6 +1888,11 @@ if (monitorReport.summary.paymentInvoiceReady < 2) fail("monitor summary missing
 if (monitorReport.summary.paymentCheckoutReady < 1) fail("monitor summary missing payment checkout readiness handoff count");
 if (monitorReport.summary.paymentEligibilityReady < 2) fail("monitor summary missing payment eligibility readiness handoff count");
 if (monitorReport.summary.paymentProviderViolations !== 0) fail("monitor summary should not report payment provider violations for the seed slice");
+if (monitorReport.summary.authSessionRoleHandoffs < 4) fail("monitor summary missing auth/session role handoff count");
+if (monitorReport.summary.authPublicReady < 1) fail("monitor summary missing public auth readiness count");
+if (monitorReport.summary.authCustomerReady < 1) fail("monitor summary missing customer auth readiness count");
+if (monitorReport.summary.authInternalDenied < 2) fail("monitor summary missing internal auth denial count");
+if (monitorReport.summary.authSessionRoleViolations !== 0) fail("monitor summary should not report auth/session role violations for the seed slice");
 if (monitorReport.summary.monitorHealthChecks < 2) fail("monitor summary missing monitor health checks");
 if (monitorReport.summary.monitorActionReceipts < 2) fail("monitor summary missing monitor action receipts");
 if (monitorReport.summary.operatorActions < 3) fail("monitor summary missing operator actions");
@@ -1821,6 +1902,7 @@ if (!monitorReport.timeline.some((item) => item.kind === "library sync")) fail("
 if (!monitorReport.timeline.some((item) => item.kind === "calendar provider")) fail("monitor timeline missing calendar provider handoffs");
 if (!monitorReport.timeline.some((item) => item.kind === "notification provider")) fail("monitor timeline missing notification provider handoffs");
 if (!monitorReport.timeline.some((item) => item.kind === "payment provider")) fail("monitor timeline missing payment provider handoffs");
+if (!monitorReport.timeline.some((item) => item.kind === "auth/session role")) fail("monitor timeline missing auth/session role handoffs");
 if (!monitorReport.timeline.some((item) => item.kind === "monitor check")) fail("monitor timeline missing monitor health checks");
 if (monitorReport.summary.timeline < 1) fail("monitor report did not include timeline records");
 if (!Array.isArray(monitorReport.queue)) fail("monitor report queue is not an array");
@@ -1905,6 +1987,7 @@ if (!exportedLedger.librarySync || exportedLedger.librarySync.handoffCount !== e
 if (!exportedLedger.calendarProvider || exportedLedger.calendarProvider.handoffCount !== exportedLedger.data.calendarProviderHandoffs.length) fail("ledger export missing calendar provider summary");
 if (!exportedLedger.notificationProvider || exportedLedger.notificationProvider.handoffCount !== exportedLedger.data.notificationProviderHandoffs.length) fail("ledger export missing notification provider summary");
 if (!exportedLedger.paymentProvider || exportedLedger.paymentProvider.handoffCount !== exportedLedger.data.paymentProviderHandoffs.length) fail("ledger export missing payment provider summary");
+if (!exportedLedger.authSession || exportedLedger.authSession.handoffCount !== exportedLedger.data.authSessionRoleHandoffs.length) fail("ledger export missing auth/session role summary");
 if (exportedLedger.counts.routePlacements !== returnResult.data.routePlacements.length) fail("ledger export route placement count is wrong");
 if (exportedLedger.counts.curriculumFrameworks !== returnResult.data.curriculumFrameworks.length) fail("ledger export curriculum framework count is wrong");
 if (exportedLedger.counts.packageGameplans !== returnResult.data.packageGameplans.length) fail("ledger export package gameplan count is wrong");
@@ -1921,6 +2004,10 @@ if (exportedLedger.monitor.paymentProviderHandoffs !== returnResult.data.payment
 if (exportedLedger.monitor.paymentProviderReady < 1) fail("ledger monitor summary missing payment provider readiness");
 if (exportedLedger.monitor.paymentInvoiceReady < 2) fail("ledger monitor summary missing payment invoice readiness");
 if (exportedLedger.monitor.paymentCheckoutReady < 1) fail("ledger monitor summary missing payment checkout readiness");
+if (exportedLedger.monitor.authSessionRoleHandoffs !== returnResult.data.authSessionRoleHandoffs.length) fail("ledger monitor summary missing auth/session role handoffs");
+if (exportedLedger.monitor.authPublicReady < 1) fail("ledger monitor summary missing public auth readiness");
+if (exportedLedger.monitor.authCustomerReady < 1) fail("ledger monitor summary missing customer auth readiness");
+if (exportedLedger.monitor.authInternalDenied < 2) fail("ledger monitor summary missing internal auth denial readiness");
 if (exportedLedger.monitor.monitorHealthChecks !== returnResult.data.monitorHealthChecks.length) fail("ledger monitor summary missing monitor health checks");
 
 const persistenceSummary = recordTools.summarizePersistenceState(exportedLedger.data);
@@ -1956,6 +2043,12 @@ if (paymentProviderLedger.paymentProvider.checkoutReady < 1) fail("ledger export
 if (paymentProviderLedger.paymentProvider.noLivePayment !== paymentProviderTransition.data.paymentProviderHandoffs.length) fail("ledger payment provider summary lost no-live-payment readiness");
 if (paymentProviderLedger.monitor.paymentProviderViolations !== 0) fail("ledger monitor summary should not report payment provider violations after transition");
 
+const authSessionLedger = recordTools.createOperatingLedger(authSessionTransition.data, { now: "2026-06-01T04:43:50.000Z" });
+if (authSessionLedger.counts.authSessionRoleHandoffs !== authSessionTransition.data.authSessionRoleHandoffs.length) fail("ledger export auth/session role transition count is wrong");
+if (authSessionLedger.authSession.internalDenied < 2) fail("ledger export missing auth/session internal denial after transition");
+if (authSessionLedger.authSession.noLiveAuth !== authSessionTransition.data.authSessionRoleHandoffs.length) fail("ledger auth/session summary lost no-live-auth readiness");
+if (authSessionLedger.monitor.authSessionRoleViolations !== 0) fail("ledger monitor summary should not report auth/session role violations after transition");
+
 const quoteLedger = recordTools.createOperatingLedger(paymentReadyQuoteResult.data, { now: "2026-06-01T04:44:00.000Z" });
 if (quoteLedger.counts.quotes !== paymentReadyQuoteResult.data.quotes.length) fail("ledger export quote count is wrong");
 if (quoteLedger.monitor.paymentReadyQuotes < 1) fail("ledger monitor summary missing payment-ready quote count");
@@ -1976,6 +2069,7 @@ if (importedLedger.data.librarySyncHandoffs.length !== returnResult.data.library
 if (importedLedger.data.calendarProviderHandoffs.length !== returnResult.data.calendarProviderHandoffs.length) fail("ledger import did not preserve calendar provider handoffs");
 if (importedLedger.data.notificationProviderHandoffs.length !== returnResult.data.notificationProviderHandoffs.length) fail("ledger import did not preserve notification provider handoffs");
 if (importedLedger.data.paymentProviderHandoffs.length !== returnResult.data.paymentProviderHandoffs.length) fail("ledger import did not preserve payment provider handoffs");
+if (importedLedger.data.authSessionRoleHandoffs.length !== returnResult.data.authSessionRoleHandoffs.length) fail("ledger import did not preserve auth/session role handoffs");
 if (importedLedger.data.campaignRoutes.length !== returnResult.data.campaignRoutes.length) fail("ledger import did not preserve campaign routes");
 if (importedLedger.data.customers[0].externalStatus !== returnResult.data.customers[0].externalStatus) fail("ledger import did not preserve external status");
 if (importedLedger.data.persistence.checksum !== exportedLedger.persistence.checksum) fail("ledger import did not preserve persistence checksum");
@@ -2021,6 +2115,13 @@ if (importedPaymentProviderLedger.data.paymentProviderHandoffs.length !== paymen
 if (!importedPaymentProviderLedger.data.paymentProviderHandoffs.some((item) => item.handoffStatus === "checkout-review-ready")) fail("ledger import did not preserve payment provider transition status");
 if (!importedPaymentProviderLedger.data.paymentProviderHandoffs.every((item) => item.livePaymentEnabled === false && item.externalProviderWrite === false && item.storesCredentials === false && item.webhookEnabled === false && item.capturesPayment === false)) {
   fail("ledger import changed payment provider no-live-payment safeguards");
+}
+
+const importedAuthSessionLedger = recordTools.importOperatingLedger(data, JSON.stringify(authSessionLedger));
+if (importedAuthSessionLedger.data.authSessionRoleHandoffs.length !== authSessionTransition.data.authSessionRoleHandoffs.length) fail("ledger import did not preserve auth/session role handoffs");
+if (!importedAuthSessionLedger.data.authSessionRoleHandoffs.some((item) => item.handoffStatus === "raw-surface-denied")) fail("ledger import did not preserve auth/session role transition status");
+if (!importedAuthSessionLedger.data.authSessionRoleHandoffs.every((item) => item.productionAuthEnabled === false && item.identityProviderWrite === false && item.storesCredentials === false && item.storesTokens === false && item.oauthClientConfigured === false && item.externalSessionEnabled === false)) {
+  fail("ledger import changed auth/session no-live-auth safeguards");
 }
 
 const importedQuoteLedger = recordTools.importOperatingLedger(data, JSON.stringify(quoteLedger));

@@ -32,6 +32,8 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
 - `docs/library-ledger-sync-recovery-contract.md`
 - `docs/calendar-provider-handoff-invitation-contract.md`
 - `docs/notification-provider-handoff-template-consent-contract.md`
+- `docs/payment-provider-handoff-invoice-checkout-contract.md`
+- `docs/auth-session-role-readiness-contract.md`
 
 ## Current implementation artifacts
 
@@ -60,6 +62,9 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   Payment provider handoff records remain provider-neutral and no-live-payment
   until a later payment adapter implements invoice sending, checkout sessions,
   credential storage, processor webhooks, or capture.
+  Auth/session role handoff records remain provider-neutral and no-live-auth
+  until a later identity-provider slice implements production login, OAuth,
+  credential storage, token storage, or external sessions.
 - `web/app.js`: shared renderer and local persistence flow for admin,
   student/customer, monitor, public request, scheduling, submission, and
   review-return views, including local ledger save/load, durable snapshot status,
@@ -75,7 +80,8 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   receipts, SYNAPSE route placements, and marketing-ready package metadata.
   It also seeds internal LIBRARY ledger sync/recovery handoff records and
   provider-neutral calendar/invitation-readiness handoff records, plus
-  notification provider template/consent readiness handoff records.
+  notification provider template/consent readiness, payment provider
+  invoice/checkout readiness, and auth/session role readiness handoff records.
 - `tools/verify-commercial-slice.mjs`: repository verifier for the first
   commercial slice.
 

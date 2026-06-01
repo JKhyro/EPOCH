@@ -104,7 +104,26 @@ Current EPOCH-side payment provider slice:
   credentials, webhooks, provider writes, capture, or customer-visible payment
   events.
 
-### 5. LIBRARY Durable Operating Ledger Persistence
+### 5. Production Auth And Session Role Readiness
+
+Production auth/session boundaries must be explicit before live adapters or
+public/customer account behavior advance. EPOCH should prepare role and surface
+readiness records before identity-provider selection, OAuth setup, token
+storage, credential storage, or external sessions exist.
+
+Current EPOCH-side auth/session slice:
+
+- `authSessionRoleHandoffs` records provider-neutral public intake, customer
+  status, admin, and monitor role boundaries before any live identity provider
+  exists.
+- `summarizeAuthSessionRoleState` exposes public-ready, customer-ready,
+  internal-denied, no-live-auth, and violation counts to EPOCH MONITOR.
+- `transitionAuthSessionRoleHandoffRecords` creates internal monitor health
+  checks and `auth-session-role-handoff` receipts without production auth,
+  OAuth clients, credentials, tokens, external sessions, identity-provider
+  writes, or customer-visible notification events.
+
+### 6. LIBRARY Durable Operating Ledger Persistence
 
 The local JSON ledger proves the shape, but durable persistence should move to
 LIBRARY once the first notification and calendar contracts are stable.
@@ -128,7 +147,7 @@ Current EPOCH-side slice:
 - Live LIBRARY API/database mutation remains out of scope until this handoff
   contract is stable and verified.
 
-### 6. SYMBIOSIS And ANVIL Agentic Work Handoff
+### 7. SYMBIOSIS And ANVIL Agentic Work Handoff
 
 After EPOCH can notify people and preserve records, the ARA revenue loop should
 use EPOCH to schedule and track agent-created work. SYMBIOSIS can expose
@@ -145,7 +164,7 @@ them into work plans.
 - Keep out for now: agents mutating customer-facing records without approval,
   audit receipts, and rollback rules.
 
-### 7. SYNAPSE Shell Placement And Suite Navigation
+### 8. SYNAPSE Shell Placement And Suite Navigation
 
 SYNAPSE should embed or link to EPOCH once the monitor and core operating flows
 are durable enough to present as a suite surface.
@@ -172,10 +191,12 @@ are durable enough to present as a suite surface.
 1. Build the EPOCH MONITOR route/menu parity slice.
 2. Add an external notification event contract and customer-visible update log.
 3. Define TEMPO-aligned time primitives and export-ready schedule entries.
-4. Move the operating ledger from browser-local JSON into durable LIBRARY
+4. Add provider-neutral production auth/session role readiness before live
+   adapters.
+5. Move the operating ledger from browser-local JSON into durable LIBRARY
    persistence.
-5. Add SYMBIOSIS/ANVIL handoff records for agent-created revenue work.
-6. Add SYNAPSE route placement after the operational contracts are stable.
+6. Add SYMBIOSIS/ANVIL handoff records for agent-created revenue work.
+7. Add SYNAPSE route placement after the operational contracts are stable.
 
 ## Acceptance For Issue 2
 

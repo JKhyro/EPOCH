@@ -123,3 +123,9 @@ The repository verifier must cover:
   under-19/guardian eligibility gates, no-live-payment enforcement, no
   credentials, no webhooks, no capture, internal receipts, export/import
   preservation, and no customer-visible payment events from provider actions.
+- Auth/session role readiness controls and verifier coverage for
+  `authSessionRoleHandoffs`, provider-neutral public, customer, admin, and
+  monitor role boundaries, no-live-auth enforcement, no OAuth client, no
+  identity-provider write, no credentials, no token storage, internal receipts,
+  export/import preservation, raw admin/monitor denial, and no customer-visible
+  notification events from auth actions.
