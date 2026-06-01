@@ -56,6 +56,7 @@ for (const collection of requiredCollections) {
     fail(`seed data missing non-empty collection ${collection}`);
   }
 }
+if (!Array.isArray(data.engagements)) fail("seed data missing engagements collection");
 
 const header = read("../native/epoch_core.h");
 const source = read("../native/epoch_core.c");
@@ -78,6 +79,11 @@ for (const id of [
   "intake-feed",
   "submission-form",
   "submission-feed",
+  "opportunity-form",
+  "engagement-opportunity",
+  "opportunity-feed",
+  "engagement-feed",
+  "opportunity-confirmation",
   "return-review",
   "storage-status",
   "export-ledger",
@@ -93,6 +99,9 @@ for (const field of ["requesterName", "ageBand", "offerKind", "packageId", "pref
 for (const field of ["owner", "sessionTitle", "startAt", "endAt", "deadlineAt"]) {
   if (!html.includes(`name="${field}"`)) fail(`schedule form missing field ${field}`);
 }
+for (const field of ["opportunityId", "decision", "planStartAt", "planEndAt", "planDueAt", "decisionNote"]) {
+  if (!html.includes(`name="${field}"`)) fail(`opportunity form missing field ${field}`);
+}
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
 }
@@ -103,17 +112,23 @@ for (const phrase of [
   "createIntakeRecords",
   "createSubmissionRecords",
   "createScheduleRecords",
+  "decideOpportunityRecords",
   "createOperatingLedger",
   "importOperatingLedger",
   "returnReviewRecords",
   "buildMonitorReport",
   "summarizeDeadlines",
+  "summarizeRevenueState",
   "localStorage",
   "storageStatusText",
   "downloadLedger",
   "wireLedgerControls",
+  "wireOpportunityForm",
   "renderOfferCatalog",
   "renderOfferOptions",
+  "renderOpportunityOptions",
+  "renderOpportunityFeed",
+  "renderEngagementFeed",
   "renderScheduleFeed",
   "renderIntakeSnapshot",
   "renderSubmissions",
@@ -125,7 +140,11 @@ for (const phrase of [
   "Review Returned",
   "Ledger Exported",
   "Ledger Imported",
-  "Opportunity Pipeline"
+  "Opportunity Pipeline",
+  "Engagement Revenue",
+  "Engagement Accepted",
+  "Opportunity Deferred",
+  "Opportunity Rejected"
 ]) {
   if (!app.includes(phrase)) fail(`app script missing phrase: ${phrase}`);
 }
@@ -180,6 +199,81 @@ if (intakeResult.records.opportunity.estimatedValueJpy < 60000) fail("under-19 o
 if (!intakeResult.records.customer.externalStatus.includes("compatibility")) fail("under-19 intake lacks compatibility messaging");
 if (!intakeResult.records.assignment.externalVisible) fail("intake request is not external-visible");
 
+const acceptResult = recordTools.decideOpportunityRecords(intakeResult.data, {
+  opportunityId: intakeResult.records.opportunity.id,
+  decision: "accept",
+  owner: "Jack",
+  planStartAt: "2026-06-05T19:30",
+  planEndAt: "2026-06-05T20:15",
+  planDueAt: "2026-06-06T18:00",
+  decisionNote: "Accepted after fit review; start with a diagnostic submission."
+}, {
+  now: "2026-06-01T02:45:00.000Z"
+});
+
+if (acceptResult.records.opportunity.status !== "accepted") fail("accept flow did not mark opportunity accepted");
+if (acceptResult.data.engagements.length !== intakeResult.data.engagements.length + 1) fail("accept flow did not create an engagement");
+if (acceptResult.data.sessions.length !== intakeResult.data.sessions.length + 1) fail("accept flow did not create onboarding session");
+if (acceptResult.data.cohorts.length !== intakeResult.data.cohorts.length + 1) fail("accept flow did not create engagement cohort");
+if (acceptResult.data.assignments.length !== intakeResult.data.assignments.length + 1) fail("accept flow did not create first submission plan");
+if (acceptResult.data.followups.length !== intakeResult.data.followups.length + 1) fail("accept flow did not create engagement follow-up");
+if (acceptResult.data.receipts.length !== intakeResult.data.receipts.length + 1) fail("accept flow did not create acceptance receipt");
+if (acceptResult.records.engagement.status !== "active") fail("accept flow did not create active engagement");
+if (!acceptResult.records.assignment.externalVisible) fail("accept flow did not expose the first submission plan externally");
+if (acceptResult.records.assignment.engagementId !== acceptResult.records.engagement.id) fail("accept flow did not link assignment to engagement");
+if (!acceptResult.data.customers[0].externalStatus.includes("accepted")) fail("accept flow did not update customer external status");
+
+const revenueSummary = recordTools.summarizeRevenueState(acceptResult.data);
+if (revenueSummary.activeEngagements < 1) fail("revenue summary did not count active engagement");
+if (revenueSummary.acceptedValueJpy < 60000) fail("revenue summary did not include accepted value");
+if (revenueSummary.acceptedCount < 1) fail("revenue summary did not count accepted opportunity");
+
+let rejectedDuplicateAccept = false;
+try {
+  recordTools.decideOpportunityRecords(acceptResult.data, {
+    opportunityId: intakeResult.records.opportunity.id,
+    decision: "accept",
+    planDueAt: "2026-06-07T18:00",
+    decisionNote: "Duplicate acceptance attempt."
+  }, {
+    now: "2026-06-01T02:48:00.000Z"
+  });
+} catch {
+  rejectedDuplicateAccept = true;
+}
+if (!rejectedDuplicateAccept) fail("accept flow allowed duplicate engagement for one opportunity");
+
+const deferResult = recordTools.decideOpportunityRecords(intakeResult.data, {
+  opportunityId: intakeResult.records.opportunity.id,
+  decision: "defer",
+  owner: "Jack",
+  planDueAt: "2026-06-07T18:00",
+  decisionNote: "Needs guardian agreement before acceptance."
+}, {
+  now: "2026-06-01T02:50:00.000Z"
+});
+
+if (deferResult.records.opportunity.status !== "deferred") fail("defer flow did not mark opportunity deferred");
+if (deferResult.data.engagements.length !== intakeResult.data.engagements.length) fail("defer flow should not create an engagement");
+if (deferResult.data.followups.length !== intakeResult.data.followups.length + 1) fail("defer flow did not create follow-up");
+if (deferResult.records.receipt.kind !== "opportunity-deferred") fail("defer flow did not create deferred receipt");
+if (!deferResult.data.customers[0].externalStatus.includes("deferred")) fail("defer flow did not update customer external status");
+
+const rejectResult = recordTools.decideOpportunityRecords(intakeResult.data, {
+  opportunityId: intakeResult.records.opportunity.id,
+  decision: "reject",
+  owner: "Jack",
+  planDueAt: "2026-06-07T18:00",
+  decisionNote: "Not a fit for current service rules."
+}, {
+  now: "2026-06-01T02:55:00.000Z"
+});
+
+if (rejectResult.records.opportunity.status !== "rejected") fail("reject flow did not mark opportunity rejected");
+if (rejectResult.data.engagements.length !== intakeResult.data.engagements.length) fail("reject flow should not create an engagement");
+if (rejectResult.records.receipt.kind !== "opportunity-rejected") fail("reject flow did not create rejected receipt");
+if (!rejectResult.data.customers[0].externalStatus.includes("closed")) fail("reject flow did not update customer external status");
+
 const scheduleResult = recordTools.createScheduleRecords(intakeResult.data, {
   assignmentId: intakeResult.records.assignment.id,
   sessionTitle: "Diagnostic scheduling call",
@@ -232,9 +326,14 @@ const monitorReport = recordTools.buildMonitorReport(returnResult.data, { now: "
 for (const section of ["summary", "queue", "timeline", "risks", "receipts"]) {
   if (!(section in monitorReport)) fail(`monitor report missing section ${section}`);
 }
+if (!monitorReport.revenue) fail("monitor report missing revenue state");
 if (monitorReport.summary.timeline < 1) fail("monitor report did not include timeline records");
 if (!Array.isArray(monitorReport.queue)) fail("monitor report queue is not an array");
 if (!Array.isArray(monitorReport.receipts) || monitorReport.receipts.length < 1) fail("monitor report receipts missing returned review receipt");
+
+const acceptedMonitorReport = recordTools.buildMonitorReport(acceptResult.data, { now: "2026-06-01T12:00:00+09:00" });
+if (acceptedMonitorReport.revenue.activeEngagements < 1) fail("monitor revenue did not count active engagement");
+if (acceptedMonitorReport.summary.acceptedValueJpy < 60000) fail("monitor summary did not expose accepted value");
 
 const exportedLedger = recordTools.createOperatingLedger(returnResult.data, { now: "2026-06-01T04:30:00.000Z" });
 if (exportedLedger.schema !== "epoch.operating-ledger") fail("ledger export has wrong schema");
@@ -242,9 +341,15 @@ if (exportedLedger.version !== recordTools.ledgerVersion) fail("ledger export ha
 if (exportedLedger.counts.receipts !== returnResult.data.receipts.length) fail("ledger export receipt count is wrong");
 if (!exportedLedger.monitor || exportedLedger.monitor.timeline < 1) fail("ledger export missing monitor summary");
 
+const engagementLedger = recordTools.createOperatingLedger(acceptResult.data, { now: "2026-06-01T04:35:00.000Z" });
+if (engagementLedger.counts.engagements !== acceptResult.data.engagements.length) fail("ledger export engagement count is wrong");
+
 const importedLedger = recordTools.importOperatingLedger(data, JSON.stringify(exportedLedger));
 if (importedLedger.data.receipts.length !== returnResult.data.receipts.length) fail("ledger import did not preserve receipts");
 if (importedLedger.data.customers[0].externalStatus !== returnResult.data.customers[0].externalStatus) fail("ledger import did not preserve external status");
+
+const importedEngagementLedger = recordTools.importOperatingLedger(data, JSON.stringify(engagementLedger));
+if (importedEngagementLedger.data.engagements.length !== acceptResult.data.engagements.length) fail("ledger import did not preserve engagements");
 
 let rejectedInvalidLedger = false;
 try {

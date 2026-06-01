@@ -42,6 +42,9 @@ service operations without waiting for every future CITADEL integration.
 ## Required revenue-supporting behaviors
 
 - Schedule a diagnostic, cohort class, consultation, or service call.
+- Accept, defer, or reject an opportunity from the internal admin surface.
+- Convert accepted opportunities into an engagement, onboarding session,
+  first submission plan, follow-up, and receipt.
 - Create a submission or request window.
 - Record when work is submitted.
 - Record when review or feedback is returned.
@@ -54,6 +57,8 @@ service operations without waiting for every future CITADEL integration.
 
 - The first slice can administer at least one paid cohort or service engagement
   from intake through returned feedback.
+- The provider can move a captured opportunity into a monitor-visible
+  engagement without manually duplicating records.
 - The provider can see today, upcoming, overdue, and blocked work.
 - A student/customer can see what is due, what was submitted, what was returned,
   and what is next.

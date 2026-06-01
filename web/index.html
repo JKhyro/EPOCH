@@ -47,6 +47,60 @@
         <h2>Internal Next Actions</h2>
         <p>Classes, submissions, service requests, and review work that need provider attention.</p>
       </div>
+      <div class="opportunity-layout">
+        <form id="opportunity-form" class="intake-form">
+          <div class="form-row">
+            <label>
+              Opportunity
+              <select name="opportunityId" id="engagement-opportunity" required></select>
+            </label>
+            <label>
+              Decision
+              <select name="decision" required>
+                <option value="accept">Accept and onboard</option>
+                <option value="defer">Defer with follow-up</option>
+                <option value="reject">Reject and close</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            Owner
+            <input name="owner" value="Jack" required />
+          </label>
+          <div class="form-row">
+            <label>
+              Onboarding starts
+              <input name="planStartAt" type="datetime-local" required />
+            </label>
+            <label>
+              Onboarding ends
+              <input name="planEndAt" type="datetime-local" required />
+            </label>
+          </div>
+          <label>
+            First submission due
+            <input name="planDueAt" type="datetime-local" required />
+          </label>
+          <label>
+            Decision note
+            <textarea name="decisionNote" rows="3" required>Accepted after fit review; start with a diagnostic submission and written plan.</textarea>
+          </label>
+          <div class="form-actions">
+            <button type="submit">Apply Decision</button>
+          </div>
+        </form>
+        <div>
+          <div id="opportunity-confirmation" class="confirmation"></div>
+          <div class="section-heading compact">
+            <h2>Opportunity Pipeline</h2>
+          </div>
+          <div id="opportunity-feed" class="item-list"></div>
+          <div class="section-heading compact">
+            <h2>Engagements</h2>
+          </div>
+          <div id="engagement-feed" class="item-list"></div>
+        </div>
+      </div>
       <div class="schedule-layout">
         <form id="schedule-form" class="intake-form">
           <div class="form-row">

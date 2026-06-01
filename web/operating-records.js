@@ -17,6 +17,7 @@
     "offerPackages",
     "leads",
     "opportunities",
+    "engagements",
     "customers",
     "cohorts",
     "sessions",
@@ -48,7 +49,7 @@
   }
 
   function ensureCollections(data) {
-    for (const collection of ["offerPackages", "leads", "opportunities", "customers", "assignments", "submissions", "reviews", "followups", "receipts"]) {
+    for (const collection of ledgerCollections) {
       if (!Array.isArray(data[collection])) data[collection] = [];
     }
   }
@@ -119,6 +120,23 @@
     }
     return data.offerPackages.find((item) => item.id === packageId)
       || data.offerPackages.find((item) => item.offerKind === offerKind && item.status === "active")
+      || null;
+  }
+
+  function packageById(data, packageId) {
+    return data.offerPackages.find((item) => item.id === packageId) || null;
+  }
+
+  function customerForOpportunity(data, opportunity) {
+    const assignment = data.assignments.find((item) => item.opportunityId === opportunity.id);
+    if (assignment?.customerId) {
+      const assignedCustomer = data.customers.find((item) => item.id === assignment.customerId);
+      if (assignedCustomer) return assignedCustomer;
+    }
+    const lead = data.leads.find((item) => item.id === opportunity.leadId);
+    return data.customers.find((item) => item.packageId === opportunity.packageId)
+      || data.customers.find((item) => lead && item.trackId === lead.trackId)
+      || data.customers[0]
       || null;
   }
 
@@ -437,6 +455,182 @@
     };
   }
 
+  function decideOpportunityRecords(currentData, input, options) {
+    const nextData = cloneData(currentData);
+    ensureCollections(nextData);
+    if (!Array.isArray(nextData.cohorts)) nextData.cohorts = [];
+    if (!Array.isArray(nextData.sessions)) nextData.sessions = [];
+
+    const now = options && options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const requestStamp = stamp(now);
+    const decision = clean(input.decision) || "accept";
+    const opportunityId = clean(input.opportunityId) || nextData.opportunities.find((item) => item.status === "planned" || item.status === "waiting" || item.status === "deferred")?.id;
+    const owner = clean(input.owner) || "Jack";
+    const note = clean(input.note || input.decisionNote) || "Opportunity reviewed.";
+    const planStartAt = withTimezone(input.planStartAt, timezone) || withTimezone(now.toISOString(), timezone);
+    const planEndAt = withTimezone(input.planEndAt, timezone) || planStartAt;
+    const planDueAt = withTimezone(input.planDueAt, timezone) || planStartAt;
+
+    if (!["accept", "defer", "reject"].includes(decision)) throw new Error("decision must be accept, defer, or reject");
+    if (!opportunityId) throw new Error("opportunityId is required");
+
+    const opportunity = nextData.opportunities.find((item) => item.id === opportunityId);
+    if (!opportunity) throw new Error("opportunity not found");
+    if (
+      decision === "accept"
+      && nextData.engagements.some((item) => item.opportunityId === opportunity.id && item.status !== "canceled")
+    ) {
+      throw new Error("opportunity already has an active engagement");
+    }
+
+    const offerPackage = packageById(nextData, opportunity.packageId);
+    const customer = customerForOpportunity(nextData, opportunity);
+    const packageName = offerPackage?.name || opportunity.packageId || "selected package";
+    const valueJpy = Number(opportunity.estimatedValueJpy || offerPackage?.priceJpy || 0);
+    const decidedAt = withTimezone(now.toISOString(), timezone);
+    const statusMap = {
+      accept: "accepted",
+      defer: "deferred",
+      reject: "rejected"
+    };
+
+    opportunity.status = statusMap[decision];
+    opportunity.owner = owner;
+    opportunity.decisionNote = note;
+    opportunity.decidedAt = decidedAt;
+    opportunity.nextAction = decision === "accept"
+      ? `Start ${packageName} engagement plan`
+      : decision === "defer"
+        ? `Defer ${packageName} and follow up later`
+        : `Close ${packageName} opportunity`;
+    opportunity.nextActionAt = planDueAt;
+
+    const records = { opportunity };
+
+    if (decision === "accept") {
+      const createdCustomer = customer ? null : {
+        id: `customer-engagement-${requestStamp}`,
+        displayName: `${packageName} customer`,
+        trackId: offerPackage?.trackId || "track-service-ops",
+        packageId: opportunity.packageId,
+        ageBand: "unknown",
+        externalStatus: `${packageName} accepted; onboarding and first submission plan are active.`
+      };
+      const customerId = customer?.id || createdCustomer.id;
+      const engagement = {
+        id: `engagement-${requestStamp}`,
+        opportunityId: opportunity.id,
+        customerId,
+        packageId: opportunity.packageId,
+        status: "active",
+        valueJpy,
+        owner,
+        acceptedAt: decidedAt,
+        onboardingDueAt: planDueAt,
+        note
+      };
+      const cohort = {
+        id: `cohort-engagement-${requestStamp}`,
+        trackId: offerPackage?.trackId || customer?.trackId || "track-service-ops",
+        name: `${packageName} engagement plan`,
+        status: "planned",
+        owner,
+        startAt: planStartAt
+      };
+      const session = {
+        id: `session-engagement-${requestStamp}`,
+        cohortId: cohort.id,
+        opportunityId: opportunity.id,
+        engagementId: engagement.id,
+        customerId,
+        title: `Onboarding: ${packageName}`,
+        startAt: planStartAt,
+        endAt: planEndAt,
+        timezone,
+        status: "planned",
+        owner
+      };
+      const assignment = {
+        id: `assignment-engagement-${requestStamp}`,
+        cohortId: cohort.id,
+        customerId,
+        opportunityId: opportunity.id,
+        engagementId: engagement.id,
+        packageId: opportunity.packageId,
+        title: `First submission plan: ${packageName}`,
+        dueAt: planDueAt,
+        status: "planned",
+        externalVisible: true,
+        owner,
+        summary: note
+      };
+      const followup = {
+        id: `followup-engagement-${requestStamp}`,
+        customerId,
+        title: `Confirm first engagement step: ${packageName}`,
+        status: "planned",
+        nextActionAt: planDueAt
+      };
+      const receipt = {
+        id: `receipt-engagement-${requestStamp}`,
+        customerId,
+        kind: "opportunity-accepted",
+        status: "complete",
+        createdAt: decidedAt,
+        note: `${packageName} accepted for ${valueJpy} JPY.`
+      };
+
+      if (customer) {
+        customer.packageId = opportunity.packageId;
+        customer.externalStatus = `${packageName} accepted; onboarding and first submission plan are active.`;
+      } else {
+        nextData.customers.unshift(createdCustomer);
+      }
+
+      nextData.engagements.unshift(engagement);
+      nextData.cohorts.unshift(cohort);
+      nextData.sessions.unshift(session);
+      nextData.assignments.unshift(assignment);
+      nextData.followups.unshift(followup);
+      nextData.receipts.unshift(receipt);
+      Object.assign(records, { engagement, cohort, session, assignment, followup, receipt });
+      if (createdCustomer) records.customer = createdCustomer;
+    } else {
+      const customerId = customer?.id || null;
+      const followup = {
+        id: `followup-opportunity-${requestStamp}`,
+        customerId,
+        title: `${decision === "defer" ? "Deferred" : "Rejected"} opportunity: ${packageName}`,
+        status: decision === "defer" ? "planned" : "complete",
+        nextActionAt: planDueAt
+      };
+      const receipt = {
+        id: `receipt-opportunity-${requestStamp}`,
+        customerId,
+        kind: `opportunity-${decision === "defer" ? "deferred" : "rejected"}`,
+        status: "complete",
+        createdAt: decidedAt,
+        note
+      };
+
+      if (customer) {
+        customer.externalStatus = decision === "defer"
+          ? `${packageName} request deferred; follow-up is scheduled.`
+          : `${packageName} request closed after review.`;
+      }
+
+      nextData.followups.unshift(followup);
+      nextData.receipts.unshift(receipt);
+      Object.assign(records, { followup, receipt });
+    }
+
+    return {
+      data: nextData,
+      records
+    };
+  }
+
   function summarizeDeadlines(currentData, options) {
     const nowText = clean(options && options.now) || "2026-06-01T00:00:00+09:00";
     const todayText = nowText.slice(0, 10);
@@ -455,10 +649,36 @@
     };
   }
 
+  function summarizeRevenueState(currentData) {
+    const opportunities = Array.isArray(currentData.opportunities) ? currentData.opportunities : [];
+    const engagements = Array.isArray(currentData.engagements) ? currentData.engagements : [];
+    const packages = Array.isArray(currentData.offerPackages) ? currentData.offerPackages : [];
+    const closedStatuses = new Set(["accepted", "rejected"]);
+    const pipeline = opportunities.filter((item) => !closedStatuses.has(item.status));
+    const activeEngagements = engagements.filter((item) => item.status === "active" || item.status === "planned");
+    const packageByIdMemo = packages.reduce((memo, item) => {
+      memo[item.id] = item;
+      return memo;
+    }, {});
+
+    return {
+      pipelineCount: pipeline.length,
+      pipelineValueJpy: pipeline.reduce((total, item) => total + Number(item.estimatedValueJpy || 0), 0),
+      activeEngagements: activeEngagements.length,
+      acceptedCount: opportunities.filter((item) => item.status === "accepted").length,
+      acceptedValueJpy: engagements.reduce((total, item) => total + Number(item.valueJpy || 0), 0),
+      waitingCount: opportunities.filter((item) => item.status === "waiting").length,
+      deferredCount: opportunities.filter((item) => item.status === "deferred").length,
+      rejectedCount: opportunities.filter((item) => item.status === "rejected").length,
+      under19CompatibilityCount: pipeline.filter((item) => packageByIdMemo[item.packageId]?.routing === "compatibility-required").length
+    };
+  }
+
   function monitorTimelineItems(currentData) {
     return [
       ...currentData.leads.map((item) => ({ kind: "lead", id: item.id, title: item.name, status: item.status, time: item.nextActionAt, owner: item.owner || "intake" })),
       ...currentData.opportunities.map((item) => ({ kind: "opportunity", id: item.id, title: item.packageId || item.id, status: item.status, time: item.nextActionAt, owner: `${item.estimatedValueJpy || 0} JPY` })),
+      ...currentData.engagements.map((item) => ({ kind: "engagement", id: item.id, title: item.packageId || item.id, status: item.status, time: item.onboardingDueAt || item.acceptedAt, owner: item.owner || "owner pending" })),
       ...currentData.sessions.map((item) => ({ kind: "session", id: item.id, title: item.title, status: item.status, time: item.startAt, owner: item.owner || "owner pending" })),
       ...currentData.assignments.map((item) => ({ kind: "request", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.owner || "owner pending" })),
       ...currentData.submissions.map((item) => ({ kind: "submission", id: item.id, title: item.title || item.id, status: item.status, time: item.reviewDueAt, owner: item.owner || "review queue" })),
@@ -470,8 +690,9 @@
 
   function buildMonitorReport(currentData, options) {
     const nowText = clean(options && options.now) || "2026-06-01T12:00:00+09:00";
-    const terminalStatuses = new Set(["complete", "returned", "canceled"]);
-    const activeStatuses = new Set(["waiting", "submitted", "reviewing", "overdue", "blocked"]);
+    const terminalStatuses = new Set(["complete", "returned", "canceled", "accepted", "rejected"]);
+    const activeStatuses = new Set(["waiting", "deferred", "submitted", "reviewing", "overdue", "blocked"]);
+    const revenue = summarizeRevenueState(currentData);
     const timeline = monitorTimelineItems(currentData)
       .sort((a, b) => String(b.time || "").localeCompare(String(a.time || "")));
     const queue = timeline
@@ -513,8 +734,12 @@
         queue: queue.length,
         timeline: timeline.length,
         risks: risks.length,
-        receipts: currentData.receipts.length
+        receipts: currentData.receipts.length,
+        activeEngagements: revenue.activeEngagements,
+        pipelineValueJpy: revenue.pipelineValueJpy,
+        acceptedValueJpy: revenue.acceptedValueJpy
       },
+      revenue,
       queue,
       timeline: timeline.slice(0, 10),
       risks,
@@ -554,6 +779,7 @@
     ledgerVersion,
     cloneData,
     createOperatingLedger,
+    decideOpportunityRecords,
     createIntakeRecords,
     createSubmissionRecords,
     createScheduleRecords,
@@ -561,6 +787,7 @@
     returnReviewRecords,
     buildMonitorReport,
     summarizeDeadlines,
+    summarizeRevenueState,
     withTimezone
   };
 })();

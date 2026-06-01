@@ -55,7 +55,7 @@ function resetData() {
 
 function storageStatusText() {
   const ledger = recordTools.createOperatingLedger(data);
-  return `Ledger v${ledger.version} | ${ledger.counts.customers} customers | ${ledger.counts.assignments} requests | ${ledger.counts.receipts} receipts`;
+  return `Ledger v${ledger.version} | ${ledger.counts.customers} customers | ${ledger.counts.engagements} engagements | ${ledger.counts.assignments} requests | ${ledger.counts.receipts} receipts`;
 }
 
 function formatTime(value) {
@@ -95,6 +95,7 @@ function allOperatingItems() {
   return [
     ...data.leads.map((item) => ({ ...item, kind: "lead", time: item.nextActionAt })),
     ...data.opportunities.map((item) => ({ ...item, title: packageName(item.packageId), kind: "opportunity", time: item.nextActionAt })),
+    ...(data.engagements || []).map((item) => ({ ...item, title: packageName(item.packageId), kind: "engagement", time: item.onboardingDueAt || item.acceptedAt })),
     ...data.sessions.map((item) => ({ ...item, kind: "session", time: item.startAt })),
     ...data.assignments.map((item) => ({ ...item, kind: "request", time: item.dueAt })),
     ...data.submissions.map((item) => ({ ...item, kind: "submission", time: item.reviewDueAt })),
@@ -139,7 +140,7 @@ function renderMetrics(items) {
 
 function renderAdmin(items) {
   const adminItems = items
-    .filter((item) => attentionStatuses.has(item.status) || item.kind === "session" || item.kind === "follow-up" || item.kind === "lead" || item.kind === "opportunity")
+    .filter((item) => attentionStatuses.has(item.status) || item.kind === "session" || item.kind === "follow-up" || item.kind === "lead" || item.kind === "opportunity" || item.kind === "engagement")
     .slice(0, 10);
 
   byId("admin-actions").innerHTML = adminItems.map((item) => {
@@ -149,6 +150,47 @@ function renderAdmin(items) {
       : `${item.kind} | next: ${formatTime(item.time)}`;
     return record(title, body, [statusChip(item.status), chip(item.kind)]);
   }).join("");
+}
+
+function renderOpportunityOptions() {
+  const select = byId("engagement-opportunity");
+  const options = data.opportunities
+    .filter((item) => ["planned", "waiting", "deferred"].includes(item.status))
+    .map((opportunity) => {
+      const label = `${packageName(opportunity.packageId)} | ${opportunity.status} | ${formatJpy(opportunity.estimatedValueJpy)}`;
+      return `<option value="${escapeHtml(opportunity.id)}">${escapeHtml(label)}</option>`;
+    });
+  select.innerHTML = options.length
+    ? options.join("")
+    : "<option value=\"\">No open opportunities</option>";
+}
+
+function renderOpportunityFeed() {
+  const opportunities = data.opportunities.slice(0, 6);
+  byId("opportunity-feed").innerHTML = opportunities.length
+    ? opportunities.map((opportunity) => {
+      const body = `${opportunity.nextAction || "No next action set"} | ${formatTime(opportunity.nextActionAt)}`;
+      return record(packageName(opportunity.packageId), body, [
+        statusChip(opportunity.status),
+        chip(formatJpy(opportunity.estimatedValueJpy)),
+        chip(opportunity.owner || "owner pending")
+      ]);
+    }).join("")
+    : record("Opportunity Pipeline", "No opportunities have been captured yet.", [chip("empty")]);
+}
+
+function renderEngagementFeed() {
+  const engagements = data.engagements || [];
+  byId("engagement-feed").innerHTML = engagements.length
+    ? engagements.slice(0, 6).map((engagement) => {
+      const body = `Onboarding due ${formatTime(engagement.onboardingDueAt)} | ${engagement.note || "Engagement plan active"}`;
+      return record(packageName(engagement.packageId), body, [
+        statusChip(engagement.status),
+        chip(formatJpy(engagement.valueJpy)),
+        chip(engagement.owner || "owner pending")
+      ]);
+    }).join("")
+    : record("Engagements", "Accepted opportunities will appear here with onboarding and submission-plan records.", [chip("empty")]);
 }
 
 function renderScheduleOptions() {
@@ -222,21 +264,19 @@ function monitorSection(title, cards) {
 }
 
 function renderMonitor(items) {
-  const receiptCount = data.receipts.length;
   const attentionCount = items.filter((item) => attentionStatuses.has(item.status)).length;
   const visibleCount = data.assignments.filter((item) => item.externalVisible).length;
-  const intakeCount = data.leads.filter((item) => item.id.startsWith("lead-intake")).length;
-  const reviewingCount = data.submissions.filter((item) => item.status === "reviewing" || item.status === "submitted").length;
-  const opportunityValue = data.opportunities.reduce((total, item) => total + Number(item.estimatedValueJpy || 0), 0);
   const deadlines = recordTools.summarizeDeadlines(data, { now: `${today}T12:00:00+09:00` });
   const report = recordTools.buildMonitorReport(data, { now: `${today}T12:00:00+09:00` });
+  const revenue = report.revenue || recordTools.summarizeRevenueState(data);
 
   const summaryCards = [
     record("Monitor Summary", `${report.summary.queue} queued, ${report.summary.timeline} timeline records, ${report.summary.risks} risks.`, [chip(report.summary.health, report.summary.health === "Ready" ? "complete" : "blocked")]),
     record("Queue Attention", `${attentionCount} records need attention now.`, [chip(`${attentionCount} active`, "reviewing")]),
     record("External Visibility", `${visibleCount} student/customer-visible records are available.`, [chip(`${visibleCount} visible`)]),
     record("Deadline Control", `${deadlines.today} today, ${deadlines.upcoming} upcoming, ${deadlines.overdue} overdue.`, [chip(`${deadlines.owned} owner-linked`, "planned")]),
-    record("Opportunity Pipeline", `${data.opportunities.length} opportunities with ${formatJpy(opportunityValue)} estimated value.`, [chip("pipeline", "waiting")])
+    record("Opportunity Pipeline", `${revenue.pipelineCount} open opportunities with ${formatJpy(revenue.pipelineValueJpy)} estimated value.`, [chip(`${revenue.waitingCount} waiting`, "waiting"), chip(`${revenue.deferredCount} deferred`)]),
+    record("Engagement Revenue", `${revenue.activeEngagements} active engagements with ${formatJpy(revenue.acceptedValueJpy)} accepted value.`, [chip(`${revenue.acceptedCount} accepted`, "complete"), chip(`${revenue.under19CompatibilityCount} compatibility gates`)])
   ];
 
   const queueCards = report.queue.map((item) => record(
@@ -293,6 +333,9 @@ function renderAll() {
   renderMetrics(items);
   renderOfferOptions();
   renderOfferCatalog();
+  renderOpportunityOptions();
+  renderOpportunityFeed();
+  renderEngagementFeed();
   renderScheduleOptions();
   renderScheduleFeed();
   renderAdmin(items);
@@ -302,6 +345,35 @@ function renderAll() {
   renderMonitor(items);
   renderIntakeSnapshot();
   renderLedgerStatus();
+}
+
+function wireOpportunityForm() {
+  const form = byId("opportunity-form");
+  const confirmation = byId("opportunity-confirmation");
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const result = recordTools.decideOpportunityRecords(data, Object.fromEntries(formData.entries()));
+    data = result.data;
+    persistData();
+    renderAll();
+
+    const decision = result.records.opportunity.status;
+    const title = decision === "accepted"
+      ? "Engagement Accepted"
+      : decision === "deferred"
+        ? "Opportunity Deferred"
+        : "Opportunity Rejected";
+    const body = decision === "accepted"
+      ? `${result.records.engagement.id} created with onboarding, first submission plan, follow-up, and receipt records.`
+      : `${packageName(result.records.opportunity.packageId)} moved to ${decision} with follow-up and receipt records.`;
+    confirmation.innerHTML = record(title, body, [
+      statusChip(decision),
+      chip(result.records.opportunity.owner || "owner pending")
+    ]);
+    form.reset();
+  });
 }
 
 function activateView(viewName) {
@@ -458,6 +530,7 @@ function wireLedgerControls() {
 function init() {
   renderAll();
   wireTabs();
+  wireOpportunityForm();
   wireScheduleForm();
   wireIntakeForm();
   wireSubmissionForm();
