@@ -33,9 +33,9 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
 - `web/operating-records.js`: browser-local intake-to-operating-record helper
   that turns a public request into lead, customer, request, follow-up, and
   receipt records, then supports opportunity-to-engagement conversion,
-  customer-visible update events, scheduling, submission creation, deadline
-  summaries, returned-review receipts, monitor health reports, and versioned
-  operating-ledger export/import.
+  customer-visible update events, scheduling, TEMPO-ready calendar export
+  entries, submission creation, deadline summaries, returned-review receipts,
+  monitor health reports, and versioned operating-ledger export/import.
 - `web/app.js`: shared renderer and local persistence flow for admin,
   student/customer, monitor, public request, scheduling, submission, and
   review-return views, including local ledger save/load plus JSON export/import.

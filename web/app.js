@@ -302,6 +302,8 @@ function renderMonitor(items) {
   const report = recordTools.buildMonitorReport(data, { now: `${today}T12:00:00+09:00` });
   const revenue = report.revenue || recordTools.summarizeRevenueState(data);
   const notifications = report.notifications || recordTools.summarizeNotificationState(data);
+  const calendarExport = recordTools.createCalendarExport(data, { now: `${today}T12:00:00+09:00` });
+  const calendar = report.calendar || recordTools.summarizeCalendarExport(calendarExport);
   byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | local-first`;
 
   const summaryCards = [
@@ -311,7 +313,8 @@ function renderMonitor(items) {
     record("Deadline Control", `${deadlines.today} today, ${deadlines.upcoming} upcoming, ${deadlines.overdue} overdue.`, [chip(`${deadlines.owned} owner-linked`, "planned")]),
     record("Opportunity Pipeline", `${revenue.pipelineCount} open opportunities with ${formatJpy(revenue.pipelineValueJpy)} estimated value.`, [chip(`${revenue.waitingCount} waiting`, "waiting"), chip(`${revenue.deferredCount} deferred`)]),
     record("Engagement Revenue", `${revenue.activeEngagements} active engagements with ${formatJpy(revenue.acceptedValueJpy)} accepted value.`, [chip(`${revenue.acceptedCount} accepted`, "complete"), chip(`${revenue.under19CompatibilityCount} compatibility gates`)]),
-    record("Update Events", `${notifications.visible} visible updates, ${notifications.pending} pending, ${notifications.blocked} blocked.`, [chip(`${notifications.posted} posted`, "complete"), chip(`${notifications.total} total`)])
+    record("Update Events", `${notifications.visible} visible updates, ${notifications.pending} pending, ${notifications.blocked} blocked.`, [chip(`${notifications.posted} posted`, "complete"), chip(`${notifications.total} total`)]),
+    record("Calendar Export", `${calendar.total} export-ready entries, ${calendar.customerVisible} customer-visible, ${calendar.updateLinked} update-linked.`, [chip(calendarExport.schema), chip(calendarExport.timezone)])
   ];
 
   const queueCards = report.queue.map((item) => record(
@@ -324,6 +327,12 @@ function renderMonitor(items) {
     item.title || item.id,
     `${item.kind} | ${formatTime(item.time)} | owner: ${item.owner}`,
     [statusChip(item.status), chip(item.id)]
+  ));
+
+  const calendarCards = calendarExport.entries.slice(0, 8).map((item) => record(
+    item.title,
+    `${item.timeKind} | ${formatTime(item.startAt || item.dueAt)} | source: ${item.sourceKind}`,
+    [statusChip(item.status), chip(item.localDate || "date pending"), chip(item.customerName || item.owner || "owner pending")]
   ));
 
   const riskCards = report.risks.length
@@ -340,6 +349,7 @@ function renderMonitor(items) {
     monitorSection("Summary", summaryCards, "monitor-summary"),
     monitorSection("Queue", queueCards, "monitor-queue"),
     monitorSection("Timeline", timelineCards, "monitor-timeline"),
+    monitorSection("Calendar Export", calendarCards.length ? calendarCards : [record("Calendar Export", "No export-ready calendar entries have been created yet.", [chip("empty")])], "monitor-calendar"),
     monitorSection("Risks", riskCards, "monitor-risks"),
     monitorSection("Receipts", receiptCards.length ? receiptCards : [record("Receipts", "No receipts have been created yet.", [chip("empty")])], "monitor-receipts")
   ].join("");

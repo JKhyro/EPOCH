@@ -109,7 +109,7 @@ for (const field of ["opportunityId", "decision", "planStartAt", "planEndAt", "p
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
 }
-for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route"]) {
+for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-calendar"]) {
   if (!html.includes(phrase)) fail(`monitor route surface missing phrase ${phrase}`);
 }
 if (!html.includes("./operating-records.js")) fail("web surface does not load operating-records.js");
@@ -120,10 +120,12 @@ for (const phrase of [
   "createSubmissionRecords",
   "createScheduleRecords",
   "decideOpportunityRecords",
+  "createCalendarExport",
   "createOperatingLedger",
   "importOperatingLedger",
   "returnReviewRecords",
   "buildMonitorReport",
+  "summarizeCalendarExport",
   "summarizeDeadlines",
   "summarizeRevenueState",
   "summarizeNotificationState",
@@ -150,6 +152,7 @@ for (const phrase of [
   "monitor-summary",
   "monitor-queue",
   "monitor-timeline",
+  "monitor-calendar",
   "monitor-risks",
   "monitor-receipts",
   "monitor-route-status",
@@ -163,6 +166,7 @@ for (const phrase of [
   "Opportunity Pipeline",
   "Engagement Revenue",
   "Update Events",
+  "Calendar Export",
   "Engagement Accepted",
   "Opportunity Deferred",
   "Opportunity Rejected"
@@ -361,9 +365,26 @@ for (const section of ["summary", "queue", "timeline", "risks", "receipts"]) {
 }
 if (!monitorReport.revenue) fail("monitor report missing revenue state");
 if (!monitorReport.notifications) fail("monitor report missing notification state");
+if (!monitorReport.calendar) fail("monitor report missing calendar export state");
 if (monitorReport.summary.timeline < 1) fail("monitor report did not include timeline records");
 if (!Array.isArray(monitorReport.queue)) fail("monitor report queue is not an array");
 if (!Array.isArray(monitorReport.receipts) || monitorReport.receipts.length < 1) fail("monitor report receipts missing returned review receipt");
+
+const calendarExport = recordTools.createCalendarExport(returnResult.data, { now: "2026-06-01T12:00:00+09:00" });
+if (calendarExport.schema !== "epoch.calendar-export") fail("calendar export has wrong schema");
+if (calendarExport.timezone !== "Asia/Tokyo") fail("calendar export has wrong timezone");
+if (!Array.isArray(calendarExport.entries) || calendarExport.entries.length < 5) fail("calendar export missing entries");
+if (!calendarExport.entries.every((entry) => entry.sourceKind && entry.sourceId && entry.timeKind && entry.timezone && entry.localDate)) {
+  fail("calendar export entries are missing normalized fields");
+}
+if (!calendarExport.entries.some((entry) => entry.sourceKind === "session" && entry.startAt && entry.endAt)) fail("calendar export missing session window");
+if (!calendarExport.entries.some((entry) => entry.sourceKind === "assignment" && entry.dueAt)) fail("calendar export missing assignment due window");
+if (!calendarExport.entries.some((entry) => entry.sourceKind === "submission" && entry.timeKind === "review-window")) fail("calendar export missing submission review window");
+if (!calendarExport.entries.some((entry) => entry.sourceKind === "notification" && entry.updateEventId)) fail("calendar export missing update-linked notification window");
+const calendarSummary = recordTools.summarizeCalendarExport(calendarExport);
+if (calendarSummary.total !== calendarExport.entries.length) fail("calendar summary total is wrong");
+if (calendarSummary.customerVisible < 1) fail("calendar summary did not count customer-visible entries");
+if (calendarSummary.updateLinked < 1) fail("calendar summary did not count update-linked entries");
 
 const acceptedMonitorReport = recordTools.buildMonitorReport(acceptResult.data, { now: "2026-06-01T12:00:00+09:00" });
 if (acceptedMonitorReport.revenue.activeEngagements < 1) fail("monitor revenue did not count active engagement");
@@ -375,6 +396,7 @@ if (exportedLedger.version !== recordTools.ledgerVersion) fail("ledger export ha
 if (exportedLedger.counts.receipts !== returnResult.data.receipts.length) fail("ledger export receipt count is wrong");
 if (exportedLedger.counts.notificationEvents !== returnResult.data.notificationEvents.length) fail("ledger export update-event count is wrong");
 if (!exportedLedger.monitor || exportedLedger.monitor.timeline < 1) fail("ledger export missing monitor summary");
+if (!exportedLedger.calendarExport || exportedLedger.calendarExport.entries.length !== calendarExport.entries.length) fail("ledger export missing calendar export entries");
 
 const engagementLedger = recordTools.createOperatingLedger(acceptResult.data, { now: "2026-06-01T04:35:00.000Z" });
 if (engagementLedger.counts.engagements !== acceptResult.data.engagements.length) fail("ledger export engagement count is wrong");
