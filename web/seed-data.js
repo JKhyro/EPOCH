@@ -1423,6 +1423,72 @@ window.EPOCH_SEED_DATA = {
       "notes": "Customer-safe templates and consent policies must be explicit before live delivery is added."
     }
   ],
+  "notificationProviderPrototypes": [
+    {
+      "id": "notification-provider-sandbox-message-preview",
+      "title": "Notification Provider Sandbox Message Preview",
+      "providerCandidateId": "provider-adapter-notification-line-sms",
+      "sourceHandoffId": "notification-template-consent-readiness",
+      "adapterFamily": "notification",
+      "targetProvider": "provider-neutral email / LINE / SMS",
+      "adapterMode": "sandbox-message-preview",
+      "status": "queued",
+      "prototypeStatus": "payload-ready",
+      "sandboxOnly": true,
+      "localOnly": true,
+      "liveSendEnabled": false,
+      "liveEmailSend": false,
+      "liveLineSend": false,
+      "liveSmsSend": false,
+      "liveNexusSend": false,
+      "externalProviderWrite": false,
+      "productionEnabled": false,
+      "secretsPresent": false,
+      "credentialsStored": false,
+      "storesCredentials": false,
+      "oauthConfigured": false,
+      "webhookEnabled": false,
+      "customerVisible": false,
+      "customerSafe": false,
+      "notificationOutboxSchema": "epoch.notification-outbox",
+      "payloadMode": "provider-neutral-message-json-preview",
+      "payloadSource": "epoch.notification-outbox",
+      "payloadEntryCount": 2,
+      "readinessChecks": ["provider-handoff-required", "template-consent-required", "notification-outbox-schema-stable", "sandbox-only-before-go-live", "operator-approval-required", "no-live-send", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-customer-visible-send", "no-nexus-send"],
+      "payloadPreview": [
+        {
+          "uid": "epoch-notification-update-001",
+          "title": "Review returned",
+          "channel": "email",
+          "provider": "provider-neutral",
+          "customerId": "student-001",
+          "customerName": "Adult writing student",
+          "summary": "Diagnostic review returned and next action created.",
+          "source": "review:review-001",
+          "status": "preview-only",
+          "customerSafe": true
+        },
+        {
+          "uid": "epoch-notification-update-002",
+          "title": "Source files needed",
+          "channel": "line",
+          "provider": "provider-neutral",
+          "customerId": "client-001",
+          "customerName": "Small business ops client",
+          "summary": "Service request is blocked pending source files.",
+          "source": "request:request-001",
+          "status": "preview-only",
+          "customerSafe": true
+        }
+      ],
+      "blockers": ["No live sending consent", "No provider credential storage", "No webhook or NEXUS delivery path"],
+      "nextActionAt": "2026-06-04T11:00:00+09:00",
+      "createdAt": "2026-06-02T06:00:00+09:00",
+      "updatedAt": "2026-06-02T06:00:00+09:00",
+      "receiptIds": ["receipt-notification-provider-prototype-seed"],
+      "notes": "Local message preview only; live email, LINE, SMS, NEXUS, webhooks, credentials, provider writes, and customer-visible sends remain disabled."
+    }
+  ],
   "paymentProviderHandoffs": [
     {
       "id": "payment-provider-invoice-readiness",
@@ -2176,6 +2242,21 @@ window.EPOCH_SEED_DATA = {
       "createdAt": "2026-06-02T04:01:00+09:00",
       "visibility": "internal",
       "customerVisible": false
+    },
+    {
+      "id": "monitor-check-seed-notification-prototype",
+      "actionId": "seed-notification-prototype-baseline",
+      "receiptId": "receipt-notification-provider-prototype-seed",
+      "title": "Sandbox notification provider baseline",
+      "summary": "EPOCH has a local provider-neutral message payload-preview prototype from customer-safe update records without live email, LINE, SMS, NEXUS, OAuth, secrets, webhooks, provider writes, or customer-visible sends.",
+      "status": "complete",
+      "priority": "medium",
+      "effect": "notification-provider-sandbox-proof",
+      "target": "monitor-notification-prototype",
+      "owner": "Jack",
+      "createdAt": "2026-06-02T06:01:00+09:00",
+      "visibility": "internal",
+      "customerVisible": false
     }
   ],
   "receipts": [
@@ -2258,6 +2339,14 @@ window.EPOCH_SEED_DATA = {
       "status": "complete",
       "createdAt": "2026-06-02T04:01:00+09:00",
       "note": "Sandbox calendar adapter baseline: local payload preview is ready without live calendar API calls, OAuth, secrets, webhooks, provider writes, invitations, or customer-visible sends."
+    },
+    {
+      "id": "receipt-notification-provider-prototype-seed",
+      "customerId": null,
+      "kind": "notification-provider-prototype",
+      "status": "complete",
+      "createdAt": "2026-06-02T06:01:00+09:00",
+      "note": "Sandbox notification provider baseline: local message payload preview is ready without live email, LINE, SMS, NEXUS, OAuth, secrets, webhooks, provider writes, or customer-visible sends."
     },
     {
       "id": "receipt-client-request-seed",

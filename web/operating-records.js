@@ -23,6 +23,7 @@
     "marketingConversionEvents",
     "providerAdapterCandidates",
     "calendarAdapterPrototypes",
+    "notificationProviderPrototypes",
     "leads",
     "opportunities",
     "engagements",
@@ -1260,6 +1261,75 @@
     ];
   }
 
+  function defaultNotificationProviderPrototypes() {
+    return [
+      {
+        id: "notification-provider-sandbox-message-preview",
+        title: "Notification Provider Sandbox Message Preview",
+        providerCandidateId: "provider-adapter-notification-line-sms",
+        sourceHandoffId: "notification-template-consent-readiness",
+        adapterFamily: "notification",
+        targetProvider: "provider-neutral email / LINE / SMS",
+        adapterMode: "sandbox-message-preview",
+        status: "queued",
+        prototypeStatus: "payload-ready",
+        sandboxOnly: true,
+        localOnly: true,
+        liveSendEnabled: false,
+        liveEmailSend: false,
+        liveLineSend: false,
+        liveSmsSend: false,
+        liveNexusSend: false,
+        externalProviderWrite: false,
+        productionEnabled: false,
+        secretsPresent: false,
+        credentialsStored: false,
+        storesCredentials: false,
+        oauthConfigured: false,
+        webhookEnabled: false,
+        customerVisible: false,
+        customerSafe: false,
+        notificationOutboxSchema: "epoch.notification-outbox",
+        payloadMode: "provider-neutral-message-json-preview",
+        payloadSource: "epoch.notification-outbox",
+        payloadEntryCount: 2,
+        readinessChecks: ["provider-handoff-required", "template-consent-required", "notification-outbox-schema-stable", "sandbox-only-before-go-live", "operator-approval-required", "no-live-send", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-customer-visible-send", "no-nexus-send"],
+        payloadPreview: [
+          {
+            uid: "epoch-notification-update-001",
+            title: "Review returned",
+            channel: "email",
+            provider: "provider-neutral",
+            customerId: "student-001",
+            customerName: "Adult writing student",
+            summary: "Diagnostic review returned and next action created.",
+            source: "review:review-001",
+            status: "preview-only",
+            customerSafe: true
+          },
+          {
+            uid: "epoch-notification-update-002",
+            title: "Source files needed",
+            channel: "line",
+            provider: "provider-neutral",
+            customerId: "client-001",
+            customerName: "Small business ops client",
+            summary: "Service request is blocked pending source files.",
+            source: "request:request-001",
+            status: "preview-only",
+            customerSafe: true
+          }
+        ],
+        blockers: ["No live sending consent", "No provider credential storage", "No webhook or NEXUS delivery path"],
+        nextActionAt: "2026-06-04T11:00:00+09:00",
+        createdAt: "2026-06-02T06:00:00+09:00",
+        updatedAt: "2026-06-02T06:00:00+09:00",
+        receiptIds: ["receipt-notification-provider-prototype-seed"],
+        notes: "Local message preview only; live email, LINE, SMS, NEXUS, webhooks, credentials, provider writes, and customer-visible sends remain disabled."
+      }
+    ];
+  }
+
   function normalizedOperatingData(data) {
     const nextData = cloneData(data || {});
     for (const collection of ledgerCollections) {
@@ -1295,6 +1365,9 @@
     }
     if (!Array.isArray(nextData.calendarAdapterPrototypes) || !nextData.calendarAdapterPrototypes.length) {
       nextData.calendarAdapterPrototypes = defaultCalendarAdapterPrototypes();
+    }
+    if (!Array.isArray(nextData.notificationProviderPrototypes) || !nextData.notificationProviderPrototypes.length) {
+      nextData.notificationProviderPrototypes = defaultNotificationProviderPrototypes();
     }
     nextData.customerAccountHistories = reconcileCustomerAccountHistories(nextData);
     if (!nextData.accessPosture || typeof nextData.accessPosture !== "object") {
@@ -6006,6 +6079,370 @@
     };
   }
 
+  function notificationProviderPayloadPreview(currentData, limit = 4) {
+    const data = normalizedOperatingData(currentData);
+    const customersById = data.customers.reduce((memo, customer) => {
+      memo[customer.id] = customer;
+      return memo;
+    }, {});
+    const deliveryItems = data.notificationDeliveries.map((delivery) => {
+      const customer = customersById[delivery.customerId] || {};
+      return {
+        uid: `epoch-notification-delivery-${clean(delivery.id)}`,
+        title: clean(delivery.title) || "Customer update delivery preview",
+        channel: clean(delivery.channel) || "customer-update",
+        provider: clean(delivery.provider) || "provider-neutral",
+        customerId: clean(delivery.customerId),
+        customerName: clean(customer.name) || clean(delivery.customerName) || "customer",
+        summary: clean(delivery.summary || delivery.lastNote) || "Customer-safe notification payload preview.",
+        deliverAfterAt: clean(delivery.nextActionAt || delivery.createdAt),
+        source: `${clean(delivery.sourceKind) || "notification-delivery"}:${clean(delivery.sourceId || delivery.notificationEventId || delivery.id)}`,
+        status: "preview-only",
+        customerSafe: true
+      };
+    });
+    const updateItems = data.notificationEvents
+      .filter((event) => event.visible !== false)
+      .map((event) => {
+        const customer = customersById[event.customerId] || {};
+        return {
+          uid: `epoch-notification-${clean(event.id)}`,
+          title: clean(event.title) || "Customer update preview",
+          channel: clean(event.channel) || "customer-update",
+          provider: "provider-neutral",
+          customerId: clean(event.customerId),
+          customerName: clean(customer.name) || "customer",
+          summary: clean(event.summary) || "Customer-safe update preview.",
+          deliverAfterAt: clean(event.deliverAfterAt || event.createdAt),
+          source: `${clean(event.sourceKind) || "notification-event"}:${clean(event.sourceId || event.id)}`,
+          status: "preview-only",
+          customerSafe: true
+        };
+      });
+    return (deliveryItems.length ? deliveryItems : updateItems).slice(0, limit);
+  }
+
+  function summarizeNotificationProviderPrototypeState(currentData, options = {}) {
+    const data = normalizedOperatingData(currentData);
+    const providerAdapters = options.providerAdapters || summarizeProviderAdapterSelectionState(data);
+    const notificationProvider = options.notificationProvider || summarizeNotificationProviderState(data);
+    const candidateById = providerAdapters.candidates.reduce((memo, candidate) => {
+      memo[candidate.id] = candidate;
+      return memo;
+    }, {});
+    const handoffById = notificationProvider.handoffs.reduce((memo, handoff) => {
+      memo[handoff.id] = handoff;
+      return memo;
+    }, {});
+    const requiredChecks = ["provider-handoff-required", "template-consent-required", "notification-outbox-schema-stable", "sandbox-only-before-go-live", "operator-approval-required", "no-live-send", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-customer-visible-send", "no-nexus-send"];
+    const prototypes = data.notificationProviderPrototypes.map((prototype) => {
+      const providerCandidateId = clean(prototype.providerCandidateId);
+      const sourceHandoffId = clean(prototype.sourceHandoffId);
+      const candidate = candidateById[providerCandidateId] || null;
+      const handoff = handoffById[sourceHandoffId] || null;
+      const readinessChecks = Array.isArray(prototype.readinessChecks) ? prototype.readinessChecks : [];
+      const payloadPreview = Array.isArray(prototype.payloadPreview) ? prototype.payloadPreview : [];
+      const receiptIds = Array.isArray(prototype.receiptIds) ? prototype.receiptIds : [];
+      const blockers = Array.isArray(prototype.blockers) ? prototype.blockers : [];
+      const liveSendEnabled = prototype.liveSendEnabled === true;
+      const liveEmailSend = prototype.liveEmailSend === true;
+      const liveLineSend = prototype.liveLineSend === true;
+      const liveSmsSend = prototype.liveSmsSend === true;
+      const liveNexusSend = prototype.liveNexusSend === true;
+      const externalProviderWrite = prototype.externalProviderWrite === true;
+      const productionEnabled = prototype.productionEnabled === true;
+      const secretsPresent = prototype.secretsPresent === true;
+      const credentialsStored = prototype.credentialsStored === true;
+      const storesCredentials = prototype.storesCredentials === true;
+      const oauthConfigured = prototype.oauthConfigured === true;
+      const webhookEnabled = prototype.webhookEnabled === true;
+      const customerVisible = prototype.customerVisible === true;
+      const violations = [];
+
+      if (clean(prototype.adapterFamily || "notification") !== "notification") {
+        violations.push("Notification provider prototype must stay in the notification adapter family.");
+      }
+      if (!candidate || candidate.providerFamily !== "notification") {
+        violations.push("Notification provider prototype must link to a notification provider adapter candidate.");
+      } else if (candidate.violations.length) {
+        violations.push("Linked notification provider adapter candidate has readiness violations.");
+      }
+      if (!handoff) {
+        violations.push("Notification provider prototype must link to a notification provider handoff.");
+      } else if (handoff.violations.length) {
+        violations.push("Linked notification provider handoff has readiness violations.");
+      }
+      if (prototype.sandboxOnly === false || prototype.localOnly === false) {
+        violations.push("Notification provider prototype must remain sandbox-only and local-only.");
+      }
+      if (liveSendEnabled || liveEmailSend || liveLineSend || liveSmsSend || liveNexusSend || externalProviderWrite || productionEnabled) {
+        violations.push("Notification provider prototype cannot enable live sends, NEXUS sends, production behavior, or provider writes.");
+      }
+      if (secretsPresent || credentialsStored || storesCredentials || oauthConfigured || webhookEnabled) {
+        violations.push("Notification provider prototype cannot store secrets, credentials, OAuth clients, or webhooks.");
+      }
+      if (customerVisible) {
+        violations.push("Notification provider prototype must remain internal and not customer-visible.");
+      }
+      for (const required of requiredChecks) {
+        if (!readinessChecks.includes(required)) {
+          violations.push(`Notification provider prototype must include ${required}.`);
+        }
+      }
+      if (!payloadPreview.length) violations.push("Notification provider prototype must include a local message payload preview.");
+      if (!blockers.length) violations.push("Notification provider prototype must define blockers before live provider work.");
+      if (clean(prototype.status) === "complete" && !receiptIds.length) {
+        violations.push("Completed notification provider prototype requires a receipt trail.");
+      }
+
+      return {
+        id: clean(prototype.id),
+        title: clean(prototype.title) || "Notification Provider Prototype",
+        providerCandidateId,
+        sourceHandoffId,
+        adapterFamily: clean(prototype.adapterFamily) || "notification",
+        targetProvider: clean(prototype.targetProvider) || candidate?.targetProvider || handoff?.targetProvider || "provider-neutral notification",
+        adapterMode: clean(prototype.adapterMode) || "sandbox-message-preview",
+        status: clean(prototype.status) || "planned",
+        prototypeStatus: clean(prototype.prototypeStatus) || "payload-pending",
+        sandboxOnly: prototype.sandboxOnly !== false,
+        localOnly: prototype.localOnly !== false,
+        liveSendEnabled,
+        liveEmailSend,
+        liveLineSend,
+        liveSmsSend,
+        liveNexusSend,
+        externalProviderWrite,
+        productionEnabled,
+        secretsPresent,
+        credentialsStored,
+        storesCredentials,
+        oauthConfigured,
+        webhookEnabled,
+        customerVisible,
+        customerSafe: prototype.customerSafe === true,
+        notificationOutboxSchema: clean(prototype.notificationOutboxSchema) || "epoch.notification-outbox",
+        payloadMode: clean(prototype.payloadMode) || "provider-neutral-message-json-preview",
+        payloadSource: clean(prototype.payloadSource) || "epoch.notification-outbox",
+        payloadEntryCount: payloadPreview.length,
+        readinessChecks,
+        payloadPreview,
+        blockers,
+        nextActionAt: clean(prototype.nextActionAt),
+        createdAt: clean(prototype.createdAt),
+        updatedAt: clean(prototype.updatedAt),
+        receiptIds,
+        notes: clean(prototype.notes) || "No sandbox notification provider prototype note recorded.",
+        violations
+      };
+    });
+    const violations = prototypes.flatMap((prototype) => prototype.violations.map((detail) => `${prototype.title}: ${detail}`));
+
+    return {
+      schema: "epoch.notification-provider-prototype",
+      prototypeCount: prototypes.length,
+      payloadReady: prototypes.filter((prototype) => ["payload-ready", "sandbox-approved", "operator-reviewed"].includes(prototype.prototypeStatus)).length,
+      sandboxOnly: prototypes.filter((prototype) => prototype.sandboxOnly).length,
+      localOnly: prototypes.filter((prototype) => prototype.localOnly).length,
+      noLiveSend: prototypes.filter((prototype) => !prototype.liveSendEnabled && !prototype.liveEmailSend && !prototype.liveLineSend && !prototype.liveSmsSend && !prototype.liveNexusSend && !prototype.externalProviderWrite && !prototype.productionEnabled).length,
+      noSecrets: prototypes.filter((prototype) => !prototype.secretsPresent && !prototype.credentialsStored && !prototype.storesCredentials && !prototype.oauthConfigured && !prototype.webhookEnabled).length,
+      noCustomerVisibleSend: prototypes.filter((prototype) => !prototype.customerVisible).length,
+      candidateLinked: prototypes.filter((prototype) => candidateById[prototype.providerCandidateId]?.providerFamily === "notification").length,
+      handoffLinked: prototypes.filter((prototype) => handoffById[prototype.sourceHandoffId]).length,
+      payloadEntries: prototypes.reduce((total, prototype) => total + prototype.payloadEntryCount, 0),
+      status: violations.length ? "blocked" : "ready",
+      violations,
+      prototypes
+    };
+  }
+
+  function createNotificationProviderPrototypeRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const nowText = withTimezone(now.toISOString(), timezone);
+    const candidateId = clean(input.providerCandidateId || input.candidateId) || clean(nextData.providerAdapterCandidates.find((item) => clean(item.providerFamily) === "notification")?.id);
+    const candidate = nextData.providerAdapterCandidates.find((item) => clean(item.id) === candidateId);
+    if (!candidate || clean(candidate.providerFamily) !== "notification") throw new Error("notification provider adapter candidate is required");
+    if (candidate.liveApiCalls || candidate.productionEnabled || candidate.externalProviderWrite || candidate.secretsPresent || candidate.credentialsStored || candidate.oauthConfigured || candidate.webhookEnabled) {
+      throw new Error("notification provider adapter candidate is not safe for sandbox prototype");
+    }
+    const sourceHandoffId = clean(input.sourceHandoffId || input.handoffId) || clean((Array.isArray(candidate.sourceHandoffIds) ? candidate.sourceHandoffIds[0] : "") || nextData.notificationProviderHandoffs[0]?.id);
+    const sourceHandoff = nextData.notificationProviderHandoffs.find((item) => clean(item.id) === sourceHandoffId);
+    if (!sourceHandoff) throw new Error("notification provider handoff is required for sandbox prototype");
+    if (sourceHandoff.liveSendEnabled || sourceHandoff.externalProviderWrite || sourceHandoff.storesCredentials || sourceHandoff.webhookEnabled || sourceHandoff.customerVisible) {
+      throw new Error("notification provider handoff is not safe for sandbox prototype");
+    }
+    const payloadPreview = notificationProviderPayloadPreview(nextData, Number(input.payloadLimit) || 4);
+    if (!payloadPreview.length) throw new Error("notification records have no customer-safe updates to preview");
+    const prototype = {
+      id: clean(input.id) || `notification-provider-prototype-${stamp(now)}-${nextData.notificationProviderPrototypes.length + 1}`,
+      title: clean(input.title) || `${candidate.targetProvider || "Notification"} Sandbox Notification Provider Prototype`,
+      providerCandidateId: candidate.id,
+      sourceHandoffId: sourceHandoff.id,
+      adapterFamily: "notification",
+      targetProvider: clean(input.targetProvider) || candidate.targetProvider || sourceHandoff.targetProvider || "provider-neutral notification",
+      adapterMode: clean(input.adapterMode) || "sandbox-message-preview",
+      status: clean(input.status) || "queued",
+      prototypeStatus: clean(input.prototypeStatus) || "payload-ready",
+      sandboxOnly: true,
+      localOnly: true,
+      liveSendEnabled: false,
+      liveEmailSend: false,
+      liveLineSend: false,
+      liveSmsSend: false,
+      liveNexusSend: false,
+      externalProviderWrite: false,
+      productionEnabled: false,
+      secretsPresent: false,
+      credentialsStored: false,
+      storesCredentials: false,
+      oauthConfigured: false,
+      webhookEnabled: false,
+      customerVisible: false,
+      customerSafe: false,
+      notificationOutboxSchema: "epoch.notification-outbox",
+      payloadMode: clean(input.payloadMode) || "provider-neutral-message-json-preview",
+      payloadSource: "epoch.notification-outbox",
+      payloadEntryCount: payloadPreview.length,
+      readinessChecks: ["provider-handoff-required", "template-consent-required", "notification-outbox-schema-stable", "sandbox-only-before-go-live", "operator-approval-required", "no-live-send", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-customer-visible-send", "no-nexus-send"],
+      payloadPreview,
+      blockers: Array.isArray(input.blockers) ? input.blockers : ["No live sending consent", "No provider credential storage", "No webhook or NEXUS delivery path"],
+      nextActionAt: withTimezone(input.nextActionAt, timezone) || nowText,
+      createdAt: nowText,
+      updatedAt: nowText,
+      receiptIds: [],
+      notes: clean(input.note) || "Sandbox notification provider prototype created from EPOCH customer-safe update records without live provider behavior."
+    };
+    const receipt = {
+      id: `receipt-notification-provider-prototype-${stamp(now)}`,
+      kind: "notification-provider-prototype",
+      status: "complete",
+      createdAt: nowText,
+      note: `${prototype.title}: local message payload preview created without live email, LINE, SMS, NEXUS, webhooks, OAuth, secrets, provider writes, or customer-visible sends.`
+    };
+    const healthCheck = {
+      id: `monitor-check-notification-prototype-${stamp(now)}`,
+      title: "Sandbox Notification Provider Prototype",
+      status: "complete",
+      target: "monitor-notification-prototype",
+      effect: "notification-provider-sandbox-proof",
+      createdAt: nowText,
+      summary: `${prototype.title} generated ${payloadPreview.length} local message payload preview items from customer-safe update records.`,
+      receiptId: receipt.id,
+      visibility: "internal",
+      customerVisible: false
+    };
+    prototype.receiptIds.push(receipt.id);
+    nextData.notificationProviderPrototypes.unshift(prototype);
+    nextData.receipts.unshift(receipt);
+    nextData.monitorHealthChecks.unshift(healthCheck);
+
+    return {
+      data: nextData,
+      records: {
+        prototype,
+        receipt,
+        healthCheck
+      }
+    };
+  }
+
+  function transitionNotificationProviderPrototypeRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const nowText = withTimezone(now.toISOString(), timezone);
+    const prototype = nextData.notificationProviderPrototypes.find((item) => clean(item.id) === clean(input.prototypeId || input.id));
+    if (!prototype) throw new Error("Select a sandbox notification provider prototype before applying an action.");
+    const action = clean(input.action) || "generate-preview";
+    const note = clean(input.note) || "Sandbox notification provider prototype reviewed without live provider behavior.";
+    const ensureChecks = (checks) => {
+      prototype.readinessChecks = Array.isArray(prototype.readinessChecks) ? prototype.readinessChecks : [];
+      for (const check of checks) {
+        if (!prototype.readinessChecks.includes(check)) prototype.readinessChecks.push(check);
+      }
+    };
+
+    if (action === "generate-preview") {
+      prototype.payloadPreview = notificationProviderPayloadPreview(nextData, Number(input.payloadLimit) || 4);
+      prototype.payloadEntryCount = prototype.payloadPreview.length;
+      prototype.status = "queued";
+      prototype.prototypeStatus = "payload-ready";
+    } else if (action === "approve-sandbox") {
+      prototype.status = "approved";
+      prototype.prototypeStatus = "sandbox-approved";
+    } else if (action === "mark-reviewed") {
+      prototype.status = "complete";
+      prototype.prototypeStatus = "operator-reviewed";
+    } else if (action === "defer") {
+      prototype.status = "waiting";
+      prototype.prototypeStatus = "deferred";
+    } else if (action === "block") {
+      prototype.status = "blocked";
+      prototype.prototypeStatus = "blocked";
+    } else {
+      throw new Error("unsupported sandbox notification provider action");
+    }
+
+    ensureChecks(["provider-handoff-required", "template-consent-required", "notification-outbox-schema-stable", "sandbox-only-before-go-live", "operator-approval-required", "no-live-send", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-customer-visible-send", "no-nexus-send"]);
+    prototype.adapterFamily = "notification";
+    prototype.sandboxOnly = true;
+    prototype.localOnly = true;
+    prototype.liveSendEnabled = false;
+    prototype.liveEmailSend = false;
+    prototype.liveLineSend = false;
+    prototype.liveSmsSend = false;
+    prototype.liveNexusSend = false;
+    prototype.externalProviderWrite = false;
+    prototype.productionEnabled = false;
+    prototype.secretsPresent = false;
+    prototype.credentialsStored = false;
+    prototype.storesCredentials = false;
+    prototype.oauthConfigured = false;
+    prototype.webhookEnabled = false;
+    prototype.customerVisible = false;
+    prototype.customerSafe = false;
+    prototype.notificationOutboxSchema = "epoch.notification-outbox";
+    prototype.payloadSource = "epoch.notification-outbox";
+    prototype.updatedAt = nowText;
+    prototype.notes = note;
+
+    const receipt = {
+      id: `receipt-notification-provider-prototype-${stamp(now)}`,
+      kind: "notification-provider-prototype",
+      status: prototype.status === "blocked" ? "blocked" : "complete",
+      createdAt: nowText,
+      note: `${prototype.title}: ${action} recorded without live email, LINE, SMS, NEXUS, webhooks, OAuth, secrets, provider writes, or customer-visible sends. ${note}`
+    };
+    const healthCheck = {
+      id: `monitor-check-notification-prototype-${stamp(now)}`,
+      title: "Sandbox Notification Provider Prototype",
+      status: prototype.status === "blocked" ? "blocked" : "complete",
+      target: "monitor-notification-prototype",
+      effect: "notification-provider-sandbox-proof",
+      createdAt: nowText,
+      summary: `${prototype.title} is ${prototype.prototypeStatus}; notification behavior remains sandbox/local only.`,
+      receiptId: receipt.id,
+      visibility: "internal",
+      customerVisible: false
+    };
+
+    prototype.receiptIds = Array.isArray(prototype.receiptIds) ? prototype.receiptIds : [];
+    prototype.receiptIds.push(receipt.id);
+    nextData.receipts.unshift(receipt);
+    nextData.monitorHealthChecks.unshift(healthCheck);
+
+    return {
+      data: nextData,
+      records: {
+        prototype,
+        receipt,
+        healthCheck
+      }
+    };
+  }
+
   function summarizeMemoryState(currentData, options = {}) {
     const data = normalizedOperatingData(currentData);
     const nowText = clean(options.now) || "2026-06-01T12:00:00+09:00";
@@ -7060,6 +7497,7 @@
       ...(currentData.marketingConversionEvents || []).map((item) => ({ kind: "marketing conversion", id: item.id, title: item.title, status: item.status || item.readinessStatus, time: item.nextActionAt || item.occurredAt || item.updatedAt || item.createdAt, owner: item.eventType || item.primaryConversion || "conversion" })),
       ...(currentData.providerAdapterCandidates || []).map((item) => ({ kind: "provider adapter", id: item.id, title: item.title, status: item.status || item.readinessStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.providerFamily || item.targetProvider || "provider" })),
       ...(currentData.calendarAdapterPrototypes || []).map((item) => ({ kind: "calendar adapter", id: item.id, title: item.title, status: item.status || item.prototypeStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.adapterMode || "calendar" })),
+      ...(currentData.notificationProviderPrototypes || []).map((item) => ({ kind: "notification prototype", id: item.id, title: item.title, status: item.status || item.prototypeStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.adapterMode || "notification" })),
       ...(currentData.customerAccountHistories || []).map((item) => ({ kind: "account history", id: item.id, title: item.displayName || item.id, status: item.status, time: item.updatedAt || item.reviewedAt, owner: item.visibility || "customer history" })),
       ...currentData.workPlans.map((item) => ({ kind: "agent work plan", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.approvalStatus || item.owner || "approval pending" })),
       ...currentData.agentHandoffs.map((item) => ({ kind: "agent handoff", id: item.id, title: item.title, status: item.status, time: item.nextActionAt, owner: item.approvalStatus || "approval pending" })),
@@ -7105,6 +7543,7 @@
     const providerAdapters = summarizeProviderAdapterSelectionState(data);
     const calendarExport = createCalendarExport(data, { now: nowText });
     const calendarAdapter = summarizeCalendarAdapterPrototypeState(data, { now: nowText, calendarExport, providerAdapters });
+    const notificationPrototype = summarizeNotificationProviderPrototypeState(data, { providerAdapters, notificationProvider });
     const calendarProvider = summarizeCalendarProviderState(data, { now: nowText, calendarExport });
     const persistence = summarizePersistenceState(data, { now: nowText });
     const librarySync = summarizeLibrarySyncState(data, { now: nowText, persistence });
@@ -7147,6 +7586,10 @@
       if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
     for (const item of timeline.filter((entry) => entry.kind === "notification provider").slice(0, 4)) {
+      if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
+      if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
+    }
+    for (const item of timeline.filter((entry) => entry.kind === "notification prototype").slice(0, 4)) {
       if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
       if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
@@ -7318,6 +7761,14 @@
         detail: notificationProvider.violations[0]
       });
     }
+    if (notificationPrototype.violations.length) {
+      risks.push({
+        id: "notification-provider-prototype-violation",
+        severity: "high",
+        title: "Sandbox Notification Provider",
+        detail: notificationPrototype.violations[0]
+      });
+    }
     if (paymentProvider.violations.length) {
       risks.push({
         id: "payment-provider-violation",
@@ -7415,6 +7866,14 @@
         notificationConsentReady: notificationProvider.consentReady,
         notificationProviderNoLiveSend: notificationProvider.noLiveSend,
         notificationProviderViolations: notificationProvider.violations.length,
+        notificationProviderPrototypes: notificationPrototype.prototypeCount,
+        notificationPrototypePayloadReady: notificationPrototype.payloadReady,
+        notificationPrototypeSandboxOnly: notificationPrototype.sandboxOnly,
+        notificationPrototypeLocalOnly: notificationPrototype.localOnly,
+        notificationPrototypeNoLiveSend: notificationPrototype.noLiveSend,
+        notificationPrototypeNoSecrets: notificationPrototype.noSecrets,
+        notificationPrototypeNoCustomerVisibleSend: notificationPrototype.noCustomerVisibleSend,
+        notificationPrototypeViolations: notificationPrototype.violations.length,
         paymentProviderHandoffs: paymentProvider.handoffCount,
         paymentProviderReady: paymentProvider.providerReady,
         paymentInvoiceReady: paymentProvider.invoiceReady,
@@ -7527,6 +7986,7 @@
       curriculum,
       notifications,
       notificationProvider,
+      notificationPrototype,
       paymentProvider,
       authSession,
       accountHistory,
@@ -7578,6 +8038,7 @@
     const marketingConversion = summarizeMarketingConversionState(data);
     const providerAdapters = summarizeProviderAdapterSelectionState(data);
     const calendarAdapter = summarizeCalendarAdapterPrototypeState(data, { now: now.toISOString(), calendarExport, providerAdapters });
+    const notificationPrototype = summarizeNotificationProviderPrototypeState(data, { providerAdapters, notificationProvider });
     const routePlacement = summarizeRoutePlacementState(data, { now: now.toISOString() });
     const accessGateway = summarizeAccessGatewayState(data, { now: now.toISOString(), routePlacement });
     const librarySync = summarizeLibrarySyncState(data, { now: now.toISOString(), persistence });
@@ -7597,6 +8058,7 @@
       calendarExport,
       calendarProvider,
       notificationProvider,
+      notificationPrototype,
       paymentProvider,
       authSession,
       accountHistory,
@@ -7641,6 +8103,8 @@
     transitionProviderAdapterCandidateRecords,
     createCalendarAdapterPrototypeRecords,
     transitionCalendarAdapterPrototypeRecords,
+    createNotificationProviderPrototypeRecords,
+    transitionNotificationProviderPrototypeRecords,
     createCustomerAccountHistoryRecords,
     createQuoteEstimateRecords,
     transitionQuoteEstimateRecords,
@@ -7681,6 +8145,7 @@
     summarizeMarketingConversionState,
     summarizeProviderAdapterSelectionState,
     summarizeCalendarAdapterPrototypeState,
+    summarizeNotificationProviderPrototypeState,
     summarizeCustomerAccountHistoryState,
     summarizeAccessPosture,
     summarizeMemoryState,

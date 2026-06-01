@@ -42,6 +42,7 @@ const requiredCollections = [
   "marketingConversionEvents",
   "providerAdapterCandidates",
   "calendarAdapterPrototypes",
+  "notificationProviderPrototypes",
   "leads",
   "opportunities",
   "routePlacements",
@@ -264,6 +265,9 @@ for (const field of ["handoffId", "action", "note"]) {
 for (const field of ["handoffId", "action", "note"]) {
   if (!html.includes(`name="${field}"`)) fail(`notification provider form missing field ${field}`);
 }
+for (const field of ["prototypeId", "action", "note"]) {
+  if (!html.includes(`name="${field}"`)) fail(`sandbox notification provider form missing field ${field}`);
+}
 for (const field of ["handoffId", "action", "note"]) {
   if (!html.includes(`name="${field}"`)) fail(`payment provider form missing field ${field}`);
 }
@@ -273,7 +277,7 @@ for (const field of ["handoffId", "action", "note"]) {
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
 }
-for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-command-strip", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-library-sync", "monitor-calendar-provider", "monitor-notification-provider", "monitor-payment-provider", "monitor-auth-session", "monitor-persistence", "monitor-scope", "monitor-memory", "monitor-access"]) {
+for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-command-strip", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-library-sync", "monitor-calendar-provider", "monitor-notification-provider", "monitor-notification-prototype", "monitor-payment-provider", "monitor-auth-session", "monitor-persistence", "monitor-scope", "monitor-memory", "monitor-access"]) {
   if (!html.includes(phrase)) fail(`monitor route surface missing phrase ${phrase}`);
 }
 for (const phrase of ["monitor-curriculum", "Package Gameplans", "Personalized Gameplan", "Curriculum Frameworks"]) {
@@ -305,6 +309,9 @@ for (const phrase of ["Provider Adapter Go/No-Go", "Apply Provider Adapter Go/No
 }
 for (const phrase of ["Sandbox Calendar Adapter", "Apply Sandbox Calendar Adapter Action", "monitor-calendar-adapter", "live calendar API calls, OAuth, secrets, webhooks, provider writes, and invitations remain disabled"]) {
   if (!html.includes(phrase)) fail(`sandbox calendar adapter HTML missing phrase ${phrase}`);
+}
+for (const phrase of ["Sandbox Notification Provider", "Apply Sandbox Notification Provider Action", "monitor-notification-prototype", "live email, LINE, SMS, NEXUS, OAuth, secrets, webhooks, provider writes, and customer-visible sends remain disabled"]) {
+  if (!html.includes(phrase)) fail(`sandbox notification provider HTML missing phrase ${phrase}`);
 }
 for (const phrase of [
   "SCAFFOLD-aligned",
@@ -743,6 +750,27 @@ for (const prototype of data.calendarAdapterPrototypes) {
   }
   if (!Array.isArray(prototype.payloadPreview) || !prototype.payloadPreview.length) fail(`calendar adapter prototype ${prototype.id} missing local payload preview`);
   if (!Array.isArray(prototype.blockers) || !prototype.blockers.length) fail(`calendar adapter prototype ${prototype.id} missing blockers`);
+}
+if (!Array.isArray(data.notificationProviderPrototypes) || data.notificationProviderPrototypes.length < 1) fail("seed data missing sandbox notification provider prototype records");
+if (!data.receipts.some((item) => item.kind === "notification-provider-prototype")) fail("seed data missing notification-provider-prototype receipt");
+if (!data.monitorHealthChecks.some((item) => item.target === "monitor-notification-prototype" && item.effect === "notification-provider-sandbox-proof")) fail("seed data missing sandbox notification provider monitor health check");
+for (const prototype of data.notificationProviderPrototypes) {
+  if (!data.providerAdapterCandidates.some((item) => item.id === prototype.providerCandidateId && item.providerFamily === "notification")) fail(`notification provider prototype ${prototype.id} does not link to a notification provider adapter candidate`);
+  if (!data.notificationProviderHandoffs.some((item) => item.id === prototype.sourceHandoffId)) fail(`notification provider prototype ${prototype.id} does not link to a notification provider handoff`);
+  if (prototype.adapterFamily !== "notification") fail(`notification provider prototype ${prototype.id} is not in the notification family`);
+  if (prototype.sandboxOnly !== true || prototype.localOnly !== true) fail(`notification provider prototype ${prototype.id} must remain sandbox/local only`);
+  if (prototype.liveSendEnabled !== false || prototype.liveEmailSend !== false || prototype.liveLineSend !== false || prototype.liveSmsSend !== false || prototype.liveNexusSend !== false || prototype.externalProviderWrite !== false || prototype.productionEnabled !== false) {
+    fail(`notification provider prototype ${prototype.id} enabled live notification provider behavior`);
+  }
+  if (prototype.secretsPresent !== false || prototype.credentialsStored !== false || prototype.storesCredentials !== false || prototype.oauthConfigured !== false || prototype.webhookEnabled !== false) {
+    fail(`notification provider prototype ${prototype.id} enabled secrets, credentials, OAuth, or webhooks`);
+  }
+  if (prototype.customerVisible !== false || prototype.customerSafe !== false) fail(`notification provider prototype ${prototype.id} should remain internal-only`);
+  for (const requiredCheck of ["provider-handoff-required", "template-consent-required", "notification-outbox-schema-stable", "sandbox-only-before-go-live", "operator-approval-required", "no-live-send", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-customer-visible-send", "no-nexus-send"]) {
+    if (!prototype.readinessChecks.includes(requiredCheck)) fail(`notification provider prototype ${prototype.id} missing ${requiredCheck}`);
+  }
+  if (!Array.isArray(prototype.payloadPreview) || !prototype.payloadPreview.length) fail(`notification provider prototype ${prototype.id} missing local payload preview`);
+  if (!Array.isArray(prototype.blockers) || !prototype.blockers.length) fail(`notification provider prototype ${prototype.id} missing blockers`);
 }
 if (!Array.isArray(data.customerAccountHistories) || data.customerAccountHistories.length < data.customers.length) fail("seed data missing durable customer account history records");
 if (!data.receipts.some((item) => item.kind === "customer-account-history" || item.id === "receipt-client-request-seed")) fail("seed data missing customer account history receipt evidence");
@@ -1256,6 +1284,66 @@ if (calendarAdapterTransitionResult.records.prototype.liveApiCalls || calendarAd
   fail("calendar adapter transition enabled live provider or secret safeguards");
 }
 
+const notificationPrototypeSummary = recordTools.summarizeNotificationProviderPrototypeState(data);
+if (notificationPrototypeSummary.prototypeCount !== data.notificationProviderPrototypes.length) fail("notification prototype summary total is wrong");
+if (notificationPrototypeSummary.payloadReady < 1) fail("notification prototype summary missing payload-ready prototype");
+if (notificationPrototypeSummary.sandboxOnly !== data.notificationProviderPrototypes.length) fail("notification prototype summary missing sandbox-only prototypes");
+if (notificationPrototypeSummary.localOnly !== data.notificationProviderPrototypes.length) fail("notification prototype summary missing local-only prototypes");
+if (notificationPrototypeSummary.noLiveSend !== data.notificationProviderPrototypes.length) fail("notification prototype summary no-live-send count is wrong");
+if (notificationPrototypeSummary.noSecrets !== data.notificationProviderPrototypes.length) fail("notification prototype summary no-secrets count is wrong");
+if (notificationPrototypeSummary.noCustomerVisibleSend !== data.notificationProviderPrototypes.length) fail("notification prototype summary no-customer-visible-send count is wrong");
+if (notificationPrototypeSummary.violations.length !== 0) fail("notification prototype summary should not report seed violations");
+
+const malformedNotificationPrototypeData = recordTools.cloneData(data);
+malformedNotificationPrototypeData.notificationProviderPrototypes[0] = {
+  ...malformedNotificationPrototypeData.notificationProviderPrototypes[0],
+  liveSendEnabled: true,
+  liveEmailSend: true,
+  liveLineSend: true,
+  liveSmsSend: true,
+  liveNexusSend: true,
+  externalProviderWrite: true,
+  secretsPresent: true,
+  credentialsStored: true,
+  storesCredentials: true,
+  oauthConfigured: true,
+  webhookEnabled: true,
+  customerVisible: true,
+  readinessChecks: [],
+  payloadPreview: []
+};
+const malformedNotificationPrototypeSummary = recordTools.summarizeNotificationProviderPrototypeState(malformedNotificationPrototypeData);
+if (malformedNotificationPrototypeSummary.status !== "blocked" || malformedNotificationPrototypeSummary.violations.length < 3) fail("notification prototype summary did not flag live provider/secret violations");
+
+const notificationPrototypeCreateResult = recordTools.createNotificationProviderPrototypeRecords(data, {
+  providerCandidateId: "provider-adapter-notification-line-sms",
+  sourceHandoffId: "notification-template-consent-readiness",
+  note: "Verifier created a local notification payload preview without live provider behavior."
+}, { now: "2026-06-01T12:15:00+09:00" });
+if (notificationPrototypeCreateResult.data.notificationProviderPrototypes.length !== data.notificationProviderPrototypes.length + 1) fail("notification prototype create did not add a prototype");
+if (notificationPrototypeCreateResult.records.prototype.liveSendEnabled || notificationPrototypeCreateResult.records.prototype.liveEmailSend || notificationPrototypeCreateResult.records.prototype.liveLineSend || notificationPrototypeCreateResult.records.prototype.liveSmsSend || notificationPrototypeCreateResult.records.prototype.liveNexusSend || notificationPrototypeCreateResult.records.prototype.externalProviderWrite || notificationPrototypeCreateResult.records.prototype.productionEnabled || notificationPrototypeCreateResult.records.prototype.secretsPresent || notificationPrototypeCreateResult.records.prototype.credentialsStored || notificationPrototypeCreateResult.records.prototype.storesCredentials || notificationPrototypeCreateResult.records.prototype.oauthConfigured || notificationPrototypeCreateResult.records.prototype.webhookEnabled) {
+  fail("notification prototype create enabled live provider behavior, secrets, OAuth, or webhooks");
+}
+if (!notificationPrototypeCreateResult.records.prototype.payloadPreview.length) fail("notification prototype create did not generate a payload preview");
+if (notificationPrototypeCreateResult.records.receipt.kind !== "notification-provider-prototype") fail("notification prototype create missing receipt kind");
+if (notificationPrototypeCreateResult.records.healthCheck.target !== "monitor-notification-prototype") fail("notification prototype create missing monitor target");
+if (notificationPrototypeCreateResult.data.notificationEvents.length !== data.notificationEvents.length) fail("notification prototype create created a customer-visible notification event");
+
+const notificationPrototypeTransitionResult = recordTools.transitionNotificationProviderPrototypeRecords(data, {
+  prototypeId: "notification-provider-sandbox-message-preview",
+  action: "approve-sandbox",
+  note: "Verifier approved sandbox notification payload proof without live email, LINE, SMS, NEXUS, OAuth, secrets, webhooks, provider writes, or customer-visible sends."
+}, { now: "2026-06-01T12:16:00+09:00" });
+if (notificationPrototypeTransitionResult.records.prototype.status !== "approved") fail("notification prototype transition did not approve sandbox status");
+if (notificationPrototypeTransitionResult.records.prototype.prototypeStatus !== "sandbox-approved") fail("notification prototype transition did not set sandbox-approved state");
+if (notificationPrototypeTransitionResult.records.receipt.kind !== "notification-provider-prototype") fail("notification prototype transition missing receipt kind");
+if (notificationPrototypeTransitionResult.records.healthCheck.effect !== "notification-provider-sandbox-proof") fail("notification prototype transition missing monitor effect");
+if (notificationPrototypeTransitionResult.records.healthCheck.customerVisible !== false) fail("notification prototype health check must remain internal");
+if (notificationPrototypeTransitionResult.data.notificationEvents.length !== data.notificationEvents.length) fail("notification prototype transition created a customer-visible notification event");
+if (notificationPrototypeTransitionResult.records.prototype.liveSendEnabled || notificationPrototypeTransitionResult.records.prototype.liveEmailSend || notificationPrototypeTransitionResult.records.prototype.liveLineSend || notificationPrototypeTransitionResult.records.prototype.liveSmsSend || notificationPrototypeTransitionResult.records.prototype.liveNexusSend || notificationPrototypeTransitionResult.records.prototype.externalProviderWrite || notificationPrototypeTransitionResult.records.prototype.productionEnabled || notificationPrototypeTransitionResult.records.prototype.secretsPresent || notificationPrototypeTransitionResult.records.prototype.credentialsStored || notificationPrototypeTransitionResult.records.prototype.storesCredentials || notificationPrototypeTransitionResult.records.prototype.oauthConfigured || notificationPrototypeTransitionResult.records.prototype.webhookEnabled) {
+  fail("notification prototype transition enabled live provider or secret safeguards");
+}
+
 const accountHistorySummary = recordTools.summarizeCustomerAccountHistoryState(data);
 if (accountHistorySummary.historyCount !== data.customers.length) fail("account history summary should cover every customer");
 if (accountHistorySummary.timelineEvents < data.customerAccountHistories.length) fail("account history summary missing timeline events");
@@ -1505,6 +1593,23 @@ for (const phrase of [
   "no-invitation-send"
 ]) {
   if (!calendarAdapterContract.includes(phrase)) fail(`sandbox calendar adapter contract missing phrase: ${phrase}`);
+}
+
+const notificationPrototypeContract = read("../docs/sandbox-notification-provider-prototype-contract.md");
+for (const phrase of [
+  "Sandbox Notification Provider Prototype Contract",
+  "notificationProviderPrototypes",
+  "monitor-notification-prototype",
+  "transitionNotificationProviderPrototypeRecords",
+  "notification-provider-prototype",
+  "sandboxOnly: true",
+  "localOnly: true",
+  "liveSendEnabled: false",
+  "oauthConfigured: false",
+  "no-live-send",
+  "no-customer-visible-send"
+]) {
+  if (!notificationPrototypeContract.includes(phrase)) fail(`sandbox notification provider contract missing phrase: ${phrase}`);
 }
 
 const accountHistoryContract = read("../docs/customer-account-history-contract.md");
@@ -2285,6 +2390,7 @@ if (!monitorReport.marketing) fail("monitor report missing marketing state");
 if (!monitorReport.marketingConversion) fail("monitor report missing marketing conversion state");
 if (!monitorReport.providerAdapters) fail("monitor report missing provider adapter state");
 if (!monitorReport.calendarAdapter) fail("monitor report missing sandbox calendar adapter state");
+if (!monitorReport.notificationPrototype) fail("monitor report missing sandbox notification provider state");
 if (!monitorReport.accountHistory) fail("monitor report missing account history state");
 if (!monitorReport.calendar) fail("monitor report missing calendar export state");
 if (!monitorReport.persistence) fail("monitor report missing persistence state");
@@ -2327,6 +2433,14 @@ if (monitorReport.summary.calendarAdapterNoLiveProvider !== data.calendarAdapter
 if (monitorReport.summary.calendarAdapterNoSecrets !== data.calendarAdapterPrototypes.length) fail("monitor summary missing no-secrets calendar adapter prototypes");
 if (monitorReport.summary.calendarAdapterNoInvitationSend !== data.calendarAdapterPrototypes.length) fail("monitor summary missing no-invitation-send calendar adapter prototypes");
 if (monitorReport.summary.calendarAdapterViolations !== 0) fail("monitor summary should not report calendar adapter violations for the seed slice");
+if (monitorReport.summary.notificationProviderPrototypes !== data.notificationProviderPrototypes.length) fail("monitor summary notification provider prototype count is wrong");
+if (monitorReport.summary.notificationPrototypePayloadReady < 1) fail("monitor summary missing payload-ready notification provider prototype");
+if (monitorReport.summary.notificationPrototypeSandboxOnly !== data.notificationProviderPrototypes.length) fail("monitor summary missing sandbox-only notification provider prototypes");
+if (monitorReport.summary.notificationPrototypeLocalOnly !== data.notificationProviderPrototypes.length) fail("monitor summary missing local-only notification provider prototypes");
+if (monitorReport.summary.notificationPrototypeNoLiveSend !== data.notificationProviderPrototypes.length) fail("monitor summary missing no-live-send notification provider prototypes");
+if (monitorReport.summary.notificationPrototypeNoSecrets !== data.notificationProviderPrototypes.length) fail("monitor summary missing no-secrets notification provider prototypes");
+if (monitorReport.summary.notificationPrototypeNoCustomerVisibleSend !== data.notificationProviderPrototypes.length) fail("monitor summary missing no-customer-visible-send notification provider prototypes");
+if (monitorReport.summary.notificationPrototypeViolations !== 0) fail("monitor summary should not report notification prototype violations for the seed slice");
 if (monitorReport.summary.accountHistories !== returnResult.data.customers.length) fail("monitor summary account history count is wrong");
 if (monitorReport.summary.accountHistoryEvents < returnResult.data.customerAccountHistories.length) fail("monitor summary missing account history events");
 if (monitorReport.summary.accountHistoryCustomerVisible < 1) fail("monitor summary missing customer-visible account history events");
@@ -2375,6 +2489,7 @@ if (!monitorReport.timeline.some((item) => item.kind === "campaign route")) fail
 if (!monitorReport.timeline.some((item) => item.kind === "marketing conversion")) fail("monitor timeline missing marketing conversion KPIs");
 if (!monitorReport.timeline.some((item) => item.kind === "provider adapter")) fail("monitor timeline missing provider adapter candidates");
 if (!monitorReport.timeline.some((item) => item.kind === "calendar adapter")) fail("monitor timeline missing sandbox calendar adapter prototypes");
+if (!monitorReport.timeline.some((item) => item.kind === "notification prototype")) fail("monitor timeline missing sandbox notification provider prototypes");
 if (!monitorReport.timeline.some((item) => item.kind === "access gateway")) fail("monitor timeline missing access gateways");
 if (!monitorReport.timeline.some((item) => item.kind === "library sync")) fail("monitor timeline missing LIBRARY sync handoffs");
 if (!monitorReport.timeline.some((item) => item.kind === "calendar provider")) fail("monitor timeline missing calendar provider handoffs");
@@ -2459,6 +2574,7 @@ if (exportedLedger.counts.paymentProviderHandoffs !== returnResult.data.paymentP
 if (exportedLedger.counts.marketingConversionEvents !== returnResult.data.marketingConversionEvents.length) fail("ledger export marketing conversion count is wrong");
 if (exportedLedger.counts.providerAdapterCandidates !== returnResult.data.providerAdapterCandidates.length) fail("ledger export provider adapter count is wrong");
 if (exportedLedger.counts.calendarAdapterPrototypes !== returnResult.data.calendarAdapterPrototypes.length) fail("ledger export calendar adapter prototype count is wrong");
+if (exportedLedger.counts.notificationProviderPrototypes !== returnResult.data.notificationProviderPrototypes.length) fail("ledger export notification provider prototype count is wrong");
 if (exportedLedger.counts.customerAccountHistories !== exportedLedger.data.customerAccountHistories.length) fail("ledger export account history count is wrong");
 if (!exportedLedger.monitor || exportedLedger.monitor.timeline < 1) fail("ledger export missing monitor summary");
 if (exportedLedger.monitor.persistenceRevision !== exportedLedger.persistence.revision) fail("ledger monitor summary missing persistence revision");
@@ -2473,6 +2589,7 @@ if (!exportedLedger.authSession || exportedLedger.authSession.handoffCount !== e
 if (!exportedLedger.marketingConversion || exportedLedger.marketingConversion.eventCount !== exportedLedger.data.marketingConversionEvents.length) fail("ledger export missing marketing conversion summary");
 if (!exportedLedger.providerAdapters || exportedLedger.providerAdapters.candidateCount !== exportedLedger.data.providerAdapterCandidates.length) fail("ledger export missing provider adapter summary");
 if (!exportedLedger.calendarAdapter || exportedLedger.calendarAdapter.prototypeCount !== exportedLedger.data.calendarAdapterPrototypes.length) fail("ledger export missing calendar adapter summary");
+if (!exportedLedger.notificationPrototype || exportedLedger.notificationPrototype.prototypeCount !== exportedLedger.data.notificationProviderPrototypes.length) fail("ledger export missing notification prototype summary");
 if (!exportedLedger.accountHistory || exportedLedger.accountHistory.historyCount !== exportedLedger.data.customers.length) fail("ledger export missing account history summary");
 if (exportedLedger.counts.routePlacements !== returnResult.data.routePlacements.length) fail("ledger export route placement count is wrong");
 if (exportedLedger.counts.curriculumFrameworks !== returnResult.data.curriculumFrameworks.length) fail("ledger export curriculum framework count is wrong");
@@ -2501,6 +2618,9 @@ if (exportedLedger.monitor.providerAdapterNoLiveProvider !== returnResult.data.p
 if (exportedLedger.monitor.calendarAdapterPrototypes !== returnResult.data.calendarAdapterPrototypes.length) fail("ledger monitor summary missing calendar adapter prototypes");
 if (exportedLedger.monitor.calendarAdapterNoLiveProvider !== returnResult.data.calendarAdapterPrototypes.length) fail("ledger monitor summary missing calendar adapter no-live-provider posture");
 if (exportedLedger.monitor.calendarAdapterNoInvitationSend !== returnResult.data.calendarAdapterPrototypes.length) fail("ledger monitor summary missing calendar adapter no-invitation-send posture");
+if (exportedLedger.monitor.notificationProviderPrototypes !== returnResult.data.notificationProviderPrototypes.length) fail("ledger monitor summary missing notification provider prototypes");
+if (exportedLedger.monitor.notificationPrototypeNoLiveSend !== returnResult.data.notificationProviderPrototypes.length) fail("ledger monitor summary missing notification prototype no-live-send posture");
+if (exportedLedger.monitor.notificationPrototypeNoCustomerVisibleSend !== returnResult.data.notificationProviderPrototypes.length) fail("ledger monitor summary missing notification prototype no-customer-visible-send posture");
 if (exportedLedger.monitor.accountHistories !== exportedLedger.data.customers.length) fail("ledger monitor summary missing account histories");
 if (exportedLedger.monitor.accountHistoryLocalOnly !== exportedLedger.data.customers.length) fail("ledger monitor summary missing account history local-only posture");
 if (exportedLedger.monitor.accountHistoryViolations !== 0) fail("ledger monitor summary should not report account history violations");
@@ -2564,6 +2684,13 @@ if (calendarAdapterLedger.calendarAdapter.noLiveProvider !== calendarAdapterTran
 if (calendarAdapterLedger.calendarAdapter.noInvitationSend !== calendarAdapterTransitionResult.data.calendarAdapterPrototypes.length) fail("ledger calendar adapter summary lost no-invitation-send posture");
 if (calendarAdapterLedger.monitor.calendarAdapterViolations !== 0) fail("ledger monitor summary should not report calendar adapter violations after transition");
 
+const notificationPrototypeLedger = recordTools.createOperatingLedger(notificationPrototypeTransitionResult.data, { now: "2026-06-01T04:43:59.250Z" });
+if (notificationPrototypeLedger.counts.notificationProviderPrototypes !== notificationPrototypeTransitionResult.data.notificationProviderPrototypes.length) fail("ledger export notification prototype transition count is wrong");
+if (notificationPrototypeLedger.notificationPrototype.payloadReady < 1) fail("ledger export missing notification prototype payload readiness after transition");
+if (notificationPrototypeLedger.notificationPrototype.noLiveSend !== notificationPrototypeTransitionResult.data.notificationProviderPrototypes.length) fail("ledger notification prototype summary lost no-live-send posture");
+if (notificationPrototypeLedger.notificationPrototype.noCustomerVisibleSend !== notificationPrototypeTransitionResult.data.notificationProviderPrototypes.length) fail("ledger notification prototype summary lost no-customer-visible-send posture");
+if (notificationPrototypeLedger.monitor.notificationPrototypeViolations !== 0) fail("ledger monitor summary should not report notification prototype violations after transition");
+
 const accountHistoryLedger = recordTools.createOperatingLedger(accountHistoryRefreshResult.data, { now: "2026-06-01T04:43:59.500Z" });
 if (accountHistoryLedger.counts.customerAccountHistories !== accountHistoryLedger.data.customers.length) fail("ledger export account history refresh count is wrong");
 if (accountHistoryLedger.accountHistory.historyCount !== accountHistoryLedger.data.customers.length) fail("ledger export missing refreshed account history summary");
@@ -2594,6 +2721,7 @@ if (importedLedger.data.authSessionRoleHandoffs.length !== returnResult.data.aut
 if (importedLedger.data.marketingConversionEvents.length !== returnResult.data.marketingConversionEvents.length) fail("ledger import did not preserve marketing conversion events");
 if (importedLedger.data.providerAdapterCandidates.length !== returnResult.data.providerAdapterCandidates.length) fail("ledger import did not preserve provider adapter candidates");
 if (importedLedger.data.calendarAdapterPrototypes.length !== returnResult.data.calendarAdapterPrototypes.length) fail("ledger import did not preserve calendar adapter prototypes");
+if (importedLedger.data.notificationProviderPrototypes.length !== returnResult.data.notificationProviderPrototypes.length) fail("ledger import did not preserve notification provider prototypes");
 if (importedLedger.data.customerAccountHistories.length !== exportedLedger.data.customerAccountHistories.length) fail("ledger import did not preserve account histories");
 if (importedLedger.data.campaignRoutes.length !== returnResult.data.campaignRoutes.length) fail("ledger import did not preserve campaign routes");
 if (importedLedger.data.customers[0].externalStatus !== returnResult.data.customers[0].externalStatus) fail("ledger import did not preserve external status");
@@ -2668,6 +2796,13 @@ if (importedCalendarAdapterLedger.data.calendarAdapterPrototypes.length !== cale
 if (!importedCalendarAdapterLedger.data.calendarAdapterPrototypes.some((item) => item.prototypeStatus === "sandbox-approved")) fail("ledger import did not preserve calendar adapter sandbox approval");
 if (!importedCalendarAdapterLedger.data.calendarAdapterPrototypes.every((item) => item.liveApiCalls === false && item.liveSyncEnabled === false && item.sendsInvitations === false && item.externalProviderWrite === false && item.productionEnabled === false && item.secretsPresent === false && item.credentialsStored === false && item.oauthConfigured === false && item.webhookEnabled === false)) {
   fail("ledger import changed calendar adapter no-live-provider safeguards");
+}
+
+const importedNotificationPrototypeLedger = recordTools.importOperatingLedger(data, JSON.stringify(notificationPrototypeLedger));
+if (importedNotificationPrototypeLedger.data.notificationProviderPrototypes.length !== notificationPrototypeTransitionResult.data.notificationProviderPrototypes.length) fail("ledger import did not preserve notification provider prototypes");
+if (!importedNotificationPrototypeLedger.data.notificationProviderPrototypes.some((item) => item.prototypeStatus === "sandbox-approved")) fail("ledger import did not preserve notification provider prototype sandbox approval");
+if (!importedNotificationPrototypeLedger.data.notificationProviderPrototypes.every((item) => item.liveSendEnabled === false && item.liveEmailSend === false && item.liveLineSend === false && item.liveSmsSend === false && item.liveNexusSend === false && item.externalProviderWrite === false && item.productionEnabled === false && item.secretsPresent === false && item.credentialsStored === false && item.storesCredentials === false && item.oauthConfigured === false && item.webhookEnabled === false && item.customerVisible === false)) {
+  fail("ledger import changed notification prototype no-live-send safeguards");
 }
 
 const importedAccountHistoryLedger = recordTools.importOperatingLedger(data, JSON.stringify(accountHistoryLedger));

@@ -167,6 +167,19 @@ Current EPOCH-side sandbox calendar adapter prototype slice:
   calls, OAuth clients, secrets, webhooks, provider writes, invitations, or
   customer-visible notification events.
 
+Current EPOCH-side sandbox notification provider prototype slice:
+
+- `notificationProviderPrototypes` records local message payload-preview
+  prototypes linked to notification provider adapter candidates and provider
+  handoff/template-consent readiness.
+- `summarizeNotificationProviderPrototypeState` exposes payload-ready,
+  sandbox-only, local-only, no-live-send, no-secrets, no-customer-visible-send,
+  and violation counts to EPOCH MONITOR.
+- `transitionNotificationProviderPrototypeRecords` creates internal monitor
+  health checks and `notification-provider-prototype` receipts without live
+  email, LINE, SMS, NEXUS, OAuth clients, secrets, webhooks, provider writes,
+  production behavior, or customer-visible notification events.
+
 Current EPOCH-side customer account history slice:
 
 - `customerAccountHistories` records controlled customer-safe timelines across
