@@ -85,10 +85,60 @@
           <p>Under-19 applicants require compatibility assessment and guardian agreement before acceptance.</p>
         </article>
       </div>
+      <div class="intake-layout">
+        <form id="intake-form" class="intake-form">
+          <div class="form-row">
+            <label>
+              Name
+              <input name="requesterName" autocomplete="name" required />
+            </label>
+            <label>
+              Applicant type
+              <select name="ageBand" required>
+                <option value="adult">Adult / 19+</option>
+                <option value="business">Business</option>
+                <option value="under-19">Under 19 assessment</option>
+              </select>
+            </label>
+          </div>
+          <div class="form-row">
+            <label>
+              Request type
+              <select name="offerKind" required>
+                <option value="education">Education / test writing</option>
+                <option value="service_ops">Service operations</option>
+                <option value="consulting">Consulting</option>
+                <option value="technical_support">Technical support</option>
+                <option value="management_system">Database / CRM / system</option>
+              </select>
+            </label>
+            <label>
+              Preferred window
+              <input name="preferredWindow" type="datetime-local" required />
+            </label>
+          </div>
+          <label>
+            Request summary
+            <textarea name="requestSummary" rows="4" required></textarea>
+          </label>
+          <div class="form-actions">
+            <button type="submit">Submit Request</button>
+            <button type="button" id="reset-demo-data" class="secondary-action">Reset Demo</button>
+          </div>
+        </form>
+        <div>
+          <div id="intake-confirmation" class="confirmation"></div>
+          <div class="section-heading compact">
+            <h2>Visible Requests</h2>
+          </div>
+          <div id="intake-feed" class="item-list"></div>
+        </div>
+      </div>
     </section>
   </main>
 
   <script src="./seed-data.js"></script>
+  <script src="./operating-records.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>

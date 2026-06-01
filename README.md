@@ -27,6 +27,11 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
 - `native/epoch_core_smoke.c`: native smoke test for the core contract.
 - `web/index.html`: static first-slice admin, student/customer, monitor, and
   public-intake surface.
+- `web/operating-records.js`: browser-local intake-to-operating-record helper
+  that turns a public request into lead, customer, request, follow-up, and
+  receipt records.
+- `web/app.js`: shared renderer and local persistence flow for admin,
+  student/customer, monitor, and public request views.
 - `web/seed-data.js`: demo commercial workflow covering leads, tracks, cohorts,
   sessions, assignments, submissions, reviews, follow-ups, and receipts.
 - `tools/verify-commercial-slice.mjs`: repository verifier for the first

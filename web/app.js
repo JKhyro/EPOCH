@@ -1,10 +1,54 @@
-const data = window.EPOCH_SEED_DATA;
-
+const seedData = window.EPOCH_SEED_DATA;
+const recordTools = window.EPOCH_OPERATING_RECORDS;
+const storageKey = "epoch-commercial-operating-data";
 const attentionStatuses = new Set(["submitted", "reviewing", "overdue", "blocked"]);
 const today = "2026-06-01";
 
+let data = loadData();
+
 function byId(id) {
   return document.getElementById(id);
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function chip(label, className) {
+  const safeClass = className ? ` ${String(className).replace(/[^a-z0-9_-]/gi, "")}` : "";
+  return `<span class="chip${safeClass}">${escapeHtml(label)}</span>`;
+}
+
+function loadData() {
+  const fallback = recordTools.cloneData(seedData);
+  try {
+    const stored = window.localStorage.getItem(storageKey);
+    return stored ? JSON.parse(stored) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function persistData() {
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(data));
+  } catch {
+    // Browser storage is optional in this static kickoff surface.
+  }
+}
+
+function resetData() {
+  data = recordTools.cloneData(seedData);
+  try {
+    window.localStorage.removeItem(storageKey);
+  } catch {
+    // Browser storage is optional in this static kickoff surface.
+  }
 }
 
 function formatTime(value) {
@@ -13,24 +57,29 @@ function formatTime(value) {
 }
 
 function statusChip(status) {
-  return `<span class="chip ${status}">${status}</span>`;
+  return chip(status, status);
 }
 
 function record(title, body, chips) {
   return `
     <article class="record">
-      <h3>${title}</h3>
-      <p>${body}</p>
+      <h3>${escapeHtml(title)}</h3>
+      <p>${escapeHtml(body)}</p>
       <div class="meta">${chips.join("")}</div>
     </article>
   `;
+}
+
+function trackName(trackId) {
+  const track = data.tracks.find((item) => item.id === trackId);
+  return track ? track.name : "track pending";
 }
 
 function allOperatingItems() {
   return [
     ...data.leads.map((item) => ({ ...item, kind: "lead", time: item.nextActionAt })),
     ...data.sessions.map((item) => ({ ...item, kind: "session", time: item.startAt })),
-    ...data.assignments.map((item) => ({ ...item, kind: "assignment", time: item.dueAt })),
+    ...data.assignments.map((item) => ({ ...item, kind: "request", time: item.dueAt })),
     ...data.submissions.map((item) => ({ ...item, kind: "submission", time: item.reviewDueAt })),
     ...data.reviews.map((item) => ({ ...item, kind: "review", time: item.returnedAt })),
     ...data.followups.map((item) => ({ ...item, kind: "follow-up", time: item.nextActionAt }))
@@ -52,25 +101,26 @@ function renderMetrics(items) {
 
 function renderAdmin(items) {
   const adminItems = items
-    .filter((item) => attentionStatuses.has(item.status) || item.kind === "session" || item.kind === "follow-up")
-    .slice(0, 8);
+    .filter((item) => attentionStatuses.has(item.status) || item.kind === "session" || item.kind === "follow-up" || item.kind === "lead")
+    .slice(0, 10);
 
   byId("admin-actions").innerHTML = adminItems.map((item) => {
     const title = item.title || item.name || item.id;
-    const body = `${item.kind} | next: ${formatTime(item.time)}`;
-    return record(title, body, [statusChip(item.status), `<span class="chip">${item.kind}</span>`]);
+    const body = item.summary
+      ? `${item.kind} | ${item.summary}`
+      : `${item.kind} | next: ${formatTime(item.time)}`;
+    return record(title, body, [statusChip(item.status), chip(item.kind)]);
   }).join("");
 }
 
 function renderStudentStatus() {
   byId("student-status").innerHTML = data.customers.map((customer) => {
-    const track = data.tracks.find((item) => item.id === customer.trackId);
     return record(
       customer.displayName,
       customer.externalStatus,
       [
-        `<span class="chip">${track ? track.name : "track pending"}</span>`,
-        `<span class="chip">${customer.ageBand}</span>`
+        chip(trackName(customer.trackId)),
+        chip(customer.ageBand)
       ]
     );
   }).join("");
@@ -80,32 +130,85 @@ function renderMonitor(items) {
   const receiptCount = data.receipts.length;
   const attentionCount = items.filter((item) => attentionStatuses.has(item.status)).length;
   const visibleCount = data.assignments.filter((item) => item.externalVisible).length;
+  const intakeCount = data.leads.filter((item) => item.id.startsWith("lead-intake")).length;
 
   byId("monitor-items").innerHTML = [
-    record("Queue Attention", `${attentionCount} records need attention now.`, [`<span class="chip reviewing">${attentionCount} active</span>`]),
-    record("External Visibility", `${visibleCount} student/customer-visible records are available.`, [`<span class="chip">${visibleCount} visible</span>`]),
-    record("Delivery Receipts", `${receiptCount} completed delivery receipt is monitor-visible.`, [`<span class="chip complete">${receiptCount} receipt</span>`])
+    record("Queue Attention", `${attentionCount} records need attention now.`, [chip(`${attentionCount} active`, "reviewing")]),
+    record("External Visibility", `${visibleCount} student/customer-visible records are available.`, [chip(`${visibleCount} visible`)]),
+    record("Delivery Receipts", `${receiptCount} completed delivery receipts are monitor-visible.`, [chip(`${receiptCount} receipts`, "complete")]),
+    record("Live Intake Flow", `${intakeCount} public intake records have entered operations.`, [chip(`${intakeCount} captured`, "waiting")])
   ].join("");
 }
 
-function wireTabs() {
-  document.querySelectorAll(".tab").forEach((tab) => {
-    tab.addEventListener("click", () => {
-      document.querySelectorAll(".tab").forEach((item) => item.classList.remove("active"));
-      document.querySelectorAll(".view").forEach((item) => item.classList.remove("active"));
-      tab.classList.add("active");
-      byId(`view-${tab.dataset.view}`).classList.add("active");
-    });
-  });
+function renderIntakeSnapshot() {
+  const requests = data.assignments
+    .filter((item) => item.externalVisible)
+    .slice(0, 4);
+
+  byId("intake-feed").innerHTML = requests.map((item) => {
+    return record(
+      item.title,
+      item.summary || `Visible request due ${formatTime(item.dueAt)}`,
+      [statusChip(item.status), chip("external")]
+    );
+  }).join("");
 }
 
-function init() {
+function renderAll() {
   const items = allOperatingItems();
   renderMetrics(items);
   renderAdmin(items);
   renderStudentStatus();
   renderMonitor(items);
+  renderIntakeSnapshot();
+}
+
+function activateView(viewName) {
+  document.querySelectorAll(".tab").forEach((item) => {
+    item.classList.toggle("active", item.dataset.view === viewName);
+  });
+  document.querySelectorAll(".view").forEach((item) => {
+    item.classList.toggle("active", item.id === `view-${viewName}`);
+  });
+}
+
+function wireTabs() {
+  document.querySelectorAll(".tab").forEach((tab) => {
+    tab.addEventListener("click", () => activateView(tab.dataset.view));
+  });
+}
+
+function wireIntakeForm() {
+  const form = byId("intake-form");
+  const confirmation = byId("intake-confirmation");
+  const resetButton = byId("reset-demo-data");
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const result = recordTools.createIntakeRecords(data, Object.fromEntries(formData.entries()));
+    data = result.data;
+    persistData();
+    renderAll();
+    confirmation.innerHTML = record(
+      "Request Captured",
+      `${result.records.assignment.title} entered the operating queue and is visible across admin, external status, and monitor views.`,
+      [statusChip(result.records.assignment.status), chip(result.records.customer.ageBand)]
+    );
+    form.reset();
+  });
+
+  resetButton.addEventListener("click", () => {
+    resetData();
+    renderAll();
+    confirmation.innerHTML = "";
+  });
+}
+
+function init() {
+  renderAll();
   wireTabs();
+  wireIntakeForm();
 }
 
 init();
