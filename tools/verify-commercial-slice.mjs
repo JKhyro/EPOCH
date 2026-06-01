@@ -5,6 +5,7 @@ const requiredStatuses = [
   "planned",
   "waiting",
   "proposed",
+  "queued",
   "submitted",
   "reviewing",
   "returned",
@@ -14,6 +15,9 @@ const requiredStatuses = [
   "dispatched",
   "acknowledged",
   "in-progress",
+  "sent",
+  "failed",
+  "retry-ready",
   "rejected",
   "rolled-back",
   "canceled",
@@ -72,6 +76,7 @@ for (const collection of requiredCollections) {
 if (!Array.isArray(data.engagements)) fail("seed data missing engagements collection");
 if (!Array.isArray(data.workPlans)) fail("seed data missing workPlans collection");
 if (!Array.isArray(data.agentHandoffs)) fail("seed data missing agentHandoffs collection");
+if (!Array.isArray(data.notificationDeliveries)) fail("seed data missing notificationDeliveries collection");
 
 const header = read("../native/epoch_core.h");
 const source = read("../native/epoch_core.c");
@@ -119,7 +124,12 @@ for (const id of [
   "agent-handoff-select",
   "agent-handoff-action",
   "agent-handoff-transition",
-  "agent-handoff-confirmation"
+  "agent-handoff-confirmation",
+  "notification-outbox-form",
+  "notification-delivery-select",
+  "notification-outbox-action",
+  "notification-outbox-apply",
+  "notification-outbox-confirmation"
 ]) {
   if (!html.includes(`id="${id}"`)) fail(`web surface missing ${id}`);
 }
@@ -143,6 +153,9 @@ for (const field of ["opportunityId", "decision", "planStartAt", "planEndAt", "p
 }
 for (const field of ["handoffId", "action", "nextActionAt", "customerVisibleApproved", "note", "customerSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`agent handoff form missing field ${field}`);
+}
+for (const field of ["deliveryId", "action", "provider", "channel", "nextActionAt", "note"]) {
+  if (!html.includes(`name="${field}"`)) fail(`notification outbox form missing field ${field}`);
 }
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
@@ -268,6 +281,7 @@ for (const phrase of [
   "monitor-timeline",
   "monitor-handoffs",
   "monitor-suite",
+  "monitor-notification-outbox",
   "monitor-calendar",
   "monitor-persistence",
   "monitor-access",
@@ -296,14 +310,21 @@ for (const phrase of [
   "runMonitorAction",
   "createMonitorActionRecords",
   "transitionAgentHandoffRecords",
+  "createNotificationOutboxRecords",
+  "transitionNotificationDeliveryRecords",
   "renderAgentHandoffOptions",
+  "renderNotificationDeliveryOptions",
   "wireAgentHandoffForm",
+  "wireNotificationOutboxForm",
   "Opportunity Pipeline",
   "Engagement Revenue",
   "Update Events",
   "Agent Handoffs",
   "ARA Handoff Updated",
   "agent-handoff-transition",
+  "Notification Outbox",
+  "Outbox Queued",
+  "Delivery Updated",
   "SYNAPSE Placement",
   "no-duplicate-ui",
   "link-only",
@@ -335,6 +356,7 @@ for (const phrase of [
   "operator-control-panel",
   "operator-action-console",
   "handoff-console",
+  "outbox-console",
   "monitor-action-button",
   "button-meta",
   "monitor-command-strip",
@@ -433,6 +455,8 @@ if (!data.customers.some((item) => item.gameplanId === "gameplan-premium-eiken-m
   fail("customers do not demonstrate assigned personalized gameplan");
 }
 if (typeof recordTools.createAgentHandoffRecords !== "function") fail("operating helpers missing createAgentHandoffRecords");
+if (typeof recordTools.createNotificationOutboxRecords !== "function") fail("operating helpers missing createNotificationOutboxRecords");
+if (typeof recordTools.transitionNotificationDeliveryRecords !== "function") fail("operating helpers missing transitionNotificationDeliveryRecords");
 if (typeof recordTools.createMonitorActionRecords !== "function") fail("operating helpers missing createMonitorActionRecords");
 if (typeof recordTools.summarizeAgentHandoffState !== "function") fail("operating helpers missing summarizeAgentHandoffState");
 if (typeof recordTools.summarizeAccessPosture !== "function") fail("operating helpers missing summarizeAccessPosture");
@@ -636,6 +660,91 @@ if (revenueSummary.acceptedCount < 1) fail("revenue summary did not count accept
 const notificationSummary = recordTools.summarizeNotificationState(acceptResult.data);
 if (notificationSummary.visible < 1) fail("notification summary did not count visible updates");
 if (notificationSummary.posted < 1) fail("notification summary did not count posted updates");
+
+const outboxResult = recordTools.createNotificationOutboxRecords(acceptResult.data, {
+  provider: "operator-dispatch",
+  channel: "email-draft",
+  nextActionAt: "2026-06-02T09:00"
+}, {
+  now: "2026-06-01T02:50:00.000Z"
+});
+if (outboxResult.records.deliveries.length < notificationSummary.visible) fail("notification outbox did not queue visible customer updates");
+if (outboxResult.data.notificationDeliveries.length !== acceptResult.data.notificationDeliveries.length + outboxResult.records.deliveries.length) fail("notification outbox did not create delivery records");
+if (outboxResult.data.receipts.length !== acceptResult.data.receipts.length + outboxResult.records.receipts.length) fail("notification outbox did not create receipts");
+if (!outboxResult.records.deliveries.every((item) => item.customerVisible)) fail("notification outbox queued a non-customer-safe update by default");
+if (!outboxResult.records.events.every((item) => item.outboxDeliveryId && item.deliveryProvider === "operator-dispatch")) fail("notification events were not linked to outbox deliveries");
+const outboxSummary = recordTools.summarizeNotificationState(outboxResult.data);
+if (outboxSummary.outbox !== outboxResult.data.notificationDeliveries.length) fail("notification summary did not count outbox records");
+if (outboxSummary.queued < 1) fail("notification summary missing queued outbox records");
+if (outboxSummary.outboxBlocked < 1) fail("notification summary missing blocked outbox records");
+if (outboxSummary.missingOutbox !== 0) fail("notification summary still reports missing outbox records after queueing");
+
+const queuedDelivery = outboxResult.records.deliveries.find((item) => item.status === "queued");
+if (!queuedDelivery) fail("notification outbox did not create a queued delivery for lifecycle testing");
+const dispatchedDeliveryResult = recordTools.transitionNotificationDeliveryRecords(outboxResult.data, {
+  deliveryId: queuedDelivery.id,
+  action: "dispatch",
+  provider: "operator-dispatch",
+  note: "Operator released the customer-safe update to the delivery handoff."
+}, {
+  now: "2026-06-01T02:51:00.000Z"
+});
+if (dispatchedDeliveryResult.records.delivery.status !== "dispatched") fail("notification delivery dispatch did not set dispatched status");
+if (dispatchedDeliveryResult.records.delivery.attemptCount !== 1) fail("notification delivery dispatch did not increment attempts");
+if (dispatchedDeliveryResult.records.receipt.kind !== "notification-delivery-dispatched") fail("notification delivery dispatch missing receipt kind");
+const sentDeliveryResult = recordTools.transitionNotificationDeliveryRecords(dispatchedDeliveryResult.data, {
+  deliveryId: queuedDelivery.id,
+  action: "sent",
+  note: "Provider-neutral delivery was marked sent."
+}, {
+  now: "2026-06-01T02:52:00.000Z"
+});
+if (sentDeliveryResult.records.delivery.status !== "sent") fail("notification delivery sent did not set sent status");
+if (sentDeliveryResult.records.notificationEvent.deliveryStatus !== "sent") fail("notification event did not mirror sent outbox status");
+if (sentDeliveryResult.records.receipt.kind !== "notification-delivery-sent") fail("notification delivery sent missing receipt kind");
+if (sentDeliveryResult.records.delivery.receiptIds.length < 3) fail("notification delivery did not retain receipt trail");
+if (sentDeliveryResult.records.delivery.deliveryHistory.length < 3) fail("notification delivery did not retain delivery history");
+
+let rejectedSentRedispatch = false;
+try {
+  recordTools.transitionNotificationDeliveryRecords(sentDeliveryResult.data, {
+    deliveryId: queuedDelivery.id,
+    action: "dispatch",
+    note: "Invalid redispatch after sent."
+  }, {
+    now: "2026-06-01T02:52:30.000Z"
+  });
+} catch {
+  rejectedSentRedispatch = true;
+}
+if (!rejectedSentRedispatch) fail("notification delivery allowed redispatch after terminal sent state");
+
+const failingDelivery = outboxResult.records.deliveries.find((item) => item.status === "queued" && item.id !== queuedDelivery.id);
+if (!failingDelivery) fail("notification outbox did not create a second queued delivery for failure testing");
+const failedDeliveryResult = recordTools.transitionNotificationDeliveryRecords(outboxResult.data, {
+  deliveryId: failingDelivery.id,
+  action: "fail",
+  note: "Provider returned a transient delivery failure.",
+  error: "provider-timeout"
+}, {
+  now: "2026-06-01T02:53:00.000Z"
+});
+if (failedDeliveryResult.records.delivery.status !== "failed") fail("notification delivery fail did not set failed status");
+if (failedDeliveryResult.records.receipt.kind !== "notification-delivery-failed") fail("notification delivery fail missing receipt kind");
+const retryDeliveryResult = recordTools.transitionNotificationDeliveryRecords(failedDeliveryResult.data, {
+  deliveryId: failingDelivery.id,
+  action: "retry",
+  note: "Failure reviewed and ready for retry."
+}, {
+  now: "2026-06-01T02:54:00.000Z"
+});
+if (retryDeliveryResult.records.delivery.status !== "retry-ready") fail("notification delivery retry did not set retry-ready status");
+if (recordTools.summarizeNotificationState(retryDeliveryResult.data).retryReady < 1) fail("notification summary missing retry-ready delivery count");
+const outboxMonitorReport = recordTools.buildMonitorReport(retryDeliveryResult.data, { now: "2026-06-01T12:00:00+09:00" });
+if (outboxMonitorReport.summary.notificationOutbox < outboxResult.records.deliveries.length) fail("monitor summary missing notification outbox count");
+if (outboxMonitorReport.summary.retryReadyNotifications < 1) fail("monitor summary missing retry-ready notification count");
+if (!outboxMonitorReport.queue.some((item) => item.kind === "notification delivery")) fail("monitor queue missing notification delivery records");
+
 const curriculumSummary = recordTools.summarizeCurriculumState(acceptResult.data);
 if (curriculumSummary.frameworks < 2) fail("curriculum summary did not count seeded frameworks");
 if (curriculumSummary.gameplans < 3) fail("curriculum summary did not count seeded package gameplans");
@@ -1035,6 +1144,9 @@ if (calendarSummary.customerVisible < 1) fail("calendar summary did not count cu
 if (calendarSummary.updateLinked < 1) fail("calendar summary did not count update-linked entries");
 if (calendarSummary.canceled < 1) fail("calendar summary did not count canceled lifecycle entries");
 
+const outboxCalendarExport = recordTools.createCalendarExport(retryDeliveryResult.data, { now: "2026-06-01T12:00:00+09:00" });
+if (!outboxCalendarExport.entries.some((entry) => entry.sourceKind === "notification-delivery" && entry.timeKind === "delivery-window")) fail("calendar export missing notification delivery window");
+
 const acceptedMonitorReport = recordTools.buildMonitorReport(acceptResult.data, { now: "2026-06-01T12:00:00+09:00" });
 if (acceptedMonitorReport.revenue.activeEngagements < 1) fail("monitor revenue did not count active engagement");
 if (acceptedMonitorReport.summary.acceptedValueJpy < 60000) fail("monitor summary did not expose accepted value");
@@ -1092,6 +1204,11 @@ const lifecycleHandoffLedger = recordTools.createOperatingLedger(completedHandof
 if (lifecycleHandoffLedger.monitor.completedHandoffs < 1) fail("ledger monitor summary missing completed handoff lifecycle count");
 if (lifecycleHandoffLedger.counts.receipts !== completedHandoffResult.data.receipts.length) fail("ledger export did not preserve handoff lifecycle receipts");
 
+const outboxLedger = recordTools.createOperatingLedger(retryDeliveryResult.data, { now: "2026-06-01T04:43:00.000Z" });
+if (outboxLedger.counts.notificationDeliveries !== retryDeliveryResult.data.notificationDeliveries.length) fail("ledger export notification delivery count is wrong");
+if (outboxLedger.monitor.notificationOutbox !== retryDeliveryResult.data.notificationDeliveries.length) fail("ledger monitor summary missing notification outbox count");
+if (outboxLedger.monitor.retryReadyNotifications < 1) fail("ledger monitor summary missing retry-ready notifications");
+
 const importedLedger = recordTools.importOperatingLedger(data, JSON.stringify(exportedLedger));
 if (importedLedger.data.receipts.length !== returnResult.data.receipts.length) fail("ledger import did not preserve receipts");
 if (importedLedger.data.monitorHealthChecks.length !== returnResult.data.monitorHealthChecks.length) fail("ledger import did not preserve monitor health checks");
@@ -1124,6 +1241,11 @@ const importedLifecycleHandoffLedger = recordTools.importOperatingLedger(data, J
 if (importedLifecycleHandoffLedger.data.agentHandoffs[0].status !== "complete") fail("ledger import did not preserve completed handoff status");
 if (importedLifecycleHandoffLedger.data.agentHandoffs[0].receiptIds.length < 5) fail("ledger import did not preserve handoff lifecycle receipt ids");
 if (importedLifecycleHandoffLedger.data.agentHandoffs[0].transportHistory.length < 5) fail("ledger import did not preserve handoff transport history");
+
+const importedOutboxLedger = recordTools.importOperatingLedger(data, JSON.stringify(outboxLedger));
+if (importedOutboxLedger.data.notificationDeliveries.length !== retryDeliveryResult.data.notificationDeliveries.length) fail("ledger import did not preserve notification deliveries");
+if (!importedOutboxLedger.data.notificationDeliveries.some((item) => item.status === "retry-ready")) fail("ledger import did not preserve retry-ready delivery status");
+if (!importedOutboxLedger.data.notificationDeliveries.some((item) => Array.isArray(item.deliveryHistory) && item.deliveryHistory.length >= 2)) fail("ledger import did not preserve notification delivery history");
 
 let rejectedInvalidLedger = false;
 try {

@@ -758,6 +758,10 @@ button.secondary-action {
   grid-template-columns: 1fr;
 }
 
+.outbox-console {
+  grid-template-columns: 1fr;
+}
+
 .operator-action-console {
   display: grid;
   gap: 12px;

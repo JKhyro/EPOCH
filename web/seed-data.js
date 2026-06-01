@@ -5,6 +5,7 @@ window.EPOCH_SEED_DATA = {
     "planned",
     "waiting",
     "proposed",
+    "queued",
     "submitted",
     "reviewing",
     "returned",
@@ -14,6 +15,9 @@ window.EPOCH_SEED_DATA = {
     "dispatched",
     "acknowledged",
     "in-progress",
+    "sent",
+    "failed",
+    "retry-ready",
     "rejected",
     "rolled-back",
     "canceled",
@@ -610,6 +614,7 @@ window.EPOCH_SEED_DATA = {
       "deliverAfterAt": "2026-06-01T12:05:00+09:00"
     }
   ],
+  "notificationDeliveries": [],
   "customers": [
     {
       "id": "student-001",
