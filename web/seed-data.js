@@ -128,6 +128,64 @@ window.EPOCH_SEED_DATA = {
   "engagements": [],
   "workPlans": [],
   "agentHandoffs": [],
+  "routePlacements": [
+    {
+      "id": "synapse-epoch-admin",
+      "label": "EPOCH Admin",
+      "href": "#admin",
+      "surface": "admin",
+      "visibility": "internal",
+      "routeKind": "suite-entry",
+      "status": "ready",
+      "sourceSystem": "EPOCH",
+      "targetSystem": "SYNAPSE",
+      "summaryKey": "queue",
+      "placement": "link",
+      "duplicateUi": false
+    },
+    {
+      "id": "synapse-epoch-monitor",
+      "label": "EPOCH MONITOR",
+      "href": "#monitor",
+      "surface": "monitor",
+      "visibility": "internal",
+      "routeKind": "monitor-entry",
+      "status": "ready",
+      "sourceSystem": "EPOCH",
+      "targetSystem": "SYNAPSE",
+      "summaryKey": "health",
+      "placement": "link-or-embed",
+      "duplicateUi": false
+    },
+    {
+      "id": "synapse-epoch-customer-status",
+      "label": "EPOCH Customer Status",
+      "href": "#student",
+      "surface": "student",
+      "visibility": "controlled-customer",
+      "routeKind": "status-entry",
+      "status": "ready",
+      "sourceSystem": "EPOCH",
+      "targetSystem": "SYNAPSE",
+      "summaryKey": "visible-updates",
+      "placement": "link",
+      "duplicateUi": false
+    },
+    {
+      "id": "synapse-epoch-intake",
+      "label": "EPOCH Intake",
+      "href": "#public",
+      "surface": "public",
+      "visibility": "public-intake",
+      "routeKind": "conversion-entry",
+      "status": "ready",
+      "sourceSystem": "EPOCH",
+      "targetSystem": "SYNAPSE",
+      "summaryKey": "pipeline",
+      "placement": "link",
+      "duplicateUi": false
+    }
+  ],
   "notificationEvents": [
     {
       "id": "update-001",
