@@ -118,3 +118,8 @@ The repository verifier must cover:
   no-live-send enforcement, no credentials or webhooks, internal receipts,
   export/import preservation, and no customer-visible notifications from
   provider actions.
+- Payment provider handoff controls and verifier coverage for
+  `paymentProviderHandoffs`, provider-neutral invoice and checkout readiness,
+  under-19/guardian eligibility gates, no-live-payment enforcement, no
+  credentials, no webhooks, no capture, internal receipts, export/import
+  preservation, and no customer-visible payment events from provider actions.

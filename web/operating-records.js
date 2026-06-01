@@ -33,6 +33,7 @@
     "notificationEvents",
     "notificationDeliveries",
     "notificationProviderHandoffs",
+    "paymentProviderHandoffs",
     "quotes",
     "reminderRules",
     "recurrenceCandidates",
@@ -518,6 +519,119 @@
     ];
   }
 
+  function defaultPaymentProviderHandoffs() {
+    return [
+      {
+        id: "payment-provider-invoice-readiness",
+        title: "Invoice Provider Handoff",
+        sourceSystem: "EPOCH",
+        targetProvider: "provider-neutral invoice",
+        providerKind: "invoice",
+        syncMode: "payment-provider-readiness",
+        status: "planned",
+        handoffStatus: "processor-deferred",
+        invoicePolicy: "customer-safe-invoice-copy-required",
+        checkoutPolicy: "checkout-link-deferred",
+        eligibilityPolicy: "operator-approval-required",
+        customerSafeStatus: "invoice-copy-ready",
+        visibility: "internal",
+        customerVisible: false,
+        livePaymentEnabled: false,
+        externalProviderWrite: false,
+        storesCredentials: false,
+        webhookEnabled: false,
+        capturesPayment: false,
+        paymentProcessorSchema: "epoch.quote-payment",
+        readinessChecks: ["invoice-copy-ready", "operator-approval-required", "guardian-consent-gate", "no-live-payment"],
+        nextActionAt: "2026-06-02T13:00:00+09:00",
+        createdAt: "2026-06-02T00:20:00+09:00",
+        updatedAt: "2026-06-02T00:20:00+09:00",
+        receiptIds: ["receipt-payment-provider-seed"],
+        handoffHistory: [
+          {
+            action: "seed",
+            status: "planned",
+            at: "2026-06-02T00:20:00+09:00",
+            note: "Invoice provider adapter remains deferred while EPOCH records customer-safe invoice readiness."
+          }
+        ],
+        notes: "Prepare invoice wording, quote references, and payment eligibility checks before any payment processor work."
+      },
+      {
+        id: "payment-provider-checkout-readiness",
+        title: "Checkout Provider Handoff",
+        sourceSystem: "EPOCH",
+        targetProvider: "provider-neutral checkout",
+        providerKind: "checkout",
+        syncMode: "invoice-checkout-readiness",
+        status: "planned",
+        handoffStatus: "processor-deferred",
+        invoicePolicy: "customer-safe-invoice-copy-required",
+        checkoutPolicy: "checkout-handoff-ready",
+        eligibilityPolicy: "operator-approval-required",
+        customerSafeStatus: "checkout-instructions-ready",
+        visibility: "internal",
+        customerVisible: false,
+        livePaymentEnabled: false,
+        externalProviderWrite: false,
+        storesCredentials: false,
+        webhookEnabled: false,
+        capturesPayment: false,
+        paymentProcessorSchema: "epoch.quote-payment",
+        readinessChecks: ["invoice-copy-ready", "checkout-handoff-ready", "operator-approval-required", "no-live-payment"],
+        nextActionAt: "2026-06-02T13:30:00+09:00",
+        createdAt: "2026-06-02T00:21:00+09:00",
+        updatedAt: "2026-06-02T00:21:00+09:00",
+        receiptIds: ["receipt-payment-provider-seed"],
+        handoffHistory: [
+          {
+            action: "seed",
+            status: "planned",
+            at: "2026-06-02T00:21:00+09:00",
+            note: "Checkout session creation remains deferred while operator handoff data is prepared."
+          }
+        ],
+        notes: "Record checkout readiness without creating a checkout session, payment link, webhook, or processor write."
+      },
+      {
+        id: "payment-eligibility-guardian-readiness",
+        title: "Payment Eligibility And Guardian Gate",
+        sourceSystem: "EPOCH",
+        targetProvider: "provider-neutral",
+        providerKind: "eligibility",
+        syncMode: "eligibility-guard-readiness",
+        status: "queued",
+        handoffStatus: "operator-review-ready",
+        invoicePolicy: "invoice-blocked-until-eligible",
+        checkoutPolicy: "checkout-blocked-until-eligible",
+        eligibilityPolicy: "guardian-consent-and-operator-approval",
+        customerSafeStatus: "eligibility-review-ready",
+        visibility: "internal",
+        customerVisible: false,
+        livePaymentEnabled: false,
+        externalProviderWrite: false,
+        storesCredentials: false,
+        webhookEnabled: false,
+        capturesPayment: false,
+        paymentProcessorSchema: "epoch.quote-payment",
+        readinessChecks: ["guardian-consent-gate", "payment-eligibility-rule", "operator-approval-required", "no-live-payment"],
+        nextActionAt: "2026-06-02T14:00:00+09:00",
+        createdAt: "2026-06-02T00:22:00+09:00",
+        updatedAt: "2026-06-02T00:22:00+09:00",
+        receiptIds: ["receipt-payment-provider-seed"],
+        handoffHistory: [
+          {
+            action: "seed",
+            status: "queued",
+            at: "2026-06-02T00:22:00+09:00",
+            note: "Under-19 and compatibility-required payment gates stay blocked until consent and operator approval are recorded."
+          }
+        ],
+        notes: "Payment requests for under-19 or compatibility-required work must remain blocked until eligibility and consent are explicit."
+      }
+    ];
+  }
+
   function normalizedOperatingData(data) {
     const nextData = cloneData(data || {});
     for (const collection of ledgerCollections) {
@@ -538,6 +652,9 @@
     }
     if (!Array.isArray(nextData.notificationProviderHandoffs) || !nextData.notificationProviderHandoffs.length) {
       nextData.notificationProviderHandoffs = defaultNotificationProviderHandoffs();
+    }
+    if (!Array.isArray(nextData.paymentProviderHandoffs) || !nextData.paymentProviderHandoffs.length) {
+      nextData.paymentProviderHandoffs = defaultPaymentProviderHandoffs();
     }
     if (!nextData.accessPosture || typeof nextData.accessPosture !== "object") {
       nextData.accessPosture = {
@@ -1300,6 +1417,275 @@
       id: receiptId,
       customerId: null,
       kind: "notification-provider-handoff",
+      status: handoff.status,
+      createdAt: updatedAt,
+      note: `${healthCheck.title}: ${healthCheck.summary}`
+    };
+    nextData.monitorHealthChecks.unshift(healthCheck);
+    nextData.receipts.unshift(receipt);
+
+    return {
+      data: nextData,
+      records: {
+        handoff,
+        healthCheck,
+        receipt
+      }
+    };
+  }
+
+  function summarizePaymentProviderState(currentData, options = {}) {
+    const data = normalizedOperatingData(currentData);
+    const quotes = options.quotes || summarizeQuoteState(data);
+    const handoffs = data.paymentProviderHandoffs.map((handoff) => {
+      const targetProvider = clean(handoff.targetProvider) || "provider-neutral";
+      const providerKind = clean(handoff.providerKind) || "provider-neutral";
+      const syncMode = clean(handoff.syncMode) || "payment-provider-readiness";
+      const status = clean(handoff.status) || "planned";
+      const visibility = clean(handoff.visibility) || "internal";
+      const customerVisible = handoff.customerVisible === true;
+      const livePaymentEnabled = handoff.livePaymentEnabled === true;
+      const externalProviderWrite = handoff.externalProviderWrite === true;
+      const storesCredentials = handoff.storesCredentials === true;
+      const webhookEnabled = handoff.webhookEnabled === true;
+      const capturesPayment = handoff.capturesPayment === true;
+      const readinessChecks = Array.isArray(handoff.readinessChecks) ? handoff.readinessChecks : [];
+      const receiptIds = Array.isArray(handoff.receiptIds) ? handoff.receiptIds : [];
+      const handoffHistory = Array.isArray(handoff.handoffHistory) ? handoff.handoffHistory : [];
+      const violations = [];
+
+      if (visibility !== "internal" || customerVisible) {
+        violations.push("Payment provider handoff must remain internal-only until an authenticated payment/customer surface exists.");
+      }
+      if (livePaymentEnabled || capturesPayment || externalProviderWrite) {
+        violations.push("Payment provider handoff cannot enable live checkout, payment capture, or external provider writes in this slice.");
+      }
+      if (storesCredentials || webhookEnabled) {
+        violations.push("Payment provider handoff cannot store credentials or enable webhooks in this slice.");
+      }
+      if (!targetProvider) {
+        violations.push("Payment provider handoff is missing a provider target.");
+      }
+      if (status === "complete" && !receiptIds.length) {
+        violations.push("Completed payment provider handoff requires a receipt trail.");
+      }
+      if (syncMode === "invoice-checkout-readiness") {
+        if (!readinessChecks.includes("invoice-copy-ready")) {
+          violations.push("Invoice readiness must prove customer-safe invoice copy.");
+        }
+        if (!readinessChecks.includes("checkout-handoff-ready")) {
+          violations.push("Checkout readiness must prove checkout handoff data without a live session.");
+        }
+        if (!readinessChecks.includes("no-live-payment")) {
+          violations.push("Invoice/checkout readiness must prove no live payment occurs.");
+        }
+      }
+      if (syncMode === "eligibility-guard-readiness") {
+        if (!readinessChecks.includes("guardian-consent-gate") || !readinessChecks.includes("payment-eligibility-rule")) {
+          violations.push("Payment eligibility readiness must prove guardian/eligibility gating.");
+        }
+        if (!readinessChecks.includes("no-live-payment")) {
+          violations.push("Payment eligibility readiness must prove no live payment occurs.");
+        }
+      }
+
+      return {
+        id: clean(handoff.id),
+        title: clean(handoff.title) || "Payment Provider Handoff",
+        sourceSystem: clean(handoff.sourceSystem) || "EPOCH",
+        targetProvider,
+        providerKind,
+        syncMode,
+        status,
+        handoffStatus: clean(handoff.handoffStatus) || "pending",
+        invoicePolicy: clean(handoff.invoicePolicy) || "customer-safe-invoice-copy-required",
+        checkoutPolicy: clean(handoff.checkoutPolicy) || "checkout-link-deferred",
+        eligibilityPolicy: clean(handoff.eligibilityPolicy) || "operator-approval-required",
+        customerSafeStatus: clean(handoff.customerSafeStatus) || "invoice-pending",
+        visibility,
+        customerVisible,
+        livePaymentEnabled,
+        externalProviderWrite,
+        storesCredentials,
+        webhookEnabled,
+        capturesPayment,
+        paymentProcessorSchema: clean(handoff.paymentProcessorSchema) || "epoch.quote-payment",
+        readinessChecks,
+        nextActionAt: clean(handoff.nextActionAt),
+        updatedAt: clean(handoff.updatedAt),
+        receiptIds,
+        handoffHistory,
+        notes: clean(handoff.notes) || "No payment provider handoff note recorded.",
+        violations
+      };
+    });
+    const violations = handoffs.flatMap((handoff) => handoff.violations.map((detail) => `${handoff.title || handoff.id}: ${detail}`));
+
+    return {
+      schema: "epoch.payment-provider-handoff",
+      handoffCount: handoffs.length,
+      providerReady: handoffs.filter((item) => item.syncMode === "payment-provider-readiness").length,
+      invoiceReady: handoffs.filter((item) => item.readinessChecks.includes("invoice-copy-ready")).length,
+      checkoutReady: handoffs.filter((item) => item.readinessChecks.includes("checkout-handoff-ready")).length,
+      eligibilityReady: handoffs.filter((item) => item.readinessChecks.includes("guardian-consent-gate") || item.readinessChecks.includes("payment-eligibility-rule")).length,
+      queued: handoffs.filter((item) => item.status === "queued").length,
+      complete: handoffs.filter((item) => item.status === "complete").length,
+      blocked: handoffs.filter((item) => item.status === "blocked").length,
+      noLivePayment: handoffs.filter((item) => !item.livePaymentEnabled && !item.capturesPayment && !item.externalProviderWrite && !item.storesCredentials && !item.webhookEnabled).length,
+      providerKinds: new Set(handoffs.map((item) => item.providerKind).filter(Boolean)).size,
+      quoteRecords: quotes.total,
+      paymentReadyQuotes: quotes.paymentReady,
+      violations,
+      status: violations.length ? "blocked" : "ready",
+      handoffs
+    };
+  }
+
+  function createPaymentProviderHandoffRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const createdAt = withTimezone(now.toISOString(), timezone);
+    const handoff = {
+      id: clean(input.id) || `payment-provider-${stamp(now)}`,
+      title: clean(input.title) || "Payment Provider Handoff",
+      sourceSystem: "EPOCH",
+      targetProvider: clean(input.targetProvider) || "provider-neutral",
+      providerKind: clean(input.providerKind) || "provider-neutral",
+      syncMode: clean(input.syncMode) || "payment-provider-readiness",
+      status: clean(input.status) || "planned",
+      handoffStatus: clean(input.handoffStatus) || "processor-deferred",
+      invoicePolicy: clean(input.invoicePolicy) || "customer-safe-invoice-copy-required",
+      checkoutPolicy: clean(input.checkoutPolicy) || "checkout-link-deferred",
+      eligibilityPolicy: clean(input.eligibilityPolicy) || "operator-approval-required",
+      customerSafeStatus: clean(input.customerSafeStatus) || "invoice-copy-ready",
+      visibility: "internal",
+      customerVisible: false,
+      livePaymentEnabled: false,
+      externalProviderWrite: false,
+      storesCredentials: false,
+      webhookEnabled: false,
+      capturesPayment: false,
+      paymentProcessorSchema: "epoch.quote-payment",
+      readinessChecks: Array.isArray(input.readinessChecks) ? input.readinessChecks : ["invoice-copy-ready", "operator-approval-required", "no-live-payment"],
+      nextActionAt: withTimezone(input.nextActionAt, timezone) || createdAt,
+      createdAt,
+      updatedAt: createdAt,
+      receiptIds: [],
+      handoffHistory: [
+        {
+          action: "create",
+          status: clean(input.status) || "planned",
+          at: createdAt,
+          note: clean(input.note) || "Payment provider handoff created for operator review."
+        }
+      ],
+      notes: clean(input.note) || "Payment provider handoff created for operator review."
+    };
+    nextData.paymentProviderHandoffs.unshift(handoff);
+    return {
+      data: nextData,
+      records: {
+        handoff
+      }
+    };
+  }
+
+  function transitionPaymentProviderHandoffRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const updatedAt = withTimezone(now.toISOString(), timezone);
+    const handoffId = clean(input.handoffId || input.id);
+    const action = clean(input.action) || "verify";
+    const note = clean(input.note) || "Payment provider handoff reviewed by operator.";
+    const handoff = nextData.paymentProviderHandoffs.find((item) => item.id === handoffId);
+    if (!handoff) throw new Error("payment provider handoff not found");
+
+    if (action === "verify") {
+      handoff.status = "complete";
+      handoff.handoffStatus = "verified-processor-deferred";
+    } else if (action === "prepare") {
+      handoff.status = "queued";
+      handoff.handoffStatus = "invoice-checkout-payload-ready";
+    } else if (action === "mark-ready") {
+      handoff.status = "queued";
+      handoff.handoffStatus = "adapter-ready-without-live-payment";
+    } else if (action === "invoice-ready") {
+      handoff.status = "queued";
+      handoff.syncMode = "invoice-checkout-readiness";
+      handoff.handoffStatus = "invoice-review-ready";
+      handoff.customerSafeStatus = "invoice-copy-ready";
+      handoff.invoicePolicy = "customer-safe-invoice-copy-ready";
+      if (!Array.isArray(handoff.readinessChecks)) handoff.readinessChecks = [];
+      for (const check of ["invoice-copy-ready", "operator-approval-required", "no-live-payment"]) {
+        if (!handoff.readinessChecks.includes(check)) handoff.readinessChecks.push(check);
+      }
+    } else if (action === "checkout-ready") {
+      handoff.status = "queued";
+      handoff.syncMode = "invoice-checkout-readiness";
+      handoff.handoffStatus = "checkout-review-ready";
+      handoff.checkoutPolicy = "checkout-handoff-ready";
+      if (!Array.isArray(handoff.readinessChecks)) handoff.readinessChecks = [];
+      for (const check of ["checkout-handoff-ready", "operator-approval-required", "no-live-payment"]) {
+        if (!handoff.readinessChecks.includes(check)) handoff.readinessChecks.push(check);
+      }
+    } else if (action === "eligibility-ready") {
+      handoff.status = "queued";
+      handoff.syncMode = "eligibility-guard-readiness";
+      handoff.handoffStatus = "eligibility-review-ready";
+      handoff.eligibilityPolicy = "guardian-consent-and-operator-approval";
+      if (!Array.isArray(handoff.readinessChecks)) handoff.readinessChecks = [];
+      for (const check of ["guardian-consent-gate", "payment-eligibility-rule", "operator-approval-required", "no-live-payment"]) {
+        if (!handoff.readinessChecks.includes(check)) handoff.readinessChecks.push(check);
+      }
+    } else if (action === "block") {
+      handoff.status = "blocked";
+      handoff.handoffStatus = "blocked";
+    } else {
+      throw new Error("unsupported payment provider action");
+    }
+
+    handoff.visibility = "internal";
+    handoff.customerVisible = false;
+    handoff.livePaymentEnabled = false;
+    handoff.externalProviderWrite = false;
+    handoff.storesCredentials = false;
+    handoff.webhookEnabled = false;
+    handoff.capturesPayment = false;
+    handoff.updatedAt = updatedAt;
+    handoff.nextActionAt = withTimezone(input.nextActionAt, timezone) || handoff.nextActionAt || updatedAt;
+    handoff.notes = note;
+    if (!Array.isArray(handoff.handoffHistory)) handoff.handoffHistory = [];
+    handoff.handoffHistory.unshift({
+      action,
+      status: handoff.status,
+      at: updatedAt,
+      note
+    });
+
+    const receiptId = `receipt-payment-provider-${stamp(now)}`;
+    if (!Array.isArray(handoff.receiptIds)) handoff.receiptIds = [];
+    handoff.receiptIds.unshift(receiptId);
+    const healthCheck = {
+      id: `monitor-check-payment-provider-${stamp(now)}`,
+      actionId: `payment-provider-${action}`,
+      receiptId,
+      title: `Payment provider ${action}`,
+      summary: `${handoff.title}: ${note}`,
+      status: handoff.status,
+      priority: action === "block" ? "high" : "medium",
+      effect: "payment-provider-handoff",
+      target: "monitor-payment-provider",
+      owner: clean(input.owner) || "Jack",
+      createdAt: updatedAt,
+      visibility: "internal",
+      customerVisible: false
+    };
+    const receipt = {
+      id: receiptId,
+      customerId: null,
+      kind: "payment-provider-handoff",
       status: handoff.status,
       createdAt: updatedAt,
       note: `${healthCheck.title}: ${healthCheck.summary}`
@@ -4498,6 +4884,7 @@
       ...currentData.notificationEvents.map((item) => ({ kind: "update", id: item.id, title: item.title, status: item.status, time: item.deliverAfterAt || item.createdAt, owner: item.deliveryStatus || "pending" })),
       ...(currentData.notificationDeliveries || []).map((item) => ({ kind: "notification delivery", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.createdAt, owner: item.provider || item.channel || "outbox" })),
       ...(currentData.notificationProviderHandoffs || []).map((item) => ({ kind: "notification provider", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.handoffStatus || "notifications" })),
+      ...(currentData.paymentProviderHandoffs || []).map((item) => ({ kind: "payment provider", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.handoffStatus || "payments" })),
       ...(currentData.quotes || []).map((item) => ({ kind: "quote", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.validUntil || item.createdAt, owner: item.paymentStatus || item.approvalStatus || "quote" })),
       ...(currentData.reminderRules || []).map((item) => ({ kind: "reminder rule", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.reminderAt, owner: item.channel || "reminder" })),
       ...(currentData.recurrenceCandidates || []).map((item) => ({ kind: "recurrence candidate", id: item.id, title: item.title, status: item.status, time: item.nextCandidateAt || item.createdAt, owner: item.cadence || "recurrence" })),
@@ -4524,6 +4911,7 @@
     const notifications = summarizeNotificationState(data);
     const notificationProvider = summarizeNotificationProviderState(data, { notifications });
     const quotes = summarizeQuoteState(data);
+    const paymentProvider = summarizePaymentProviderState(data, { quotes });
     const scheduleControls = summarizeScheduleControlState(data);
     const handoffs = summarizeAgentHandoffState(data);
     const marketing = summarizeMarketingState(data);
@@ -4566,6 +4954,10 @@
       if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
     for (const item of timeline.filter((entry) => entry.kind === "notification provider").slice(0, 4)) {
+      if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
+      if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
+    }
+    for (const item of timeline.filter((entry) => entry.kind === "payment provider").slice(0, 4)) {
       if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
       if (activeStatuses.has(item.status) && !queue.some((entry) => entry.id === item.id)) queue.push(item);
     }
@@ -4690,6 +5082,14 @@
         detail: notificationProvider.violations[0]
       });
     }
+    if (paymentProvider.violations.length) {
+      risks.push({
+        id: "payment-provider-violation",
+        severity: "high",
+        title: "Payment Provider Violation",
+        detail: paymentProvider.violations[0]
+      });
+    }
 
     const operatorActions = [];
     if (dirtyLocalState) {
@@ -4763,6 +5163,13 @@
         notificationConsentReady: notificationProvider.consentReady,
         notificationProviderNoLiveSend: notificationProvider.noLiveSend,
         notificationProviderViolations: notificationProvider.violations.length,
+        paymentProviderHandoffs: paymentProvider.handoffCount,
+        paymentProviderReady: paymentProvider.providerReady,
+        paymentInvoiceReady: paymentProvider.invoiceReady,
+        paymentCheckoutReady: paymentProvider.checkoutReady,
+        paymentEligibilityReady: paymentProvider.eligibilityReady,
+        paymentProviderNoLivePayment: paymentProvider.noLivePayment,
+        paymentProviderViolations: paymentProvider.violations.length,
         quotes: quotes.total,
         quoteValueJpy: quotes.valueJpy,
         presentedQuotes: quotes.presented,
@@ -4832,6 +5239,7 @@
       curriculum,
       notifications,
       notificationProvider,
+      paymentProvider,
       quotes,
       scheduleControls,
       handoffs,
@@ -4871,6 +5279,7 @@
     const calendarExport = createCalendarExport(data, { now: now.toISOString() });
     const calendarProvider = summarizeCalendarProviderState(data, { now: now.toISOString(), calendarExport });
     const notificationProvider = summarizeNotificationProviderState(data);
+    const paymentProvider = summarizePaymentProviderState(data);
     const routePlacement = summarizeRoutePlacementState(data, { now: now.toISOString() });
     const accessGateway = summarizeAccessGatewayState(data, { now: now.toISOString(), routePlacement });
     const librarySync = summarizeLibrarySyncState(data, { now: now.toISOString(), persistence });
@@ -4890,6 +5299,7 @@
       calendarExport,
       calendarProvider,
       notificationProvider,
+      paymentProvider,
       routePlacement,
       accessGateway,
       librarySync,
@@ -4918,6 +5328,8 @@
     transitionNotificationDeliveryRecords,
     createNotificationProviderHandoffRecords,
     transitionNotificationProviderHandoffRecords,
+    createPaymentProviderHandoffRecords,
+    transitionPaymentProviderHandoffRecords,
     createQuoteEstimateRecords,
     transitionQuoteEstimateRecords,
     createReminderRuleRecords,
@@ -4952,6 +5364,7 @@
     summarizeLibrarySyncState,
     summarizeCalendarProviderState,
     summarizeNotificationProviderState,
+    summarizePaymentProviderState,
     summarizeAccessPosture,
     summarizeMemoryState,
     summarizeScopeState,
