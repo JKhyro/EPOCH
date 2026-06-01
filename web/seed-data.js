@@ -1489,6 +1489,83 @@ window.EPOCH_SEED_DATA = {
       "notes": "Local message preview only; live email, LINE, SMS, NEXUS, webhooks, credentials, provider writes, and customer-visible sends remain disabled."
     }
   ],
+  "paymentProviderPrototypes": [
+    {
+      "id": "payment-provider-sandbox-checkout-preview",
+      "title": "Payment Provider Sandbox Checkout Preview",
+      "providerCandidateId": "provider-adapter-payment-checkout",
+      "sourceHandoffId": "payment-provider-checkout-readiness",
+      "adapterFamily": "payment",
+      "targetProvider": "provider-neutral invoice / checkout",
+      "adapterMode": "sandbox-payment-payload-preview",
+      "status": "queued",
+      "prototypeStatus": "payload-ready",
+      "sandboxOnly": true,
+      "localOnly": true,
+      "livePaymentEnabled": false,
+      "liveCheckoutEnabled": false,
+      "liveCaptureEnabled": false,
+      "liveRefundEnabled": false,
+      "invoiceSendEnabled": false,
+      "checkoutSessionCreated": false,
+      "paymentLinkCreated": false,
+      "capturesPayment": false,
+      "externalProviderWrite": false,
+      "productionEnabled": false,
+      "secretsPresent": false,
+      "credentialsStored": false,
+      "storesCredentials": false,
+      "oauthConfigured": false,
+      "webhookEnabled": false,
+      "customerVisible": false,
+      "customerSafe": false,
+      "legalReviewRequired": true,
+      "taxReviewRequired": true,
+      "privacyReviewRequired": true,
+      "under19Guarded": true,
+      "paymentProcessorSchema": "epoch.quote-payment",
+      "payloadMode": "provider-neutral-payment-json-preview",
+      "payloadSource": "epoch.quote-payment",
+      "payloadEntryCount": 2,
+      "readinessChecks": ["provider-candidate-required", "payment-provider-handoff-required", "quote-payment-schema-stable", "legal-review-required", "tax-review-required", "privacy-boundary-required", "under19-eligibility-gate", "sandbox-only-before-go-live", "operator-approval-required", "no-live-payment", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-checkout-session", "no-payment-capture", "no-refunds", "no-invoice-send", "no-customer-visible-payment-request"],
+      "payloadPreview": [
+        {
+          "uid": "epoch-payment-preview-eiken-monthly",
+          "title": "Premium EIKEN Writing Review payment preview",
+          "provider": "provider-neutral",
+          "amountJpy": 45000,
+          "currency": "JPY",
+          "customerName": "Adult writing student",
+          "packageId": "pkg-eiken-writing-monthly",
+          "source": "opportunity:opp-001",
+          "status": "preview-only",
+          "paymentStatus": "not-created",
+          "checkoutSession": "not-created",
+          "customerSafe": true
+        },
+        {
+          "uid": "epoch-payment-preview-under19-gate",
+          "title": "Under-19 compatibility assessment blocked payment preview",
+          "provider": "provider-neutral",
+          "amountJpy": 65000,
+          "currency": "JPY",
+          "customerName": "Under-19 compatibility review",
+          "packageId": "pkg-under19-assessment",
+          "source": "package:pkg-under19-assessment",
+          "status": "blocked-preview-only",
+          "paymentStatus": "guardian-consent-required",
+          "checkoutSession": "not-created",
+          "customerSafe": true
+        }
+      ],
+      "blockers": ["No legal/tax/privacy review signoff", "No checkout credential storage", "No webhook signing secret", "No live payment capture or refund path", "Under-19 payment requests remain blocked before guardian consent"],
+      "nextActionAt": "2026-06-04T12:00:00+09:00",
+      "createdAt": "2026-06-02T07:00:00+09:00",
+      "updatedAt": "2026-06-02T07:00:00+09:00",
+      "receiptIds": ["receipt-payment-provider-prototype-seed"],
+      "notes": "Local payment payload preview only; live checkout, invoice sending, capture, refunds, OAuth, secrets, webhooks, provider writes, and customer-visible payment requests remain disabled."
+    }
+  ],
   "paymentProviderHandoffs": [
     {
       "id": "payment-provider-invoice-readiness",
@@ -2184,6 +2261,21 @@ window.EPOCH_SEED_DATA = {
       "customerVisible": false
     },
     {
+      "id": "monitor-check-seed-payment-prototype",
+      "actionId": "seed-payment-provider-prototype",
+      "receiptId": "receipt-payment-provider-prototype-seed",
+      "title": "Sandbox payment provider prototype",
+      "summary": "EPOCH has a local payment payload preview for provider-neutral invoice/checkout readiness without live checkout, invoice sending, capture, refunds, credentials, webhooks, or customer-visible payment requests.",
+      "status": "complete",
+      "priority": "medium",
+      "effect": "payment-provider-sandbox-proof",
+      "target": "monitor-payment-prototype",
+      "owner": "Jack",
+      "createdAt": "2026-06-02T07:00:00+09:00",
+      "visibility": "internal",
+      "customerVisible": false
+    },
+    {
       "id": "monitor-check-seed-auth-session-role",
       "actionId": "seed-auth-session-role-baseline",
       "receiptId": "receipt-auth-session-role-seed",
@@ -2307,6 +2399,14 @@ window.EPOCH_SEED_DATA = {
       "status": "complete",
       "createdAt": "2026-06-02T00:24:00+09:00",
       "note": "Payment provider baseline: invoice, checkout, and guardian eligibility handoffs are provider-neutral and no-live-payment."
+    },
+    {
+      "id": "receipt-payment-provider-prototype-seed",
+      "customerId": null,
+      "kind": "payment-provider-prototype",
+      "status": "complete",
+      "createdAt": "2026-06-02T07:00:00+09:00",
+      "note": "Sandbox payment provider prototype baseline: local payment payload preview is ready; live checkout, invoice sending, capture, refunds, OAuth, secrets, webhooks, provider writes, and customer-visible payment requests remain disabled."
     },
     {
       "id": "receipt-auth-session-role-seed",

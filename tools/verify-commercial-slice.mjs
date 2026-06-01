@@ -43,6 +43,7 @@ const requiredCollections = [
   "providerAdapterCandidates",
   "calendarAdapterPrototypes",
   "notificationProviderPrototypes",
+  "paymentProviderPrototypes",
   "leads",
   "opportunities",
   "routePlacements",
@@ -108,6 +109,7 @@ if (!Array.isArray(data.notificationProviderHandoffs)) fail("seed data missing n
 if (!Array.isArray(data.paymentProviderHandoffs)) fail("seed data missing paymentProviderHandoffs collection");
 if (!Array.isArray(data.authSessionRoleHandoffs)) fail("seed data missing authSessionRoleHandoffs collection");
 if (!Array.isArray(data.calendarAdapterPrototypes)) fail("seed data missing calendarAdapterPrototypes collection");
+if (!Array.isArray(data.paymentProviderPrototypes)) fail("seed data missing paymentProviderPrototypes collection");
 if (!Array.isArray(data.customerAccountHistories)) fail("seed data missing customerAccountHistories collection");
 
 const header = read("../native/epoch_core.h");
@@ -222,7 +224,17 @@ for (const id of [
   "calendar-adapter-select",
   "calendar-adapter-action",
   "calendar-adapter-apply",
-  "calendar-adapter-confirmation"
+  "calendar-adapter-confirmation",
+  "notification-prototype-form",
+  "notification-prototype-select",
+  "notification-prototype-action",
+  "notification-prototype-apply",
+  "notification-prototype-confirmation",
+  "payment-prototype-form",
+  "payment-prototype-select",
+  "payment-prototype-action",
+  "payment-prototype-apply",
+  "payment-prototype-confirmation"
 ]) {
   if (!html.includes(`id="${id}"`)) fail(`web surface missing ${id}`);
 }
@@ -268,6 +280,9 @@ for (const field of ["handoffId", "action", "note"]) {
 for (const field of ["prototypeId", "action", "note"]) {
   if (!html.includes(`name="${field}"`)) fail(`sandbox notification provider form missing field ${field}`);
 }
+for (const field of ["prototypeId", "action", "note"]) {
+  if (!html.includes(`name="${field}"`)) fail(`sandbox payment provider form missing field ${field}`);
+}
 for (const field of ["handoffId", "action", "note"]) {
   if (!html.includes(`name="${field}"`)) fail(`payment provider form missing field ${field}`);
 }
@@ -277,7 +292,7 @@ for (const field of ["handoffId", "action", "note"]) {
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
 }
-for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-command-strip", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-library-sync", "monitor-calendar-provider", "monitor-notification-provider", "monitor-notification-prototype", "monitor-payment-provider", "monitor-auth-session", "monitor-persistence", "monitor-scope", "monitor-memory", "monitor-access"]) {
+for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-command-strip", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-library-sync", "monitor-calendar-provider", "monitor-notification-provider", "monitor-notification-prototype", "monitor-payment-provider", "monitor-payment-prototype", "monitor-auth-session", "monitor-persistence", "monitor-scope", "monitor-memory", "monitor-access"]) {
   if (!html.includes(phrase)) fail(`monitor route surface missing phrase ${phrase}`);
 }
 for (const phrase of ["monitor-curriculum", "Package Gameplans", "Personalized Gameplan", "Curriculum Frameworks"]) {
@@ -297,6 +312,9 @@ for (const phrase of ["Notification Providers", "Notification Provider Handoffs"
 }
 for (const phrase of ["Payment Providers", "Payment Provider Handoffs", "Apply Payment Provider Action"]) {
   if (!html.includes(phrase)) fail(`payment provider HTML missing phrase ${phrase}`);
+}
+for (const phrase of ["Sandbox Payment Provider", "Apply Sandbox Payment Provider Action", "monitor-payment-prototype", "live checkout, invoice sending, capture, refunds, OAuth, secrets, webhooks, provider writes, and customer-visible payment requests remain disabled"]) {
+  if (!html.includes(phrase)) fail(`sandbox payment provider HTML missing phrase ${phrase}`);
 }
 for (const phrase of ["Auth Sessions", "Auth Session Role Handoffs", "Apply Auth Session Role Action"]) {
   if (!html.includes(phrase)) fail(`auth/session role HTML missing phrase ${phrase}`);
@@ -612,6 +630,8 @@ for (const phrase of [
   "marketing-conversion-console",
   "provider-adapter-console",
   "calendar-adapter-console",
+  "notification-prototype-console",
+  "payment-prototype-console",
   "monitor-action-button",
   "button-meta",
   "monitor-command-strip",
@@ -771,6 +791,30 @@ for (const prototype of data.notificationProviderPrototypes) {
   }
   if (!Array.isArray(prototype.payloadPreview) || !prototype.payloadPreview.length) fail(`notification provider prototype ${prototype.id} missing local payload preview`);
   if (!Array.isArray(prototype.blockers) || !prototype.blockers.length) fail(`notification provider prototype ${prototype.id} missing blockers`);
+}
+if (!Array.isArray(data.paymentProviderPrototypes) || data.paymentProviderPrototypes.length < 1) fail("seed data missing sandbox payment provider prototype records");
+if (!data.receipts.some((item) => item.kind === "payment-provider-prototype")) fail("seed data missing payment-provider-prototype receipt");
+if (!data.monitorHealthChecks.some((item) => item.target === "monitor-payment-prototype" && item.effect === "payment-provider-sandbox-proof")) fail("seed data missing sandbox payment provider monitor health check");
+for (const prototype of data.paymentProviderPrototypes) {
+  if (!data.providerAdapterCandidates.some((item) => item.id === prototype.providerCandidateId && item.providerFamily === "payment")) fail(`payment provider prototype ${prototype.id} does not link to a payment provider adapter candidate`);
+  if (!data.paymentProviderHandoffs.some((item) => item.id === prototype.sourceHandoffId)) fail(`payment provider prototype ${prototype.id} does not link to a payment provider handoff`);
+  if (prototype.adapterFamily !== "payment") fail(`payment provider prototype ${prototype.id} is not in the payment family`);
+  if (prototype.sandboxOnly !== true || prototype.localOnly !== true) fail(`payment provider prototype ${prototype.id} must remain sandbox/local only`);
+  if (prototype.livePaymentEnabled !== false || prototype.liveCheckoutEnabled !== false || prototype.liveCaptureEnabled !== false || prototype.liveRefundEnabled !== false || prototype.invoiceSendEnabled !== false || prototype.checkoutSessionCreated !== false || prototype.paymentLinkCreated !== false || prototype.capturesPayment !== false || prototype.externalProviderWrite !== false || prototype.productionEnabled !== false) {
+    fail(`payment provider prototype ${prototype.id} enabled live payment provider behavior`);
+  }
+  if (prototype.secretsPresent !== false || prototype.credentialsStored !== false || prototype.storesCredentials !== false || prototype.oauthConfigured !== false || prototype.webhookEnabled !== false) {
+    fail(`payment provider prototype ${prototype.id} enabled secrets, credentials, OAuth, or webhooks`);
+  }
+  if (prototype.customerVisible !== false || prototype.customerSafe !== false) fail(`payment provider prototype ${prototype.id} should remain internal-only`);
+  if (prototype.legalReviewRequired !== true || prototype.taxReviewRequired !== true || prototype.privacyReviewRequired !== true || prototype.under19Guarded !== true) {
+    fail(`payment provider prototype ${prototype.id} lost legal/tax/privacy or under-19 guard posture`);
+  }
+  for (const requiredCheck of ["provider-candidate-required", "payment-provider-handoff-required", "quote-payment-schema-stable", "legal-review-required", "tax-review-required", "privacy-boundary-required", "under19-eligibility-gate", "sandbox-only-before-go-live", "operator-approval-required", "no-live-payment", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-checkout-session", "no-payment-capture", "no-refunds", "no-invoice-send", "no-customer-visible-payment-request"]) {
+    if (!prototype.readinessChecks.includes(requiredCheck)) fail(`payment provider prototype ${prototype.id} missing ${requiredCheck}`);
+  }
+  if (!Array.isArray(prototype.payloadPreview) || !prototype.payloadPreview.length) fail(`payment provider prototype ${prototype.id} missing local payload preview`);
+  if (!Array.isArray(prototype.blockers) || !prototype.blockers.length) fail(`payment provider prototype ${prototype.id} missing blockers`);
 }
 if (!Array.isArray(data.customerAccountHistories) || data.customerAccountHistories.length < data.customers.length) fail("seed data missing durable customer account history records");
 if (!data.receipts.some((item) => item.kind === "customer-account-history" || item.id === "receipt-client-request-seed")) fail("seed data missing customer account history receipt evidence");
@@ -1344,6 +1388,76 @@ if (notificationPrototypeTransitionResult.records.prototype.liveSendEnabled || n
   fail("notification prototype transition enabled live provider or secret safeguards");
 }
 
+const paymentPrototypeSummary = recordTools.summarizePaymentProviderPrototypeState(data);
+if (paymentPrototypeSummary.prototypeCount !== data.paymentProviderPrototypes.length) fail("payment prototype summary total is wrong");
+if (paymentPrototypeSummary.payloadReady < 1) fail("payment prototype summary missing payload-ready prototype");
+if (paymentPrototypeSummary.sandboxOnly !== data.paymentProviderPrototypes.length) fail("payment prototype summary missing sandbox-only prototypes");
+if (paymentPrototypeSummary.localOnly !== data.paymentProviderPrototypes.length) fail("payment prototype summary missing local-only prototypes");
+if (paymentPrototypeSummary.noLivePayment !== data.paymentProviderPrototypes.length) fail("payment prototype summary no-live-payment count is wrong");
+if (paymentPrototypeSummary.noSecrets !== data.paymentProviderPrototypes.length) fail("payment prototype summary no-secrets count is wrong");
+if (paymentPrototypeSummary.noCustomerVisiblePayment !== data.paymentProviderPrototypes.length) fail("payment prototype summary no-customer-visible-payment count is wrong");
+if (paymentPrototypeSummary.noPaymentCapture !== data.paymentProviderPrototypes.length) fail("payment prototype summary no-payment-capture count is wrong");
+if (paymentPrototypeSummary.legalTaxPrivacyReady !== data.paymentProviderPrototypes.length) fail("payment prototype summary legal/tax/privacy count is wrong");
+if (paymentPrototypeSummary.under19Guarded !== data.paymentProviderPrototypes.length) fail("payment prototype summary under-19 guard count is wrong");
+if (paymentPrototypeSummary.violations.length !== 0) fail("payment prototype summary should not report seed violations");
+
+const malformedPaymentPrototypeData = recordTools.cloneData(data);
+malformedPaymentPrototypeData.paymentProviderPrototypes[0] = {
+  ...malformedPaymentPrototypeData.paymentProviderPrototypes[0],
+  livePaymentEnabled: true,
+  liveCheckoutEnabled: true,
+  liveCaptureEnabled: true,
+  liveRefundEnabled: true,
+  invoiceSendEnabled: true,
+  checkoutSessionCreated: true,
+  paymentLinkCreated: true,
+  capturesPayment: true,
+  externalProviderWrite: true,
+  secretsPresent: true,
+  credentialsStored: true,
+  storesCredentials: true,
+  oauthConfigured: true,
+  webhookEnabled: true,
+  customerVisible: true,
+  legalReviewRequired: false,
+  taxReviewRequired: false,
+  privacyReviewRequired: false,
+  under19Guarded: false,
+  readinessChecks: [],
+  payloadPreview: []
+};
+const malformedPaymentPrototypeSummary = recordTools.summarizePaymentProviderPrototypeState(malformedPaymentPrototypeData);
+if (malformedPaymentPrototypeSummary.status !== "blocked" || malformedPaymentPrototypeSummary.violations.length < 4) fail("payment prototype summary did not flag live provider/secret/legal violations");
+
+const paymentPrototypeCreateResult = recordTools.createPaymentProviderPrototypeRecords(data, {
+  providerCandidateId: "provider-adapter-payment-checkout",
+  sourceHandoffId: "payment-provider-checkout-readiness",
+  note: "Verifier created a local payment payload preview without live provider behavior."
+}, { now: "2026-06-01T12:17:00+09:00" });
+if (paymentPrototypeCreateResult.data.paymentProviderPrototypes.length !== data.paymentProviderPrototypes.length + 1) fail("payment prototype create did not add a prototype");
+if (paymentPrototypeCreateResult.records.prototype.livePaymentEnabled || paymentPrototypeCreateResult.records.prototype.liveCheckoutEnabled || paymentPrototypeCreateResult.records.prototype.liveCaptureEnabled || paymentPrototypeCreateResult.records.prototype.liveRefundEnabled || paymentPrototypeCreateResult.records.prototype.invoiceSendEnabled || paymentPrototypeCreateResult.records.prototype.checkoutSessionCreated || paymentPrototypeCreateResult.records.prototype.paymentLinkCreated || paymentPrototypeCreateResult.records.prototype.capturesPayment || paymentPrototypeCreateResult.records.prototype.externalProviderWrite || paymentPrototypeCreateResult.records.prototype.productionEnabled || paymentPrototypeCreateResult.records.prototype.secretsPresent || paymentPrototypeCreateResult.records.prototype.credentialsStored || paymentPrototypeCreateResult.records.prototype.storesCredentials || paymentPrototypeCreateResult.records.prototype.oauthConfigured || paymentPrototypeCreateResult.records.prototype.webhookEnabled) {
+  fail("payment prototype create enabled live provider behavior, secrets, OAuth, or webhooks");
+}
+if (!paymentPrototypeCreateResult.records.prototype.payloadPreview.length) fail("payment prototype create did not generate a payload preview");
+if (paymentPrototypeCreateResult.records.receipt.kind !== "payment-provider-prototype") fail("payment prototype create missing receipt kind");
+if (paymentPrototypeCreateResult.records.healthCheck.target !== "monitor-payment-prototype") fail("payment prototype create missing monitor target");
+if (paymentPrototypeCreateResult.data.notificationEvents.length !== data.notificationEvents.length) fail("payment prototype create created a customer-visible notification event");
+
+const paymentPrototypeTransitionResult = recordTools.transitionPaymentProviderPrototypeRecords(data, {
+  prototypeId: "payment-provider-sandbox-checkout-preview",
+  action: "approve-sandbox",
+  note: "Verifier approved sandbox payment payload proof without live checkout, invoice sending, capture, refunds, OAuth, secrets, webhooks, provider writes, or customer-visible payment requests."
+}, { now: "2026-06-01T12:18:00+09:00" });
+if (paymentPrototypeTransitionResult.records.prototype.status !== "approved") fail("payment prototype transition did not approve sandbox status");
+if (paymentPrototypeTransitionResult.records.prototype.prototypeStatus !== "sandbox-approved") fail("payment prototype transition did not set sandbox-approved state");
+if (paymentPrototypeTransitionResult.records.receipt.kind !== "payment-provider-prototype") fail("payment prototype transition missing receipt kind");
+if (paymentPrototypeTransitionResult.records.healthCheck.effect !== "payment-provider-sandbox-proof") fail("payment prototype transition missing monitor effect");
+if (paymentPrototypeTransitionResult.records.healthCheck.customerVisible !== false) fail("payment prototype health check must remain internal");
+if (paymentPrototypeTransitionResult.data.notificationEvents.length !== data.notificationEvents.length) fail("payment prototype transition created a customer-visible notification event");
+if (paymentPrototypeTransitionResult.records.prototype.livePaymentEnabled || paymentPrototypeTransitionResult.records.prototype.liveCheckoutEnabled || paymentPrototypeTransitionResult.records.prototype.liveCaptureEnabled || paymentPrototypeTransitionResult.records.prototype.liveRefundEnabled || paymentPrototypeTransitionResult.records.prototype.invoiceSendEnabled || paymentPrototypeTransitionResult.records.prototype.checkoutSessionCreated || paymentPrototypeTransitionResult.records.prototype.paymentLinkCreated || paymentPrototypeTransitionResult.records.prototype.capturesPayment || paymentPrototypeTransitionResult.records.prototype.externalProviderWrite || paymentPrototypeTransitionResult.records.prototype.productionEnabled || paymentPrototypeTransitionResult.records.prototype.secretsPresent || paymentPrototypeTransitionResult.records.prototype.credentialsStored || paymentPrototypeTransitionResult.records.prototype.storesCredentials || paymentPrototypeTransitionResult.records.prototype.oauthConfigured || paymentPrototypeTransitionResult.records.prototype.webhookEnabled || paymentPrototypeTransitionResult.records.prototype.customerVisible) {
+  fail("payment prototype transition enabled live provider or secret safeguards");
+}
+
 const accountHistorySummary = recordTools.summarizeCustomerAccountHistoryState(data);
 if (accountHistorySummary.historyCount !== data.customers.length) fail("account history summary should cover every customer");
 if (accountHistorySummary.timelineEvents < data.customerAccountHistories.length) fail("account history summary missing timeline events");
@@ -1610,6 +1724,29 @@ for (const phrase of [
   "no-customer-visible-send"
 ]) {
   if (!notificationPrototypeContract.includes(phrase)) fail(`sandbox notification provider contract missing phrase: ${phrase}`);
+}
+
+const paymentPrototypeContract = read("../docs/sandbox-payment-provider-prototype-contract.md");
+for (const phrase of [
+  "Sandbox Payment Provider Prototype Contract",
+  "paymentProviderPrototypes",
+  "monitor-payment-prototype",
+  "transitionPaymentProviderPrototypeRecords",
+  "payment-provider-prototype",
+  "sandboxOnly: true",
+  "localOnly: true",
+  "livePaymentEnabled: false",
+  "liveCheckoutEnabled: false",
+  "capturesPayment: false",
+  "oauthConfigured: false",
+  "legalReviewRequired: true",
+  "taxReviewRequired: true",
+  "under19Guarded: true",
+  "no-live-payment",
+  "no-payment-capture",
+  "no-customer-visible-payment-request"
+]) {
+  if (!paymentPrototypeContract.includes(phrase)) fail(`sandbox payment provider contract missing phrase: ${phrase}`);
 }
 
 const accountHistoryContract = read("../docs/customer-account-history-contract.md");
@@ -2402,6 +2539,7 @@ if (!monitorReport.librarySync) fail("monitor report missing LIBRARY sync state"
 if (!monitorReport.calendarProvider) fail("monitor report missing calendar provider state");
 if (!monitorReport.notificationProvider) fail("monitor report missing notification provider state");
 if (!monitorReport.paymentProvider) fail("monitor report missing payment provider state");
+if (!monitorReport.paymentPrototype) fail("monitor report missing sandbox payment provider state");
 if (!monitorReport.authSession) fail("monitor report missing auth/session role state");
 if (!Array.isArray(monitorReport.monitorHealthChecks)) fail("monitor report missing monitor health checks");
 if (!Array.isArray(monitorReport.operatorActions)) fail("monitor report missing operator actions");
@@ -2477,6 +2615,17 @@ if (monitorReport.summary.paymentInvoiceReady < 2) fail("monitor summary missing
 if (monitorReport.summary.paymentCheckoutReady < 1) fail("monitor summary missing payment checkout readiness handoff count");
 if (monitorReport.summary.paymentEligibilityReady < 2) fail("monitor summary missing payment eligibility readiness handoff count");
 if (monitorReport.summary.paymentProviderViolations !== 0) fail("monitor summary should not report payment provider violations for the seed slice");
+if (monitorReport.summary.paymentProviderPrototypes !== data.paymentProviderPrototypes.length) fail("monitor summary payment provider prototype count is wrong");
+if (monitorReport.summary.paymentPrototypePayloadReady < 1) fail("monitor summary missing payload-ready payment provider prototype");
+if (monitorReport.summary.paymentPrototypeSandboxOnly !== data.paymentProviderPrototypes.length) fail("monitor summary missing sandbox-only payment provider prototypes");
+if (monitorReport.summary.paymentPrototypeLocalOnly !== data.paymentProviderPrototypes.length) fail("monitor summary missing local-only payment provider prototypes");
+if (monitorReport.summary.paymentPrototypeNoLivePayment !== data.paymentProviderPrototypes.length) fail("monitor summary missing no-live-payment provider prototypes");
+if (monitorReport.summary.paymentPrototypeNoSecrets !== data.paymentProviderPrototypes.length) fail("monitor summary missing no-secrets payment provider prototypes");
+if (monitorReport.summary.paymentPrototypeNoCustomerVisiblePayment !== data.paymentProviderPrototypes.length) fail("monitor summary missing no-customer-visible-payment provider prototypes");
+if (monitorReport.summary.paymentPrototypeNoPaymentCapture !== data.paymentProviderPrototypes.length) fail("monitor summary missing no-payment-capture provider prototypes");
+if (monitorReport.summary.paymentPrototypeLegalTaxPrivacyReady !== data.paymentProviderPrototypes.length) fail("monitor summary missing legal/tax/privacy payment provider prototypes");
+if (monitorReport.summary.paymentPrototypeUnder19Guarded !== data.paymentProviderPrototypes.length) fail("monitor summary missing under-19 guarded payment provider prototypes");
+if (monitorReport.summary.paymentPrototypeViolations !== 0) fail("monitor summary should not report payment prototype violations for the seed slice");
 if (monitorReport.summary.authSessionRoleHandoffs < 4) fail("monitor summary missing auth/session role handoff count");
 if (monitorReport.summary.authPublicReady < 1) fail("monitor summary missing public auth readiness count");
 if (monitorReport.summary.authCustomerReady < 1) fail("monitor summary missing customer auth readiness count");
@@ -2490,6 +2639,7 @@ if (!monitorReport.timeline.some((item) => item.kind === "marketing conversion")
 if (!monitorReport.timeline.some((item) => item.kind === "provider adapter")) fail("monitor timeline missing provider adapter candidates");
 if (!monitorReport.timeline.some((item) => item.kind === "calendar adapter")) fail("monitor timeline missing sandbox calendar adapter prototypes");
 if (!monitorReport.timeline.some((item) => item.kind === "notification prototype")) fail("monitor timeline missing sandbox notification provider prototypes");
+if (!monitorReport.timeline.some((item) => item.kind === "payment prototype")) fail("monitor timeline missing sandbox payment provider prototypes");
 if (!monitorReport.timeline.some((item) => item.kind === "access gateway")) fail("monitor timeline missing access gateways");
 if (!monitorReport.timeline.some((item) => item.kind === "library sync")) fail("monitor timeline missing LIBRARY sync handoffs");
 if (!monitorReport.timeline.some((item) => item.kind === "calendar provider")) fail("monitor timeline missing calendar provider handoffs");
@@ -2575,6 +2725,7 @@ if (exportedLedger.counts.marketingConversionEvents !== returnResult.data.market
 if (exportedLedger.counts.providerAdapterCandidates !== returnResult.data.providerAdapterCandidates.length) fail("ledger export provider adapter count is wrong");
 if (exportedLedger.counts.calendarAdapterPrototypes !== returnResult.data.calendarAdapterPrototypes.length) fail("ledger export calendar adapter prototype count is wrong");
 if (exportedLedger.counts.notificationProviderPrototypes !== returnResult.data.notificationProviderPrototypes.length) fail("ledger export notification provider prototype count is wrong");
+if (exportedLedger.counts.paymentProviderPrototypes !== returnResult.data.paymentProviderPrototypes.length) fail("ledger export payment provider prototype count is wrong");
 if (exportedLedger.counts.customerAccountHistories !== exportedLedger.data.customerAccountHistories.length) fail("ledger export account history count is wrong");
 if (!exportedLedger.monitor || exportedLedger.monitor.timeline < 1) fail("ledger export missing monitor summary");
 if (exportedLedger.monitor.persistenceRevision !== exportedLedger.persistence.revision) fail("ledger monitor summary missing persistence revision");
@@ -2590,6 +2741,7 @@ if (!exportedLedger.marketingConversion || exportedLedger.marketingConversion.ev
 if (!exportedLedger.providerAdapters || exportedLedger.providerAdapters.candidateCount !== exportedLedger.data.providerAdapterCandidates.length) fail("ledger export missing provider adapter summary");
 if (!exportedLedger.calendarAdapter || exportedLedger.calendarAdapter.prototypeCount !== exportedLedger.data.calendarAdapterPrototypes.length) fail("ledger export missing calendar adapter summary");
 if (!exportedLedger.notificationPrototype || exportedLedger.notificationPrototype.prototypeCount !== exportedLedger.data.notificationProviderPrototypes.length) fail("ledger export missing notification prototype summary");
+if (!exportedLedger.paymentPrototype || exportedLedger.paymentPrototype.prototypeCount !== exportedLedger.data.paymentProviderPrototypes.length) fail("ledger export missing payment prototype summary");
 if (!exportedLedger.accountHistory || exportedLedger.accountHistory.historyCount !== exportedLedger.data.customers.length) fail("ledger export missing account history summary");
 if (exportedLedger.counts.routePlacements !== returnResult.data.routePlacements.length) fail("ledger export route placement count is wrong");
 if (exportedLedger.counts.curriculumFrameworks !== returnResult.data.curriculumFrameworks.length) fail("ledger export curriculum framework count is wrong");
@@ -2621,6 +2773,11 @@ if (exportedLedger.monitor.calendarAdapterNoInvitationSend !== returnResult.data
 if (exportedLedger.monitor.notificationProviderPrototypes !== returnResult.data.notificationProviderPrototypes.length) fail("ledger monitor summary missing notification provider prototypes");
 if (exportedLedger.monitor.notificationPrototypeNoLiveSend !== returnResult.data.notificationProviderPrototypes.length) fail("ledger monitor summary missing notification prototype no-live-send posture");
 if (exportedLedger.monitor.notificationPrototypeNoCustomerVisibleSend !== returnResult.data.notificationProviderPrototypes.length) fail("ledger monitor summary missing notification prototype no-customer-visible-send posture");
+if (exportedLedger.monitor.paymentProviderPrototypes !== returnResult.data.paymentProviderPrototypes.length) fail("ledger monitor summary missing payment provider prototypes");
+if (exportedLedger.monitor.paymentPrototypeNoLivePayment !== returnResult.data.paymentProviderPrototypes.length) fail("ledger monitor summary missing payment prototype no-live-payment posture");
+if (exportedLedger.monitor.paymentPrototypeNoCustomerVisiblePayment !== returnResult.data.paymentProviderPrototypes.length) fail("ledger monitor summary missing payment prototype no-customer-visible-payment posture");
+if (exportedLedger.monitor.paymentPrototypeNoPaymentCapture !== returnResult.data.paymentProviderPrototypes.length) fail("ledger monitor summary missing payment prototype no-capture posture");
+if (exportedLedger.monitor.paymentPrototypeUnder19Guarded !== returnResult.data.paymentProviderPrototypes.length) fail("ledger monitor summary missing payment prototype under-19 guard posture");
 if (exportedLedger.monitor.accountHistories !== exportedLedger.data.customers.length) fail("ledger monitor summary missing account histories");
 if (exportedLedger.monitor.accountHistoryLocalOnly !== exportedLedger.data.customers.length) fail("ledger monitor summary missing account history local-only posture");
 if (exportedLedger.monitor.accountHistoryViolations !== 0) fail("ledger monitor summary should not report account history violations");
@@ -2691,6 +2848,15 @@ if (notificationPrototypeLedger.notificationPrototype.noLiveSend !== notificatio
 if (notificationPrototypeLedger.notificationPrototype.noCustomerVisibleSend !== notificationPrototypeTransitionResult.data.notificationProviderPrototypes.length) fail("ledger notification prototype summary lost no-customer-visible-send posture");
 if (notificationPrototypeLedger.monitor.notificationPrototypeViolations !== 0) fail("ledger monitor summary should not report notification prototype violations after transition");
 
+const paymentPrototypeLedger = recordTools.createOperatingLedger(paymentPrototypeTransitionResult.data, { now: "2026-06-01T04:43:59.500Z" });
+if (paymentPrototypeLedger.counts.paymentProviderPrototypes !== paymentPrototypeTransitionResult.data.paymentProviderPrototypes.length) fail("ledger export payment prototype transition count is wrong");
+if (paymentPrototypeLedger.paymentPrototype.payloadReady < 1) fail("ledger export missing payment prototype payload readiness after transition");
+if (paymentPrototypeLedger.paymentPrototype.noLivePayment !== paymentPrototypeTransitionResult.data.paymentProviderPrototypes.length) fail("ledger payment prototype summary lost no-live-payment posture");
+if (paymentPrototypeLedger.paymentPrototype.noCustomerVisiblePayment !== paymentPrototypeTransitionResult.data.paymentProviderPrototypes.length) fail("ledger payment prototype summary lost no-customer-visible-payment posture");
+if (paymentPrototypeLedger.paymentPrototype.noPaymentCapture !== paymentPrototypeTransitionResult.data.paymentProviderPrototypes.length) fail("ledger payment prototype summary lost no-capture posture");
+if (paymentPrototypeLedger.paymentPrototype.under19Guarded !== paymentPrototypeTransitionResult.data.paymentProviderPrototypes.length) fail("ledger payment prototype summary lost under-19 guard posture");
+if (paymentPrototypeLedger.monitor.paymentPrototypeViolations !== 0) fail("ledger monitor summary should not report payment prototype violations after transition");
+
 const accountHistoryLedger = recordTools.createOperatingLedger(accountHistoryRefreshResult.data, { now: "2026-06-01T04:43:59.500Z" });
 if (accountHistoryLedger.counts.customerAccountHistories !== accountHistoryLedger.data.customers.length) fail("ledger export account history refresh count is wrong");
 if (accountHistoryLedger.accountHistory.historyCount !== accountHistoryLedger.data.customers.length) fail("ledger export missing refreshed account history summary");
@@ -2722,6 +2888,7 @@ if (importedLedger.data.marketingConversionEvents.length !== returnResult.data.m
 if (importedLedger.data.providerAdapterCandidates.length !== returnResult.data.providerAdapterCandidates.length) fail("ledger import did not preserve provider adapter candidates");
 if (importedLedger.data.calendarAdapterPrototypes.length !== returnResult.data.calendarAdapterPrototypes.length) fail("ledger import did not preserve calendar adapter prototypes");
 if (importedLedger.data.notificationProviderPrototypes.length !== returnResult.data.notificationProviderPrototypes.length) fail("ledger import did not preserve notification provider prototypes");
+if (importedLedger.data.paymentProviderPrototypes.length !== returnResult.data.paymentProviderPrototypes.length) fail("ledger import did not preserve payment provider prototypes");
 if (importedLedger.data.customerAccountHistories.length !== exportedLedger.data.customerAccountHistories.length) fail("ledger import did not preserve account histories");
 if (importedLedger.data.campaignRoutes.length !== returnResult.data.campaignRoutes.length) fail("ledger import did not preserve campaign routes");
 if (importedLedger.data.customers[0].externalStatus !== returnResult.data.customers[0].externalStatus) fail("ledger import did not preserve external status");
@@ -2803,6 +2970,13 @@ if (importedNotificationPrototypeLedger.data.notificationProviderPrototypes.leng
 if (!importedNotificationPrototypeLedger.data.notificationProviderPrototypes.some((item) => item.prototypeStatus === "sandbox-approved")) fail("ledger import did not preserve notification provider prototype sandbox approval");
 if (!importedNotificationPrototypeLedger.data.notificationProviderPrototypes.every((item) => item.liveSendEnabled === false && item.liveEmailSend === false && item.liveLineSend === false && item.liveSmsSend === false && item.liveNexusSend === false && item.externalProviderWrite === false && item.productionEnabled === false && item.secretsPresent === false && item.credentialsStored === false && item.storesCredentials === false && item.oauthConfigured === false && item.webhookEnabled === false && item.customerVisible === false)) {
   fail("ledger import changed notification prototype no-live-send safeguards");
+}
+
+const importedPaymentPrototypeLedger = recordTools.importOperatingLedger(data, JSON.stringify(paymentPrototypeLedger));
+if (importedPaymentPrototypeLedger.data.paymentProviderPrototypes.length !== paymentPrototypeTransitionResult.data.paymentProviderPrototypes.length) fail("ledger import did not preserve payment provider prototypes after transition");
+if (!importedPaymentPrototypeLedger.data.paymentProviderPrototypes.some((item) => item.prototypeStatus === "sandbox-approved")) fail("ledger import did not preserve payment provider prototype sandbox approval");
+if (!importedPaymentPrototypeLedger.data.paymentProviderPrototypes.every((item) => item.livePaymentEnabled === false && item.liveCheckoutEnabled === false && item.liveCaptureEnabled === false && item.liveRefundEnabled === false && item.invoiceSendEnabled === false && item.checkoutSessionCreated === false && item.paymentLinkCreated === false && item.capturesPayment === false && item.externalProviderWrite === false && item.productionEnabled === false && item.secretsPresent === false && item.credentialsStored === false && item.storesCredentials === false && item.oauthConfigured === false && item.webhookEnabled === false && item.customerVisible === false)) {
+  fail("ledger import changed payment prototype no-live-payment safeguards");
 }
 
 const importedAccountHistoryLedger = recordTools.importOperatingLedger(data, JSON.stringify(accountHistoryLedger));
