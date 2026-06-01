@@ -633,6 +633,11 @@ h1 {
   margin: 0 0 18px;
 }
 
+.schedule-forms {
+  display: grid;
+  gap: 14px;
+}
+
 .intake-form {
   display: grid;
   gap: 14px;

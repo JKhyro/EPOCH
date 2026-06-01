@@ -367,14 +367,29 @@ function renderScheduleOptions() {
   select.innerHTML = options.join("");
 }
 
+function renderScheduleLifecycleOptions() {
+  const select = byId("schedule-lifecycle-session");
+  const sessions = data.sessions || [];
+  const options = sessions.map((session) => {
+    const customer = data.customers.find((item) => item.id === session.customerId);
+    const owner = customer ? ` - ${customer.displayName}` : "";
+    return `<option value="${escapeHtml(session.id)}">${escapeHtml(session.title + owner)} (${escapeHtml(session.status)})</option>`;
+  });
+  select.innerHTML = options.length ? options.join("") : `<option value="">No scheduled sessions yet</option>`;
+}
+
 function renderScheduleFeed() {
-  byId("schedule-feed").innerHTML = data.sessions.slice(0, 6).map((session) => {
-    const body = `${formatTime(session.startAt)} to ${formatTime(session.endAt)}`;
+  byId("schedule-feed").innerHTML = data.sessions.length ? data.sessions.slice(0, 6).map((session) => {
+    const previous = session.previousStartAt ? ` | previous ${formatTime(session.previousStartAt)}` : "";
+    const reason = session.cancelReason || session.rescheduleReason;
+    const body = `${formatTime(session.startAt)} to ${formatTime(session.endAt)}${previous}${reason ? ` | ${reason}` : ""}`;
     return record(session.title, body, [
       statusChip(session.status),
+      session.rescheduledAt ? chip("rescheduled") : "",
+      session.canceledAt ? chip("canceled") : "",
       chip(session.owner || "owner pending")
     ]);
-  }).join("");
+  }).join("") : record("Scheduled Sessions", "Schedule accepted work first; reschedule and cancellation controls will bind to the selected session.", [chip("empty")]);
 }
 
 function renderStudentStatus() {
@@ -750,6 +765,7 @@ function renderAll() {
   renderOpportunityFeed();
   renderEngagementFeed();
   renderScheduleOptions();
+  renderScheduleLifecycleOptions();
   renderScheduleFeed();
   renderAdmin(items);
   renderStudentStatus();
@@ -889,6 +905,33 @@ function wireScheduleForm() {
   });
 }
 
+function wireScheduleLifecycleForm() {
+  const form = byId("schedule-lifecycle-form");
+  const confirmation = byId("schedule-lifecycle-confirmation");
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+    const result = payload.action === "cancel"
+      ? recordTools.cancelScheduleRecords(data, payload)
+      : recordTools.rescheduleScheduleRecords(data, payload);
+    data = result.data;
+    persistData();
+    renderAll();
+
+    const title = payload.action === "cancel" ? "Schedule Canceled" : "Schedule Rescheduled";
+    const body = payload.action === "cancel"
+      ? `${result.records.session.title} was canceled without deleting the historical session record.`
+      : `${result.records.session.title} moved to ${formatTime(result.records.session.startAt)} with customer-safe update and receipt records.`;
+    confirmation.innerHTML = record(title, body, [
+      statusChip(result.records.session.status),
+      chip(result.records.receipt.kind)
+    ]);
+    form.reset();
+  });
+}
+
 function wireSubmissionForm() {
   const form = byId("submission-form");
   const confirmation = byId("submission-confirmation");
@@ -997,6 +1040,7 @@ function init() {
   wirePublicActions();
   wireOpportunityForm();
   wireScheduleForm();
+  wireScheduleLifecycleForm();
   wireIntakeForm();
   wireSubmissionForm();
   wireReviewReturn();

@@ -166,41 +166,86 @@
         </div>
       </div>
       <div class="schedule-layout">
-        <form id="schedule-form" class="intake-form">
-          <div class="form-row">
+        <div class="schedule-forms">
+          <form id="schedule-form" class="intake-form">
+            <div class="form-row">
+              <label>
+                Request to schedule
+                <select name="assignmentId" id="schedule-assignment" required></select>
+              </label>
+              <label>
+                Owner
+                <input name="owner" value="Jack" required />
+              </label>
+            </div>
             <label>
-              Request to schedule
-              <select name="assignmentId" id="schedule-assignment" required></select>
+              Session title
+              <input name="sessionTitle" value="Diagnostic and scheduling session" required />
             </label>
+            <div class="form-row">
+              <label>
+                Starts
+                <input name="startAt" type="datetime-local" required />
+              </label>
+              <label>
+                Ends
+                <input name="endAt" type="datetime-local" required />
+              </label>
+            </div>
             <label>
-              Owner
-              <input name="owner" value="Jack" required />
+              Delivery deadline
+              <input name="deadlineAt" type="datetime-local" required />
             </label>
-          </div>
-          <label>
-            Session title
-            <input name="sessionTitle" value="Diagnostic and scheduling session" required />
-          </label>
-          <div class="form-row">
+            <div class="form-actions">
+              <button type="submit">Schedule Work</button>
+            </div>
+          </form>
+          <form id="schedule-lifecycle-form" class="intake-form">
+            <div class="form-row">
+              <label>
+                Scheduled session
+                <select name="sessionId" id="schedule-lifecycle-session" required></select>
+              </label>
+              <label>
+                Lifecycle action
+                <select name="action" id="schedule-lifecycle-action" required>
+                  <option value="reschedule">Reschedule</option>
+                  <option value="cancel">Cancel</option>
+                </select>
+              </label>
+            </div>
+            <div class="form-row">
+              <label>
+                New start
+                <input name="startAt" type="datetime-local" />
+              </label>
+              <label>
+                New end
+                <input name="endAt" type="datetime-local" />
+              </label>
+            </div>
+            <div class="form-row">
+              <label>
+                Updated deadline
+                <input name="deadlineAt" type="datetime-local" />
+              </label>
+              <label>
+                Follow-up due
+                <input name="nextActionAt" type="datetime-local" />
+              </label>
+            </div>
             <label>
-              Starts
-              <input name="startAt" type="datetime-local" required />
+              Customer-safe reason
+              <textarea name="reason" rows="3">Schedule adjusted by request.</textarea>
             </label>
-            <label>
-              Ends
-              <input name="endAt" type="datetime-local" required />
-            </label>
-          </div>
-          <label>
-            Delivery deadline
-            <input name="deadlineAt" type="datetime-local" required />
-          </label>
-          <div class="form-actions">
-            <button type="submit">Schedule Work</button>
-          </div>
-        </form>
+            <div class="form-actions">
+              <button type="submit">Apply Lifecycle Change</button>
+            </div>
+          </form>
+        </div>
         <div>
           <div id="schedule-confirmation" class="confirmation"></div>
+          <div id="schedule-lifecycle-confirmation" class="confirmation"></div>
           <div class="section-heading compact">
             <h2>Scheduled Sessions</h2>
           </div>

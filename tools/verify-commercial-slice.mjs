@@ -83,6 +83,10 @@ for (const id of [
   "offer-catalog",
   "intake-form",
   "schedule-form",
+  "schedule-lifecycle-form",
+  "schedule-lifecycle-session",
+  "schedule-lifecycle-action",
+  "schedule-lifecycle-confirmation",
   "schedule-feed",
   "intake-feed",
   "submission-form",
@@ -118,6 +122,9 @@ for (const field of ["requesterName", "ageBand", "intakeLane", "billingRegion", 
 }
 for (const field of ["owner", "sessionTitle", "startAt", "endAt", "deadlineAt"]) {
   if (!html.includes(`name="${field}"`)) fail(`schedule form missing field ${field}`);
+}
+for (const field of ["sessionId", "action", "nextActionAt", "reason"]) {
+  if (!html.includes(`name="${field}"`)) fail(`schedule lifecycle form missing field ${field}`);
 }
 for (const field of ["opportunityId", "decision", "planStartAt", "planEndAt", "planDueAt", "decisionNote"]) {
   if (!html.includes(`name="${field}"`)) fail(`opportunity form missing field ${field}`);
@@ -180,6 +187,8 @@ for (const phrase of [
   "createIntakeRecords",
   "createSubmissionRecords",
   "createScheduleRecords",
+  "rescheduleScheduleRecords",
+  "cancelScheduleRecords",
   "decideOpportunityRecords",
   "createCalendarExport",
   "createOperatingLedger",
@@ -231,6 +240,8 @@ for (const phrase of [
   "frameworkId",
   "gameplanId",
   "renderScheduleFeed",
+  "renderScheduleLifecycleOptions",
+  "wireScheduleLifecycleForm",
   "renderIntakeSnapshot",
   "renderSubmissions",
   "renderCustomerUpdates",
@@ -260,6 +271,8 @@ for (const phrase of [
   "Operator Actions",
   "Request Captured",
   "Work Scheduled",
+  "Schedule Rescheduled",
+  "Schedule Canceled",
   "Submission Received",
   "Review Returned",
   "Ledger Exported",
@@ -304,6 +317,7 @@ for (const phrase of [
   "monitor-action-button",
   "button-meta",
   "monitor-command-strip",
+  "schedule-forms",
   "mode-button.active",
   "font-family: var(--font-mono)",
   "background: var(--panel-soft)"
@@ -733,7 +747,43 @@ const deadlineSummary = recordTools.summarizeDeadlines(scheduleResult.data, { no
 if (deadlineSummary.upcoming < 1) fail("deadline summary did not detect upcoming work");
 if (deadlineSummary.owned < 1) fail("deadline summary did not detect owner-linked work");
 
-const submissionResult = recordTools.createSubmissionRecords(scheduleResult.data, {
+const rescheduleResult = recordTools.rescheduleScheduleRecords(scheduleResult.data, {
+  sessionId: scheduleResult.records.session.id,
+  startAt: "2026-06-05T20:30",
+  endAt: "2026-06-05T21:15",
+  deadlineAt: "2026-06-07T18:00",
+  reason: "Student requested a later window."
+}, {
+  now: "2026-06-01T03:05:00.000Z"
+});
+
+if (rescheduleResult.records.session.startAt !== "2026-06-05T20:30:00+09:00") fail("reschedule flow did not update session start");
+if (rescheduleResult.records.session.previousStartAt !== scheduleResult.records.session.startAt) fail("reschedule flow did not preserve previous start");
+if (!Array.isArray(rescheduleResult.records.session.lifecycleHistory) || rescheduleResult.records.session.lifecycleHistory[0].action !== "rescheduled") {
+  fail("reschedule flow did not record lifecycle history");
+}
+if (rescheduleResult.records.assignment.dueAt !== "2026-06-07T18:00:00+09:00") fail("reschedule flow did not update assignment deadline");
+if (rescheduleResult.records.receipt.kind !== "schedule-rescheduled") fail("reschedule flow did not create rescheduled receipt");
+if (!rescheduleResult.data.customers[0].externalStatus.includes("rescheduled")) fail("reschedule flow did not update customer-safe status");
+if (rescheduleResult.data.notificationEvents.length !== scheduleResult.data.notificationEvents.length + 1) fail("reschedule flow did not create update event");
+
+const cancelResult = recordTools.cancelScheduleRecords(rescheduleResult.data, {
+  sessionId: rescheduleResult.records.session.id,
+  nextActionAt: "2026-06-08T12:00",
+  reason: "Replacement timing will be confirmed."
+}, {
+  now: "2026-06-01T03:06:00.000Z"
+});
+
+if (cancelResult.records.session.status !== "canceled") fail("cancel flow did not mark session canceled");
+if (!cancelResult.records.session.canceledAt) fail("cancel flow did not record canceledAt");
+if (cancelResult.data.sessions.length !== rescheduleResult.data.sessions.length) fail("cancel flow deleted historical session intent");
+if (cancelResult.records.assignment.scheduleStatus !== "canceled") fail("cancel flow did not mark linked assignment schedule status");
+if (cancelResult.records.receipt.kind !== "schedule-canceled") fail("cancel flow did not create canceled receipt");
+if (!cancelResult.data.customers[0].externalStatus.includes("canceled")) fail("cancel flow did not update customer-safe status");
+if (cancelResult.data.notificationEvents.length !== rescheduleResult.data.notificationEvents.length + 1) fail("cancel flow did not create update event");
+
+const submissionResult = recordTools.createSubmissionRecords(cancelResult.data, {
   assignmentId: intakeResult.records.assignment.id,
   reviewDueAt: "2026-06-06T18:00",
   submissionTitle: "Diagnostic essay",
@@ -748,7 +798,7 @@ if (submissionResult.records.submission.status !== "reviewing") fail("submission
 if (submissionResult.records.submission.gameplanId !== intakeResult.records.assignment.gameplanId) fail("submission flow did not preserve gameplan identity");
 if (submissionResult.records.review.status !== "reviewing") fail("review should enter reviewing status");
 if (!submissionResult.data.customers[0].externalStatus.includes("review is in progress")) fail("submission flow did not update customer status");
-if (submissionResult.data.notificationEvents.length !== scheduleResult.data.notificationEvents.length + 1) fail("submission flow did not create update event");
+if (submissionResult.data.notificationEvents.length !== cancelResult.data.notificationEvents.length + 1) fail("submission flow did not create update event");
 
 const returnResult = recordTools.returnReviewRecords(submissionResult.data, {
   submissionId: submissionResult.records.submission.id,
@@ -788,6 +838,8 @@ if (monitorReport.summary.eikenLevelCount < 7) fail("monitor summary missing EIK
 if (monitorReport.summary.campaignRoutes !== data.campaignRoutes.length) fail("monitor summary campaign route count is wrong");
 if (monitorReport.summary.readyCampaignRoutes < 3) fail("monitor summary missing ready campaign route count");
 if (monitorReport.summary.copyComplianceViolations !== 0) fail("monitor summary should not report campaign copy violations");
+if (monitorReport.summary.rescheduledScheduleEntries < 1) fail("monitor summary missing rescheduled schedule lifecycle count");
+if (monitorReport.summary.canceledScheduleEntries < 1) fail("monitor summary missing canceled schedule lifecycle count");
 if (!monitorReport.summary.dirtyLocalState) fail("monitor summary should flag dirty local state before export");
 if (monitorReport.summary.awaitingReview < 1) fail("monitor summary missing awaiting-review count");
 if (monitorReport.summary.staleMemoryNotes < 1) fail("monitor summary missing stale memory notes");
@@ -812,6 +864,9 @@ if (!calendarExport.entries.every((entry) => entry.sourceKind && entry.sourceId 
   fail("calendar export entries are missing normalized fields");
 }
 if (!calendarExport.entries.some((entry) => entry.sourceKind === "session" && entry.startAt && entry.endAt)) fail("calendar export missing session window");
+if (!calendarExport.entries.some((entry) => entry.sourceKind === "session" && entry.status === "canceled")) fail("calendar export missing canceled session state");
+if (!calendarExport.entries.some((entry) => entry.sourceKind === "session" && entry.lifecycleAction === "canceled")) fail("calendar export missing lifecycle action");
+if (!calendarExport.entries.some((entry) => entry.sourceKind === "session" && entry.previousStartAt)) fail("calendar export missing previous schedule state");
 if (!calendarExport.entries.some((entry) => entry.sourceKind === "assignment" && entry.dueAt)) fail("calendar export missing assignment due window");
 if (!calendarExport.entries.some((entry) => entry.sourceKind === "submission" && entry.timeKind === "review-window")) fail("calendar export missing submission review window");
 if (!calendarExport.entries.some((entry) => entry.sourceKind === "notification" && entry.updateEventId)) fail("calendar export missing update-linked notification window");
@@ -820,6 +875,7 @@ const calendarSummary = recordTools.summarizeCalendarExport(calendarExport);
 if (calendarSummary.total !== calendarExport.entries.length) fail("calendar summary total is wrong");
 if (calendarSummary.customerVisible < 1) fail("calendar summary did not count customer-visible entries");
 if (calendarSummary.updateLinked < 1) fail("calendar summary did not count update-linked entries");
+if (calendarSummary.canceled < 1) fail("calendar summary did not count canceled lifecycle entries");
 
 const acceptedMonitorReport = recordTools.buildMonitorReport(acceptResult.data, { now: "2026-06-01T12:00:00+09:00" });
 if (acceptedMonitorReport.revenue.activeEngagements < 1) fail("monitor revenue did not count active engagement");

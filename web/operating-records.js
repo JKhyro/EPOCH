@@ -413,6 +413,11 @@
     return text ? text.slice(0, 10) : null;
   }
 
+  function scheduleWindowText(value) {
+    const text = clean(value);
+    return text ? text.replace("T", " ").replace("+09:00", " JST") : "time pending";
+  }
+
   function customerById(data, customerId) {
     return data.customers.find((item) => item.id === customerId) || null;
   }
@@ -440,7 +445,12 @@
       customerId: clean(details.customerId) || null,
       customerName: customer?.displayName || null,
       externalVisible: Boolean(details.externalVisible),
-      updateEventId: clean(details.updateEventId) || null
+      updateEventId: clean(details.updateEventId) || null,
+      lifecycleAction: clean(details.lifecycleAction) || null,
+      previousStartAt: withTimezone(details.previousStartAt, timezone),
+      previousEndAt: withTimezone(details.previousEndAt, timezone),
+      rescheduledAt: withTimezone(details.rescheduledAt, timezone),
+      canceledAt: withTimezone(details.canceledAt, timezone)
     };
   }
 
@@ -877,6 +887,214 @@
         session,
         followup,
         assignment,
+        notificationEvent
+      }
+    };
+  }
+
+  function findLifecycleSession(data, sessionId) {
+    const requestedId = clean(sessionId);
+    if (requestedId) return data.sessions.find((item) => item.id === requestedId) || null;
+    return data.sessions.find((item) => item.status !== "canceled") || data.sessions[0] || null;
+  }
+
+  function pushLifecycleHistory(record, entry) {
+    if (!record) return;
+    if (!Array.isArray(record.lifecycleHistory)) record.lifecycleHistory = [];
+    record.lifecycleHistory.unshift(entry);
+  }
+
+  function rescheduleScheduleRecords(currentData, input, options) {
+    const nextData = cloneData(currentData);
+    ensureCollections(nextData);
+
+    const now = options && options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const requestStamp = stamp(now);
+    const session = findLifecycleSession(nextData, input.sessionId);
+    const startAt = withTimezone(input.startAt || input.newStartAt, timezone);
+    const endAt = withTimezone(input.endAt || input.newEndAt, timezone);
+    const deadlineAt = withTimezone(input.deadlineAt, timezone);
+    const reason = clean(input.reason || input.lifecycleReason) || "Schedule updated at operator request.";
+
+    if (!session) throw new Error("sessionId is required");
+    if (session.status === "canceled") throw new Error("canceled sessions cannot be rescheduled");
+    if (!startAt) throw new Error("startAt is required");
+    if (!endAt) throw new Error("endAt is required");
+
+    const previousStartAt = session.startAt;
+    const previousEndAt = session.endAt;
+    const rescheduledAt = withTimezone(now.toISOString(), timezone);
+    const customerId = session.customerId || nextData.assignments.find((item) => item.id === session.assignmentId)?.customerId || nextData.customers[0]?.id;
+    const customer = nextData.customers.find((item) => item.id === customerId);
+    const assignment = nextData.assignments.find((item) => item.id === session.assignmentId);
+    const owner = clean(input.owner) || session.owner || assignment?.owner || "Jack";
+
+    session.startAt = startAt;
+    session.endAt = endAt;
+    session.status = "planned";
+    session.owner = owner;
+    session.rescheduledAt = rescheduledAt;
+    session.rescheduleReason = reason;
+    session.previousStartAt = previousStartAt || null;
+    session.previousEndAt = previousEndAt || null;
+    pushLifecycleHistory(session, {
+      action: "rescheduled",
+      at: rescheduledAt,
+      previousStartAt: previousStartAt || null,
+      previousEndAt: previousEndAt || null,
+      nextStartAt: startAt,
+      nextEndAt: endAt,
+      reason
+    });
+
+    if (assignment) {
+      assignment.status = assignment.status === "canceled" ? "planned" : assignment.status || "planned";
+      assignment.owner = owner;
+      assignment.scheduleStatus = "rescheduled";
+      assignment.lastScheduleId = session.id;
+      if (deadlineAt) {
+        assignment.previousDueAt = assignment.dueAt || null;
+        assignment.dueAt = deadlineAt;
+      }
+      pushLifecycleHistory(assignment, {
+        action: "schedule-rescheduled",
+        at: rescheduledAt,
+        sessionId: session.id,
+        previousDueAt: assignment.previousDueAt || null,
+        nextDueAt: assignment.dueAt || null,
+        reason
+      });
+    }
+
+    const externalStatus = `${session.title} rescheduled for ${scheduleWindowText(startAt)}; deadline control is active.`;
+    if (customer) customer.externalStatus = externalStatus;
+
+    const receipt = {
+      id: `receipt-reschedule-${requestStamp}`,
+      customerId,
+      kind: "schedule-rescheduled",
+      status: "complete",
+      createdAt: rescheduledAt,
+      note: `${session.title} moved from ${scheduleWindowText(previousStartAt)} to ${scheduleWindowText(startAt)}. ${reason}`
+    };
+    const followup = {
+      id: `followup-reschedule-${requestStamp}`,
+      customerId,
+      title: `Confirm updated schedule: ${session.title}`,
+      status: "planned",
+      owner,
+      nextActionAt: deadlineAt || startAt
+    };
+    const notificationEvent = createNotificationEventRecord(nextData, {
+      customerId,
+      sourceKind: "session-lifecycle",
+      sourceId: session.id,
+      title: "Schedule updated",
+      summary: externalStatus,
+      deliverAfterAt: startAt
+    }, now, timezone);
+
+    nextData.receipts.unshift(receipt);
+    nextData.followups.unshift(followup);
+    nextData.notificationEvents.unshift(notificationEvent);
+
+    return {
+      data: nextData,
+      records: {
+        session,
+        assignment,
+        receipt,
+        followup,
+        notificationEvent
+      }
+    };
+  }
+
+  function cancelScheduleRecords(currentData, input, options) {
+    const nextData = cloneData(currentData);
+    ensureCollections(nextData);
+
+    const now = options && options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const requestStamp = stamp(now);
+    const session = findLifecycleSession(nextData, input.sessionId);
+    const reason = clean(input.reason || input.lifecycleReason) || "Schedule canceled at operator request.";
+    const nextActionAt = withTimezone(input.nextActionAt, timezone) || withTimezone(now.toISOString(), timezone);
+
+    if (!session) throw new Error("sessionId is required");
+
+    const canceledAt = withTimezone(now.toISOString(), timezone);
+    const customerId = session.customerId || nextData.assignments.find((item) => item.id === session.assignmentId)?.customerId || nextData.customers[0]?.id;
+    const customer = nextData.customers.find((item) => item.id === customerId);
+    const assignment = nextData.assignments.find((item) => item.id === session.assignmentId);
+    const owner = clean(input.owner) || session.owner || assignment?.owner || "Jack";
+
+    session.status = "canceled";
+    session.owner = owner;
+    session.canceledAt = canceledAt;
+    session.cancelReason = reason;
+    pushLifecycleHistory(session, {
+      action: "canceled",
+      at: canceledAt,
+      startAt: session.startAt || null,
+      endAt: session.endAt || null,
+      reason
+    });
+
+    if (assignment) {
+      assignment.scheduleStatus = "canceled";
+      assignment.lastScheduleId = session.id;
+      assignment.nextActionAt = nextActionAt;
+      if (assignment.status === "planned") assignment.status = "waiting";
+      pushLifecycleHistory(assignment, {
+        action: "schedule-canceled",
+        at: canceledAt,
+        sessionId: session.id,
+        nextActionAt,
+        reason
+      });
+    }
+
+    const externalStatus = `${session.title} was canceled; replacement plan will be confirmed if needed.`;
+    if (customer) customer.externalStatus = externalStatus;
+
+    const receipt = {
+      id: `receipt-cancel-${requestStamp}`,
+      customerId,
+      kind: "schedule-canceled",
+      status: "complete",
+      createdAt: canceledAt,
+      note: `${session.title} canceled. ${reason}`
+    };
+    const followup = {
+      id: `followup-cancel-${requestStamp}`,
+      customerId,
+      title: `Confirm replacement plan: ${session.title}`,
+      status: "planned",
+      owner,
+      nextActionAt
+    };
+    const notificationEvent = createNotificationEventRecord(nextData, {
+      customerId,
+      sourceKind: "session-lifecycle",
+      sourceId: session.id,
+      title: "Schedule canceled",
+      summary: externalStatus,
+      deliverAfterAt: nextActionAt
+    }, now, timezone);
+
+    nextData.receipts.unshift(receipt);
+    nextData.followups.unshift(followup);
+    nextData.notificationEvents.unshift(notificationEvent);
+
+    return {
+      data: nextData,
+      records: {
+        session,
+        assignment,
+        receipt,
+        followup,
         notificationEvent
       }
     };
@@ -1648,7 +1866,12 @@
         owner: session.owner,
         customerId: session.customerId,
         externalVisible: true,
-        updateEventId: updateBySource[`session:${session.id}`]?.id
+        updateEventId: updateBySource[`session:${session.id}`]?.id || updateBySource[`session-lifecycle:${session.id}`]?.id,
+        lifecycleAction: session.canceledAt ? "canceled" : session.rescheduledAt ? "rescheduled" : "",
+        previousStartAt: session.previousStartAt,
+        previousEndAt: session.previousEndAt,
+        rescheduledAt: session.rescheduledAt,
+        canceledAt: session.canceledAt
       }, timezone));
     }
 
@@ -1663,7 +1886,9 @@
         owner: assignment.owner,
         customerId: assignment.customerId,
         externalVisible: assignment.externalVisible,
-        updateEventId: updateBySource[`assignment:${assignment.id}`]?.id || updateBySource[`intake:${assignment.id}`]?.id
+        updateEventId: updateBySource[`assignment:${assignment.id}`]?.id || updateBySource[`intake:${assignment.id}`]?.id,
+        lifecycleAction: assignment.scheduleStatus || "",
+        previousStartAt: assignment.previousDueAt
       }, timezone));
     }
 
@@ -1781,7 +2006,9 @@
       dueWindows: entries.filter((item) => item.timeKind && item.timeKind.includes("window")).length,
       customerVisible: entries.filter((item) => item.externalVisible).length,
       updateLinked: entries.filter((item) => item.updateEventId).length,
-      overdueOrBlocked: entries.filter((item) => item.status === "overdue" || item.status === "blocked").length
+      overdueOrBlocked: entries.filter((item) => item.status === "overdue" || item.status === "blocked").length,
+      rescheduled: entries.filter((item) => item.lifecycleAction === "rescheduled" || item.rescheduledAt).length,
+      canceled: entries.filter((item) => item.status === "canceled" || item.lifecycleAction === "canceled").length
     };
   }
 
@@ -1985,6 +2212,8 @@
         pendingHandoffApprovals: handoffs.pendingApprovals,
         calendarEntries: calendarExport.counts.total,
         calendarVisible: calendarExport.counts.customerVisible,
+        rescheduledScheduleEntries: calendarExport.counts.rescheduled,
+        canceledScheduleEntries: calendarExport.counts.canceled,
         persistenceRevision: persistence.revision,
         persistenceState: persistence.adapterState,
         routePlacements: routePlacement.summary.routeCount,
@@ -2080,6 +2309,8 @@
     createIntakeRecords,
     createSubmissionRecords,
     createScheduleRecords,
+    rescheduleScheduleRecords,
+    cancelScheduleRecords,
     importOperatingLedger,
     returnReviewRecords,
     buildMonitorReport,
