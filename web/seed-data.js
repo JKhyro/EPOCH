@@ -108,6 +108,119 @@ window.EPOCH_SEED_DATA = {
       "status": "active"
     }
   ],
+  "curriculumFrameworks": [
+    {
+      "id": "framework-eiken-5-to-1-writing",
+      "trackId": "track-eiken-upper",
+      "title": "EIKEN 5-1 Adaptive Writing Ladder",
+      "audience": "Adults and serious exam candidates",
+      "levels": ["5", "4", "3", "Pre-2", "2", "Pre-1", "1"],
+      "positioning": "Diagnostic-led writing improvement with level-specific tasks, reusable strategies, and teacher-reviewed feedback.",
+      "diagnostic": "No-help baseline writing sample, goal interview, deadline check, and exam-level routing.",
+      "cadence": "Weekly or biweekly submission windows with optional live review only when it moves the outcome forward.",
+      "modules": [
+        "Level fit and exam task control",
+        "Idea generation and answer structure",
+        "Reason development and examples",
+        "Grammar cleanup and reusable phrase control",
+        "Timed writing and final correction loop"
+      ],
+      "assessmentRules": [
+        "Adults can enter through paid diagnostic or monthly review.",
+        "Under-19 applicants require compatibility review and guardian agreement.",
+        "Cohorts open only when level and schedule clusters are strong enough."
+      ],
+      "status": "active"
+    },
+    {
+      "id": "framework-professional-writing-ops",
+      "trackId": "track-service-ops",
+      "title": "Professional Writing And Operations Support Framework",
+      "audience": "Adults, freelancers, and small operators",
+      "levels": ["diagnostic", "cleanup", "systemize", "handoff"],
+      "positioning": "Outcome-first support for documents, CRM cleanup, SOPs, admin systems, and recurring operating requests.",
+      "diagnostic": "Request intake, source-file check, deadline and risk review, then a scoped first deliverable.",
+      "cadence": "Retainer or project windows with clear next actions, receipts, and controlled customer updates.",
+      "modules": [
+        "Request triage and source check",
+        "Deliverable definition",
+        "Draft or system cleanup",
+        "Review and revision",
+        "Handoff record and next-action plan"
+      ],
+      "assessmentRules": [
+        "No broad ongoing support without a scoped diagnostic.",
+        "Recurring support requires a queue, owner, and written handoff rule.",
+        "Customer-visible status changes stay separate from internal agent work."
+      ],
+      "status": "active"
+    }
+  ],
+  "packageGameplans": [
+    {
+      "id": "gameplan-premium-eiken-monthly",
+      "packageId": "pkg-eiken-writing-monthly",
+      "frameworkId": "framework-eiken-5-to-1-writing",
+      "title": "Premium EIKEN Monthly Review Gameplan",
+      "status": "active",
+      "deliveryCadence": "4 submission windows per month with one diagnostic and three targeted improvement cycles.",
+      "personalizationInputs": ["target level", "deadline", "baseline sample", "weakness pattern", "available study time"],
+      "milestones": [
+        "Baseline diagnostic returned with level fit and priority weaknesses.",
+        "Personal writing template selected for the target EIKEN level.",
+        "Two corrected submissions returned with revision targets.",
+        "Final timed submission checked against exam-ready criteria."
+      ],
+      "customerVisibleSummary": "Your plan starts with a diagnostic, then moves through structured submissions, returned feedback, and exam-level milestones.",
+      "internalReadiness": "Ready for paid diagnostic and monthly review delivery.",
+      "nextMilestoneAt": "2026-06-03T18:00:00+09:00",
+      "laborModel": "submission-first",
+      "liveTouchPolicy": "Live calls are optional diagnostic or strategy checkpoints, not the core delivery unit.",
+      "under19Policy": "Route under-19 applicants to compatibility assessment before this gameplan is offered."
+    },
+    {
+      "id": "gameplan-eiken-cohort-lab",
+      "packageId": "pkg-eiken-cohort-lab",
+      "frameworkId": "framework-eiken-5-to-1-writing",
+      "title": "EIKEN Cohort Writing Lab Gameplan",
+      "status": "planned",
+      "deliveryCadence": "Small-group weekly prompt plus shared strategy notes and individual correction windows.",
+      "personalizationInputs": ["exam level cluster", "submission pace", "common weakness pattern", "cohort schedule"],
+      "milestones": [
+        "Cohort level and schedule cluster confirmed.",
+        "Shared strategy worksheet released.",
+        "Individual submission queue opened.",
+        "Returned feedback summarized into next cohort focus."
+      ],
+      "customerVisibleSummary": "Cohort work opens when level and schedule fit are strong enough; individual correction remains tracked separately.",
+      "internalReadiness": "Ready after demand cluster and schedule window are confirmed.",
+      "nextMilestoneAt": "2026-06-05T20:00:00+09:00",
+      "laborModel": "cohort-scaled",
+      "liveTouchPolicy": "One compact group strategy session can support several submission reviews.",
+      "under19Policy": "Younger candidates require guardian-led compatibility review and higher-touch pricing."
+    },
+    {
+      "id": "gameplan-ops-diagnostic",
+      "packageId": "pkg-ops-diagnostic",
+      "frameworkId": "framework-professional-writing-ops",
+      "title": "Service Operations Diagnostic Gameplan",
+      "status": "active",
+      "deliveryCadence": "Request intake, source check, one diagnostic session, written action list, and follow-up receipt.",
+      "personalizationInputs": ["business goal", "source files", "deadline", "systems used", "support boundary"],
+      "milestones": [
+        "Source files and access boundary confirmed.",
+        "Diagnostic session scheduled.",
+        "Written action list returned.",
+        "Follow-up or retainer route selected."
+      ],
+      "customerVisibleSummary": "Your request is scoped before work starts, then tracked through status updates and a written handoff.",
+      "internalReadiness": "Ready for scoped service requests and follow-up conversion.",
+      "nextMilestoneAt": "2026-06-04T16:00:00+09:00",
+      "laborModel": "diagnostic",
+      "liveTouchPolicy": "Live time is used for scoping; recurring work moves through managed requests.",
+      "under19Policy": "Not applicable; business and adult operator route only."
+    }
+  ],
   "leads": [
     {
       "id": "lead-001",
@@ -235,6 +348,8 @@ window.EPOCH_SEED_DATA = {
       "id": "student-001",
       "displayName": "Adult writing student",
       "trackId": "track-eiken-upper",
+      "packageId": "pkg-eiken-writing-monthly",
+      "gameplanId": "gameplan-premium-eiken-monthly",
       "ageBand": "adult",
       "externalStatus": "Review returned; next submission window opens June 3."
     },
@@ -242,6 +357,8 @@ window.EPOCH_SEED_DATA = {
       "id": "client-001",
       "displayName": "Small business ops client",
       "trackId": "track-service-ops",
+      "packageId": "pkg-ops-diagnostic",
+      "gameplanId": "gameplan-ops-diagnostic",
       "ageBand": "business",
       "externalStatus": "Service request blocked pending source files."
     }

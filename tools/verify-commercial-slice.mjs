@@ -16,6 +16,8 @@ const requiredStatuses = [
 const requiredCollections = [
   "tracks",
   "offerPackages",
+  "curriculumFrameworks",
+  "packageGameplans",
   "leads",
   "opportunities",
   "routePlacements",
@@ -100,6 +102,9 @@ for (const id of [
 ]) {
   if (!html.includes(`id="${id}"`)) fail(`web surface missing ${id}`);
 }
+for (const id of ["admin-gameplans", "student-gameplans", "curriculum-frameworks"]) {
+  if (!html.includes(`id="${id}"`)) fail(`curriculum/gameplan surface missing ${id}`);
+}
 for (const field of ["requesterName", "ageBand", "intakeLane", "billingRegion", "offerKind", "packageId", "documentType", "targetResult", "deadlineTimezone", "preferredWindow", "requestSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`intake form missing field ${field}`);
 }
@@ -114,6 +119,9 @@ for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissi
 }
 for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-command-strip", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-persistence"]) {
   if (!html.includes(phrase)) fail(`monitor route surface missing phrase ${phrase}`);
+}
+for (const phrase of ["monitor-curriculum", "Package Gameplans", "Personalized Gameplan", "Curriculum Frameworks"]) {
+  if (!html.includes(phrase)) fail(`curriculum/gameplan HTML missing phrase ${phrase}`);
 }
 for (const phrase of [
   "SCAFFOLD-aligned",
@@ -186,6 +194,13 @@ for (const phrase of [
   "aria-selected",
   "renderOfferCatalog",
   "renderOfferOptions",
+  "renderCurriculumFrameworks",
+  "renderAdminGameplans",
+  "renderStudentGameplans",
+  "summarizeCurriculumState",
+  "Curriculum Readiness",
+  "monitor-curriculum",
+  "gameplan-ready",
   "marketRoute",
   "laborModel",
   "renderOpportunityOptions",
@@ -269,9 +284,28 @@ if (!data.offerPackages.some((item) => item.laborModel === "async-first" && item
 if (!data.offerPackages.some((item) => item.marketRoute.includes("global"))) {
   fail("offer catalog missing global expansion route");
 }
+if (!data.curriculumFrameworks.some((item) => item.id === "framework-eiken-5-to-1-writing")) {
+  fail("curriculum frameworks missing EIKEN 5-1 ladder");
+}
+const eikenFramework = data.curriculumFrameworks.find((item) => item.id === "framework-eiken-5-to-1-writing");
+for (const level of ["5", "4", "3", "Pre-2", "2", "Pre-1", "1"]) {
+  if (!eikenFramework.levels.includes(level)) fail(`EIKEN framework missing level ${level}`);
+}
+if (!eikenFramework.positioning.includes("teacher-reviewed feedback")) fail("EIKEN framework missing outcome/workflow positioning");
+if (!eikenFramework.assessmentRules.some((item) => item.includes("Under-19"))) fail("EIKEN framework missing under-19 compatibility rule");
+if (!data.packageGameplans.some((item) => item.packageId === "pkg-eiken-writing-monthly" && item.laborModel === "submission-first")) {
+  fail("package gameplans missing premium submission-first EIKEN plan");
+}
+if (!data.packageGameplans.every((item) => item.customerVisibleSummary && item.internalReadiness && item.under19Policy)) {
+  fail("package gameplans missing customer/internal/under-19 policy metadata");
+}
+if (!data.customers.some((item) => item.gameplanId === "gameplan-premium-eiken-monthly")) {
+  fail("customers do not demonstrate assigned personalized gameplan");
+}
 if (typeof recordTools.createAgentHandoffRecords !== "function") fail("operating helpers missing createAgentHandoffRecords");
 if (typeof recordTools.summarizeAgentHandoffState !== "function") fail("operating helpers missing summarizeAgentHandoffState");
 if (typeof recordTools.summarizeRoutePlacementState !== "function") fail("operating helpers missing summarizeRoutePlacementState");
+if (typeof recordTools.summarizeCurriculumState !== "function") fail("operating helpers missing summarizeCurriculumState");
 
 const checklist = read("../docs/first-commercial-slice-checklist.md");
 for (const phrase of [
@@ -279,9 +313,22 @@ for (const phrase of [
   "Internal schedule/admin view",
   "Student/customer status view",
   "EPOCH MONITOR status page",
-  "from intake through returned feedback"
+  "from intake through returned feedback",
+  "Curriculum framework",
+  "Package gameplan"
 ]) {
   if (!checklist.includes(phrase)) fail(`checklist missing phrase: ${phrase}`);
+}
+
+const curriculumFrameworkDoc = read("../docs/curriculum-gameplan-framework.md");
+for (const phrase of [
+  "curriculumFrameworks",
+  "packageGameplans",
+  "EIKEN must cover levels 5, 4, 3, Pre-2, 2, Pre-1, and 1",
+  "Do not lead public education copy with AI terminology",
+  "under-19 guarded gameplan count"
+]) {
+  if (!curriculumFrameworkDoc.includes(phrase)) fail(`curriculum gameplan framework doc missing phrase: ${phrase}`);
 }
 
 const handoffContract = read("../docs/agentic-revenue-handoff-contract.md");
@@ -383,6 +430,12 @@ if (revenueSummary.acceptedCount < 1) fail("revenue summary did not count accept
 const notificationSummary = recordTools.summarizeNotificationState(acceptResult.data);
 if (notificationSummary.visible < 1) fail("notification summary did not count visible updates");
 if (notificationSummary.posted < 1) fail("notification summary did not count posted updates");
+const curriculumSummary = recordTools.summarizeCurriculumState(acceptResult.data);
+if (curriculumSummary.frameworks < 2) fail("curriculum summary did not count seeded frameworks");
+if (curriculumSummary.gameplans < 3) fail("curriculum summary did not count seeded package gameplans");
+if (curriculumSummary.eikenLevelCount < 7) fail("curriculum summary did not count EIKEN 5-1 levels");
+if (curriculumSummary.submissionFirstGameplans < 1) fail("curriculum summary did not detect submission-first gameplans");
+if (curriculumSummary.under19GuardedGameplans < 1) fail("curriculum summary did not detect under-19 guarded gameplans");
 
 const acceptedExternalStatus = acceptResult.data.customers[0].externalStatus;
 const handoffResult = recordTools.createAgentHandoffRecords(acceptResult.data, {
@@ -540,6 +593,7 @@ for (const section of ["summary", "queue", "timeline", "risks", "receipts"]) {
   if (!(section in monitorReport)) fail(`monitor report missing section ${section}`);
 }
 if (!monitorReport.revenue) fail("monitor report missing revenue state");
+if (!monitorReport.curriculum) fail("monitor report missing curriculum state");
 if (!monitorReport.notifications) fail("monitor report missing notification state");
 if (!monitorReport.calendar) fail("monitor report missing calendar export state");
 if (!monitorReport.persistence) fail("monitor report missing persistence state");
@@ -548,6 +602,8 @@ if (!monitorReport.summary.persistenceRevision) fail("monitor summary missing pe
 if (!monitorReport.summary.persistenceState) fail("monitor summary missing persistence adapter state");
 if (monitorReport.summary.routePlacements < 1) fail("monitor summary missing route placement count");
 if (monitorReport.summary.synapsePlacementMode !== "link-or-embed") fail("monitor summary missing SYNAPSE placement mode");
+if (monitorReport.summary.curriculumFrameworks < 2) fail("monitor summary missing curriculum framework count");
+if (monitorReport.summary.eikenLevelCount < 7) fail("monitor summary missing EIKEN level count");
 if (monitorReport.summary.timeline < 1) fail("monitor report did not include timeline records");
 if (!Array.isArray(monitorReport.queue)) fail("monitor report queue is not an array");
 if (!Array.isArray(monitorReport.receipts) || monitorReport.receipts.length < 1) fail("monitor report receipts missing returned review receipt");
@@ -576,6 +632,7 @@ const handoffMonitorReport = recordTools.buildMonitorReport(handoffResult.data, 
 if (!handoffMonitorReport.handoffs || handoffMonitorReport.handoffs.handoffs < 1) fail("monitor report missing handoff state");
 if (handoffMonitorReport.summary.pendingHandoffApprovals < 1) fail("monitor summary missing pending handoff approvals");
 if (!handoffMonitorReport.queue.some((item) => item.kind === "agent handoff")) fail("monitor queue missing agent handoff");
+if (!handoffMonitorReport.timeline.some((item) => item.kind === "gameplan")) fail("monitor timeline missing package gameplans");
 
 const handoffCalendarExport = recordTools.createCalendarExport(handoffResult.data, { now: "2026-06-01T12:00:00+09:00" });
 if (!handoffCalendarExport.entries.some((entry) => entry.sourceKind === "agent-work-plan" && !entry.externalVisible)) fail("calendar export missing internal agent work plan window");
@@ -601,6 +658,8 @@ if (exportedLedger.monitor.persistenceRevision !== exportedLedger.persistence.re
 if (!exportedLedger.calendarExport || exportedLedger.calendarExport.entries.length !== calendarExport.entries.length) fail("ledger export missing calendar export entries");
 if (!exportedLedger.routePlacement || exportedLedger.routePlacement.summary.routeCount !== exportedLedger.data.routePlacements.length) fail("ledger export missing route placement summary");
 if (exportedLedger.counts.routePlacements !== returnResult.data.routePlacements.length) fail("ledger export route placement count is wrong");
+if (exportedLedger.counts.curriculumFrameworks !== returnResult.data.curriculumFrameworks.length) fail("ledger export curriculum framework count is wrong");
+if (exportedLedger.counts.packageGameplans !== returnResult.data.packageGameplans.length) fail("ledger export package gameplan count is wrong");
 
 const persistenceSummary = recordTools.summarizePersistenceState(exportedLedger.data);
 if (persistenceSummary.ledgerId !== exportedLedger.persistence.ledgerId) fail("persistence summary did not preserve ledger id");

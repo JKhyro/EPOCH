@@ -517,6 +517,12 @@ h1 {
   grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
 }
 
+#admin-gameplans,
+#student-gameplans,
+#curriculum-frameworks {
+  margin-bottom: 18px;
+}
+
 .monitor-grid,
 .offer-layout {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

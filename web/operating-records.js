@@ -17,6 +17,8 @@
   const ledgerCollections = [
     "tracks",
     "offerPackages",
+    "curriculumFrameworks",
+    "packageGameplans",
     "leads",
     "opportunities",
     "engagements",
@@ -1142,6 +1144,30 @@
     };
   }
 
+  function summarizeCurriculumState(currentData) {
+    const frameworks = Array.isArray(currentData.curriculumFrameworks) ? currentData.curriculumFrameworks : [];
+    const gameplans = Array.isArray(currentData.packageGameplans) ? currentData.packageGameplans : [];
+    const eikenFramework = frameworks.find((item) => clean(item.id) === "framework-eiken-5-to-1-writing")
+      || frameworks.find((item) => clean(item.title).includes("EIKEN"));
+    const eikenLevels = Array.isArray(eikenFramework?.levels) ? eikenFramework.levels : [];
+    const activeGameplans = gameplans.filter((item) => clean(item.status) === "active" || clean(item.status) === "planned");
+    const submissionFirst = gameplans.filter((item) => clean(item.laborModel).includes("submission") || clean(item.deliveryCadence).includes("submission"));
+    const under19Guarded = gameplans.filter((item) => clean(item.under19Policy).toLowerCase().includes("compatibility"));
+
+    return {
+      frameworks: frameworks.length,
+      activeFrameworks: frameworks.filter((item) => clean(item.status) === "active").length,
+      gameplans: gameplans.length,
+      activeGameplans: activeGameplans.length,
+      eikenLevelCount: eikenLevels.length,
+      eikenLevels,
+      submissionFirstGameplans: submissionFirst.length,
+      under19GuardedGameplans: under19Guarded.length,
+      readyGameplans: activeGameplans.filter((item) => clean(item.internalReadiness).toLowerCase().includes("ready")).length,
+      nextMilestones: activeGameplans.filter((item) => clean(item.nextMilestoneAt)).length
+    };
+  }
+
   function summarizeNotificationState(currentData) {
     const events = Array.isArray(currentData.notificationEvents) ? currentData.notificationEvents : [];
 
@@ -1177,6 +1203,7 @@
     const data = normalizedOperatingData(currentData);
     const nowText = clean(options.now) || "2026-06-01T12:00:00+09:00";
     const revenue = summarizeRevenueState(data);
+    const curriculum = summarizeCurriculumState(data);
     const notifications = summarizeNotificationState(data);
     const handoffs = summarizeAgentHandoffState(data);
     const calendarExport = createCalendarExport(data, { now: nowText });
@@ -1192,6 +1219,8 @@
       receipts: receipts.length,
       activeEngagements: revenue.activeEngagements,
       pipelineValueJpy: revenue.pipelineValueJpy,
+      curriculumFrameworks: curriculum.frameworks,
+      activeGameplans: curriculum.activeGameplans,
       visibleUpdates: notifications.visible,
       pendingHandoffApprovals: handoffs.pendingApprovals,
       calendarEntries: calendarExport.counts.total
@@ -1404,6 +1433,7 @@
       ...currentData.leads.map((item) => ({ kind: "lead", id: item.id, title: item.name, status: item.status, time: item.nextActionAt, owner: item.owner || "intake" })),
       ...currentData.opportunities.map((item) => ({ kind: "opportunity", id: item.id, title: item.packageId || item.id, status: item.status, time: item.nextActionAt, owner: `${item.estimatedValueJpy || 0} JPY` })),
       ...currentData.engagements.map((item) => ({ kind: "engagement", id: item.id, title: item.packageId || item.id, status: item.status, time: item.onboardingDueAt || item.acceptedAt, owner: item.owner || "owner pending" })),
+      ...currentData.packageGameplans.map((item) => ({ kind: "gameplan", id: item.id, title: item.title, status: item.status, time: item.nextMilestoneAt, owner: item.laborModel || "delivery plan" })),
       ...currentData.workPlans.map((item) => ({ kind: "agent work plan", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.approvalStatus || item.owner || "approval pending" })),
       ...currentData.agentHandoffs.map((item) => ({ kind: "agent handoff", id: item.id, title: item.title, status: item.status, time: item.nextActionAt, owner: item.approvalStatus || "approval pending" })),
       ...currentData.notificationEvents.map((item) => ({ kind: "update", id: item.id, title: item.title, status: item.status, time: item.deliverAfterAt || item.createdAt, owner: item.deliveryStatus || "pending" })),
@@ -1422,6 +1452,7 @@
     const terminalStatuses = new Set(["complete", "returned", "canceled", "accepted", "rejected"]);
     const activeStatuses = new Set(["waiting", "deferred", "submitted", "reviewing", "overdue", "blocked", "proposed"]);
     const revenue = summarizeRevenueState(data);
+    const curriculum = summarizeCurriculumState(data);
     const notifications = summarizeNotificationState(data);
     const handoffs = summarizeAgentHandoffState(data);
     const calendarExport = createCalendarExport(data, { now: nowText });
@@ -1472,6 +1503,10 @@
         activeEngagements: revenue.activeEngagements,
         pipelineValueJpy: revenue.pipelineValueJpy,
         acceptedValueJpy: revenue.acceptedValueJpy,
+        curriculumFrameworks: curriculum.frameworks,
+        activeGameplans: curriculum.activeGameplans,
+        eikenLevelCount: curriculum.eikenLevelCount,
+        submissionFirstGameplans: curriculum.submissionFirstGameplans,
         visibleUpdates: notifications.visible,
         blockedUpdates: notifications.blocked,
         agentHandoffs: handoffs.handoffs,
@@ -1484,6 +1519,7 @@
         synapsePlacementMode: routePlacement.placementMode
       },
       revenue,
+      curriculum,
       notifications,
       handoffs,
       routePlacement,
@@ -1555,6 +1591,7 @@
     returnReviewRecords,
     buildMonitorReport,
     summarizeCalendarExport,
+    summarizeCurriculumState,
     summarizeDeadlines,
     summarizeAgentHandoffState,
     summarizeRoutePlacementState,

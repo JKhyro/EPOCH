@@ -24,6 +24,7 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
 - `docs/education-operating-platform-boundary.md`
 - `docs/first-commercial-slice-checklist.md`
 - `docs/integration-priority-ranking.md`
+- `docs/curriculum-gameplan-framework.md`
 - `docs/agentic-revenue-handoff-contract.md`
 - `docs/synapse-route-placement-contract.md`
 
@@ -52,9 +53,9 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   placement cards, plus marketing-route and labor-model offer catalog display,
   body-level active-view state, and shared data-view activation.
 - `web/seed-data.js`: demo commercial workflow covering leads, tracks, cohorts,
-  offer packages, opportunities, update events, sessions, assignments,
-  submissions, reviews, follow-ups, receipts, SYNAPSE route placements, and
-  marketing-ready package metadata.
+  offer packages, curriculum frameworks, package gameplans, opportunities,
+  update events, sessions, assignments, submissions, reviews, follow-ups,
+  receipts, SYNAPSE route placements, and marketing-ready package metadata.
 - `tools/verify-commercial-slice.mjs`: repository verifier for the first
   commercial slice.
 
