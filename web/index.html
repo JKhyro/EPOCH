@@ -342,6 +342,7 @@
         <button type="button" class="mode-button" data-monitor-target="monitor-marketing-conversions">KPIs</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-provider-adapters">Adapters</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-calendar-adapter">Cal Adapter</button>
+        <button type="button" class="mode-button" data-monitor-target="monitor-notification-prototype">Notify Proof</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-account-history">History</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-controls">Controls</button>
       </div>
@@ -362,6 +363,7 @@
           <button type="button" data-monitor-target="monitor-marketing-conversions">Conversion KPIs</button>
           <button type="button" data-monitor-target="monitor-provider-adapters">Provider Adapters</button>
           <button type="button" data-monitor-target="monitor-calendar-adapter">Sandbox Calendar Adapter</button>
+          <button type="button" data-monitor-target="monitor-notification-prototype">Sandbox Notification Provider</button>
           <button type="button" data-monitor-target="monitor-account-history">Customer Account History</button>
           <button type="button" data-monitor-target="monitor-handoffs">Agent Handoffs</button>
           <button type="button" data-monitor-target="monitor-notification-provider">Notification Providers</button>
@@ -624,6 +626,29 @@
               </label>
               <button type="submit" id="calendar-adapter-apply">Apply Sandbox Calendar Adapter Action</button>
             </form>
+            <form id="notification-prototype-form" class="review-console notification-prototype-console">
+              <div class="form-row">
+                <label>
+                  Sandbox Notification Provider
+                  <select name="prototypeId" id="notification-prototype-select" required></select>
+                </label>
+                <label>
+                  Prototype action
+                  <select name="action" id="notification-prototype-action" required>
+                    <option value="generate-preview">Generate local preview</option>
+                    <option value="approve-sandbox">Approve sandbox proof</option>
+                    <option value="mark-reviewed">Mark operator reviewed</option>
+                    <option value="defer">Defer prototype</option>
+                    <option value="block">Block prototype</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                Prototype note
+                <input name="note" value="Sandbox notification provider reviewed; live email, LINE, SMS, NEXUS, OAuth, secrets, webhooks, provider writes, and customer-visible sends remain disabled." />
+              </label>
+              <button type="submit" id="notification-prototype-apply">Apply Sandbox Notification Provider Action</button>
+            </form>
             <form id="quote-payment-form" class="review-console quote-console">
               <div class="form-row">
                 <label>
@@ -821,6 +846,7 @@
             <div id="marketing-conversion-confirmation" class="confirmation"></div>
             <div id="provider-adapter-confirmation" class="confirmation"></div>
             <div id="calendar-adapter-confirmation" class="confirmation"></div>
+            <div id="notification-prototype-confirmation" class="confirmation"></div>
             <div id="quote-payment-confirmation" class="confirmation"></div>
             <div id="reminder-control-confirmation" class="confirmation"></div>
             <div id="access-gateway-confirmation" class="confirmation"></div>

@@ -37,6 +37,7 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
 - `docs/marketing-conversion-analytics-readiness-contract.md`
 - `docs/provider-adapter-selection-readiness-contract.md`
 - `docs/sandbox-calendar-adapter-prototype-contract.md`
+- `docs/sandbox-notification-provider-prototype-contract.md`
 - `docs/customer-account-history-contract.md`
 
 ## Current implementation artifacts
@@ -78,6 +79,11 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   from EPOCH calendar export data, but still do not call calendar APIs, configure
   OAuth, store secrets, create webhooks, write provider records, send
   invitations, or show customer-visible updates.
+  Sandbox notification provider prototype records can generate local
+  provider-neutral message payload previews from customer-safe update records,
+  but still do not send email, LINE, SMS, NEXUS, or webhook messages, configure
+  OAuth, store secrets, write provider records, or create customer-visible
+  sends.
   Durable customer account history records link customer status, submissions,
   cohorts, service records, receipts, and customer-safe updates while remaining
   local-only and controlled-customer.
@@ -91,8 +97,9 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   sync/recovery controls plus provider-neutral calendar and notification
   provider handoff controls, auth/session readiness controls, and local
   marketing conversion KPI controls, provider adapter go/no-go controls, and a
-  sandbox calendar adapter prototype console, plus customer account history
-  cards for controlled customer-safe status timelines.
+  sandbox calendar adapter prototype console, sandbox notification provider
+  prototype console, plus customer account history cards for controlled
+  customer-safe status timelines.
 - `web/seed-data.js`: demo commercial workflow covering leads, tracks, cohorts,
   offer packages, curriculum frameworks, package gameplans, opportunities,
   update events, sessions, assignments, submissions, reviews, follow-ups,
@@ -105,7 +112,8 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   and under-19 guarded routes, plus provider adapter candidate records for
   calendar, notification, payment, auth/session, analytics, and persistence
   go/no-go readiness, a local calendar payload-preview prototype, and durable
-  customer account history records.
+  customer account history records, plus a sandbox notification provider
+  message-preview prototype.
 - `tools/verify-commercial-slice.mjs`: repository verifier for the first
   commercial slice.
 

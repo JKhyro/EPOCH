@@ -155,6 +155,12 @@ The repository verifier must cover:
   no-provider-write/no-live-sync/no-invitation-send enforcement, internal
   `calendar-adapter-prototype` receipts, export/import preservation, monitor
   summary counts, and the `monitor-calendar-adapter` section.
+- Sandbox notification provider prototype controls and verifier coverage for
+  `notificationProviderPrototypes`, local message payload previews, notification
+  provider handoff/template-consent linkage, no-live-send/no-secrets/no-OAuth/
+  no-webhook/no-provider-write/no-customer-visible-send enforcement, internal
+  `notification-provider-prototype` receipts, export/import preservation,
+  monitor summary counts, and the `monitor-notification-prototype` section.
 - Customer account history controls and verifier coverage for
   `customerAccountHistories`, controlled-customer status timelines,
   submission/cohort/service/receipt linkage, local-only enforcement, no live
