@@ -122,6 +122,18 @@ Current EPOCH-side auth/session slice:
   checks and `auth-session-role-handoff` receipts without production auth,
   OAuth clients, credentials, tokens, external sessions, identity-provider
   writes, or customer-visible notification events.
+- `authProviderPrototypes` records a sandbox-only provider-neutral access
+  payload preview for public intake, customer status, raw admin denial, and raw
+  monitor denial before any identity provider, login, OAuth, token store, or
+  external session work begins.
+- `summarizeAuthProviderPrototypeState` exposes payload readiness,
+  sandbox/local posture, no-live-auth, no-secret, no-token-storage,
+  no-external-session, no-customer-visible-auth, and raw-denial counts to EPOCH
+  MONITOR.
+- `transitionAuthProviderPrototypeRecords` creates internal monitor health
+  checks and `auth-provider-prototype` receipts without production login,
+  OAuth, secrets, credentials, token storage, refresh-token storage, webhooks,
+  provider writes, external sessions, or customer-visible auth behavior.
 
 ### 6. Marketing Conversion Analytics Readiness
 

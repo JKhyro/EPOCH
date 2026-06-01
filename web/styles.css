@@ -769,7 +769,8 @@ button.secondary-action {
 .provider-adapter-console,
 .calendar-adapter-console,
 .notification-prototype-console,
-.payment-prototype-console {
+.payment-prototype-console,
+.auth-prototype-console {
   grid-template-columns: 1fr;
 }
 
