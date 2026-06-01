@@ -126,6 +126,38 @@ window.EPOCH_SEED_DATA = {
     }
   ],
   "engagements": [],
+  "notificationEvents": [
+    {
+      "id": "update-001",
+      "customerId": "student-001",
+      "sourceKind": "review",
+      "sourceId": "review-001",
+      "channel": "customer-update",
+      "audience": "customer",
+      "title": "Review returned",
+      "summary": "Diagnostic review returned and next action created.",
+      "status": "complete",
+      "deliveryStatus": "posted",
+      "visible": true,
+      "createdAt": "2026-06-01T18:15:00+09:00",
+      "deliverAfterAt": "2026-06-01T18:15:00+09:00"
+    },
+    {
+      "id": "update-002",
+      "customerId": "client-001",
+      "sourceKind": "request",
+      "sourceId": "request-001",
+      "channel": "customer-update",
+      "audience": "customer",
+      "title": "Source files needed",
+      "summary": "Service request is blocked pending source files.",
+      "status": "blocked",
+      "deliveryStatus": "blocked",
+      "visible": true,
+      "createdAt": "2026-06-01T12:05:00+09:00",
+      "deliverAfterAt": "2026-06-01T12:05:00+09:00"
+    }
+  ],
   "customers": [
     {
       "id": "student-001",

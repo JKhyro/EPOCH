@@ -18,6 +18,7 @@
     "leads",
     "opportunities",
     "engagements",
+    "notificationEvents",
     "customers",
     "cohorts",
     "sessions",
@@ -140,6 +141,31 @@
       || null;
   }
 
+  function deliveryStatusForStatus(status) {
+    if (status === "complete") return "posted";
+    if (status === "blocked") return "blocked";
+    return "pending";
+  }
+
+  function createNotificationEventRecord(data, details, now, timezone) {
+    const status = clean(details.status) || "complete";
+    return {
+      id: `update-${clean(details.sourceKind) || "event"}-${stamp(now)}-${data.notificationEvents.length + 1}`,
+      customerId: clean(details.customerId) || null,
+      sourceKind: clean(details.sourceKind) || "operating-record",
+      sourceId: clean(details.sourceId) || null,
+      channel: "customer-update",
+      audience: "customer",
+      title: clean(details.title) || "Customer update",
+      summary: clean(details.summary) || "Status updated.",
+      status,
+      deliveryStatus: clean(details.deliveryStatus) || deliveryStatusForStatus(status),
+      visible: details.visible !== false,
+      createdAt: withTimezone(now.toISOString(), timezone),
+      deliverAfterAt: withTimezone(details.deliverAfterAt, timezone) || withTimezone(now.toISOString(), timezone)
+    };
+  }
+
   function createIntakeRecords(currentData, input, options) {
     const nextData = cloneData(currentData);
     ensureCollections(nextData);
@@ -226,6 +252,14 @@
       createdAt: withTimezone(now.toISOString(), timezone),
       note: `Captured ${offerLabel.toLowerCase()} request for operating review.`
     };
+    const notificationEvent = createNotificationEventRecord(nextData, {
+      customerId,
+      sourceKind: "intake",
+      sourceId: assignment.id,
+      title: `${offerLabel} request received`,
+      summary: customer.externalStatus,
+      deliverAfterAt: preferredWindow
+    }, now, timezone);
 
     nextData.leads.unshift(lead);
     nextData.opportunities.unshift(opportunity);
@@ -233,6 +267,7 @@
     nextData.assignments.unshift(assignment);
     nextData.followups.unshift(followup);
     nextData.receipts.unshift(receipt);
+    nextData.notificationEvents.unshift(notificationEvent);
 
     return {
       data: nextData,
@@ -242,7 +277,8 @@
         customer,
         assignment,
         followup,
-        receipt
+        receipt,
+        notificationEvent
       }
     };
   }
@@ -291,6 +327,14 @@
       status: "planned",
       nextActionAt: reviewDueAt
     };
+    const notificationEvent = createNotificationEventRecord(nextData, {
+      customerId,
+      sourceKind: "submission",
+      sourceId: submission.id,
+      title: `${submissionTitle} received`,
+      summary: `${submissionTitle} submitted; review is in progress.`,
+      deliverAfterAt: reviewDueAt
+    }, now, timezone);
 
     const assignment = nextData.assignments.find((item) => item.id === assignmentId);
     if (assignment) assignment.status = "submitted";
@@ -303,13 +347,15 @@
     nextData.submissions.unshift(submission);
     nextData.reviews.unshift(review);
     nextData.followups.unshift(followup);
+    nextData.notificationEvents.unshift(notificationEvent);
 
     return {
       data: nextData,
       records: {
         submission,
         review,
-        followup
+        followup,
+        notificationEvent
       }
     };
   }
@@ -362,15 +408,24 @@
       createdAt: withTimezone(now.toISOString(), timezone),
       note: returnedSummary
     };
+    const notificationEvent = createNotificationEventRecord(nextData, {
+      customerId: submission.customerId,
+      sourceKind: "review",
+      sourceId: review.id,
+      title: "Review returned",
+      summary: returnedSummary
+    }, now, timezone);
 
     nextData.receipts.unshift(receipt);
+    nextData.notificationEvents.unshift(notificationEvent);
 
     return {
       data: nextData,
       records: {
         submission,
         review,
-        receipt
+        receipt,
+        notificationEvent
       }
     };
   }
@@ -431,6 +486,14 @@
       status: "planned",
       nextActionAt: deadlineAt
     };
+    const notificationEvent = createNotificationEventRecord(nextData, {
+      customerId,
+      sourceKind: "session",
+      sourceId: session.id,
+      title: `${sessionTitle} scheduled`,
+      summary: `${sessionTitle} scheduled for ${startAt.replace("T", " ").replace("+09:00", " JST")}; deadline control is active.`,
+      deliverAfterAt: startAt
+    }, now, timezone);
 
     assignment.status = "planned";
     assignment.dueAt = deadlineAt;
@@ -443,6 +506,7 @@
     nextData.cohorts.unshift(cohort);
     nextData.sessions.unshift(session);
     nextData.followups.unshift(followup);
+    nextData.notificationEvents.unshift(notificationEvent);
 
     return {
       data: nextData,
@@ -450,7 +514,8 @@
         cohort,
         session,
         followup,
-        assignment
+        assignment,
+        notificationEvent
       }
     };
   }
@@ -580,6 +645,14 @@
         createdAt: decidedAt,
         note: `${packageName} accepted for ${valueJpy} JPY.`
       };
+      const notificationEvent = createNotificationEventRecord(nextData, {
+        customerId,
+        sourceKind: "engagement",
+        sourceId: engagement.id,
+        title: `${packageName} accepted`,
+        summary: `${packageName} accepted; onboarding and first submission plan are active.`,
+        deliverAfterAt: planDueAt
+      }, now, timezone);
 
       if (customer) {
         customer.packageId = opportunity.packageId;
@@ -594,10 +667,14 @@
       nextData.assignments.unshift(assignment);
       nextData.followups.unshift(followup);
       nextData.receipts.unshift(receipt);
-      Object.assign(records, { engagement, cohort, session, assignment, followup, receipt });
+      nextData.notificationEvents.unshift(notificationEvent);
+      Object.assign(records, { engagement, cohort, session, assignment, followup, receipt, notificationEvent });
       if (createdCustomer) records.customer = createdCustomer;
     } else {
       const customerId = customer?.id || null;
+      const externalSummary = decision === "defer"
+        ? `${packageName} request deferred; follow-up is scheduled.`
+        : `${packageName} request closed after review.`;
       const followup = {
         id: `followup-opportunity-${requestStamp}`,
         customerId,
@@ -613,16 +690,24 @@
         createdAt: decidedAt,
         note
       };
+      const notificationEvent = createNotificationEventRecord(nextData, {
+        customerId,
+        sourceKind: "opportunity",
+        sourceId: opportunity.id,
+        title: `${decision === "defer" ? "Opportunity deferred" : "Opportunity closed"}`,
+        summary: customer ? externalSummary : note,
+        status: customerId ? "complete" : "blocked",
+        deliverAfterAt: planDueAt
+      }, now, timezone);
 
       if (customer) {
-        customer.externalStatus = decision === "defer"
-          ? `${packageName} request deferred; follow-up is scheduled.`
-          : `${packageName} request closed after review.`;
+        customer.externalStatus = externalSummary;
       }
 
       nextData.followups.unshift(followup);
       nextData.receipts.unshift(receipt);
-      Object.assign(records, { followup, receipt });
+      nextData.notificationEvents.unshift(notificationEvent);
+      Object.assign(records, { followup, receipt, notificationEvent });
     }
 
     return {
@@ -674,11 +759,24 @@
     };
   }
 
+  function summarizeNotificationState(currentData) {
+    const events = Array.isArray(currentData.notificationEvents) ? currentData.notificationEvents : [];
+
+    return {
+      total: events.length,
+      visible: events.filter((item) => item.visible).length,
+      pending: events.filter((item) => item.deliveryStatus === "pending").length,
+      posted: events.filter((item) => item.deliveryStatus === "posted").length,
+      blocked: events.filter((item) => item.deliveryStatus === "blocked" || item.status === "blocked").length
+    };
+  }
+
   function monitorTimelineItems(currentData) {
     return [
       ...currentData.leads.map((item) => ({ kind: "lead", id: item.id, title: item.name, status: item.status, time: item.nextActionAt, owner: item.owner || "intake" })),
       ...currentData.opportunities.map((item) => ({ kind: "opportunity", id: item.id, title: item.packageId || item.id, status: item.status, time: item.nextActionAt, owner: `${item.estimatedValueJpy || 0} JPY` })),
       ...currentData.engagements.map((item) => ({ kind: "engagement", id: item.id, title: item.packageId || item.id, status: item.status, time: item.onboardingDueAt || item.acceptedAt, owner: item.owner || "owner pending" })),
+      ...currentData.notificationEvents.map((item) => ({ kind: "update", id: item.id, title: item.title, status: item.status, time: item.deliverAfterAt || item.createdAt, owner: item.deliveryStatus || "pending" })),
       ...currentData.sessions.map((item) => ({ kind: "session", id: item.id, title: item.title, status: item.status, time: item.startAt, owner: item.owner || "owner pending" })),
       ...currentData.assignments.map((item) => ({ kind: "request", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.owner || "owner pending" })),
       ...currentData.submissions.map((item) => ({ kind: "submission", id: item.id, title: item.title || item.id, status: item.status, time: item.reviewDueAt, owner: item.owner || "review queue" })),
@@ -693,6 +791,7 @@
     const terminalStatuses = new Set(["complete", "returned", "canceled", "accepted", "rejected"]);
     const activeStatuses = new Set(["waiting", "deferred", "submitted", "reviewing", "overdue", "blocked"]);
     const revenue = summarizeRevenueState(currentData);
+    const notifications = summarizeNotificationState(currentData);
     const timeline = monitorTimelineItems(currentData)
       .sort((a, b) => String(b.time || "").localeCompare(String(a.time || "")));
     const queue = timeline
@@ -737,9 +836,12 @@
         receipts: currentData.receipts.length,
         activeEngagements: revenue.activeEngagements,
         pipelineValueJpy: revenue.pipelineValueJpy,
-        acceptedValueJpy: revenue.acceptedValueJpy
+        acceptedValueJpy: revenue.acceptedValueJpy,
+        visibleUpdates: notifications.visible,
+        blockedUpdates: notifications.blocked
       },
       revenue,
+      notifications,
       queue,
       timeline: timeline.slice(0, 10),
       risks,
@@ -787,6 +889,7 @@
     returnReviewRecords,
     buildMonitorReport,
     summarizeDeadlines,
+    summarizeNotificationState,
     summarizeRevenueState,
     withTimezone
   };
