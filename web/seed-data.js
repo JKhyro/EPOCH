@@ -863,6 +863,113 @@ window.EPOCH_SEED_DATA = {
     }
   ],
   "notificationDeliveries": [],
+  "notificationProviderHandoffs": [
+    {
+      "id": "notification-provider-email-readiness",
+      "title": "Email Provider Handoff",
+      "sourceSystem": "EPOCH",
+      "targetProvider": "provider-neutral email",
+      "providerKind": "email",
+      "syncMode": "notification-provider-readiness",
+      "status": "planned",
+      "handoffStatus": "adapter-deferred",
+      "templatePolicy": "customer-safe-template-required",
+      "consentPolicy": "customer-consent-required",
+      "customerSafeStatus": "template-ready",
+      "visibility": "internal",
+      "customerVisible": false,
+      "liveSendEnabled": false,
+      "externalProviderWrite": false,
+      "storesCredentials": false,
+      "webhookEnabled": false,
+      "notificationOutboxSchema": "epoch.notification-outbox",
+      "channelKinds": ["email", "customer-update"],
+      "readinessChecks": ["customer-safe-template", "customer-consent-required", "operator-approval-required", "no-live-send"],
+      "nextActionAt": "2026-06-02T11:00:00+09:00",
+      "createdAt": "2026-06-02T00:10:00+09:00",
+      "updatedAt": "2026-06-02T00:10:00+09:00",
+      "receiptIds": ["receipt-notification-provider-seed"],
+      "handoffHistory": [
+        {
+          "action": "seed",
+          "status": "planned",
+          "at": "2026-06-02T00:10:00+09:00",
+          "note": "Email delivery adapter remains deferred while EPOCH records template and consent readiness."
+        }
+      ],
+      "notes": "Prepare customer-safe email templates and consent checks before any email provider API work."
+    },
+    {
+      "id": "notification-provider-line-sms-readiness",
+      "title": "LINE / SMS Provider Handoff",
+      "sourceSystem": "EPOCH",
+      "targetProvider": "LINE or SMS provider",
+      "providerKind": "line-sms",
+      "syncMode": "notification-provider-readiness",
+      "status": "planned",
+      "handoffStatus": "adapter-deferred",
+      "templatePolicy": "short-customer-safe-template-required",
+      "consentPolicy": "channel-opt-in-required",
+      "customerSafeStatus": "template-ready",
+      "visibility": "internal",
+      "customerVisible": false,
+      "liveSendEnabled": false,
+      "externalProviderWrite": false,
+      "storesCredentials": false,
+      "webhookEnabled": false,
+      "notificationOutboxSchema": "epoch.notification-outbox",
+      "channelKinds": ["line", "sms", "customer-update"],
+      "readinessChecks": ["customer-safe-template", "channel-opt-in-required", "operator-approval-required", "no-live-send"],
+      "nextActionAt": "2026-06-02T11:30:00+09:00",
+      "createdAt": "2026-06-02T00:11:00+09:00",
+      "updatedAt": "2026-06-02T00:11:00+09:00",
+      "receiptIds": ["receipt-notification-provider-seed"],
+      "handoffHistory": [
+        {
+          "action": "seed",
+          "status": "planned",
+          "at": "2026-06-02T00:11:00+09:00",
+          "note": "LINE/SMS delivery adapters remain deferred while channel opt-in and short-template readiness are recorded."
+        }
+      ],
+      "notes": "Prepare opt-in language and short status-update templates before any LINE or SMS adapter is implemented."
+    },
+    {
+      "id": "notification-template-consent-readiness",
+      "title": "Template And Consent Readiness",
+      "sourceSystem": "EPOCH",
+      "targetProvider": "provider-neutral",
+      "providerKind": "template-consent",
+      "syncMode": "template-consent-readiness",
+      "status": "queued",
+      "handoffStatus": "operator-review-ready",
+      "templatePolicy": "approved-customer-safe-copy",
+      "consentPolicy": "consent-policy-defined",
+      "customerSafeStatus": "ready-to-preview",
+      "visibility": "internal",
+      "customerVisible": false,
+      "liveSendEnabled": false,
+      "externalProviderWrite": false,
+      "storesCredentials": false,
+      "webhookEnabled": false,
+      "notificationOutboxSchema": "epoch.notification-outbox",
+      "channelKinds": ["email", "line", "sms", "customer-update"],
+      "readinessChecks": ["customer-safe-template", "consent-policy-defined", "operator-approval-required", "no-live-send"],
+      "nextActionAt": "2026-06-02T12:00:00+09:00",
+      "createdAt": "2026-06-02T00:12:00+09:00",
+      "updatedAt": "2026-06-02T00:12:00+09:00",
+      "receiptIds": ["receipt-notification-provider-seed"],
+      "handoffHistory": [
+        {
+          "action": "seed",
+          "status": "queued",
+          "at": "2026-06-02T00:12:00+09:00",
+          "note": "Template and consent readiness can be reviewed without sending live messages."
+        }
+      ],
+      "notes": "Customer-safe templates and consent policies must be explicit before live delivery is added."
+    }
+  ],
   "quotes": [],
   "reminderRules": [],
   "recurrenceCandidates": [],
@@ -1031,6 +1138,15 @@ window.EPOCH_SEED_DATA = {
       "updatedAt": "2026-06-01T23:08:00+09:00",
       "reviewBy": "2026-06-05T10:00:00+09:00",
       "owner": "Jack"
+    },
+    {
+      "id": "memory-006",
+      "title": "Notification providers are readiness-only",
+      "summary": "Email, LINE, SMS, and provider-neutral templates can be prepared for future delivery, but live sending, credentials, and webhooks remain deferred.",
+      "status": "active",
+      "updatedAt": "2026-06-02T00:13:00+09:00",
+      "reviewBy": "2026-06-05T11:00:00+09:00",
+      "owner": "Jack"
     }
   ],
   "accessPosture": {
@@ -1110,6 +1226,21 @@ window.EPOCH_SEED_DATA = {
       "createdAt": "2026-06-01T23:09:00+09:00",
       "visibility": "internal",
       "customerVisible": false
+    },
+    {
+      "id": "monitor-check-seed-notification-provider",
+      "actionId": "seed-notification-provider-baseline",
+      "receiptId": "receipt-notification-provider-seed",
+      "title": "Notification provider baseline",
+      "summary": "EPOCH has internal-only email, LINE/SMS, and template/consent readiness handoff records without live sending, credentials, or webhooks.",
+      "status": "complete",
+      "priority": "medium",
+      "effect": "notification-provider-handoff",
+      "target": "monitor-notification-provider",
+      "owner": "Jack",
+      "createdAt": "2026-06-02T00:14:00+09:00",
+      "visibility": "internal",
+      "customerVisible": false
     }
   ],
   "receipts": [
@@ -1144,6 +1275,14 @@ window.EPOCH_SEED_DATA = {
       "status": "complete",
       "createdAt": "2026-06-01T23:09:00+09:00",
       "note": "Calendar provider baseline: Google, Microsoft, and invitation-readiness handoffs are provider-neutral and no-live-send."
+    },
+    {
+      "id": "receipt-notification-provider-seed",
+      "customerId": null,
+      "kind": "notification-provider-handoff",
+      "status": "complete",
+      "createdAt": "2026-06-02T00:14:00+09:00",
+      "note": "Notification provider baseline: email, LINE/SMS, and template/consent readiness handoffs are provider-neutral and no-live-send."
     },
     {
       "id": "receipt-001",

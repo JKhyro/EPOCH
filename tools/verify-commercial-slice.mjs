@@ -45,6 +45,7 @@ const requiredCollections = [
   "accessGateways",
   "librarySyncHandoffs",
   "calendarProviderHandoffs",
+  "notificationProviderHandoffs",
   "monitorHealthChecks",
   "notificationEvents",
   "customers",
@@ -96,6 +97,7 @@ if (!Array.isArray(data.availabilityWindows)) fail("seed data missing availabili
 if (!Array.isArray(data.accessGateways)) fail("seed data missing accessGateways collection");
 if (!Array.isArray(data.librarySyncHandoffs)) fail("seed data missing librarySyncHandoffs collection");
 if (!Array.isArray(data.calendarProviderHandoffs)) fail("seed data missing calendarProviderHandoffs collection");
+if (!Array.isArray(data.notificationProviderHandoffs)) fail("seed data missing notificationProviderHandoffs collection");
 
 const header = read("../native/epoch_core.h");
 const source = read("../native/epoch_core.c");
@@ -178,7 +180,12 @@ for (const id of [
   "calendar-provider-select",
   "calendar-provider-action",
   "calendar-provider-apply",
-  "calendar-provider-confirmation"
+  "calendar-provider-confirmation",
+  "notification-provider-form",
+  "notification-provider-select",
+  "notification-provider-action",
+  "notification-provider-apply",
+  "notification-provider-confirmation"
 ]) {
   if (!html.includes(`id="${id}"`)) fail(`web surface missing ${id}`);
 }
@@ -218,10 +225,13 @@ for (const field of ["gatewayId", "action", "note"]) {
 for (const field of ["handoffId", "action", "note"]) {
   if (!html.includes(`name="${field}"`)) fail(`LIBRARY sync form missing field ${field}`);
 }
+for (const field of ["handoffId", "action", "note"]) {
+  if (!html.includes(`name="${field}"`)) fail(`notification provider form missing field ${field}`);
+}
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
 }
-for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-command-strip", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-library-sync", "monitor-calendar-provider", "monitor-persistence", "monitor-scope", "monitor-memory", "monitor-access"]) {
+for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route", "monitor-command-strip", "monitor-calendar", "monitor-handoffs", "monitor-suite", "monitor-library-sync", "monitor-calendar-provider", "monitor-notification-provider", "monitor-persistence", "monitor-scope", "monitor-memory", "monitor-access"]) {
   if (!html.includes(phrase)) fail(`monitor route surface missing phrase ${phrase}`);
 }
 for (const phrase of ["monitor-curriculum", "Package Gameplans", "Personalized Gameplan", "Curriculum Frameworks"]) {
@@ -235,6 +245,9 @@ for (const phrase of ["LIBRARY handoff", "LIBRARY Sync", "Apply LIBRARY Sync Act
 }
 for (const phrase of ["Calendar handoff", "Calendar Providers", "Apply Calendar Provider Action"]) {
   if (!html.includes(phrase)) fail(`calendar provider HTML missing phrase ${phrase}`);
+}
+for (const phrase of ["Notification Providers", "Notification Provider Handoffs", "Apply Notification Provider Action"]) {
+  if (!html.includes(phrase)) fail(`notification provider HTML missing phrase ${phrase}`);
 }
 for (const phrase of [
   "SCAFFOLD-aligned",
@@ -395,8 +408,10 @@ for (const phrase of [
   "transitionAccessGatewayRecords",
   "transitionLibrarySyncHandoffRecords",
   "transitionCalendarProviderHandoffRecords",
+  "transitionNotificationProviderHandoffRecords",
   "summarizeLibrarySyncState",
   "summarizeCalendarProviderState",
+  "summarizeNotificationProviderState",
   "summarizeAccessGatewayState",
   "renderAccessGatewayOptions",
   "renderLibrarySyncOptions",
@@ -413,12 +428,17 @@ for (const phrase of [
   "Calendar Providers",
   "Calendar Provider Handoffs",
   "Calendar Provider Updated",
+  "Notification Providers",
+  "Notification Provider Handoffs",
+  "Notification Provider Updated",
   "renderAgentHandoffOptions",
   "renderNotificationDeliveryOptions",
+  "renderNotificationProviderOptions",
   "renderQuoteOptions",
   "renderReminderControlOptions",
   "wireAgentHandoffForm",
   "wireNotificationOutboxForm",
+  "wireNotificationProviderForm",
   "wireQuotePaymentForm",
   "wireReminderControlForm",
   "Opportunity Pipeline",
@@ -472,6 +492,7 @@ for (const phrase of [
   "access-gateway-console",
   "library-sync-console",
   "calendar-provider-console",
+  "notification-provider-console",
   "monitor-action-button",
   "button-meta",
   "monitor-command-strip",
@@ -489,10 +510,12 @@ if (!data.accessPosture || typeof data.accessPosture !== "object") fail("seed da
 if (!Array.isArray(data.accessGateways) || data.accessGateways.length < 4) fail("seed data missing controlled access gateway records");
 if (!Array.isArray(data.librarySyncHandoffs) || data.librarySyncHandoffs.length < 2) fail("seed data missing LIBRARY sync handoff records");
 if (!Array.isArray(data.calendarProviderHandoffs) || data.calendarProviderHandoffs.length < 3) fail("seed data missing calendar provider handoff records");
+if (!Array.isArray(data.notificationProviderHandoffs) || data.notificationProviderHandoffs.length < 3) fail("seed data missing notification provider handoff records");
 if (!Array.isArray(data.monitorHealthChecks) || data.monitorHealthChecks.length < 2) fail("seed data missing ledger-backed monitor health checks");
 if (!data.receipts.some((item) => item.kind === "monitor-check")) fail("seed data missing monitor-check receipt");
 if (!data.receipts.some((item) => item.kind === "library-sync-handoff")) fail("seed data missing LIBRARY sync handoff receipt");
 if (!data.receipts.some((item) => item.kind === "calendar-provider-handoff")) fail("seed data missing calendar provider handoff receipt");
+if (!data.receipts.some((item) => item.kind === "notification-provider-handoff")) fail("seed data missing notification provider handoff receipt");
 if (data.accessPosture.defaultPublicPolicy !== "deny-by-default") fail("access posture must default to deny-by-default");
 if (data.accessPosture.rawMonitor !== "local-only") fail("access posture must keep raw monitor local-only");
 if (data.accessPosture.safeGateway !== "controlled-public-customer-gateway") fail("access posture must name the controlled public/customer gateway");
@@ -508,6 +531,12 @@ if (!data.calendarProviderHandoffs.some((item) => item.providerKind === "microso
 if (!data.calendarProviderHandoffs.some((item) => item.syncMode === "invitation-readiness" && item.readinessChecks.includes("no-provider-send"))) fail("calendar provider handoffs missing no-send invitation readiness");
 if (!data.calendarProviderHandoffs.every((item) => item.visibility === "internal" && item.customerVisible === false && item.liveSyncEnabled === false && item.sendsInvitations === false && item.externalProviderWrite === false)) {
   fail("calendar provider handoffs must be internal-only and no-live-send");
+}
+if (!data.notificationProviderHandoffs.some((item) => item.providerKind === "email" && item.targetProvider.includes("email"))) fail("notification provider handoffs missing email readiness");
+if (!data.notificationProviderHandoffs.some((item) => item.providerKind === "line-sms" && item.targetProvider.includes("LINE"))) fail("notification provider handoffs missing LINE/SMS readiness");
+if (!data.notificationProviderHandoffs.some((item) => item.syncMode === "template-consent-readiness" && item.readinessChecks.includes("consent-policy-defined") && item.readinessChecks.includes("no-live-send"))) fail("notification provider handoffs missing template/consent no-send readiness");
+if (!data.notificationProviderHandoffs.every((item) => item.visibility === "internal" && item.customerVisible === false && item.liveSendEnabled === false && item.externalProviderWrite === false && item.storesCredentials === false && item.webhookEnabled === false)) {
+  fail("notification provider handoffs must be internal-only with no live send, credentials, webhooks, or provider writes");
 }
 if (!data.monitorMemory.some((item) => item.status === "stale")) fail("monitor memory should demonstrate stale-note risk");
 
@@ -591,6 +620,8 @@ if (!data.customers.some((item) => item.gameplanId === "gameplan-premium-eiken-m
 if (typeof recordTools.createAgentHandoffRecords !== "function") fail("operating helpers missing createAgentHandoffRecords");
 if (typeof recordTools.createNotificationOutboxRecords !== "function") fail("operating helpers missing createNotificationOutboxRecords");
 if (typeof recordTools.transitionNotificationDeliveryRecords !== "function") fail("operating helpers missing transitionNotificationDeliveryRecords");
+if (typeof recordTools.createNotificationProviderHandoffRecords !== "function") fail("operating helpers missing createNotificationProviderHandoffRecords");
+if (typeof recordTools.transitionNotificationProviderHandoffRecords !== "function") fail("operating helpers missing transitionNotificationProviderHandoffRecords");
 if (typeof recordTools.createQuoteEstimateRecords !== "function") fail("operating helpers missing createQuoteEstimateRecords");
 if (typeof recordTools.transitionQuoteEstimateRecords !== "function") fail("operating helpers missing transitionQuoteEstimateRecords");
 if (typeof recordTools.createReminderRuleRecords !== "function") fail("operating helpers missing createReminderRuleRecords");
@@ -612,6 +643,7 @@ if (typeof recordTools.summarizeScheduleControlState !== "function") fail("opera
 if (typeof recordTools.summarizeAccessGatewayState !== "function") fail("operating helpers missing summarizeAccessGatewayState");
 if (typeof recordTools.summarizeLibrarySyncState !== "function") fail("operating helpers missing summarizeLibrarySyncState");
 if (typeof recordTools.summarizeCalendarProviderState !== "function") fail("operating helpers missing summarizeCalendarProviderState");
+if (typeof recordTools.summarizeNotificationProviderState !== "function") fail("operating helpers missing summarizeNotificationProviderState");
 if (typeof recordTools.summarizeAccessPosture !== "function") fail("operating helpers missing summarizeAccessPosture");
 if (typeof recordTools.summarizeMemoryState !== "function") fail("operating helpers missing summarizeMemoryState");
 if (typeof recordTools.summarizeRoutePlacementState !== "function") fail("operating helpers missing summarizeRoutePlacementState");
@@ -667,6 +699,18 @@ brokenCalendarProviderData.calendarProviderHandoffs = brokenCalendarProviderData
 const brokenCalendarProviderSummary = recordTools.summarizeCalendarProviderState(brokenCalendarProviderData, { now: "2026-06-01T12:00:00+09:00" });
 if (brokenCalendarProviderSummary.status !== "blocked" || brokenCalendarProviderSummary.violations.length < 2) fail("calendar provider summary should block live/customer-visible provider handoffs");
 
+const notificationProviderSeedSummary = recordTools.summarizeNotificationProviderState(data, { now: "2026-06-01T12:00:00+09:00" });
+if (notificationProviderSeedSummary.handoffCount < 3) fail("notification provider summary missing handoff count");
+if (notificationProviderSeedSummary.providerReady < 2) fail("notification provider summary missing provider readiness handoffs");
+if (notificationProviderSeedSummary.templateReady < 3) fail("notification provider summary missing template-ready handoffs");
+if (notificationProviderSeedSummary.consentReady < 3) fail("notification provider summary missing consent-ready handoffs");
+if (notificationProviderSeedSummary.noLiveSend !== data.notificationProviderHandoffs.length) fail("notification provider summary should prove no-live-send on every handoff");
+if (notificationProviderSeedSummary.violations.length !== 0) fail("notification provider summary should not report seed violations");
+const brokenNotificationProviderData = recordTools.cloneData(data);
+brokenNotificationProviderData.notificationProviderHandoffs = brokenNotificationProviderData.notificationProviderHandoffs.map((item) => item.id === "notification-provider-email-readiness" ? { ...item, customerVisible: true, liveSendEnabled: true, externalProviderWrite: true, storesCredentials: true, webhookEnabled: true } : item);
+const brokenNotificationProviderSummary = recordTools.summarizeNotificationProviderState(brokenNotificationProviderData, { now: "2026-06-01T12:00:00+09:00" });
+if (brokenNotificationProviderSummary.status !== "blocked" || brokenNotificationProviderSummary.violations.length < 2) fail("notification provider summary should block live/customer-visible provider handoffs");
+
 const gatewayTransition = recordTools.transitionAccessGatewayRecords(data, {
   gatewayId: "gateway-public-intake",
   action: "verify",
@@ -706,6 +750,22 @@ if (calendarProviderTransition.data.notificationEvents.length !== data.notificat
 if (calendarProviderTransition.records.healthCheck.customerVisible !== false) fail("calendar provider health check must remain internal");
 if (calendarProviderTransition.records.handoff.liveSyncEnabled || calendarProviderTransition.records.handoff.sendsInvitations || calendarProviderTransition.records.handoff.externalProviderWrite) {
   fail("calendar provider transition must not enable live sync, provider writes, or invitation sending");
+}
+
+const notificationProviderTransition = recordTools.transitionNotificationProviderHandoffRecords(data, {
+  handoffId: "notification-template-consent-readiness",
+  action: "consent-ready",
+  note: "Verifier marked notification consent readiness without enabling live delivery."
+}, { now: "2026-06-01T12:08:00+09:00" });
+if (notificationProviderTransition.records.handoff.handoffStatus !== "consent-review-ready") fail("notification provider transition did not mark consent review ready");
+if (notificationProviderTransition.data.receipts.filter((item) => item.kind === "notification-provider-handoff").length !== data.receipts.filter((item) => item.kind === "notification-provider-handoff").length + 1) {
+  fail("notification provider transition should add a notification-provider-handoff receipt");
+}
+if (notificationProviderTransition.data.monitorHealthChecks.length !== data.monitorHealthChecks.length + 1) fail("notification provider transition should add a monitor health check");
+if (notificationProviderTransition.data.notificationEvents.length !== data.notificationEvents.length) fail("notification provider transition must not create customer-visible notification events");
+if (notificationProviderTransition.records.healthCheck.customerVisible !== false) fail("notification provider health check must remain internal");
+if (notificationProviderTransition.records.handoff.liveSendEnabled || notificationProviderTransition.records.handoff.externalProviderWrite || notificationProviderTransition.records.handoff.storesCredentials || notificationProviderTransition.records.handoff.webhookEnabled) {
+  fail("notification provider transition must not enable live sending, provider writes, credentials, or webhooks");
 }
 
 const monitorActionResult = recordTools.createMonitorActionRecords(data, {
@@ -837,6 +897,20 @@ for (const phrase of [
   "customer-visible notification events"
 ]) {
   if (!calendarProviderContract.includes(phrase)) fail(`calendar provider contract missing phrase: ${phrase}`);
+}
+
+const notificationProviderContract = read("../docs/notification-provider-handoff-template-consent-contract.md");
+for (const phrase of [
+  "Notification Provider Handoff And Template Consent Contract",
+  "notificationProviderHandoffs",
+  "templatePolicy",
+  "consentPolicy",
+  "transitionNotificationProviderHandoffRecords",
+  "notification-provider-handoff",
+  "live provider send",
+  "customer-visible notification event"
+]) {
+  if (!notificationProviderContract.includes(phrase)) fail(`notification provider contract missing phrase: ${phrase}`);
 }
 
 const quotePaymentContract = read("../docs/quote-payment-readiness-contract.md");
@@ -973,6 +1047,58 @@ if (outboxSummary.outbox !== outboxResult.data.notificationDeliveries.length) fa
 if (outboxSummary.queued < 1) fail("notification summary missing queued outbox records");
 if (outboxSummary.outboxBlocked < 1) fail("notification summary missing blocked outbox records");
 if (outboxSummary.missingOutbox !== 0) fail("notification summary still reports missing outbox records after queueing");
+
+const notificationProviderSummary = recordTools.summarizeNotificationProviderState(outboxResult.data, { notifications: outboxSummary });
+if (notificationProviderSummary.handoffCount !== outboxResult.data.notificationProviderHandoffs.length) fail("notification provider summary did not count handoffs");
+if (notificationProviderSummary.providerReady < 2) fail("notification provider summary missing provider readiness handoffs");
+if (notificationProviderSummary.templateReady < 3) fail("notification provider summary missing customer-safe template readiness");
+if (notificationProviderSummary.consentReady < 3) fail("notification provider summary missing consent readiness");
+if (notificationProviderSummary.noLiveSend !== outboxResult.data.notificationProviderHandoffs.length) fail("notification provider summary no-live-send count is wrong");
+const providerCreateResult = recordTools.createNotificationProviderHandoffRecords(outboxResult.data, {
+  title: "Customer Update Provider Template Review",
+  targetProvider: "provider-neutral review adapter",
+  providerKind: "review",
+  syncMode: "template-consent-readiness",
+  readinessChecks: ["customer-safe-template", "consent-policy-defined", "operator-approval-required", "no-live-send"],
+  note: "Verifier created a provider-neutral notification handoff without live sending."
+}, {
+  now: "2026-06-01T03:02:00.000Z"
+});
+if (providerCreateResult.data.notificationProviderHandoffs.length !== outboxResult.data.notificationProviderHandoffs.length + 1) fail("notification provider handoff create did not add a record");
+if (providerCreateResult.records.handoff.liveSendEnabled || providerCreateResult.records.handoff.externalProviderWrite || providerCreateResult.records.handoff.storesCredentials || providerCreateResult.records.handoff.webhookEnabled) {
+  fail("notification provider create enabled live send, provider write, credentials, or webhooks");
+}
+const providerReadyResult = recordTools.transitionNotificationProviderHandoffRecords(providerCreateResult.data, {
+  handoffId: providerCreateResult.records.handoff.id,
+  action: "consent-ready",
+  note: "Consent policy is defined; live provider sending remains disabled."
+}, {
+  now: "2026-06-01T03:03:00.000Z"
+});
+if (providerReadyResult.records.handoff.status !== "queued") fail("notification provider consent-ready did not keep handoff queued");
+if (!providerReadyResult.records.handoff.readinessChecks.includes("consent-policy-defined")) fail("notification provider consent-ready missing consent readiness check");
+if (providerReadyResult.records.receipt.kind !== "notification-provider-handoff") fail("notification provider transition missing receipt kind");
+if (providerReadyResult.records.healthCheck.target !== "monitor-notification-provider") fail("notification provider transition missing monitor target");
+if (providerReadyResult.data.notificationEvents.length !== providerCreateResult.data.notificationEvents.length) fail("notification provider handoff created a customer-visible notification event");
+const malformedProviderData = recordTools.cloneData(providerReadyResult.data);
+malformedProviderData.notificationProviderHandoffs.push({
+  id: "bad-notification-provider-live-send",
+  title: "Bad Live Notification Provider",
+  targetProvider: "live email provider",
+  providerKind: "email",
+  syncMode: "template-consent-readiness",
+  status: "complete",
+  handoffStatus: "live",
+  visibility: "public",
+  customerVisible: true,
+  liveSendEnabled: true,
+  externalProviderWrite: true,
+  storesCredentials: true,
+  webhookEnabled: true,
+  readinessChecks: []
+});
+const malformedProviderSummary = recordTools.summarizeNotificationProviderState(malformedProviderData);
+if (!malformedProviderSummary.violations.length) fail("notification provider summary did not flag malformed live provider handoff");
 
 const queuedDelivery = outboxResult.records.deliveries.find((item) => item.status === "queued");
 if (!queuedDelivery) fail("notification outbox did not create a queued delivery for lifecycle testing");
@@ -1566,6 +1692,7 @@ if (!monitorReport.access) fail("monitor report missing access state");
 if (!monitorReport.accessGateways) fail("monitor report missing access gateway state");
 if (!monitorReport.librarySync) fail("monitor report missing LIBRARY sync state");
 if (!monitorReport.calendarProvider) fail("monitor report missing calendar provider state");
+if (!monitorReport.notificationProvider) fail("monitor report missing notification provider state");
 if (!Array.isArray(monitorReport.monitorHealthChecks)) fail("monitor report missing monitor health checks");
 if (!Array.isArray(monitorReport.operatorActions)) fail("monitor report missing operator actions");
 if (!monitorReport.routePlacement) fail("monitor report missing SYNAPSE route placement state");
@@ -1597,6 +1724,11 @@ if (monitorReport.summary.calendarProviderHandoffs < 3) fail("monitor summary mi
 if (monitorReport.summary.calendarProviderReady < 2) fail("monitor summary missing provider readiness handoff count");
 if (monitorReport.summary.calendarInvitationReady < 1) fail("monitor summary missing invitation-readiness handoff count");
 if (monitorReport.summary.calendarProviderViolations !== 0) fail("monitor summary should not report calendar provider violations for the seed slice");
+if (monitorReport.summary.notificationProviderHandoffs < 3) fail("monitor summary missing notification provider handoff count");
+if (monitorReport.summary.notificationProviderReady < 2) fail("monitor summary missing notification provider readiness handoff count");
+if (monitorReport.summary.notificationTemplateReady < 3) fail("monitor summary missing notification template readiness handoff count");
+if (monitorReport.summary.notificationConsentReady < 3) fail("monitor summary missing notification consent readiness handoff count");
+if (monitorReport.summary.notificationProviderViolations !== 0) fail("monitor summary should not report notification provider violations for the seed slice");
 if (monitorReport.summary.monitorHealthChecks < 2) fail("monitor summary missing monitor health checks");
 if (monitorReport.summary.monitorActionReceipts < 2) fail("monitor summary missing monitor action receipts");
 if (monitorReport.summary.operatorActions < 3) fail("monitor summary missing operator actions");
@@ -1604,6 +1736,7 @@ if (!monitorReport.timeline.some((item) => item.kind === "campaign route")) fail
 if (!monitorReport.timeline.some((item) => item.kind === "access gateway")) fail("monitor timeline missing access gateways");
 if (!monitorReport.timeline.some((item) => item.kind === "library sync")) fail("monitor timeline missing LIBRARY sync handoffs");
 if (!monitorReport.timeline.some((item) => item.kind === "calendar provider")) fail("monitor timeline missing calendar provider handoffs");
+if (!monitorReport.timeline.some((item) => item.kind === "notification provider")) fail("monitor timeline missing notification provider handoffs");
 if (!monitorReport.timeline.some((item) => item.kind === "monitor check")) fail("monitor timeline missing monitor health checks");
 if (monitorReport.summary.timeline < 1) fail("monitor report did not include timeline records");
 if (!Array.isArray(monitorReport.queue)) fail("monitor report queue is not an array");
@@ -1677,6 +1810,7 @@ if (exportedLedger.counts.notificationEvents !== returnResult.data.notificationE
 if (exportedLedger.counts.accessGateways !== returnResult.data.accessGateways.length) fail("ledger export access gateway count is wrong");
 if (exportedLedger.counts.librarySyncHandoffs !== returnResult.data.librarySyncHandoffs.length) fail("ledger export LIBRARY sync handoff count is wrong");
 if (exportedLedger.counts.calendarProviderHandoffs !== returnResult.data.calendarProviderHandoffs.length) fail("ledger export calendar provider handoff count is wrong");
+if (exportedLedger.counts.notificationProviderHandoffs !== returnResult.data.notificationProviderHandoffs.length) fail("ledger export notification provider handoff count is wrong");
 if (!exportedLedger.monitor || exportedLedger.monitor.timeline < 1) fail("ledger export missing monitor summary");
 if (exportedLedger.monitor.persistenceRevision !== exportedLedger.persistence.revision) fail("ledger monitor summary missing persistence revision");
 if (!exportedLedger.calendarExport || exportedLedger.calendarExport.entries.length !== calendarExport.entries.length) fail("ledger export missing calendar export entries");
@@ -1684,6 +1818,7 @@ if (!exportedLedger.routePlacement || exportedLedger.routePlacement.summary.rout
 if (!exportedLedger.accessGateway || exportedLedger.accessGateway.gatewayCount !== exportedLedger.data.accessGateways.length) fail("ledger export missing access gateway summary");
 if (!exportedLedger.librarySync || exportedLedger.librarySync.handoffCount !== exportedLedger.data.librarySyncHandoffs.length) fail("ledger export missing LIBRARY sync summary");
 if (!exportedLedger.calendarProvider || exportedLedger.calendarProvider.handoffCount !== exportedLedger.data.calendarProviderHandoffs.length) fail("ledger export missing calendar provider summary");
+if (!exportedLedger.notificationProvider || exportedLedger.notificationProvider.handoffCount !== exportedLedger.data.notificationProviderHandoffs.length) fail("ledger export missing notification provider summary");
 if (exportedLedger.counts.routePlacements !== returnResult.data.routePlacements.length) fail("ledger export route placement count is wrong");
 if (exportedLedger.counts.curriculumFrameworks !== returnResult.data.curriculumFrameworks.length) fail("ledger export curriculum framework count is wrong");
 if (exportedLedger.counts.packageGameplans !== returnResult.data.packageGameplans.length) fail("ledger export package gameplan count is wrong");
@@ -1692,6 +1827,10 @@ if (exportedLedger.monitor.campaignRoutes !== returnResult.data.campaignRoutes.l
 if (exportedLedger.monitor.accessGatewayRoutes !== returnResult.data.accessGateways.length) fail("ledger monitor summary missing access gateway routes");
 if (exportedLedger.monitor.librarySyncHandoffs !== returnResult.data.librarySyncHandoffs.length) fail("ledger monitor summary missing LIBRARY sync handoff routes");
 if (exportedLedger.monitor.calendarProviderHandoffs !== returnResult.data.calendarProviderHandoffs.length) fail("ledger monitor summary missing calendar provider handoffs");
+if (exportedLedger.monitor.notificationProviderHandoffs !== returnResult.data.notificationProviderHandoffs.length) fail("ledger monitor summary missing notification provider handoffs");
+if (exportedLedger.monitor.notificationProviderReady < 2) fail("ledger monitor summary missing notification provider readiness");
+if (exportedLedger.monitor.notificationTemplateReady < 3) fail("ledger monitor summary missing notification template readiness");
+if (exportedLedger.monitor.notificationConsentReady < 3) fail("ledger monitor summary missing notification consent readiness");
 if (exportedLedger.monitor.monitorHealthChecks !== returnResult.data.monitorHealthChecks.length) fail("ledger monitor summary missing monitor health checks");
 
 const persistenceSummary = recordTools.summarizePersistenceState(exportedLedger.data);
@@ -1714,6 +1853,12 @@ const outboxLedger = recordTools.createOperatingLedger(retryDeliveryResult.data,
 if (outboxLedger.counts.notificationDeliveries !== retryDeliveryResult.data.notificationDeliveries.length) fail("ledger export notification delivery count is wrong");
 if (outboxLedger.monitor.notificationOutbox !== retryDeliveryResult.data.notificationDeliveries.length) fail("ledger monitor summary missing notification outbox count");
 if (outboxLedger.monitor.retryReadyNotifications < 1) fail("ledger monitor summary missing retry-ready notifications");
+if (outboxLedger.notificationProvider.noLiveSend !== retryDeliveryResult.data.notificationProviderHandoffs.length) fail("ledger notification provider summary lost no-live-send readiness");
+
+const notificationProviderLedger = recordTools.createOperatingLedger(notificationProviderTransition.data, { now: "2026-06-01T04:43:30.000Z" });
+if (notificationProviderLedger.counts.notificationProviderHandoffs !== notificationProviderTransition.data.notificationProviderHandoffs.length) fail("ledger export notification provider transition count is wrong");
+if (notificationProviderLedger.notificationProvider.consentReady < 3) fail("ledger export missing notification provider consent readiness after transition");
+if (notificationProviderLedger.monitor.notificationProviderViolations !== 0) fail("ledger monitor summary should not report notification provider violations after transition");
 
 const quoteLedger = recordTools.createOperatingLedger(paymentReadyQuoteResult.data, { now: "2026-06-01T04:44:00.000Z" });
 if (quoteLedger.counts.quotes !== paymentReadyQuoteResult.data.quotes.length) fail("ledger export quote count is wrong");
@@ -1733,6 +1878,7 @@ if (importedLedger.data.routePlacements.length !== returnResult.data.routePlacem
 if (importedLedger.data.accessGateways.length !== returnResult.data.accessGateways.length) fail("ledger import did not preserve access gateways");
 if (importedLedger.data.librarySyncHandoffs.length !== returnResult.data.librarySyncHandoffs.length) fail("ledger import did not preserve LIBRARY sync handoffs");
 if (importedLedger.data.calendarProviderHandoffs.length !== returnResult.data.calendarProviderHandoffs.length) fail("ledger import did not preserve calendar provider handoffs");
+if (importedLedger.data.notificationProviderHandoffs.length !== returnResult.data.notificationProviderHandoffs.length) fail("ledger import did not preserve notification provider handoffs");
 if (importedLedger.data.campaignRoutes.length !== returnResult.data.campaignRoutes.length) fail("ledger import did not preserve campaign routes");
 if (importedLedger.data.customers[0].externalStatus !== returnResult.data.customers[0].externalStatus) fail("ledger import did not preserve external status");
 if (importedLedger.data.persistence.checksum !== exportedLedger.persistence.checksum) fail("ledger import did not preserve persistence checksum");
@@ -1765,6 +1911,13 @@ const importedOutboxLedger = recordTools.importOperatingLedger(data, JSON.string
 if (importedOutboxLedger.data.notificationDeliveries.length !== retryDeliveryResult.data.notificationDeliveries.length) fail("ledger import did not preserve notification deliveries");
 if (!importedOutboxLedger.data.notificationDeliveries.some((item) => item.status === "retry-ready")) fail("ledger import did not preserve retry-ready delivery status");
 if (!importedOutboxLedger.data.notificationDeliveries.some((item) => Array.isArray(item.deliveryHistory) && item.deliveryHistory.length >= 2)) fail("ledger import did not preserve notification delivery history");
+
+const importedNotificationProviderLedger = recordTools.importOperatingLedger(data, JSON.stringify(notificationProviderLedger));
+if (importedNotificationProviderLedger.data.notificationProviderHandoffs.length !== notificationProviderTransition.data.notificationProviderHandoffs.length) fail("ledger import did not preserve notification provider handoffs");
+if (!importedNotificationProviderLedger.data.notificationProviderHandoffs.some((item) => item.handoffStatus === "consent-review-ready")) fail("ledger import did not preserve notification provider transition status");
+if (!importedNotificationProviderLedger.data.notificationProviderHandoffs.every((item) => item.liveSendEnabled === false && item.externalProviderWrite === false && item.storesCredentials === false && item.webhookEnabled === false)) {
+  fail("ledger import changed notification provider no-live-send safeguards");
+}
 
 const importedQuoteLedger = recordTools.importOperatingLedger(data, JSON.stringify(quoteLedger));
 if (importedQuoteLedger.data.quotes.length !== paymentReadyQuoteResult.data.quotes.length) fail("ledger import did not preserve quote records");

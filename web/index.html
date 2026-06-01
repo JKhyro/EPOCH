@@ -329,6 +329,7 @@
         <button type="button" class="mode-button" data-monitor-target="monitor-access">Safe Access</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-library-sync">LIBRARY</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-calendar-provider">Providers</button>
+        <button type="button" class="mode-button" data-monitor-target="monitor-notification-provider">Notify</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-campaigns">Campaigns</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-controls">Controls</button>
       </div>
@@ -347,6 +348,7 @@
           <button type="button" data-monitor-target="monitor-curriculum">Curriculum</button>
           <button type="button" data-monitor-target="monitor-campaigns">Campaigns</button>
           <button type="button" data-monitor-target="monitor-handoffs">Agent Handoffs</button>
+          <button type="button" data-monitor-target="monitor-notification-provider">Notification Providers</button>
           <button type="button" data-monitor-target="monitor-suite">SYNAPSE</button>
           <button type="button" data-monitor-target="monitor-library-sync">LIBRARY Sync</button>
           <button type="button" data-monitor-target="monitor-calendar-provider">Calendar Providers</button>
@@ -460,6 +462,30 @@
                 </label>
               </div>
               <button type="submit" id="notification-outbox-apply">Apply Notification Outbox Action</button>
+            </form>
+            <form id="notification-provider-form" class="review-console notification-provider-console">
+              <div class="form-row">
+                <label>
+                  Notification Provider Handoffs
+                  <select name="handoffId" id="notification-provider-select" required></select>
+                </label>
+                <label>
+                  Provider action
+                  <select name="action" id="notification-provider-action" required>
+                    <option value="verify">Verify deferred adapter</option>
+                    <option value="prepare">Prepare template payload</option>
+                    <option value="mark-ready">Mark adapter-ready</option>
+                    <option value="template-ready">Template ready</option>
+                    <option value="consent-ready">Consent ready</option>
+                    <option value="block">Block handoff</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                Provider note
+                <input name="note" value="Notification provider handoff reviewed; live sending, credentials, and webhooks remain deferred." />
+              </label>
+              <button type="submit" id="notification-provider-apply">Apply Notification Provider Action</button>
             </form>
             <form id="quote-payment-form" class="review-console quote-console">
               <div class="form-row">
@@ -652,6 +678,7 @@
             <div id="review-confirmation" class="confirmation"></div>
             <div id="agent-handoff-confirmation" class="confirmation"></div>
             <div id="notification-outbox-confirmation" class="confirmation"></div>
+            <div id="notification-provider-confirmation" class="confirmation"></div>
             <div id="quote-payment-confirmation" class="confirmation"></div>
             <div id="reminder-control-confirmation" class="confirmation"></div>
             <div id="access-gateway-confirmation" class="confirmation"></div>
