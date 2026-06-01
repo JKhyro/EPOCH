@@ -67,7 +67,7 @@ function resetData() {
 
 function storageStatusText() {
   const persistence = recordTools.summarizePersistenceState(data);
-  return `Ledger v${recordTools.ledgerVersion} | ${data.customers.length} customers | ${(data.customerAccountHistories || []).length} account histories | ${data.engagements.length} engagements | ${data.campaignRoutes.length} campaigns | ${(data.marketingConversionEvents || []).length} conversion KPIs | ${(data.providerAdapterCandidates || []).length} provider adapters | ${(data.calendarAdapterPrototypes || []).length} calendar prototypes | ${(data.notificationProviderPrototypes || []).length} notification prototypes | ${(data.paymentProviderPrototypes || []).length} payment prototypes | ${(data.authProviderPrototypes || []).length} auth prototypes | ${(data.librarySyncHandoffs || []).length} LIBRARY handoffs | ${(data.calendarProviderHandoffs || []).length} calendar handoffs | ${(data.notificationProviderHandoffs || []).length} notification provider handoffs | ${(data.paymentProviderHandoffs || []).length} payment provider handoffs | ${(data.authSessionRoleHandoffs || []).length} auth/session handoffs | ${data.notificationEvents.length} updates | ${data.receipts.length} receipts | r${persistence.revision} ${persistence.adapterState} | ${persistence.ledgerId}`;
+  return `Ledger v${recordTools.ledgerVersion} | ${data.customers.length} customers | ${(data.customerAccountHistories || []).length} account histories | ${data.engagements.length} engagements | ${data.campaignRoutes.length} campaigns | ${(data.marketingConversionEvents || []).length} conversion KPIs | ${(data.providerAdapterCandidates || []).length} provider adapters | ${(data.marketingAnalyticsAdapterPrototypes || []).length} analytics prototypes | ${(data.calendarAdapterPrototypes || []).length} calendar prototypes | ${(data.notificationProviderPrototypes || []).length} notification prototypes | ${(data.paymentProviderPrototypes || []).length} payment prototypes | ${(data.authProviderPrototypes || []).length} auth prototypes | ${(data.librarySyncHandoffs || []).length} LIBRARY handoffs | ${(data.calendarProviderHandoffs || []).length} calendar handoffs | ${(data.notificationProviderHandoffs || []).length} notification provider handoffs | ${(data.paymentProviderHandoffs || []).length} payment provider handoffs | ${(data.authSessionRoleHandoffs || []).length} auth/session handoffs | ${data.notificationEvents.length} updates | ${data.receipts.length} receipts | r${persistence.revision} ${persistence.adapterState} | ${persistence.ledgerId}`;
 }
 
 function formatTime(value) {
@@ -163,6 +163,7 @@ function allOperatingItems() {
     ...(data.campaignRoutes || []).map((item) => ({ ...item, kind: "campaign route", title: item.name || item.routeKey, status: item.status || item.readinessStatus, time: item.goLiveAt || item.startAt })),
     ...(data.marketingConversionEvents || []).map((item) => ({ ...item, kind: "marketing conversion", time: item.nextActionAt || item.occurredAt || item.updatedAt || item.createdAt })),
     ...(data.providerAdapterCandidates || []).map((item) => ({ ...item, kind: "provider adapter", time: item.nextActionAt || item.updatedAt || item.createdAt })),
+    ...(data.marketingAnalyticsAdapterPrototypes || []).map((item) => ({ ...item, kind: "marketing analytics prototype", time: item.nextActionAt || item.updatedAt || item.createdAt })),
     ...(data.calendarAdapterPrototypes || []).map((item) => ({ ...item, kind: "calendar adapter", time: item.nextActionAt || item.updatedAt || item.createdAt })),
     ...(data.workPlans || []).map((item) => ({ ...item, kind: "agent work plan", time: item.dueAt })),
     ...(data.agentHandoffs || []).map((item) => ({ ...item, kind: "agent handoff", time: item.nextActionAt })),
@@ -589,6 +590,7 @@ function renderMonitor(items) {
   const marketing = report.marketing || recordTools.summarizeMarketingState(data);
   const marketingConversion = report.marketingConversion || recordTools.summarizeMarketingConversionState(data);
   const providerAdapters = report.providerAdapters || recordTools.summarizeProviderAdapterSelectionState(data);
+  const marketingAnalytics = report.marketingAnalytics || recordTools.summarizeMarketingAnalyticsAdapterPrototypeState(data);
   const calendarAdapter = report.calendarAdapter || recordTools.summarizeCalendarAdapterPrototypeState(data);
   const routePlacement = report.routePlacement || recordTools.summarizeRoutePlacementState(data, { now: `${today}T12:00:00+09:00` });
   const accessGateways = report.accessGateways || recordTools.summarizeAccessGatewayState(data, { now: `${today}T12:00:00+09:00`, routePlacement });
@@ -598,7 +600,7 @@ function renderMonitor(items) {
   const persistence = report.persistence || recordTools.summarizePersistenceState(data, { now: `${today}T12:00:00+09:00` });
   const librarySync = report.librarySync || recordTools.summarizeLibrarySyncState(data, { now: `${today}T12:00:00+09:00`, persistence });
   lastMonitorReport = report;
-  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | ${accountHistory.historyCount} account histories | ${routePlacement.summary.routeCount} SYNAPSE routes | ${accessGateways.gatewayCount} access gates | ${librarySync.handoffCount} LIBRARY handoffs | ${calendarProvider.handoffCount} calendar handoffs | ${calendarAdapter.payloadReady} calendar prototypes ready | ${notificationPrototype.payloadReady} notification prototypes ready | ${paymentPrototype.payloadReady} payment prototypes ready | ${authPrototype.payloadReady} auth prototypes ready | ${notificationProvider.handoffCount} notification provider handoffs | ${paymentProvider.handoffCount} payment provider handoffs | ${authSession.handoffCount} auth/session handoffs | ${marketing.ready} campaign routes ready | ${marketingConversion.readyEvents} conversion KPIs ready | ${providerAdapters.readyCandidates} provider adapters ready | ${persistence.adapterState}`;
+  byId("monitor-route-status").textContent = `${routeForView("monitor")} | ${report.summary.queue} queued | ${report.summary.risks} risks | ${accountHistory.historyCount} account histories | ${routePlacement.summary.routeCount} SYNAPSE routes | ${accessGateways.gatewayCount} access gates | ${librarySync.handoffCount} LIBRARY handoffs | ${calendarProvider.handoffCount} calendar handoffs | ${marketingAnalytics.payloadReady} analytics prototypes ready | ${calendarAdapter.payloadReady} calendar prototypes ready | ${notificationPrototype.payloadReady} notification prototypes ready | ${paymentPrototype.payloadReady} payment prototypes ready | ${authPrototype.payloadReady} auth prototypes ready | ${notificationProvider.handoffCount} notification provider handoffs | ${paymentProvider.handoffCount} payment provider handoffs | ${authSession.handoffCount} auth/session handoffs | ${marketing.ready} campaign routes ready | ${marketingConversion.readyEvents} conversion KPIs ready | ${providerAdapters.readyCandidates} provider adapters ready | ${persistence.adapterState}`;
   renderMonitorActionConsole(report);
 
   const summaryCards = [
@@ -633,6 +635,7 @@ function renderMonitor(items) {
     record("Campaign Readiness", `${marketing.ready} of ${marketing.total} campaign routes ready across ${marketing.channelCount} channel groups.`, [chip(`${marketing.jp} JP`), chip(`${marketing.global} global`), chip(`${marketing.copyViolations} copy risks`, marketing.copyViolations ? "blocked" : "complete")]),
     record("Conversion KPIs", `${marketingConversion.readyEvents} of ${marketingConversion.eventCount} KPI events ready; ${marketingConversion.noLiveTracking} no-live-tracking.`, [toneChip(marketingConversion.status, marketingConversion.status === "ready" ? "complete" : "blocked"), chip(formatJpy(marketingConversion.potentialValueJpy))]),
     record("Provider Adapters", `${providerAdapters.readyCandidates} of ${providerAdapters.candidateCount} candidates ready; ${providerAdapters.noLiveProvider} no-live-provider and ${providerAdapters.noSecrets} no-secrets.`, [toneChip(providerAdapters.status, providerAdapters.status === "ready" ? "complete" : "blocked"), chip(`${providerAdapters.approvedSandboxOnly} sandbox-approved`)]),
+    record("Sandbox Analytics Prototype", `${marketingAnalytics.payloadReady} of ${marketingAnalytics.prototypeCount} prototypes payload-ready; ${marketingAnalytics.noLiveTracking} no-live-tracking, ${marketingAnalytics.noCredentials} no-credentials, ${marketingAnalytics.noPersonalData} no-personal-data, ${marketingAnalytics.under19ConsentGated} under-19 gated.`, [toneChip(marketingAnalytics.status, marketingAnalytics.status === "ready" ? "complete" : "blocked"), chip(`${marketingAnalytics.payloadEntries} payload items`)]),
     record("Sandbox Calendar Adapter", `${calendarAdapter.payloadReady} of ${calendarAdapter.prototypeCount} prototypes payload-ready; ${calendarAdapter.noLiveProvider} no-live-provider, ${calendarAdapter.noSecrets} no-secrets, ${calendarAdapter.noInvitationSend} no-invitation-send.`, [toneChip(calendarAdapter.status, calendarAdapter.status === "ready" ? "complete" : "blocked"), chip(`${calendarAdapter.payloadEntries} payload items`)]),
     record("SYNAPSE Placement", `${routePlacement.summary.routeCount} routes, ${routePlacement.placementMode}, ${routePlacement.access}.`, [chip(routePlacement.targetSystem), chip(routePlacement.duplicateUi ? "duplicate-ui" : "no-duplicate-ui"), chip(routePlacement.summary.monitorHref)]),
     record("Calendar Export", `${calendar.total} export-ready entries, ${calendar.customerVisible} customer-visible, ${calendar.updateLinked} update-linked.`, [chip(calendarExport.schema), chip(calendarExport.timezone)]),
@@ -864,6 +867,17 @@ function renderMonitor(items) {
     ]
   ));
 
+  const marketingAnalyticsCards = marketingAnalytics.prototypes.map((prototype) => record(
+    prototype.title,
+    `${prototype.targetProvider} | ${prototype.adapterMode} | ${prototype.prototypeStatus} | ${prototype.payloadEntryCount} local preview items | ${prototype.notes}`,
+    [
+      statusChip(prototype.status),
+      chip(prototype.payloadMode),
+      chip(prototype.sandboxOnly && prototype.localOnly ? "sandbox-local" : "boundary-missing"),
+      toneChip(`${prototype.violations.length} violations`, prototype.violations.length ? "blocked" : "complete")
+    ]
+  ));
+
   const calendarAdapterCards = calendarAdapter.prototypes.map((prototype) => record(
     prototype.title,
     `${prototype.targetProvider} | ${prototype.adapterMode} | ${prototype.prototypeStatus} | ${prototype.payloadEntryCount} local preview items | ${prototype.notes}`,
@@ -986,6 +1000,7 @@ function renderMonitor(items) {
     monitorSection("Campaign Routes", campaignCards.length ? campaignCards : [record("Campaign Routes", "No campaign route records have been created yet.", [chip("empty")])], "monitor-campaigns"),
     monitorSection("Marketing Conversion KPIs", marketingConversionCards.length ? marketingConversionCards : [record("Marketing Conversion KPIs", "No local conversion KPI readiness records have been created yet.", [chip("empty")])], "monitor-marketing-conversions"),
     monitorSection("Provider Adapter Go/No-Go", providerAdapterCards.length ? providerAdapterCards : [record("Provider Adapter Go/No-Go", "No provider adapter candidate records have been created yet.", [chip("empty")])], "monitor-provider-adapters"),
+    monitorSection("Sandbox Marketing Analytics Adapter", marketingAnalyticsCards.length ? marketingAnalyticsCards : [record("Sandbox Marketing Analytics Adapter", "No sandbox marketing analytics adapter prototype records have been created yet.", [chip("empty")])], "monitor-marketing-analytics-prototype"),
     monitorSection("Sandbox Calendar Adapter", calendarAdapterCards.length ? calendarAdapterCards : [record("Sandbox Calendar Adapter", "No sandbox calendar adapter prototype records have been created yet.", [chip("empty")])], "monitor-calendar-adapter"),
     monitorSection("Sandbox Notification Provider", notificationPrototypeCards.length ? notificationPrototypeCards : [record("Sandbox Notification Provider", "No sandbox notification provider prototype records have been created yet.", [chip("empty")])], "monitor-notification-prototype"),
     monitorSection("Sandbox Payment Provider", paymentPrototypeCards.length ? paymentPrototypeCards : [record("Sandbox Payment Provider", "No sandbox payment provider prototype records have been created yet.", [chip("empty")])], "monitor-payment-prototype"),
@@ -1088,6 +1103,17 @@ function renderProviderAdapterOptions() {
   });
   select.innerHTML = candidateOptions.length ? candidateOptions.join("") : `<option value="">No provider adapter candidates yet</option>`;
   if (submit) submit.disabled = !candidateOptions.length;
+}
+
+function renderMarketingAnalyticsPrototypeOptions() {
+  const select = byId("marketing-analytics-prototype-select");
+  const submit = byId("marketing-analytics-prototype-apply");
+  if (!select) return;
+  const prototypeOptions = (data.marketingAnalyticsAdapterPrototypes || []).map((prototype) => {
+    return `<option value="${escapeHtml(prototype.id)}">${escapeHtml(prototype.title)} (${escapeHtml(prototype.status)})</option>`;
+  });
+  select.innerHTML = prototypeOptions.length ? prototypeOptions.join("") : `<option value="">No sandbox marketing analytics prototypes yet</option>`;
+  if (submit) submit.disabled = !prototypeOptions.length;
 }
 
 function renderCalendarAdapterOptions() {
@@ -1256,6 +1282,7 @@ function renderAll() {
   renderAuthSessionRoleOptions();
   renderMarketingConversionOptions();
   renderProviderAdapterOptions();
+  renderMarketingAnalyticsPrototypeOptions();
   renderCalendarAdapterOptions();
   renderNotificationPrototypeOptions();
   renderPaymentPrototypeOptions();
@@ -1694,6 +1721,41 @@ function wireProviderAdapterForm() {
   });
 }
 
+function wireMarketingAnalyticsPrototypeForm() {
+  const form = byId("marketing-analytics-prototype-form");
+  const confirmation = byId("marketing-analytics-prototype-confirmation");
+  if (!form || !confirmation) return;
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+    try {
+      const result = recordTools.transitionMarketingAnalyticsAdapterPrototypeRecords(data, payload, {
+        now: "2026-06-01T17:30:00.000Z"
+      });
+      data = result.data;
+      persistData({
+        adapterState: "modified-local",
+        recoveryNote: "Sandbox marketing analytics adapter prototype changed locally; export a ledger snapshot before live analytics or advertising provider work."
+      });
+      renderAll();
+      confirmation.innerHTML = record(
+        "Sandbox Marketing Analytics Adapter Updated",
+        `${result.records.prototype.title} is ${result.records.prototype.prototypeStatus}; live pixels, ad API writes, analytics credentials, webhooks, provider writes, invasive tracking, personal-data storage, cross-site identifiers, third-party cookies, fingerprinting, cross-device identity, customer-visible analytics, and under-19 paid action before consent remain disabled.`,
+        [statusChip(result.records.prototype.status), chip(result.records.prototype.payloadMode), chip(result.records.prototype.sandboxOnly ? "sandbox-only" : "sandbox-missing")]
+      );
+      form.reset();
+    } catch (error) {
+      confirmation.innerHTML = record(
+        "Sandbox Marketing Analytics Adapter Blocked",
+        error.message || "Sandbox marketing analytics adapter action could not be applied.",
+        [chip("blocked", "blocked")]
+      );
+    }
+  });
+}
+
 function wireCalendarAdapterForm() {
   const form = byId("calendar-adapter-form");
   const confirmation = byId("calendar-adapter-confirmation");
@@ -2095,6 +2157,7 @@ function init() {
   wireAuthSessionRoleForm();
   wireMarketingConversionForm();
   wireProviderAdapterForm();
+  wireMarketingAnalyticsPrototypeForm();
   wireCalendarAdapterForm();
   wireNotificationPrototypeForm();
   wirePaymentPrototypeForm();

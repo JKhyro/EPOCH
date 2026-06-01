@@ -341,6 +341,7 @@
         <button type="button" class="mode-button" data-monitor-target="monitor-campaigns">Campaigns</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-marketing-conversions">KPIs</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-provider-adapters">Adapters</button>
+        <button type="button" class="mode-button" data-monitor-target="monitor-marketing-analytics-prototype">Analytics Proof</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-calendar-adapter">Cal Adapter</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-notification-prototype">Notify Proof</button>
         <button type="button" class="mode-button" data-monitor-target="monitor-payment-prototype">Pay Proof</button>
@@ -364,6 +365,7 @@
           <button type="button" data-monitor-target="monitor-campaigns">Campaigns</button>
           <button type="button" data-monitor-target="monitor-marketing-conversions">Conversion KPIs</button>
           <button type="button" data-monitor-target="monitor-provider-adapters">Provider Adapters</button>
+          <button type="button" data-monitor-target="monitor-marketing-analytics-prototype">Sandbox Marketing Analytics Adapter</button>
           <button type="button" data-monitor-target="monitor-calendar-adapter">Sandbox Calendar Adapter</button>
           <button type="button" data-monitor-target="monitor-notification-prototype">Sandbox Notification Provider</button>
           <button type="button" data-monitor-target="monitor-payment-prototype">Sandbox Payment Provider</button>
@@ -606,6 +608,29 @@
                 <input name="note" value="Provider adapter go/no-go reviewed; live API calls, secrets, OAuth clients, webhooks, provider writes, and production behavior remain disabled." />
               </label>
               <button type="submit" id="provider-adapter-apply">Apply Provider Adapter Go/No-Go Action</button>
+            </form>
+            <form id="marketing-analytics-prototype-form" class="review-console marketing-analytics-prototype-console">
+              <div class="form-row">
+                <label>
+                  Sandbox Marketing Analytics Adapter
+                  <select name="prototypeId" id="marketing-analytics-prototype-select" required></select>
+                </label>
+                <label>
+                  Prototype action
+                  <select name="action" id="marketing-analytics-prototype-action" required>
+                    <option value="generate-preview">Generate local preview</option>
+                    <option value="approve-sandbox">Approve sandbox proof</option>
+                    <option value="mark-reviewed">Mark operator reviewed</option>
+                    <option value="defer">Defer prototype</option>
+                    <option value="block">Block prototype</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                Prototype note
+                <input name="note" value="Sandbox marketing analytics adapter reviewed; live pixels, ad API writes, analytics credentials, webhooks, provider writes, invasive tracking, personal-data storage, cross-site identifiers, third-party cookies, fingerprinting, cross-device identity, customer-visible analytics, and under-19 paid action before consent remain disabled." />
+              </label>
+              <button type="submit" id="marketing-analytics-prototype-apply">Apply Sandbox Marketing Analytics Adapter Action</button>
             </form>
             <form id="calendar-adapter-form" class="review-console calendar-adapter-console">
               <div class="form-row">
@@ -895,6 +920,7 @@
             <div id="auth-session-role-confirmation" class="confirmation"></div>
             <div id="marketing-conversion-confirmation" class="confirmation"></div>
             <div id="provider-adapter-confirmation" class="confirmation"></div>
+            <div id="marketing-analytics-prototype-confirmation" class="confirmation"></div>
             <div id="calendar-adapter-confirmation" class="confirmation"></div>
             <div id="notification-prototype-confirmation" class="confirmation"></div>
             <div id="payment-prototype-confirmation" class="confirmation"></div>

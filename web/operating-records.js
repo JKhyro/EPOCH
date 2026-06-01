@@ -22,6 +22,7 @@
     "campaignRoutes",
     "marketingConversionEvents",
     "providerAdapterCandidates",
+    "marketingAnalyticsAdapterPrototypes",
     "calendarAdapterPrototypes",
     "notificationProviderPrototypes",
     "paymentProviderPrototypes",
@@ -1204,6 +1205,136 @@
     ];
   }
 
+  function defaultMarketingAnalyticsAdapterPrototypes() {
+    return [
+      {
+        id: "marketing-analytics-sandbox-conversion-preview",
+        title: "Marketing Analytics Sandbox Conversion Preview",
+        providerCandidateId: "provider-adapter-analytics-ads",
+        sourceEventIds: ["conversion-ja-diagnostic-submit", "conversion-ja-review-submit", "conversion-global-support-consult", "conversion-under19-compatibility-request"],
+        adapterFamily: "analytics-advertising",
+        targetProvider: "provider-neutral analytics / ads",
+        adapterMode: "sandbox-conversion-payload-preview",
+        status: "queued",
+        prototypeStatus: "payload-ready",
+        sandboxOnly: true,
+        localOnly: true,
+        livePixelEnabled: false,
+        externalAdApiWrite: false,
+        liveApiCalls: false,
+        externalProviderWrite: false,
+        productionEnabled: false,
+        invasiveTracking: false,
+        storesPersonalData: false,
+        productionAnalyticsCredential: false,
+        secretsPresent: false,
+        credentialsStored: false,
+        storesCredentials: false,
+        oauthConfigured: false,
+        webhookEnabled: false,
+        crossSiteIdentifier: false,
+        thirdPartyCookieEnabled: false,
+        fingerprintingEnabled: false,
+        crossDeviceIdentityEnabled: false,
+        customerVisible: false,
+        customerSafe: false,
+        publicProofSurface: false,
+        legalReviewRequired: true,
+        privacyReviewRequired: true,
+        consentBoundaryRequired: true,
+        under19ConsentGated: true,
+        noPaidActionBeforeConsent: true,
+        analyticsSchema: "epoch.marketing-conversion",
+        payloadMode: "provider-neutral-conversion-json-preview",
+        payloadSource: "epoch.marketing-conversion",
+        payloadEntryCount: 4,
+        readinessChecks: ["provider-candidate-required", "marketing-conversion-kpi-required", "campaign-route-key-preserved", "privacy-boundary-required", "consent-boundary-required", "legal-review-required", "sandbox-only-before-go-live", "operator-approval-required", "no-live-pixel", "no-external-ad-api-write", "first-party-ledger-only", "no-invasive-tracking", "no-analytics-credentials", "no-webhooks", "no-provider-writes", "no-personal-data-storage", "no-cross-site-identifier", "no-third-party-cookie", "no-fingerprinting", "no-cross-device-identity", "no-customer-visible-analytics", "guardian-consent-required", "no-paid-action-before-consent"],
+        payloadPreview: [
+          {
+            uid: "epoch-analytics-preview-ja-diagnostic-submit",
+            title: "Japan Diagnostic Submit preview",
+            provider: "provider-neutral",
+            routeKey: "ja/offers/english-accelerator/intake",
+            eventType: "diagnostic_submit",
+            conversionStage: "high-intent",
+            regionScope: "jp",
+            offerBundle: "english-cohort",
+            audienceTier: "19plus",
+            valueJpy: 45000,
+            attributionPolicy: "first-party-route-key-only",
+            source: "marketing-conversion:conversion-ja-diagnostic-submit",
+            status: "preview-only",
+            externalWrite: false,
+            customerVisible: false,
+            customerSafe: true
+          },
+          {
+            uid: "epoch-analytics-preview-ja-review-submit",
+            title: "Teacher Review Submission preview",
+            provider: "provider-neutral",
+            routeKey: "ja/offers/teacher-review-pack/submission-path",
+            eventType: "portfolio_submit",
+            conversionStage: "high-intent",
+            regionScope: "jp",
+            offerBundle: "teacher-review",
+            audienceTier: "19plus",
+            valueJpy: 16000,
+            attributionPolicy: "first-party-route-key-only",
+            source: "marketing-conversion:conversion-ja-review-submit",
+            status: "preview-only",
+            externalWrite: false,
+            customerVisible: false,
+            customerSafe: true
+          },
+          {
+            uid: "epoch-analytics-preview-global-support",
+            title: "Global Support Consultation preview",
+            provider: "provider-neutral",
+            routeKey: "global/offers/professional-support/tech-support",
+            eventType: "consult_booking",
+            conversionStage: "qualified",
+            regionScope: "global",
+            offerBundle: "tech-support",
+            audienceTier: "corporate",
+            valueJpy: 120000,
+            attributionPolicy: "first-party-route-key-only",
+            source: "marketing-conversion:conversion-global-support-consult",
+            status: "preview-only",
+            externalWrite: false,
+            customerVisible: false,
+            customerSafe: true
+          },
+          {
+            uid: "epoch-analytics-preview-under19-gate",
+            title: "Under-19 Compatibility Request preview",
+            provider: "provider-neutral",
+            routeKey: "ja/offers/under19/guardian-gate",
+            eventType: "compatibility_request",
+            conversionStage: "guarded-intake",
+            regionScope: "jp",
+            offerBundle: "english-cohort",
+            audienceTier: "under19",
+            valueJpy: 0,
+            attributionPolicy: "first-party-route-key-only",
+            source: "marketing-conversion:conversion-under19-compatibility-request",
+            status: "guardian-consent-required-preview-only",
+            externalWrite: false,
+            guardianConsentRequired: true,
+            noPaidActionBeforeConsent: true,
+            customerVisible: false,
+            customerSafe: true
+          }
+        ],
+        blockers: ["No privacy/consent review signoff", "No analytics credentials", "No live pixel", "No ad API conversion write", "No cross-site identifier, third-party cookie, fingerprinting, or cross-device identity", "Under-19 compatibility routes stay guardian-consent gated"],
+        nextActionAt: "2026-06-04T13:00:00+09:00",
+        createdAt: "2026-06-02T08:00:00+09:00",
+        updatedAt: "2026-06-02T08:00:00+09:00",
+        receiptIds: ["receipt-marketing-analytics-prototype-seed"],
+        notes: "Local conversion payload preview only; live pixels, ad API writes, analytics credentials, webhooks, provider writes, invasive tracking, personal-data storage, cross-site identifiers, and customer-visible analytics remain disabled."
+      }
+    ];
+  }
+
   function defaultCalendarAdapterPrototypes() {
     return [
       {
@@ -1554,6 +1685,9 @@
     }
     if (!Array.isArray(nextData.providerAdapterCandidates) || !nextData.providerAdapterCandidates.length) {
       nextData.providerAdapterCandidates = defaultProviderAdapterCandidates();
+    }
+    if (!Array.isArray(nextData.marketingAnalyticsAdapterPrototypes) || !nextData.marketingAnalyticsAdapterPrototypes.length) {
+      nextData.marketingAnalyticsAdapterPrototypes = defaultMarketingAnalyticsAdapterPrototypes();
     }
     if (!Array.isArray(nextData.calendarAdapterPrototypes) || !nextData.calendarAdapterPrototypes.length) {
       nextData.calendarAdapterPrototypes = defaultCalendarAdapterPrototypes();
@@ -5699,6 +5833,424 @@
     };
   }
 
+  function marketingAnalyticsPayloadPreview(currentData, limit = 5, sourceEventIds = []) {
+    const data = normalizedOperatingData(currentData);
+    const sourceSet = new Set((Array.isArray(sourceEventIds) ? sourceEventIds : []).map(clean).filter(Boolean));
+    const events = summarizeMarketingConversionState(data).events.filter((event) => !sourceSet.size || sourceSet.has(event.id));
+    return events.slice(0, limit).map((event) => ({
+      uid: `epoch-analytics-${clean(event.id)}`,
+      title: `${event.title} analytics payload preview`,
+      provider: "provider-neutral",
+      routeKey: event.routeKey,
+      eventType: event.eventType,
+      conversionStage: event.conversionStage,
+      primaryConversion: event.primaryConversion,
+      regionScope: event.regionScope,
+      sourceChannel: event.sourceChannel,
+      offerBundle: event.offerBundle,
+      audienceTier: event.audienceTier,
+      valueJpy: event.conversionValueJpy,
+      attributionPolicy: event.attributionPolicy,
+      source: `marketing-conversion:${event.id}`,
+      status: event.audienceTier === "under19" ? "guardian-consent-required-preview-only" : "preview-only",
+      livePixel: false,
+      externalWrite: false,
+      storesPersonalData: false,
+      crossSiteIdentifier: false,
+      customerVisible: false,
+      customerSafe: true,
+      guardianConsentRequired: event.audienceTier === "under19",
+      noPaidActionBeforeConsent: event.audienceTier === "under19"
+    }));
+  }
+
+  function summarizeMarketingAnalyticsAdapterPrototypeState(currentData, options = {}) {
+    const data = normalizedOperatingData(currentData);
+    const providerAdapters = options.providerAdapters || summarizeProviderAdapterSelectionState(data);
+    const marketingConversion = options.marketingConversion || summarizeMarketingConversionState(data);
+    const candidateById = providerAdapters.candidates.reduce((memo, candidate) => {
+      memo[candidate.id] = candidate;
+      return memo;
+    }, {});
+    const eventById = marketingConversion.events.reduce((memo, event) => {
+      memo[event.id] = event;
+      return memo;
+    }, {});
+    const requiredChecks = ["provider-candidate-required", "marketing-conversion-kpi-required", "campaign-route-key-preserved", "privacy-boundary-required", "consent-boundary-required", "legal-review-required", "sandbox-only-before-go-live", "operator-approval-required", "no-live-pixel", "no-external-ad-api-write", "first-party-ledger-only", "no-invasive-tracking", "no-analytics-credentials", "no-webhooks", "no-provider-writes", "no-personal-data-storage", "no-cross-site-identifier", "no-third-party-cookie", "no-fingerprinting", "no-cross-device-identity", "no-customer-visible-analytics", "guardian-consent-required", "no-paid-action-before-consent"];
+    const prototypes = data.marketingAnalyticsAdapterPrototypes.map((prototype) => {
+      const providerCandidateId = clean(prototype.providerCandidateId);
+      const sourceEventIds = Array.isArray(prototype.sourceEventIds)
+        ? prototype.sourceEventIds.map(clean).filter(Boolean)
+        : [clean(prototype.sourceEventId)].filter(Boolean);
+      const candidate = candidateById[providerCandidateId] || null;
+      const linkedEvents = sourceEventIds.map((id) => eventById[id]).filter(Boolean);
+      const readinessChecks = Array.isArray(prototype.readinessChecks) ? prototype.readinessChecks : [];
+      const payloadPreview = Array.isArray(prototype.payloadPreview) ? prototype.payloadPreview : [];
+      const receiptIds = Array.isArray(prototype.receiptIds) ? prototype.receiptIds : [];
+      const blockers = Array.isArray(prototype.blockers) ? prototype.blockers : [];
+      const livePixelEnabled = prototype.livePixelEnabled === true;
+      const externalAdApiWrite = prototype.externalAdApiWrite === true;
+      const liveApiCalls = prototype.liveApiCalls === true;
+      const externalProviderWrite = prototype.externalProviderWrite === true;
+      const productionEnabled = prototype.productionEnabled === true;
+      const invasiveTracking = prototype.invasiveTracking === true;
+      const storesPersonalData = prototype.storesPersonalData === true;
+      const productionAnalyticsCredential = prototype.productionAnalyticsCredential === true;
+      const secretsPresent = prototype.secretsPresent === true;
+      const credentialsStored = prototype.credentialsStored === true;
+      const storesCredentials = prototype.storesCredentials === true;
+      const oauthConfigured = prototype.oauthConfigured === true;
+      const webhookEnabled = prototype.webhookEnabled === true;
+      const crossSiteIdentifier = prototype.crossSiteIdentifier === true;
+      const thirdPartyCookieEnabled = prototype.thirdPartyCookieEnabled === true;
+      const fingerprintingEnabled = prototype.fingerprintingEnabled === true;
+      const crossDeviceIdentityEnabled = prototype.crossDeviceIdentityEnabled === true;
+      const customerVisible = prototype.customerVisible === true;
+      const publicProofSurface = prototype.publicProofSurface === true;
+      const legalReviewRequired = prototype.legalReviewRequired !== false;
+      const privacyReviewRequired = prototype.privacyReviewRequired !== false;
+      const consentBoundaryRequired = prototype.consentBoundaryRequired !== false;
+      const under19ConsentGated = prototype.under19ConsentGated !== false;
+      const noPaidActionBeforeConsent = prototype.noPaidActionBeforeConsent !== false;
+      const violations = [];
+
+      if (clean(prototype.adapterFamily || "analytics-advertising") !== "analytics-advertising") {
+        violations.push("Marketing analytics adapter prototype must stay in the analytics-advertising adapter family.");
+      }
+      if (!candidate || candidate.providerFamily !== "analytics-advertising") {
+        violations.push("Marketing analytics adapter prototype must link to an analytics-advertising provider adapter candidate.");
+      } else if (candidate.violations.length) {
+        violations.push("Linked analytics-advertising provider adapter candidate has readiness violations.");
+      }
+      if (!linkedEvents.length) {
+        violations.push("Marketing analytics adapter prototype must link to marketing conversion KPI events.");
+      } else if (linkedEvents.some((event) => event.violations.length)) {
+        violations.push("Linked marketing conversion KPI event has readiness violations.");
+      }
+      if (prototype.sandboxOnly === false || prototype.localOnly === false) {
+        violations.push("Marketing analytics adapter prototype must remain sandbox-only and local-only.");
+      }
+      if (livePixelEnabled || externalAdApiWrite || liveApiCalls || externalProviderWrite || productionEnabled) {
+        violations.push("Marketing analytics adapter prototype cannot enable live pixels, ad API writes, live APIs, production behavior, or provider writes.");
+      }
+      if (invasiveTracking || storesPersonalData || productionAnalyticsCredential || crossSiteIdentifier || thirdPartyCookieEnabled || fingerprintingEnabled || crossDeviceIdentityEnabled) {
+        violations.push("Marketing analytics adapter prototype must avoid invasive tracking, personal-data storage, analytics credentials, cross-site identifiers, third-party cookies, fingerprinting, and cross-device identity.");
+      }
+      if (secretsPresent || credentialsStored || storesCredentials || oauthConfigured || webhookEnabled) {
+        violations.push("Marketing analytics adapter prototype cannot store secrets, credentials, OAuth clients, or webhooks.");
+      }
+      if (customerVisible || publicProofSurface) {
+        violations.push("Marketing analytics adapter prototype must remain internal and not expose customer-visible analytics or public proof surfaces.");
+      }
+      if (!legalReviewRequired || !privacyReviewRequired || !consentBoundaryRequired) {
+        violations.push("Marketing analytics adapter prototype must keep legal, privacy, and consent review requirements visible.");
+      }
+      if (!under19ConsentGated || !noPaidActionBeforeConsent) {
+        violations.push("Marketing analytics adapter prototype must preserve under-19 consent gating and no paid action before consent.");
+      }
+      for (const required of requiredChecks) {
+        if (!readinessChecks.includes(required)) {
+          violations.push(`Marketing analytics adapter prototype must include ${required}.`);
+        }
+      }
+      if (!payloadPreview.length) violations.push("Marketing analytics adapter prototype must include local conversion payload previews.");
+      if (!payloadPreview.some((item) => clean(item.audienceTier) === "under19" && item.guardianConsentRequired === true && item.noPaidActionBeforeConsent === true)) {
+        violations.push("Marketing analytics adapter prototype must preview under-19 consent-gated conversion payloads.");
+      }
+      if (!blockers.length) violations.push("Marketing analytics adapter prototype must define blockers before live analytics/ad provider work.");
+      if (clean(prototype.status) === "complete" && !receiptIds.length) {
+        violations.push("Completed marketing analytics adapter prototype requires a receipt trail.");
+      }
+
+      return {
+        id: clean(prototype.id),
+        title: clean(prototype.title) || "Marketing Analytics Adapter Prototype",
+        providerCandidateId,
+        sourceEventIds,
+        adapterFamily: clean(prototype.adapterFamily) || "analytics-advertising",
+        targetProvider: clean(prototype.targetProvider) || candidate?.targetProvider || "provider-neutral analytics/ads",
+        adapterMode: clean(prototype.adapterMode) || "sandbox-conversion-payload-preview",
+        status: clean(prototype.status) || "planned",
+        prototypeStatus: clean(prototype.prototypeStatus) || "payload-pending",
+        sandboxOnly: prototype.sandboxOnly !== false,
+        localOnly: prototype.localOnly !== false,
+        livePixelEnabled,
+        externalAdApiWrite,
+        liveApiCalls,
+        externalProviderWrite,
+        productionEnabled,
+        invasiveTracking,
+        storesPersonalData,
+        productionAnalyticsCredential,
+        secretsPresent,
+        credentialsStored,
+        storesCredentials,
+        oauthConfigured,
+        webhookEnabled,
+        crossSiteIdentifier,
+        thirdPartyCookieEnabled,
+        fingerprintingEnabled,
+        crossDeviceIdentityEnabled,
+        customerVisible,
+        customerSafe: prototype.customerSafe === true,
+        publicProofSurface,
+        legalReviewRequired,
+        privacyReviewRequired,
+        consentBoundaryRequired,
+        under19ConsentGated,
+        noPaidActionBeforeConsent,
+        analyticsSchema: clean(prototype.analyticsSchema) || "epoch.marketing-conversion",
+        payloadMode: clean(prototype.payloadMode) || "provider-neutral-conversion-json-preview",
+        payloadSource: clean(prototype.payloadSource) || "epoch.marketing-conversion",
+        payloadEntryCount: payloadPreview.length,
+        readinessChecks,
+        payloadPreview,
+        blockers,
+        nextActionAt: clean(prototype.nextActionAt),
+        createdAt: clean(prototype.createdAt),
+        updatedAt: clean(prototype.updatedAt),
+        receiptIds,
+        notes: clean(prototype.notes) || "No sandbox marketing analytics adapter prototype note recorded.",
+        violations
+      };
+    });
+    const violations = prototypes.flatMap((prototype) => prototype.violations.map((detail) => `${prototype.title}: ${detail}`));
+
+    return {
+      schema: "epoch.marketing-analytics-adapter-prototype",
+      prototypeCount: prototypes.length,
+      payloadReady: prototypes.filter((prototype) => ["payload-ready", "sandbox-approved", "operator-reviewed"].includes(prototype.prototypeStatus)).length,
+      sandboxOnly: prototypes.filter((prototype) => prototype.sandboxOnly).length,
+      localOnly: prototypes.filter((prototype) => prototype.localOnly).length,
+      noLiveTracking: prototypes.filter((prototype) => !prototype.livePixelEnabled && !prototype.externalAdApiWrite && !prototype.liveApiCalls && !prototype.externalProviderWrite && !prototype.productionEnabled).length,
+      noCredentials: prototypes.filter((prototype) => !prototype.productionAnalyticsCredential && !prototype.secretsPresent && !prototype.credentialsStored && !prototype.storesCredentials && !prototype.oauthConfigured && !prototype.webhookEnabled).length,
+      noPersonalData: prototypes.filter((prototype) => !prototype.invasiveTracking && !prototype.storesPersonalData && !prototype.crossSiteIdentifier && !prototype.thirdPartyCookieEnabled && !prototype.fingerprintingEnabled && !prototype.crossDeviceIdentityEnabled).length,
+      noCustomerVisibleAnalytics: prototypes.filter((prototype) => !prototype.customerVisible && !prototype.publicProofSurface).length,
+      privacyConsentReady: prototypes.filter((prototype) => prototype.legalReviewRequired && prototype.privacyReviewRequired && prototype.consentBoundaryRequired).length,
+      under19ConsentGated: prototypes.filter((prototype) => prototype.under19ConsentGated && prototype.noPaidActionBeforeConsent).length,
+      candidateLinked: prototypes.filter((prototype) => candidateById[prototype.providerCandidateId]?.providerFamily === "analytics-advertising").length,
+      eventLinked: prototypes.filter((prototype) => prototype.sourceEventIds.some((id) => eventById[id])).length,
+      payloadEntries: prototypes.reduce((total, prototype) => total + prototype.payloadEntryCount, 0),
+      status: violations.length ? "blocked" : "ready",
+      violations,
+      prototypes
+    };
+  }
+
+  function createMarketingAnalyticsAdapterPrototypeRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const nowText = withTimezone(now.toISOString(), timezone);
+    const candidateId = clean(input.providerCandidateId || input.candidateId) || clean(nextData.providerAdapterCandidates.find((item) => clean(item.providerFamily) === "analytics-advertising")?.id);
+    const candidate = nextData.providerAdapterCandidates.find((item) => clean(item.id) === candidateId);
+    if (!candidate || clean(candidate.providerFamily) !== "analytics-advertising") throw new Error("analytics-advertising provider adapter candidate is required");
+    if (candidate.liveApiCalls || candidate.productionEnabled || candidate.externalProviderWrite || candidate.secretsPresent || candidate.credentialsStored || candidate.oauthConfigured || candidate.webhookEnabled) {
+      throw new Error("analytics-advertising provider adapter candidate is not safe for sandbox prototype");
+    }
+    const sourceEventIds = (Array.isArray(input.sourceEventIds) && input.sourceEventIds.length
+      ? input.sourceEventIds
+      : Array.isArray(candidate.sourceHandoffIds)
+        ? candidate.sourceHandoffIds
+        : nextData.marketingConversionEvents.map((event) => event.id))
+      .map(clean)
+      .filter((id) => nextData.marketingConversionEvents.some((event) => clean(event.id) === id));
+    if (!sourceEventIds.length) throw new Error("marketing conversion KPI events are required for sandbox analytics adapter prototype");
+    const unsafeEvent = nextData.marketingConversionEvents.find((event) => sourceEventIds.includes(clean(event.id)) && (event.livePixelEnabled || event.externalAdApiWrite || event.invasiveTracking || event.storesPersonalData || event.productionAnalyticsCredential || event.webhookEnabled || event.crossSiteIdentifier));
+    if (unsafeEvent) throw new Error("marketing conversion KPI event is not safe for sandbox analytics adapter prototype");
+    const payloadPreview = marketingAnalyticsPayloadPreview(nextData, Number(input.payloadLimit) || 5, sourceEventIds);
+    if (!payloadPreview.length) throw new Error("marketing conversion KPI records have no analytics payload to preview");
+    const prototype = {
+      id: clean(input.id) || `marketing-analytics-prototype-${stamp(now)}-${nextData.marketingAnalyticsAdapterPrototypes.length + 1}`,
+      title: clean(input.title) || `${candidate.targetProvider || "Analytics"} Sandbox Marketing Analytics Prototype`,
+      providerCandidateId: candidate.id,
+      sourceEventIds,
+      adapterFamily: "analytics-advertising",
+      targetProvider: clean(input.targetProvider) || candidate.targetProvider || "provider-neutral analytics/ads",
+      adapterMode: clean(input.adapterMode) || "sandbox-conversion-payload-preview",
+      status: clean(input.status) || "queued",
+      prototypeStatus: clean(input.prototypeStatus) || "payload-ready",
+      sandboxOnly: true,
+      localOnly: true,
+      livePixelEnabled: false,
+      externalAdApiWrite: false,
+      liveApiCalls: false,
+      externalProviderWrite: false,
+      productionEnabled: false,
+      invasiveTracking: false,
+      storesPersonalData: false,
+      productionAnalyticsCredential: false,
+      secretsPresent: false,
+      credentialsStored: false,
+      storesCredentials: false,
+      oauthConfigured: false,
+      webhookEnabled: false,
+      crossSiteIdentifier: false,
+      thirdPartyCookieEnabled: false,
+      fingerprintingEnabled: false,
+      crossDeviceIdentityEnabled: false,
+      customerVisible: false,
+      customerSafe: false,
+      publicProofSurface: false,
+      legalReviewRequired: true,
+      privacyReviewRequired: true,
+      consentBoundaryRequired: true,
+      under19ConsentGated: true,
+      noPaidActionBeforeConsent: true,
+      analyticsSchema: "epoch.marketing-conversion",
+      payloadMode: clean(input.payloadMode) || "provider-neutral-conversion-json-preview",
+      payloadSource: "epoch.marketing-conversion",
+      payloadEntryCount: payloadPreview.length,
+      readinessChecks: ["provider-candidate-required", "marketing-conversion-kpi-required", "campaign-route-key-preserved", "privacy-boundary-required", "consent-boundary-required", "legal-review-required", "sandbox-only-before-go-live", "operator-approval-required", "no-live-pixel", "no-external-ad-api-write", "first-party-ledger-only", "no-invasive-tracking", "no-analytics-credentials", "no-webhooks", "no-provider-writes", "no-personal-data-storage", "no-cross-site-identifier", "no-third-party-cookie", "no-fingerprinting", "no-cross-device-identity", "no-customer-visible-analytics", "guardian-consent-required", "no-paid-action-before-consent"],
+      payloadPreview,
+      blockers: Array.isArray(input.blockers) ? input.blockers : ["No privacy/consent review signoff", "No analytics credential storage", "No live pixel", "No ad API conversion write", "No webhook", "No cross-site identifier, third-party cookie, fingerprinting, or cross-device identity", "Under-19 compatibility routes stay guardian-consent gated"],
+      nextActionAt: withTimezone(input.nextActionAt, timezone) || nowText,
+      createdAt: nowText,
+      updatedAt: nowText,
+      receiptIds: [],
+      notes: clean(input.note) || "Sandbox marketing analytics adapter prototype created from EPOCH conversion KPI readiness records without live tracking or provider writes."
+    };
+    const receipt = {
+      id: `receipt-marketing-analytics-prototype-${stamp(now)}`,
+      kind: "marketing-analytics-adapter-prototype",
+      status: "complete",
+      createdAt: nowText,
+      note: `${prototype.title}: local conversion payload preview created without live pixels, ad API writes, analytics credentials, webhooks, provider writes, invasive tracking, personal-data storage, cross-site identifiers, or customer-visible analytics.`
+    };
+    const healthCheck = {
+      id: `monitor-check-marketing-analytics-prototype-${stamp(now)}`,
+      title: "Sandbox Marketing Analytics Adapter Prototype",
+      status: "complete",
+      target: "monitor-marketing-analytics-prototype",
+      effect: "marketing-analytics-sandbox-proof",
+      createdAt: nowText,
+      summary: `${prototype.title} generated ${payloadPreview.length} local conversion payload preview items from KPI readiness records.`,
+      receiptId: receipt.id,
+      visibility: "internal",
+      customerVisible: false
+    };
+    prototype.receiptIds.push(receipt.id);
+    nextData.marketingAnalyticsAdapterPrototypes.unshift(prototype);
+    nextData.receipts.unshift(receipt);
+    nextData.monitorHealthChecks.unshift(healthCheck);
+
+    return {
+      data: nextData,
+      records: {
+        prototype,
+        receipt,
+        healthCheck
+      }
+    };
+  }
+
+  function transitionMarketingAnalyticsAdapterPrototypeRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const nowText = withTimezone(now.toISOString(), timezone);
+    const prototype = nextData.marketingAnalyticsAdapterPrototypes.find((item) => clean(item.id) === clean(input.prototypeId || input.id));
+    if (!prototype) throw new Error("Select a sandbox marketing analytics adapter prototype before applying an action.");
+    const action = clean(input.action) || "generate-preview";
+    const note = clean(input.note) || "Sandbox marketing analytics adapter prototype reviewed without live tracking or provider behavior.";
+    const ensureChecks = (checks) => {
+      prototype.readinessChecks = Array.isArray(prototype.readinessChecks) ? prototype.readinessChecks : [];
+      for (const check of checks) {
+        if (!prototype.readinessChecks.includes(check)) prototype.readinessChecks.push(check);
+      }
+    };
+
+    if (action === "generate-preview") {
+      const sourceEventIds = Array.isArray(prototype.sourceEventIds) ? prototype.sourceEventIds : [];
+      prototype.payloadPreview = marketingAnalyticsPayloadPreview(nextData, Number(input.payloadLimit) || 5, sourceEventIds);
+      prototype.payloadEntryCount = prototype.payloadPreview.length;
+      prototype.status = "queued";
+      prototype.prototypeStatus = "payload-ready";
+    } else if (action === "approve-sandbox") {
+      prototype.status = "approved";
+      prototype.prototypeStatus = "sandbox-approved";
+    } else if (action === "mark-reviewed") {
+      prototype.status = "complete";
+      prototype.prototypeStatus = "operator-reviewed";
+    } else if (action === "defer") {
+      prototype.status = "waiting";
+      prototype.prototypeStatus = "deferred";
+    } else if (action === "block") {
+      prototype.status = "blocked";
+      prototype.prototypeStatus = "blocked";
+    } else {
+      throw new Error("unsupported sandbox marketing analytics adapter action");
+    }
+
+    ensureChecks(["provider-candidate-required", "marketing-conversion-kpi-required", "campaign-route-key-preserved", "privacy-boundary-required", "consent-boundary-required", "legal-review-required", "sandbox-only-before-go-live", "operator-approval-required", "no-live-pixel", "no-external-ad-api-write", "first-party-ledger-only", "no-invasive-tracking", "no-analytics-credentials", "no-webhooks", "no-provider-writes", "no-personal-data-storage", "no-cross-site-identifier", "no-third-party-cookie", "no-fingerprinting", "no-cross-device-identity", "no-customer-visible-analytics", "guardian-consent-required", "no-paid-action-before-consent"]);
+    prototype.adapterFamily = "analytics-advertising";
+    prototype.sandboxOnly = true;
+    prototype.localOnly = true;
+    prototype.livePixelEnabled = false;
+    prototype.externalAdApiWrite = false;
+    prototype.liveApiCalls = false;
+    prototype.externalProviderWrite = false;
+    prototype.productionEnabled = false;
+    prototype.invasiveTracking = false;
+    prototype.storesPersonalData = false;
+    prototype.productionAnalyticsCredential = false;
+    prototype.secretsPresent = false;
+    prototype.credentialsStored = false;
+    prototype.storesCredentials = false;
+    prototype.oauthConfigured = false;
+    prototype.webhookEnabled = false;
+    prototype.crossSiteIdentifier = false;
+    prototype.thirdPartyCookieEnabled = false;
+    prototype.fingerprintingEnabled = false;
+    prototype.crossDeviceIdentityEnabled = false;
+    prototype.customerVisible = false;
+    prototype.customerSafe = false;
+    prototype.publicProofSurface = false;
+    prototype.legalReviewRequired = true;
+    prototype.privacyReviewRequired = true;
+    prototype.consentBoundaryRequired = true;
+    prototype.under19ConsentGated = true;
+    prototype.noPaidActionBeforeConsent = true;
+    prototype.analyticsSchema = "epoch.marketing-conversion";
+    prototype.payloadSource = "epoch.marketing-conversion";
+    prototype.updatedAt = nowText;
+    prototype.notes = note;
+
+    const receipt = {
+      id: `receipt-marketing-analytics-prototype-${stamp(now)}`,
+      kind: "marketing-analytics-adapter-prototype",
+      status: prototype.status === "blocked" ? "blocked" : "complete",
+      createdAt: nowText,
+      note: `${prototype.title}: ${action} recorded without live pixels, ad API writes, analytics credentials, webhooks, provider writes, invasive tracking, personal-data storage, cross-site identifiers, or customer-visible analytics. ${note}`
+    };
+    const healthCheck = {
+      id: `monitor-check-marketing-analytics-prototype-${stamp(now)}`,
+      title: "Sandbox Marketing Analytics Adapter Prototype",
+      status: prototype.status === "blocked" ? "blocked" : "complete",
+      target: "monitor-marketing-analytics-prototype",
+      effect: "marketing-analytics-sandbox-proof",
+      createdAt: nowText,
+      summary: `${prototype.title} is ${prototype.prototypeStatus}; conversion analytics behavior remains sandbox/local only and under-19 paths stay consent-gated.`,
+      receiptId: receipt.id,
+      visibility: "internal",
+      customerVisible: false
+    };
+
+    prototype.receiptIds = Array.isArray(prototype.receiptIds) ? prototype.receiptIds : [];
+    prototype.receiptIds.push(receipt.id);
+    nextData.receipts.unshift(receipt);
+    nextData.monitorHealthChecks.unshift(healthCheck);
+
+    return {
+      data: nextData,
+      records: {
+        prototype,
+        receipt,
+        healthCheck
+      }
+    };
+  }
+
   function summarizeProviderAdapterSelectionState(currentData) {
     const data = normalizedOperatingData(currentData);
     const requiredBaseChecks = ["provider-candidate-recorded", "sandbox-only-before-go-live", "operator-approval-required", "credential-plan-required", "no-live-api", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes"];
@@ -7503,6 +8055,7 @@
     const marketing = summarizeMarketingState(data);
     const marketingConversion = summarizeMarketingConversionState(data);
     const providerAdapters = summarizeProviderAdapterSelectionState(data);
+    const marketingAnalytics = summarizeMarketingAnalyticsAdapterPrototypeState(data, { providerAdapters, marketingConversion });
     const calendarExport = createCalendarExport(data, { now: nowText });
     const calendarAdapter = summarizeCalendarAdapterPrototypeState(data, { now: nowText, calendarExport, providerAdapters });
     const paymentProvider = summarizePaymentProviderState(data, { quotes });
@@ -7537,6 +8090,8 @@
       marketingConversionReady: marketingConversion.readyEvents,
       providerAdapterCandidates: providerAdapters.candidateCount,
       providerAdapterReady: providerAdapters.readyCandidates,
+      marketingAnalyticsAdapterPrototypes: marketingAnalytics.prototypeCount,
+      marketingAnalyticsPayloadReady: marketingAnalytics.payloadReady,
       calendarAdapterPrototypes: calendarAdapter.prototypeCount,
       calendarAdapterPayloadReady: calendarAdapter.payloadReady,
       paymentProviderPrototypes: paymentPrototype.prototypeCount,
@@ -7550,7 +8105,7 @@
       queue: `${baseSummary.queue} queued records`,
       "visible-updates": `${baseSummary.visibleUpdates} visible updates`,
       pipeline: `${revenue.pipelineCount} opportunities; ${baseSummary.pipelineValueJpy} JPY pipeline`,
-      marketing: `${marketing.ready} ready campaigns; ${marketingConversion.readyEvents} KPI events; ${providerAdapters.readyCandidates} provider candidates; ${calendarAdapter.payloadReady} calendar prototypes; ${paymentPrototype.payloadReady} payment prototypes; ${authPrototype.payloadReady} auth prototypes; ${marketing.copyViolations} copy policy violations`
+      marketing: `${marketing.ready} ready campaigns; ${marketingConversion.readyEvents} KPI events; ${providerAdapters.readyCandidates} provider candidates; ${marketingAnalytics.payloadReady} analytics prototypes; ${calendarAdapter.payloadReady} calendar prototypes; ${paymentPrototype.payloadReady} payment prototypes; ${authPrototype.payloadReady} auth prototypes; ${marketing.copyViolations} copy policy violations`
     };
     const routes = data.routePlacements.map((route) => ({
       id: clean(route.id),
@@ -8530,6 +9085,7 @@
       ...currentData.campaignRoutes.map((item) => ({ kind: "campaign route", id: item.id, title: item.name || item.routeKey, status: item.status || item.readinessStatus, time: item.goLiveAt || item.startAt, owner: item.channel || item.owner || "channel pending" })),
       ...(currentData.marketingConversionEvents || []).map((item) => ({ kind: "marketing conversion", id: item.id, title: item.title, status: item.status || item.readinessStatus, time: item.nextActionAt || item.occurredAt || item.updatedAt || item.createdAt, owner: item.eventType || item.primaryConversion || "conversion" })),
       ...(currentData.providerAdapterCandidates || []).map((item) => ({ kind: "provider adapter", id: item.id, title: item.title, status: item.status || item.readinessStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.providerFamily || item.targetProvider || "provider" })),
+      ...(currentData.marketingAnalyticsAdapterPrototypes || []).map((item) => ({ kind: "marketing analytics prototype", id: item.id, title: item.title, status: item.status || item.prototypeStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.adapterMode || "analytics" })),
       ...(currentData.calendarAdapterPrototypes || []).map((item) => ({ kind: "calendar adapter", id: item.id, title: item.title, status: item.status || item.prototypeStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.adapterMode || "calendar" })),
       ...(currentData.notificationProviderPrototypes || []).map((item) => ({ kind: "notification prototype", id: item.id, title: item.title, status: item.status || item.prototypeStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.adapterMode || "notification" })),
       ...(currentData.paymentProviderPrototypes || []).map((item) => ({ kind: "payment prototype", id: item.id, title: item.title, status: item.status || item.prototypeStatus, time: item.nextActionAt || item.updatedAt || item.createdAt, owner: item.targetProvider || item.adapterMode || "payment" })),
@@ -8577,6 +9133,7 @@
     const marketing = summarizeMarketingState(data);
     const marketingConversion = summarizeMarketingConversionState(data);
     const providerAdapters = summarizeProviderAdapterSelectionState(data);
+    const marketingAnalytics = summarizeMarketingAnalyticsAdapterPrototypeState(data, { providerAdapters, marketingConversion });
     const paymentPrototype = summarizePaymentProviderPrototypeState(data, { providerAdapters, paymentProvider });
     const authPrototype = summarizeAuthProviderPrototypeState(data, { providerAdapters, authSession });
     const calendarExport = createCalendarExport(data, { now: nowText });
@@ -8749,6 +9306,14 @@
         severity: "high",
         title: "Provider Adapter Go/No-Go",
         detail: providerAdapters.violations[0]
+      });
+    }
+    if (marketingAnalytics.violations.length) {
+      risks.push({
+        id: "marketing-analytics-prototype-violation",
+        severity: "high",
+        title: "Sandbox Marketing Analytics Adapter",
+        detail: marketingAnalytics.violations[0]
       });
     }
     if (calendarAdapter.violations.length) {
@@ -9020,6 +9585,17 @@
         marketingConversionNoLiveTracking: marketingConversion.noLiveTracking,
         marketingConversionPotentialValueJpy: marketingConversion.potentialValueJpy,
         marketingConversionViolations: marketingConversion.violations.length,
+        marketingAnalyticsAdapterPrototypes: marketingAnalytics.prototypeCount,
+        marketingAnalyticsPayloadReady: marketingAnalytics.payloadReady,
+        marketingAnalyticsSandboxOnly: marketingAnalytics.sandboxOnly,
+        marketingAnalyticsLocalOnly: marketingAnalytics.localOnly,
+        marketingAnalyticsNoLiveTracking: marketingAnalytics.noLiveTracking,
+        marketingAnalyticsNoCredentials: marketingAnalytics.noCredentials,
+        marketingAnalyticsNoPersonalData: marketingAnalytics.noPersonalData,
+        marketingAnalyticsNoCustomerVisibleAnalytics: marketingAnalytics.noCustomerVisibleAnalytics,
+        marketingAnalyticsPrivacyConsentReady: marketingAnalytics.privacyConsentReady,
+        marketingAnalyticsUnder19ConsentGated: marketingAnalytics.under19ConsentGated,
+        marketingAnalyticsViolations: marketingAnalytics.violations.length,
         providerAdapterCandidates: providerAdapters.candidateCount,
         providerAdapterReady: providerAdapters.readyCandidates,
         providerAdapterSandboxOnly: providerAdapters.sandboxOnly,
@@ -9083,6 +9659,7 @@
       handoffs,
       marketing,
       marketingConversion,
+      marketingAnalytics,
       providerAdapters,
       calendarAdapter,
       calendarProvider,
@@ -9125,6 +9702,7 @@
     const accountHistory = summarizeCustomerAccountHistoryState(data);
     const marketingConversion = summarizeMarketingConversionState(data);
     const providerAdapters = summarizeProviderAdapterSelectionState(data);
+    const marketingAnalytics = summarizeMarketingAnalyticsAdapterPrototypeState(data, { providerAdapters, marketingConversion });
     const calendarAdapter = summarizeCalendarAdapterPrototypeState(data, { now: now.toISOString(), calendarExport, providerAdapters });
     const notificationPrototype = summarizeNotificationProviderPrototypeState(data, { providerAdapters, notificationProvider });
     const paymentPrototype = summarizePaymentProviderPrototypeState(data, { providerAdapters, paymentProvider });
@@ -9156,6 +9734,7 @@
       accountHistory,
       marketingConversion,
       providerAdapters,
+      marketingAnalytics,
       calendarAdapter,
       routePlacement,
       accessGateway,
@@ -9191,6 +9770,8 @@
     transitionAuthSessionRoleHandoffRecords,
     createMarketingConversionEventRecords,
     transitionMarketingConversionEventRecords,
+    createMarketingAnalyticsAdapterPrototypeRecords,
+    transitionMarketingAnalyticsAdapterPrototypeRecords,
     createProviderAdapterCandidateRecords,
     transitionProviderAdapterCandidateRecords,
     createCalendarAdapterPrototypeRecords,
@@ -9239,6 +9820,7 @@
     summarizePaymentProviderState,
     summarizeAuthSessionRoleState,
     summarizeMarketingConversionState,
+    summarizeMarketingAnalyticsAdapterPrototypeState,
     summarizeProviderAdapterSelectionState,
     summarizeCalendarAdapterPrototypeState,
     summarizeNotificationProviderPrototypeState,

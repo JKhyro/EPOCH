@@ -167,6 +167,22 @@ Current EPOCH-side provider adapter selection slice:
   secrets, OAuth clients, webhooks, provider writes, production behavior, or
   customer-visible notification events.
 
+Current EPOCH-side sandbox marketing analytics adapter prototype slice:
+
+- `marketingAnalyticsAdapterPrototypes` records local provider-neutral
+  conversion payload previews linked to analytics/advertising provider adapter
+  candidates and marketing conversion KPI records.
+- `summarizeMarketingAnalyticsAdapterPrototypeState` exposes payload-ready,
+  sandbox-only, local-only, no-live-tracking, no-credential,
+  no-personal-data, no-customer-visible-analytics, privacy/consent-ready,
+  under-19 consent-gated, and violation counts to EPOCH MONITOR.
+- `transitionMarketingAnalyticsAdapterPrototypeRecords` creates internal
+  monitor health checks and `marketing-analytics-adapter-prototype` receipts
+  without live pixels, external ad API writes, analytics credentials, webhooks,
+  provider writes, invasive tracking, personal-data storage, cross-site
+  identifiers, cookies, fingerprinting, cross-device identity,
+  customer-visible analytics, or under-19 paid action before consent.
+
 Current EPOCH-side sandbox calendar adapter prototype slice:
 
 - `calendarAdapterPrototypes` records local payload-preview prototypes linked
