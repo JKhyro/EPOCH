@@ -28,6 +28,7 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
 - `docs/monitor-parity-health-controls.md`
 - `docs/agentic-revenue-handoff-contract.md`
 - `docs/synapse-route-placement-contract.md`
+- `docs/controlled-public-customer-access-gateway.md`
 
 ## Current implementation artifacts
 
@@ -53,7 +54,8 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
   review-return views, including local ledger save/load, durable snapshot status,
   recovery-import state, JSON export/import, and MONITOR-visible SYNAPSE route
   placement cards, plus marketing-route and labor-model offer catalog display,
-  body-level active-view state, and shared data-view activation.
+  body-level active-view state, shared data-view activation, and controlled
+  public/customer access gateway controls.
 - `web/seed-data.js`: demo commercial workflow covering leads, tracks, cohorts,
   offer packages, curriculum frameworks, package gameplans, opportunities,
   update events, sessions, assignments, submissions, reviews, follow-ups,
@@ -112,6 +114,8 @@ The first revenue-facing lane should support:
   and progress reporting doing more of the work
 - professional public website copy and intake paths that do not lead with AI
   terminology in Japan-facing messaging
+- controlled public intake and customer-safe status routes that do not expose
+  raw admin or EPOCH MONITOR state
 - adjacent revenue services such as consulting, tech support, clerical/admin,
   database, CRM, management-system, and automation support
 

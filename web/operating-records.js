@@ -26,6 +26,7 @@
     "workPlans",
     "agentHandoffs",
     "routePlacements",
+    "accessGateways",
     "monitorHealthChecks",
     "notificationEvents",
     "notificationDeliveries",
@@ -156,6 +157,79 @@
     ];
   }
 
+  function defaultAccessGateways() {
+    return [
+      {
+        id: "gateway-public-intake",
+        label: "Public Intake Gateway",
+        href: "#public",
+        surface: "public",
+        audience: "prospect",
+        visibility: "public-intake",
+        publicExposure: "controlled-public",
+        policy: "intake-only",
+        status: "complete",
+        verificationStatus: "verified-local-route-split",
+        lastVerifiedAt: "2026-06-01T18:21:00+09:00",
+        customerSafe: true,
+        rawSurface: false,
+        operatorApprovalRequired: false,
+        notes: "Public traffic can reach offer copy and request intake only."
+      },
+      {
+        id: "gateway-customer-status",
+        label: "Customer Status Gateway",
+        href: "#student",
+        surface: "student",
+        audience: "customer",
+        visibility: "controlled-customer",
+        publicExposure: "controlled-customer",
+        policy: "customer-safe-status-only",
+        status: "complete",
+        verificationStatus: "verified-customer-safe",
+        lastVerifiedAt: "2026-06-01T18:21:00+09:00",
+        customerSafe: true,
+        rawSurface: false,
+        operatorApprovalRequired: true,
+        notes: "Customer status can show due, submitted, returned, next-action, and approved update records only."
+      },
+      {
+        id: "gateway-raw-admin",
+        label: "Raw Admin Denial",
+        href: "#admin",
+        surface: "admin",
+        audience: "operator",
+        visibility: "internal",
+        publicExposure: "denied",
+        policy: "local-only-admin",
+        status: "complete",
+        verificationStatus: "verified-denied",
+        lastVerifiedAt: "2026-06-01T18:21:00+09:00",
+        customerSafe: false,
+        rawSurface: true,
+        operatorApprovalRequired: true,
+        notes: "Admin controls remain local-only and must not be placed on public hostnames."
+      },
+      {
+        id: "gateway-raw-monitor",
+        label: "Raw Monitor Denial",
+        href: "#monitor",
+        surface: "monitor",
+        audience: "operator",
+        visibility: "internal",
+        publicExposure: "denied",
+        policy: "local-only-monitor",
+        status: "complete",
+        verificationStatus: "verified-denied",
+        lastVerifiedAt: "2026-06-01T18:21:00+09:00",
+        customerSafe: false,
+        rawSurface: true,
+        operatorApprovalRequired: true,
+        notes: "EPOCH MONITOR remains the operator control room and is never customer-visible."
+      }
+    ];
+  }
+
   function normalizedOperatingData(data) {
     const nextData = cloneData(data || {});
     for (const collection of ledgerCollections) {
@@ -164,6 +238,28 @@
     if (!nextData.timezone) nextData.timezone = "Asia/Tokyo";
     if (!Array.isArray(nextData.routePlacements) || !nextData.routePlacements.length) {
       nextData.routePlacements = defaultRoutePlacements();
+    }
+    if (!Array.isArray(nextData.accessGateways) || !nextData.accessGateways.length) {
+      nextData.accessGateways = defaultAccessGateways();
+    }
+    if (!nextData.accessPosture || typeof nextData.accessPosture !== "object") {
+      nextData.accessPosture = {
+        mode: "controlled-local-first",
+        rawMonitor: "local-only",
+        rawAdmin: "local-only",
+        publicIntake: "#public",
+        customerStatus: "#student",
+        safeGateway: "controlled-public-customer-gateway",
+        defaultPublicPolicy: "deny-by-default",
+        operatorRule: "Raw admin and monitor stay denied unless a future authenticated gateway is explicitly implemented and verified.",
+        verificationStatus: "verified-local-route-split",
+        lastVerifiedAt: "2026-06-01T18:21:00+09:00",
+        notes: [
+          "Public traffic can reach intake only.",
+          "Customer status can show customer-safe state only.",
+          "Raw admin and monitor routes remain denied by default."
+        ]
+      };
     }
     if (!Array.isArray(nextData.statuses)) {
       nextData.statuses = [
@@ -2913,10 +3009,190 @@
     };
   }
 
+  function summarizeAccessGatewayState(currentData, options = {}) {
+    const data = normalizedOperatingData(currentData);
+    const routePlacement = options.routePlacement || summarizeRoutePlacementState(data, { now: options.now });
+    const gateways = data.accessGateways.map((gateway) => {
+      const surface = clean(gateway.surface);
+      const publicExposure = clean(gateway.publicExposure) || "denied";
+      const visibility = clean(gateway.visibility) || "internal";
+      const route = routePlacement.routes.find((item) => item.surface === surface || item.href === clean(gateway.href));
+      const violations = [];
+
+      if (["admin", "monitor"].includes(surface)) {
+        if (publicExposure !== "denied" || visibility !== "internal") {
+          violations.push(`${surface} gateway must remain denied/internal.`);
+        }
+        if (route && route.visibility !== "internal") {
+          violations.push(`${surface} route placement is not internal-only.`);
+        }
+      }
+      if (surface === "public" && publicExposure !== "controlled-public") {
+        violations.push("Public gateway must be controlled-public intake only.");
+      }
+      if (["student", "customer"].includes(surface) && publicExposure !== "controlled-customer") {
+        violations.push("Customer gateway must be controlled-customer status only.");
+      }
+      if (Boolean(gateway.customerVisible) && gateway.customerSafe === false) {
+        violations.push("Customer-visible gateway is not marked customer-safe.");
+      }
+      if (Boolean(gateway.rawSurface) && publicExposure !== "denied") {
+        violations.push("Raw surface gateway is not denied.");
+      }
+
+      return {
+        id: clean(gateway.id),
+        label: clean(gateway.label),
+        href: clean(gateway.href),
+        surface,
+        audience: clean(gateway.audience) || "operator",
+        visibility,
+        publicExposure,
+        policy: clean(gateway.policy) || "policy-pending",
+        status: clean(gateway.status) || "planned",
+        verificationStatus: clean(gateway.verificationStatus) || "unverified",
+        lastVerifiedAt: clean(gateway.lastVerifiedAt),
+        customerSafe: gateway.customerSafe !== false,
+        rawSurface: gateway.rawSurface === true,
+        operatorApprovalRequired: gateway.operatorApprovalRequired !== false,
+        notes: clean(gateway.notes) || "No gateway note recorded.",
+        routePlacementStatus: route ? route.status : "missing-route-placement",
+        routeVisibility: route ? route.visibility : "missing-route-placement",
+        violations
+      };
+    });
+    const violations = gateways.flatMap((gateway) => gateway.violations.map((detail) => `${gateway.label || gateway.id}: ${detail}`));
+
+    return {
+      schema: "epoch.controlled-access-gateway",
+      gatewayCount: gateways.length,
+      controlledPublic: gateways.filter((item) => item.publicExposure === "controlled-public").length,
+      controlledCustomer: gateways.filter((item) => item.publicExposure === "controlled-customer").length,
+      deniedRaw: gateways.filter((item) => item.rawSurface && item.publicExposure === "denied").length,
+      verified: gateways.filter((item) => clean(item.verificationStatus).startsWith("verified")).length,
+      blocked: gateways.filter((item) => item.status === "blocked").length,
+      violations,
+      status: violations.length ? "blocked" : "ready",
+      gateways
+    };
+  }
+
+  function createAccessGatewayRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const createdAt = withTimezone(now.toISOString(), timezone);
+    const gateway = {
+      id: clean(input.id) || `gateway-${stamp(now)}`,
+      label: clean(input.label) || "Controlled Access Gateway",
+      href: clean(input.href) || "#public",
+      surface: clean(input.surface) || "public",
+      audience: clean(input.audience) || "prospect",
+      visibility: clean(input.visibility) || "public-intake",
+      publicExposure: clean(input.publicExposure) || "controlled-public",
+      policy: clean(input.policy) || "intake-only",
+      status: clean(input.status) || "planned",
+      verificationStatus: clean(input.verificationStatus) || "pending-operator-verification",
+      lastVerifiedAt: clean(input.lastVerifiedAt) || "",
+      customerSafe: input.customerSafe !== false,
+      rawSurface: input.rawSurface === true,
+      operatorApprovalRequired: input.operatorApprovalRequired !== false,
+      notes: clean(input.notes) || "Gateway created for operator review.",
+      createdAt,
+      updatedAt: createdAt
+    };
+    nextData.accessGateways.unshift(gateway);
+    return {
+      data: nextData,
+      records: {
+        gateway
+      }
+    };
+  }
+
+  function transitionAccessGatewayRecords(currentData, input = {}, options = {}) {
+    const nextData = normalizedOperatingData(currentData);
+    const now = options.now ? new Date(options.now) : new Date();
+    const timezone = nextData.timezone || "Asia/Tokyo";
+    const updatedAt = withTimezone(now.toISOString(), timezone);
+    const gatewayId = clean(input.gatewayId || input.id);
+    const action = clean(input.action) || "verify";
+    const note = clean(input.note) || "Access gateway reviewed by operator.";
+    const gateway = nextData.accessGateways.find((item) => item.id === gatewayId);
+    if (!gateway) throw new Error("access gateway not found");
+
+    if (action === "verify") {
+      gateway.status = "complete";
+      gateway.verificationStatus = clean(input.verificationStatus) || (gateway.rawSurface ? "verified-denied" : "verified-controlled-gateway");
+      gateway.lastVerifiedAt = updatedAt;
+    } else if (action === "block") {
+      gateway.status = "blocked";
+      gateway.verificationStatus = "blocked";
+    } else if (action === "deny") {
+      gateway.status = "complete";
+      gateway.publicExposure = "denied";
+      gateway.visibility = "internal";
+      gateway.customerSafe = false;
+      gateway.rawSurface = true;
+      gateway.verificationStatus = "verified-denied";
+      gateway.lastVerifiedAt = updatedAt;
+    } else if (action === "customer-safe") {
+      gateway.status = "complete";
+      gateway.publicExposure = "controlled-customer";
+      gateway.visibility = "controlled-customer";
+      gateway.customerSafe = true;
+      gateway.rawSurface = false;
+      gateway.verificationStatus = "verified-customer-safe";
+      gateway.lastVerifiedAt = updatedAt;
+    } else {
+      throw new Error("unsupported access gateway action");
+    }
+
+    gateway.notes = note;
+    gateway.updatedAt = updatedAt;
+
+    const receiptId = `receipt-access-gateway-${stamp(now)}`;
+    const healthCheck = {
+      id: `monitor-check-access-gateway-${stamp(now)}`,
+      actionId: `access-gateway-${action}`,
+      receiptId,
+      title: `Access gateway ${action}`,
+      summary: `${gateway.label}: ${note}`,
+      status: gateway.status,
+      priority: action === "block" ? "high" : "medium",
+      effect: "access-gateway-review",
+      target: "monitor-access",
+      owner: clean(input.owner) || "Jack",
+      createdAt: updatedAt,
+      visibility: "internal",
+      customerVisible: false
+    };
+    const receipt = {
+      id: receiptId,
+      customerId: null,
+      kind: "access-gateway",
+      status: gateway.status,
+      createdAt: updatedAt,
+      note: `${healthCheck.title}: ${healthCheck.summary}`
+    };
+    nextData.monitorHealthChecks.unshift(healthCheck);
+    nextData.receipts.unshift(receipt);
+
+    return {
+      data: nextData,
+      records: {
+        gateway,
+        healthCheck,
+        receipt
+      }
+    };
+  }
+
   function summarizeAccessPosture(currentData, options = {}) {
     const data = normalizedOperatingData(currentData);
     const posture = data.accessPosture && typeof data.accessPosture === "object" ? data.accessPosture : {};
     const routePlacement = options.routePlacement || summarizeRoutePlacementState(data, { now: options.now });
+    const accessGateways = summarizeAccessGatewayState(data, { now: options.now, routePlacement });
     const violations = [];
     const notes = Array.isArray(posture.notes) ? posture.notes : [];
 
@@ -2935,6 +3211,9 @@
     if (routePlacement.routes.some((route) => route.surface === "admin" && route.visibility !== "internal")) {
       violations.push("Route placement exposes admin outside the internal lane.");
     }
+    for (const violation of accessGateways.violations) {
+      violations.push(violation);
+    }
 
     return {
       mode: clean(posture.mode) || "local-first",
@@ -2942,12 +3221,13 @@
       rawAdmin: clean(posture.rawAdmin) || "local-only",
       publicIntake: clean(posture.publicIntake) || "#public",
       customerStatus: clean(posture.customerStatus) || "#student",
-      safeGateway: clean(posture.safeGateway) || "none",
+      safeGateway: clean(posture.safeGateway) || "controlled-public-customer-gateway",
       defaultPublicPolicy: clean(posture.defaultPublicPolicy) || "deny-by-default",
       operatorRule: clean(posture.operatorRule) || "Operator rule not recorded.",
       verificationStatus: clean(posture.verificationStatus) || "unverified",
       lastVerifiedAt: clean(posture.lastVerifiedAt) || "",
       notes,
+      accessGateways,
       violations,
       status: violations.length ? "blocked" : "ready"
     };
@@ -3222,6 +3502,7 @@
       ...(currentData.reminderRules || []).map((item) => ({ kind: "reminder rule", id: item.id, title: item.title, status: item.status, time: item.nextActionAt || item.reminderAt, owner: item.channel || "reminder" })),
       ...(currentData.recurrenceCandidates || []).map((item) => ({ kind: "recurrence candidate", id: item.id, title: item.title, status: item.status, time: item.nextCandidateAt || item.createdAt, owner: item.cadence || "recurrence" })),
       ...(currentData.availabilityWindows || []).map((item) => ({ kind: "availability window", id: item.id, title: item.title, status: item.status, time: item.startAt || item.createdAt, owner: item.owner || "availability" })),
+      ...(currentData.accessGateways || []).map((item) => ({ kind: "access gateway", id: item.id, title: item.label, status: item.status, time: item.updatedAt || item.lastVerifiedAt || item.createdAt, owner: item.publicExposure || item.policy || "access" })),
       ...currentData.sessions.map((item) => ({ kind: "session", id: item.id, title: item.title, status: item.status, time: item.startAt, owner: item.owner || "owner pending" })),
       ...currentData.assignments.map((item) => ({ kind: "request", id: item.id, title: item.title, status: item.status, time: item.dueAt, owner: item.owner || "owner pending" })),
       ...currentData.submissions.map((item) => ({ kind: "submission", id: item.id, title: item.title || item.id, status: item.status, time: item.reviewDueAt, owner: item.owner || "review queue" })),
@@ -3248,6 +3529,7 @@
     const routePlacement = summarizeRoutePlacementState(data, { now: nowText });
     const scope = summarizeScopeState(data, { now: nowText, routePlacement });
     const memory = summarizeMemoryState(data, { now: nowText });
+    const accessGateways = summarizeAccessGatewayState(data, { now: nowText, routePlacement });
     const access = summarizeAccessPosture(data, { now: nowText, routePlacement });
     const monitorHealthChecks = data.monitorHealthChecks
       .slice()
@@ -3266,6 +3548,9 @@
     }
     for (const item of timeline.filter((entry) => ["reminder rule", "recurrence candidate", "availability window"].includes(entry.kind) && activeStatuses.has(entry.status)).slice(0, 3)) {
       if (!queue.some((entry) => entry.id === item.id)) queue.push(item);
+    }
+    for (const item of timeline.filter((entry) => entry.kind === "access gateway").slice(0, 4)) {
+      if (!visibleTimeline.some((entry) => entry.id === item.id)) visibleTimeline.push(item);
     }
     const overdue = timeline.filter((item) => item.status === "overdue" || (item.time && item.time < nowText && !terminalStatuses.has(item.status)));
     const blocked = timeline.filter((item) => item.status === "blocked");
@@ -3354,6 +3639,14 @@
         severity: "high",
         title: "Safe Access Posture",
         detail: access.violations[0]
+      });
+    }
+    if (accessGateways.violations.length) {
+      risks.push({
+        id: "access-gateway-violation",
+        severity: "high",
+        title: "Access Gateway Violation",
+        detail: accessGateways.violations[0]
       });
     }
 
@@ -3467,6 +3760,11 @@
         scopeWarnings: scope.warnings.length,
         staleMemoryNotes: memory.staleCount,
         safeAccessViolations: access.violations.length,
+        accessGatewayRoutes: accessGateways.gatewayCount,
+        controlledPublicGateways: accessGateways.controlledPublic,
+        controlledCustomerGateways: accessGateways.controlledCustomer,
+        deniedRawGateways: accessGateways.deniedRaw,
+        accessGatewayViolations: accessGateways.violations.length,
         monitorHealthChecks: monitorHealthChecks.length,
         monitorActionReceipts: data.receipts.filter((item) => item.kind === "monitor-check").length,
         operatorActions: operatorActions.length
@@ -3478,6 +3776,7 @@
       scheduleControls,
       handoffs,
       marketing,
+      accessGateways,
       routePlacement,
       calendar: calendarExport.counts,
       persistence,
@@ -3509,6 +3808,7 @@
     data.persistence = persistence;
     const calendarExport = createCalendarExport(data, { now: now.toISOString() });
     const routePlacement = summarizeRoutePlacementState(data, { now: now.toISOString() });
+    const accessGateway = summarizeAccessGatewayState(data, { now: now.toISOString(), routePlacement });
     return {
       schema: "epoch.operating-ledger",
       version: ledgerVersion,
@@ -3524,6 +3824,7 @@
       }).summary,
       calendarExport,
       routePlacement,
+      accessGateway,
       data
     };
   }
@@ -3555,6 +3856,8 @@
     transitionRecurrenceCandidateRecords,
     createAvailabilityWindowRecords,
     transitionAvailabilityWindowRecords,
+    createAccessGatewayRecords,
+    transitionAccessGatewayRecords,
     createMonitorActionRecords,
     decideOpportunityRecords,
     createIntakeRecords,
@@ -3571,6 +3874,7 @@
     summarizeAgentHandoffState,
     summarizeQuoteState,
     summarizeScheduleControlState,
+    summarizeAccessGatewayState,
     summarizeAccessPosture,
     summarizeMemoryState,
     summarizeScopeState,

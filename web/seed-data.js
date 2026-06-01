@@ -591,6 +591,76 @@ window.EPOCH_SEED_DATA = {
       "duplicateUi": false
     }
   ],
+  "accessGateways": [
+    {
+      "id": "gateway-public-intake",
+      "label": "Public Intake Gateway",
+      "href": "#public",
+      "surface": "public",
+      "audience": "prospect",
+      "visibility": "public-intake",
+      "publicExposure": "controlled-public",
+      "policy": "intake-only",
+      "status": "complete",
+      "verificationStatus": "verified-local-route-split",
+      "lastVerifiedAt": "2026-06-01T18:21:00+09:00",
+      "customerSafe": true,
+      "rawSurface": false,
+      "operatorApprovalRequired": false,
+      "notes": "Public traffic can reach offer copy and request intake only."
+    },
+    {
+      "id": "gateway-customer-status",
+      "label": "Customer Status Gateway",
+      "href": "#student",
+      "surface": "student",
+      "audience": "customer",
+      "visibility": "controlled-customer",
+      "publicExposure": "controlled-customer",
+      "policy": "customer-safe-status-only",
+      "status": "complete",
+      "verificationStatus": "verified-customer-safe",
+      "lastVerifiedAt": "2026-06-01T18:21:00+09:00",
+      "customerSafe": true,
+      "rawSurface": false,
+      "operatorApprovalRequired": true,
+      "notes": "Customer status can show due, submitted, returned, next-action, and approved update records only."
+    },
+    {
+      "id": "gateway-raw-admin",
+      "label": "Raw Admin Denial",
+      "href": "#admin",
+      "surface": "admin",
+      "audience": "operator",
+      "visibility": "internal",
+      "publicExposure": "denied",
+      "policy": "local-only-admin",
+      "status": "complete",
+      "verificationStatus": "verified-denied",
+      "lastVerifiedAt": "2026-06-01T18:21:00+09:00",
+      "customerSafe": false,
+      "rawSurface": true,
+      "operatorApprovalRequired": true,
+      "notes": "Admin controls remain local-only and must not be placed on public hostnames."
+    },
+    {
+      "id": "gateway-raw-monitor",
+      "label": "Raw Monitor Denial",
+      "href": "#monitor",
+      "surface": "monitor",
+      "audience": "operator",
+      "visibility": "internal",
+      "publicExposure": "denied",
+      "policy": "local-only-monitor",
+      "status": "complete",
+      "verificationStatus": "verified-denied",
+      "lastVerifiedAt": "2026-06-01T18:21:00+09:00",
+      "customerSafe": false,
+      "rawSurface": true,
+      "operatorApprovalRequired": true,
+      "notes": "EPOCH MONITOR remains the operator control room and is never customer-visible."
+    }
+  ],
   "notificationEvents": [
     {
       "id": "update-001",
@@ -777,12 +847,12 @@ window.EPOCH_SEED_DATA = {
     }
   ],
   "accessPosture": {
-    "mode": "local-first",
+    "mode": "controlled-local-first",
     "rawMonitor": "local-only",
     "rawAdmin": "local-only",
     "publicIntake": "#public",
     "customerStatus": "#student",
-    "safeGateway": "none in this static slice",
+    "safeGateway": "controlled-public-customer-gateway",
     "defaultPublicPolicy": "deny-by-default",
     "operatorRule": "Customer-visible agent work stays blocked until operator approval is recorded.",
     "verificationStatus": "verified-local-route-split",
@@ -790,7 +860,7 @@ window.EPOCH_SEED_DATA = {
     "notes": [
       "Route placement may point public traffic to intake only.",
       "Controlled customer status should exclude internal notes and raw receipts.",
-      "A future public gateway must be explicitly controlled before monitor/admin exposure changes."
+      "The current controlled gateway allows public intake and customer-safe status while denying raw admin and monitor exposure."
     ]
   },
   "monitorHealthChecks": [

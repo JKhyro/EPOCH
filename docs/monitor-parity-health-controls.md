@@ -49,8 +49,16 @@ The current static slice is local-first:
 - Raw admin: `local-only`.
 - Public intake: `#public`.
 - Customer status: `#student`, customer-safe only.
-- Public policy: `deny-by-default` unless a controlled gateway is explicitly
-  added and verified.
+- Controlled gateway: `accessGateways`.
+- Public policy: `deny-by-default` outside the explicit controlled public and
+  controlled customer gateway records.
+
+`accessGateways` is the current EPOCH-owned gateway contract:
+
+- `gateway-public-intake` allows controlled public offer/intake access only.
+- `gateway-customer-status` allows controlled customer-safe status only.
+- `gateway-raw-admin` denies public raw admin exposure.
+- `gateway-raw-monitor` denies public raw monitor exposure.
 
 Any future public hostname, gateway, route placement, or campaign automation
 change that exposes raw monitor/admin state is a security regression unless it
@@ -85,4 +93,6 @@ The repository verifier must cover:
   coverage for local reminder rules, operator-approved recurrence candidates,
   provider availability, receipts, calendar export entries, and customer-safe
   visibility boundaries.
-
+- Controlled public/customer access gateway controls and verifier coverage for
+  `accessGateways`, public/customer route exposure, raw admin/monitor denial,
+  internal receipts, and no customer-visible notifications from gateway actions.

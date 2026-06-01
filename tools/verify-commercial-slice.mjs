@@ -42,6 +42,7 @@ const requiredCollections = [
   "leads",
   "opportunities",
   "routePlacements",
+  "accessGateways",
   "monitorHealthChecks",
   "notificationEvents",
   "customers",
@@ -90,6 +91,7 @@ if (!Array.isArray(data.quotes)) fail("seed data missing quotes collection");
 if (!Array.isArray(data.reminderRules)) fail("seed data missing reminderRules collection");
 if (!Array.isArray(data.recurrenceCandidates)) fail("seed data missing recurrenceCandidates collection");
 if (!Array.isArray(data.availabilityWindows)) fail("seed data missing availabilityWindows collection");
+if (!Array.isArray(data.accessGateways)) fail("seed data missing accessGateways collection");
 
 const header = read("../native/epoch_core.h");
 const source = read("../native/epoch_core.c");
@@ -157,7 +159,12 @@ for (const id of [
   "availability-window-select",
   "reminder-source",
   "reminder-control-apply",
-  "reminder-control-confirmation"
+  "reminder-control-confirmation",
+  "access-gateway-form",
+  "access-gateway-select",
+  "access-gateway-action",
+  "access-gateway-apply",
+  "access-gateway-confirmation"
 ]) {
   if (!html.includes(`id="${id}"`)) fail(`web surface missing ${id}`);
 }
@@ -191,6 +198,9 @@ for (const field of ["quoteId", "opportunityId", "action", "amountJpy", "nextAct
 for (const field of ["controlKind", "action", "reminderId", "recurrenceId", "availabilityId", "sourceId", "startAt", "endAt", "cadence", "capacity", "note"]) {
   if (!html.includes(`name="${field}"`)) fail(`reminder control form missing field ${field}`);
 }
+for (const field of ["gatewayId", "action", "note"]) {
+  if (!html.includes(`name="${field}"`)) fail(`access gateway form missing field ${field}`);
+}
 for (const field of ["assignmentId", "reviewDueAt", "submissionTitle", "submissionSummary"]) {
   if (!html.includes(`name="${field}"`)) fail(`submission form missing field ${field}`);
 }
@@ -199,6 +209,9 @@ for (const phrase of ["data-monitor-target", "href=\"#monitor\"", "Direct route"
 }
 for (const phrase of ["monitor-curriculum", "Package Gameplans", "Personalized Gameplan", "Curriculum Frameworks"]) {
   if (!html.includes(phrase)) fail(`curriculum/gameplan HTML missing phrase ${phrase}`);
+}
+for (const phrase of ["Controlled gateway", "Access Gateways", "Apply Access Gateway Action"]) {
+  if (!html.includes(phrase)) fail(`access gateway HTML missing phrase ${phrase}`);
 }
 for (const phrase of [
   "SCAFFOLD-aligned",
@@ -356,6 +369,13 @@ for (const phrase of [
   "transitionRecurrenceCandidateRecords",
   "createAvailabilityWindowRecords",
   "transitionAvailabilityWindowRecords",
+  "transitionAccessGatewayRecords",
+  "summarizeAccessGatewayState",
+  "renderAccessGatewayOptions",
+  "wireAccessGatewayForm",
+  "Access Gateway",
+  "Access Gateway Records",
+  "Access Gateway Updated",
   "renderAgentHandoffOptions",
   "renderNotificationDeliveryOptions",
   "renderQuoteOptions",
@@ -412,6 +432,7 @@ for (const phrase of [
   "outbox-console",
   "quote-console",
   "reminder-console",
+  "access-gateway-console",
   "monitor-action-button",
   "button-meta",
   "monitor-command-strip",
@@ -426,10 +447,16 @@ for (const phrase of [
 if (!data.monitorScope || typeof data.monitorScope !== "object") fail("seed data missing monitor scope contract");
 if (!Array.isArray(data.monitorMemory) || data.monitorMemory.length < 3) fail("seed data missing monitor memory notes");
 if (!data.accessPosture || typeof data.accessPosture !== "object") fail("seed data missing access posture contract");
+if (!Array.isArray(data.accessGateways) || data.accessGateways.length < 4) fail("seed data missing controlled access gateway records");
 if (!Array.isArray(data.monitorHealthChecks) || data.monitorHealthChecks.length < 2) fail("seed data missing ledger-backed monitor health checks");
 if (!data.receipts.some((item) => item.kind === "monitor-check")) fail("seed data missing monitor-check receipt");
 if (data.accessPosture.defaultPublicPolicy !== "deny-by-default") fail("access posture must default to deny-by-default");
 if (data.accessPosture.rawMonitor !== "local-only") fail("access posture must keep raw monitor local-only");
+if (data.accessPosture.safeGateway !== "controlled-public-customer-gateway") fail("access posture must name the controlled public/customer gateway");
+if (!data.accessGateways.some((item) => item.surface === "public" && item.publicExposure === "controlled-public")) fail("access gateways missing controlled public intake");
+if (!data.accessGateways.some((item) => item.surface === "student" && item.publicExposure === "controlled-customer")) fail("access gateways missing controlled customer status");
+if (!data.accessGateways.some((item) => item.surface === "admin" && item.publicExposure === "denied")) fail("access gateways missing raw admin denial");
+if (!data.accessGateways.some((item) => item.surface === "monitor" && item.publicExposure === "denied")) fail("access gateways missing raw monitor denial");
 if (!data.monitorMemory.some((item) => item.status === "stale")) fail("monitor memory should demonstrate stale-note risk");
 
 if (!data.offerPackages.some((item) => item.id === "pkg-under19-assessment" && item.routing === "compatibility-required")) {
@@ -520,10 +547,13 @@ if (typeof recordTools.createRecurrenceCandidateRecords !== "function") fail("op
 if (typeof recordTools.transitionRecurrenceCandidateRecords !== "function") fail("operating helpers missing transitionRecurrenceCandidateRecords");
 if (typeof recordTools.createAvailabilityWindowRecords !== "function") fail("operating helpers missing createAvailabilityWindowRecords");
 if (typeof recordTools.transitionAvailabilityWindowRecords !== "function") fail("operating helpers missing transitionAvailabilityWindowRecords");
+if (typeof recordTools.createAccessGatewayRecords !== "function") fail("operating helpers missing createAccessGatewayRecords");
+if (typeof recordTools.transitionAccessGatewayRecords !== "function") fail("operating helpers missing transitionAccessGatewayRecords");
 if (typeof recordTools.createMonitorActionRecords !== "function") fail("operating helpers missing createMonitorActionRecords");
 if (typeof recordTools.summarizeAgentHandoffState !== "function") fail("operating helpers missing summarizeAgentHandoffState");
 if (typeof recordTools.summarizeQuoteState !== "function") fail("operating helpers missing summarizeQuoteState");
 if (typeof recordTools.summarizeScheduleControlState !== "function") fail("operating helpers missing summarizeScheduleControlState");
+if (typeof recordTools.summarizeAccessGatewayState !== "function") fail("operating helpers missing summarizeAccessGatewayState");
 if (typeof recordTools.summarizeAccessPosture !== "function") fail("operating helpers missing summarizeAccessPosture");
 if (typeof recordTools.summarizeMemoryState !== "function") fail("operating helpers missing summarizeMemoryState");
 if (typeof recordTools.summarizeRoutePlacementState !== "function") fail("operating helpers missing summarizeRoutePlacementState");
@@ -544,6 +574,29 @@ const accessSummary = recordTools.summarizeAccessPosture(data, { now: "2026-06-0
 if (accessSummary.status !== "ready") fail("safe-access posture should be ready for the seed slice");
 if (accessSummary.defaultPublicPolicy !== "deny-by-default") fail("safe-access summary lost deny-by-default posture");
 if (accessSummary.rawAdmin !== "local-only") fail("safe-access summary should keep raw admin local-only");
+if (accessSummary.safeGateway !== "controlled-public-customer-gateway") fail("safe-access summary lost controlled gateway name");
+
+const gatewaySummary = recordTools.summarizeAccessGatewayState(data, { now: "2026-06-01T12:00:00+09:00" });
+if (gatewaySummary.status !== "ready") fail("access gateway summary should be ready for the seed slice");
+if (gatewaySummary.controlledPublic < 1) fail("access gateway summary missing controlled public route");
+if (gatewaySummary.controlledCustomer < 1) fail("access gateway summary missing controlled customer route");
+if (gatewaySummary.deniedRaw < 2) fail("access gateway summary missing raw admin/monitor denial");
+const brokenGatewayData = recordTools.cloneData(data);
+brokenGatewayData.accessGateways = brokenGatewayData.accessGateways.map((item) => item.id === "gateway-raw-monitor" ? { ...item, publicExposure: "controlled-public" } : item);
+const brokenGatewaySummary = recordTools.summarizeAccessGatewayState(brokenGatewayData, { now: "2026-06-01T12:00:00+09:00" });
+if (brokenGatewaySummary.status !== "blocked" || !brokenGatewaySummary.violations.length) fail("access gateway summary should block raw monitor exposure");
+
+const gatewayTransition = recordTools.transitionAccessGatewayRecords(data, {
+  gatewayId: "gateway-public-intake",
+  action: "verify",
+  note: "Verifier rechecked the public intake gateway without opening raw admin or monitor exposure."
+}, { now: "2026-06-01T12:04:00+09:00" });
+if (gatewayTransition.data.receipts.filter((item) => item.kind === "access-gateway").length !== data.receipts.filter((item) => item.kind === "access-gateway").length + 1) {
+  fail("access gateway transition should add an access-gateway receipt");
+}
+if (gatewayTransition.data.monitorHealthChecks.length !== data.monitorHealthChecks.length + 1) fail("access gateway transition should add a monitor health check");
+if (gatewayTransition.data.notificationEvents.length !== data.notificationEvents.length) fail("access gateway transition must not create customer-visible notification events");
+if (gatewayTransition.records.healthCheck.customerVisible !== false) fail("access gateway health check must remain internal");
 
 const monitorActionResult = recordTools.createMonitorActionRecords(data, {
   actionId: "verify-safe-access-check",
@@ -580,7 +633,8 @@ for (const phrase of [
   "from intake through returned feedback",
   "Curriculum framework",
   "Package gameplan",
-  "Campaign route"
+  "Campaign route",
+  "Controlled public/customer access gateway record"
 ]) {
   if (!checklist.includes(phrase)) fail(`checklist missing phrase: ${phrase}`);
 }
@@ -625,12 +679,27 @@ const routePlacementContract = read("../docs/synapse-route-placement-contract.md
 for (const phrase of [
   "SYNAPSE Route Placement Contract",
   "routePlacements",
+  "accessGateways",
   "EPOCH MONITOR",
   "duplicateUi",
   "local-first",
   "live API integration"
 ]) {
   if (!routePlacementContract.includes(phrase)) fail(`SYNAPSE route placement contract missing phrase: ${phrase}`);
+}
+
+const accessGatewayContract = read("../docs/controlled-public-customer-access-gateway.md");
+for (const phrase of [
+  "Controlled Public And Customer Access Gateway",
+  "accessGateways",
+  "gateway-public-intake",
+  "gateway-customer-status",
+  "gateway-raw-admin",
+  "gateway-raw-monitor",
+  "summarizeAccessGatewayState",
+  "transitionAccessGatewayRecords"
+]) {
+  if (!accessGatewayContract.includes(phrase)) fail(`access gateway contract missing phrase: ${phrase}`);
 }
 
 const quotePaymentContract = read("../docs/quote-payment-readiness-contract.md");
@@ -973,6 +1042,8 @@ if (!routePlacementSummary.routes.some((route) => route.summaryKey === "marketin
 if (!routePlacementSummary.routes.every((route) => route.targetSystem === "SYNAPSE")) fail("route placement routes missing SYNAPSE target");
 if (routePlacementSummary.summary.pendingHandoffApprovals < 1) fail("route placement summary did not expose handoff approval pressure");
 if (routePlacementSummary.summary.campaignRoutes !== data.campaignRoutes.length) fail("route placement summary missing campaign route count");
+const handoffGatewaySummary = recordTools.summarizeAccessGatewayState(handoffResult.data, { now: "2026-06-01T12:00:00+09:00", routePlacement: routePlacementSummary });
+if (handoffGatewaySummary.status !== "ready") fail("access gateway summary should remain ready with handoff data");
 
 let rejectedDuplicateHandoff = false;
 try {
@@ -1355,6 +1426,7 @@ if (!monitorReport.persistence) fail("monitor report missing persistence state")
 if (!monitorReport.scope) fail("monitor report missing scope state");
 if (!monitorReport.memory) fail("monitor report missing memory state");
 if (!monitorReport.access) fail("monitor report missing access state");
+if (!monitorReport.accessGateways) fail("monitor report missing access gateway state");
 if (!Array.isArray(monitorReport.monitorHealthChecks)) fail("monitor report missing monitor health checks");
 if (!Array.isArray(monitorReport.operatorActions)) fail("monitor report missing operator actions");
 if (!monitorReport.routePlacement) fail("monitor report missing SYNAPSE route placement state");
@@ -1373,10 +1445,16 @@ if (!monitorReport.summary.dirtyLocalState) fail("monitor summary should flag di
 if (monitorReport.summary.awaitingReview < 1) fail("monitor summary missing awaiting-review count");
 if (monitorReport.summary.staleMemoryNotes < 1) fail("monitor summary missing stale memory notes");
 if (monitorReport.summary.safeAccessViolations !== 0) fail("monitor summary should not report safe-access violations for the seed slice");
+if (monitorReport.summary.accessGatewayRoutes < 4) fail("monitor summary missing access gateway route count");
+if (monitorReport.summary.controlledPublicGateways < 1) fail("monitor summary missing controlled public gateway count");
+if (monitorReport.summary.controlledCustomerGateways < 1) fail("monitor summary missing controlled customer gateway count");
+if (monitorReport.summary.deniedRawGateways < 2) fail("monitor summary missing raw denial gateway count");
+if (monitorReport.summary.accessGatewayViolations !== 0) fail("monitor summary should not report access gateway violations for the seed slice");
 if (monitorReport.summary.monitorHealthChecks < 2) fail("monitor summary missing monitor health checks");
 if (monitorReport.summary.monitorActionReceipts < 2) fail("monitor summary missing monitor action receipts");
 if (monitorReport.summary.operatorActions < 3) fail("monitor summary missing operator actions");
 if (!monitorReport.timeline.some((item) => item.kind === "campaign route")) fail("monitor timeline missing campaign routes");
+if (!monitorReport.timeline.some((item) => item.kind === "access gateway")) fail("monitor timeline missing access gateways");
 if (!monitorReport.timeline.some((item) => item.kind === "monitor check")) fail("monitor timeline missing monitor health checks");
 if (monitorReport.summary.timeline < 1) fail("monitor report did not include timeline records");
 if (!Array.isArray(monitorReport.queue)) fail("monitor report queue is not an array");
@@ -1447,15 +1525,18 @@ if (exportedLedger.data.persistence.checksum !== exportedLedger.persistence.chec
 if (exportedLedger.counts.receipts !== returnResult.data.receipts.length) fail("ledger export receipt count is wrong");
 if (exportedLedger.counts.monitorHealthChecks !== returnResult.data.monitorHealthChecks.length) fail("ledger export monitor health check count is wrong");
 if (exportedLedger.counts.notificationEvents !== returnResult.data.notificationEvents.length) fail("ledger export update-event count is wrong");
+if (exportedLedger.counts.accessGateways !== returnResult.data.accessGateways.length) fail("ledger export access gateway count is wrong");
 if (!exportedLedger.monitor || exportedLedger.monitor.timeline < 1) fail("ledger export missing monitor summary");
 if (exportedLedger.monitor.persistenceRevision !== exportedLedger.persistence.revision) fail("ledger monitor summary missing persistence revision");
 if (!exportedLedger.calendarExport || exportedLedger.calendarExport.entries.length !== calendarExport.entries.length) fail("ledger export missing calendar export entries");
 if (!exportedLedger.routePlacement || exportedLedger.routePlacement.summary.routeCount !== exportedLedger.data.routePlacements.length) fail("ledger export missing route placement summary");
+if (!exportedLedger.accessGateway || exportedLedger.accessGateway.gatewayCount !== exportedLedger.data.accessGateways.length) fail("ledger export missing access gateway summary");
 if (exportedLedger.counts.routePlacements !== returnResult.data.routePlacements.length) fail("ledger export route placement count is wrong");
 if (exportedLedger.counts.curriculumFrameworks !== returnResult.data.curriculumFrameworks.length) fail("ledger export curriculum framework count is wrong");
 if (exportedLedger.counts.packageGameplans !== returnResult.data.packageGameplans.length) fail("ledger export package gameplan count is wrong");
 if (exportedLedger.counts.campaignRoutes !== returnResult.data.campaignRoutes.length) fail("ledger export campaign route count is wrong");
 if (exportedLedger.monitor.campaignRoutes !== returnResult.data.campaignRoutes.length) fail("ledger monitor summary missing campaign routes");
+if (exportedLedger.monitor.accessGatewayRoutes !== returnResult.data.accessGateways.length) fail("ledger monitor summary missing access gateway routes");
 if (exportedLedger.monitor.monitorHealthChecks !== returnResult.data.monitorHealthChecks.length) fail("ledger monitor summary missing monitor health checks");
 
 const persistenceSummary = recordTools.summarizePersistenceState(exportedLedger.data);
@@ -1494,6 +1575,7 @@ if (importedLedger.data.receipts.length !== returnResult.data.receipts.length) f
 if (importedLedger.data.monitorHealthChecks.length !== returnResult.data.monitorHealthChecks.length) fail("ledger import did not preserve monitor health checks");
 if (importedLedger.data.notificationEvents.length !== returnResult.data.notificationEvents.length) fail("ledger import did not preserve update events");
 if (importedLedger.data.routePlacements.length !== returnResult.data.routePlacements.length) fail("ledger import did not preserve route placements");
+if (importedLedger.data.accessGateways.length !== returnResult.data.accessGateways.length) fail("ledger import did not preserve access gateways");
 if (importedLedger.data.campaignRoutes.length !== returnResult.data.campaignRoutes.length) fail("ledger import did not preserve campaign routes");
 if (importedLedger.data.customers[0].externalStatus !== returnResult.data.customers[0].externalStatus) fail("ledger import did not preserve external status");
 if (importedLedger.data.persistence.checksum !== exportedLedger.persistence.checksum) fail("ledger import did not preserve persistence checksum");
