@@ -30,7 +30,7 @@ KHYRON, SYMBIOSIS, and CITADEL suite.
 - `web/operating-records.js`: browser-local intake-to-operating-record helper
   that turns a public request into lead, customer, request, follow-up, and
   receipt records, then supports scheduling, submission creation, deadline
-  summaries, and returned-review receipts.
+  summaries, returned-review receipts, and monitor health reports.
 - `web/app.js`: shared renderer and local persistence flow for admin,
   student/customer, monitor, public request, scheduling, submission, and
   review-return views.

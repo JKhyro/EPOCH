@@ -96,11 +96,14 @@ for (const phrase of [
   "createSubmissionRecords",
   "createScheduleRecords",
   "returnReviewRecords",
+  "buildMonitorReport",
   "summarizeDeadlines",
   "localStorage",
   "renderScheduleFeed",
   "renderIntakeSnapshot",
   "renderSubmissions",
+  "monitorSection",
+  "Monitor Summary",
   "Request Captured",
   "Work Scheduled",
   "Submission Received",
@@ -195,5 +198,13 @@ if (returnResult.records.submission.status !== "returned") fail("return flow did
 if (returnResult.records.review.status !== "returned") fail("return flow did not update review status");
 if (returnResult.data.receipts.length !== submissionResult.data.receipts.length + 1) fail("return flow did not create a receipt");
 if (!returnResult.data.customers[0].externalStatus.includes("Feedback returned")) fail("return flow did not update external status");
+
+const monitorReport = recordTools.buildMonitorReport(returnResult.data, { now: "2026-06-01T12:00:00+09:00" });
+for (const section of ["summary", "queue", "timeline", "risks", "receipts"]) {
+  if (!(section in monitorReport)) fail(`monitor report missing section ${section}`);
+}
+if (monitorReport.summary.timeline < 1) fail("monitor report did not include timeline records");
+if (!Array.isArray(monitorReport.queue)) fail("monitor report queue is not an array");
+if (!Array.isArray(monitorReport.receipts) || monitorReport.receipts.length < 1) fail("monitor report receipts missing returned review receipt");
 
 console.log("commercial slice verification passed");

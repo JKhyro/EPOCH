@@ -169,6 +169,17 @@ h1 {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
+.monitor-section {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.monitor-section-heading h3 {
+  margin-bottom: 0;
+  font-size: 1rem;
+}
+
 .record {
   background: var(--panel);
   border: 1px solid var(--line);

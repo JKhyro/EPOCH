@@ -172,6 +172,17 @@ function renderSubmissions() {
   }).join("");
 }
 
+function monitorSection(title, cards) {
+  return `
+    <section class="monitor-section">
+      <div class="monitor-section-heading">
+        <h3>${escapeHtml(title)}</h3>
+      </div>
+      <div class="monitor-grid">${cards.join("")}</div>
+    </section>
+  `;
+}
+
 function renderMonitor(items) {
   const receiptCount = data.receipts.length;
   const attentionCount = items.filter((item) => attentionStatuses.has(item.status)).length;
@@ -179,14 +190,43 @@ function renderMonitor(items) {
   const intakeCount = data.leads.filter((item) => item.id.startsWith("lead-intake")).length;
   const reviewingCount = data.submissions.filter((item) => item.status === "reviewing" || item.status === "submitted").length;
   const deadlines = recordTools.summarizeDeadlines(data, { now: `${today}T12:00:00+09:00` });
+  const report = recordTools.buildMonitorReport(data, { now: `${today}T12:00:00+09:00` });
 
-  byId("monitor-items").innerHTML = [
+  const summaryCards = [
+    record("Monitor Summary", `${report.summary.queue} queued, ${report.summary.timeline} timeline records, ${report.summary.risks} risks.`, [chip(report.summary.health, report.summary.health === "Ready" ? "complete" : "blocked")]),
     record("Queue Attention", `${attentionCount} records need attention now.`, [chip(`${attentionCount} active`, "reviewing")]),
     record("External Visibility", `${visibleCount} student/customer-visible records are available.`, [chip(`${visibleCount} visible`)]),
-    record("Delivery Receipts", `${receiptCount} completed delivery receipts are monitor-visible.`, [chip(`${receiptCount} receipts`, "complete")]),
-    record("Live Intake Flow", `${intakeCount} public intake records have entered operations.`, [chip(`${intakeCount} captured`, "waiting")]),
-    record("Review Return Queue", `${reviewingCount} submissions are waiting for returned feedback.`, [chip(`${reviewingCount} reviews`, "submitted")]),
     record("Deadline Control", `${deadlines.today} today, ${deadlines.upcoming} upcoming, ${deadlines.overdue} overdue.`, [chip(`${deadlines.owned} owner-linked`, "planned")])
+  ];
+
+  const queueCards = report.queue.map((item) => record(
+    item.title || item.id,
+    `${item.kind} | ${formatTime(item.time)} | owner: ${item.owner}`,
+    [statusChip(item.status), chip(item.kind)]
+  ));
+
+  const timelineCards = report.timeline.map((item) => record(
+    item.title || item.id,
+    `${item.kind} | ${formatTime(item.time)} | owner: ${item.owner}`,
+    [statusChip(item.status), chip(item.id)]
+  ));
+
+  const riskCards = report.risks.length
+    ? report.risks.map((item) => record(item.title, item.detail, [chip(item.severity, item.severity === "high" ? "blocked" : "overdue")]))
+    : [record("Risks", "No active risk records in the current operating surface.", [chip("clear", "complete")])];
+
+  const receiptCards = report.receipts.map((item) => record(
+    item.kind,
+    item.note || `Receipt created ${formatTime(item.createdAt)}`,
+    [statusChip(item.status), chip(formatTime(item.createdAt))]
+  ));
+
+  byId("monitor-items").innerHTML = [
+    monitorSection("Summary", summaryCards),
+    monitorSection("Queue", queueCards),
+    monitorSection("Timeline", timelineCards),
+    monitorSection("Risks", riskCards),
+    monitorSection("Receipts", receiptCards.length ? receiptCards : [record("Receipts", "No receipts have been created yet.", [chip("empty")])])
   ].join("");
 }
 
