@@ -884,6 +884,62 @@ window.EPOCH_SEED_DATA = {
       "notes": "Durable persistence adapter is sandbox-only until recovery and backup behavior are proven."
     }
   ],
+  "calendarAdapterPrototypes": [
+    {
+      "id": "calendar-adapter-google-sandbox-export",
+      "title": "Google Calendar Sandbox Export Prototype",
+      "providerCandidateId": "provider-adapter-calendar-google",
+      "sourceHandoffId": "calendar-provider-google-readiness",
+      "adapterFamily": "calendar",
+      "targetProvider": "Google Calendar",
+      "adapterMode": "sandbox-export-preview",
+      "status": "queued",
+      "prototypeStatus": "payload-ready",
+      "sandboxOnly": true,
+      "localOnly": true,
+      "liveApiCalls": false,
+      "liveSyncEnabled": false,
+      "sendsInvitations": false,
+      "externalProviderWrite": false,
+      "productionEnabled": false,
+      "secretsPresent": false,
+      "credentialsStored": false,
+      "oauthConfigured": false,
+      "webhookEnabled": false,
+      "customerVisible": false,
+      "customerSafe": false,
+      "calendarExportSchema": "epoch.calendar-export",
+      "payloadMode": "provider-neutral-event-json-preview",
+      "payloadSource": "epoch.calendar-export",
+      "exportEntryCount": 0,
+      "payloadEntryCount": 2,
+      "readinessChecks": ["calendar-export-schema-stable", "provider-go-no-go-required", "sandbox-only-before-go-live", "operator-approval-required", "no-live-api", "no-secrets", "no-oauth-client", "no-webhooks", "no-provider-writes", "no-live-sync", "no-invitation-send"],
+      "payloadPreview": [
+        {
+          "uid": "epoch-session-seed-diagnostic-session",
+          "summary": "Diagnostic writing session",
+          "startsAt": "2026-06-05T19:30:00+09:00",
+          "endsAt": "2026-06-05T20:15:00+09:00",
+          "timezone": "Asia/Tokyo",
+          "source": "session:session-001"
+        },
+        {
+          "uid": "epoch-assignment-seed-eiken-writing-request",
+          "summary": "EIKEN writing submission due",
+          "startsAt": "2026-06-06T18:00:00+09:00",
+          "endsAt": "2026-06-06T18:00:00+09:00",
+          "timezone": "Asia/Tokyo",
+          "source": "assignment:assignment-001"
+        }
+      ],
+      "blockers": ["No OAuth client configured", "No live calendar write path", "No provider invitation sending"],
+      "nextActionAt": "2026-06-04T10:00:00+09:00",
+      "createdAt": "2026-06-02T04:00:00+09:00",
+      "updatedAt": "2026-06-02T04:00:00+09:00",
+      "receiptIds": ["receipt-calendar-adapter-prototype-seed"],
+      "notes": "Local payload proof only; live calendar API calls, OAuth, secrets, webhooks, provider writes, and invitations remain disabled."
+    }
+  ],
   "leads": [
     {
       "id": "lead-001",
@@ -1975,6 +2031,21 @@ window.EPOCH_SEED_DATA = {
       "createdAt": "2026-06-02T03:06:00+09:00",
       "visibility": "internal",
       "customerVisible": false
+    },
+    {
+      "id": "monitor-check-seed-calendar-adapter",
+      "actionId": "seed-calendar-adapter-baseline",
+      "receiptId": "receipt-calendar-adapter-prototype-seed",
+      "title": "Sandbox calendar adapter baseline",
+      "summary": "EPOCH has a local Google Calendar payload-preview prototype from calendar export records without live API calls, OAuth, secrets, webhooks, provider writes, invitations, or customer-visible sends.",
+      "status": "complete",
+      "priority": "medium",
+      "effect": "calendar-adapter-sandbox-proof",
+      "target": "monitor-calendar-adapter",
+      "owner": "Jack",
+      "createdAt": "2026-06-02T04:01:00+09:00",
+      "visibility": "internal",
+      "customerVisible": false
     }
   ],
   "receipts": [
@@ -2049,6 +2120,14 @@ window.EPOCH_SEED_DATA = {
       "status": "complete",
       "createdAt": "2026-06-02T03:06:00+09:00",
       "note": "Provider adapter baseline: calendar, notification, payment, auth/session, analytics, and persistence candidates are go/no-go readiness only with no live API calls, secrets, OAuth, webhooks, or provider writes."
+    },
+    {
+      "id": "receipt-calendar-adapter-prototype-seed",
+      "customerId": null,
+      "kind": "calendar-adapter-prototype",
+      "status": "complete",
+      "createdAt": "2026-06-02T04:01:00+09:00",
+      "note": "Sandbox calendar adapter baseline: local payload preview is ready without live calendar API calls, OAuth, secrets, webhooks, provider writes, invitations, or customer-visible sends."
     },
     {
       "id": "receipt-001",

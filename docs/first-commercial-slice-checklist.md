@@ -105,6 +105,10 @@ service operations without waiting for every future CITADEL integration.
   auth/session, analytics, advertising, and durable-persistence selection while
   keeping live API calls, secrets, OAuth clients, webhooks, provider writes, and
   production behavior disabled.
+- Sandbox calendar adapter prototypes prepare local payload previews from
+  EPOCH calendar export records while keeping live calendar API calls, OAuth,
+  secrets, webhooks, provider writes, invitations, and customer-visible sends
+  disabled.
 - EIKEN 5-1 and professional/service-support offers have reusable frameworks
   and package-level gameplans that support personalized delivery.
 - Japan-wide and global campaign routes define channel, conversion action, copy
