@@ -1757,6 +1757,18 @@ for (const phrase of [
   if (!checklist.includes(phrase)) fail(`checklist missing phrase: ${phrase}`);
 }
 
+const monitorParityDoc = read("../docs/monitor-parity-health-controls.md");
+for (const phrase of [
+  "/epoch-schedule-audit.html",
+  "/epoch-scheduler-log.html",
+  "Compatibility aliases may redirect",
+  "/epoch-work-audit.html",
+  "/epoch-runner-log.html",
+  "schedule/calendar language"
+]) {
+  if (!monitorParityDoc.includes(phrase)) fail(`monitor parity doc missing phrase: ${phrase}`);
+}
+
 const marketingAutomationDoc = read("../docs/marketing-advertising-automation-plan.md");
 for (const phrase of [
   "campaignRoutes",
