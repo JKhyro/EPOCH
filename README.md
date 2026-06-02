@@ -12,6 +12,8 @@ EPOCH owns:
 - schedule requests
 - schedule request acceptances, local availability holds, booking
   confirmations, and customer-safe schedule status events
+- timing handoff returns, availability conflict decisions, reschedule-safe
+  return payloads, and local return receipts
 - reminders and recurrence candidates
 - customer-safe schedule status
 - submission/review deadlines when another product needs timing state
@@ -43,7 +45,8 @@ the operational control and verification surface.
 - `web/shared/epoch-data.js`: schedule-focused demo data for app and webportal
   rendering plus the local EPOCH operating ledger, including the request
   acceptance, availability hold, booking confirmation, and schedule-status
-  records used by the first booking workflow.
+  records used by the first booking workflow plus timing handoff return and
+  availability-conflict records.
 - `web/shared/surface.js`: shared app/webportal renderer and local request
   interaction.
 - `web/shared/styles.css`: EPOCH-specific surface styling.

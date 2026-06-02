@@ -29,7 +29,7 @@
       <form id="schedule-request-form" class="surface-form">
         <label>
           Name
-          <input id="requester" name="requester" value="Sample Customer" required />
+          <input id="requester" name="requester" placeholder="Name or organization" required />
         </label>
         <label>
           Schedule need
@@ -37,7 +37,7 @@
         </label>
         <label>
           Preferred window
-          <input id="requested-window" name="window" value="Weekday evening Japan time" required />
+          <input id="requested-window" name="window" placeholder="Preferred day, time, or deadline context" required />
         </label>
         <label>
           Timezone
@@ -74,6 +74,22 @@
 
     <section class="panel">
       <div class="section-title">
+        <p class="eyebrow">Timing</p>
+        <h2>Timing Handoff Status</h2>
+      </div>
+      <div id="portal-timing-handoff-status" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Decision</p>
+        <h2>Availability Decision</h2>
+      </div>
+      <div id="portal-availability-decision" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
         <p class="eyebrow">Hold</p>
         <h2>Availability Hold Status</h2>
       </div>
@@ -102,6 +118,22 @@
         <h2>Booking Receipts</h2>
       </div>
       <div id="portal-booking-receipts" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Return</p>
+        <h2>Timing Return Status</h2>
+      </div>
+      <div id="portal-timing-return-status" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Return Proof</p>
+        <h2>Timing Return Receipts</h2>
+      </div>
+      <div id="portal-timing-return-receipts" class="item-stack compact-list"></div>
     </section>
 
     <section class="panel">
@@ -137,12 +169,12 @@
         <li>Accepts schedule and deadline requests.</li>
         <li>Shows customer-safe timing updates.</li>
         <li>Shows provider status without enabling live provider calls.</li>
-        <li>Does not sell packages or run delivery work.</li>
+        <li>Keeps business operations outside this portal.</li>
         <li>Does not expose raw admin or MONITOR controls.</li>
       </ul>
     </section>
   </main>
 
-  <script type="module" src="../shared/surface.js?v=epoch-booking-confirmation"></script>
+  <script type="module" src="../shared/surface.js?v=epoch-timing-return-context"></script>
 </body>
 </html>

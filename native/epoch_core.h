@@ -21,12 +21,14 @@ typedef enum EpochOperatingStatus {
     EPOCH_STATUS_RETURNED,
     EPOCH_STATUS_OVERDUE,
     EPOCH_STATUS_BLOCKED,
+    EPOCH_STATUS_CLEAR,
     EPOCH_STATUS_APPROVED,
     EPOCH_STATUS_DISPATCHED,
     EPOCH_STATUS_ACKNOWLEDGED,
     EPOCH_STATUS_ACCEPTED,
     EPOCH_STATUS_HELD,
     EPOCH_STATUS_CONFIRMED,
+    EPOCH_STATUS_NEEDS_RESCHEDULE,
     EPOCH_STATUS_IN_PROGRESS,
     EPOCH_STATUS_SENT,
     EPOCH_STATUS_FAILED,
@@ -105,6 +107,32 @@ typedef struct EpochAvailabilityWindow {
     EpochOperatingStatus status;
 } EpochAvailabilityWindow;
 
+typedef struct EpochTimingHandoff {
+    const char *id;
+    const char *source_product;
+    const char *source_handoff_id;
+    const char *schedule_request_id;
+    const char *requested_window;
+    const char *timezone;
+    const char *customer_safe_status;
+    EpochOperatingStatus status;
+    int sandbox_only;
+    int provider_go_live_requested;
+} EpochTimingHandoff;
+
+typedef struct EpochAvailabilityConflictDecision {
+    const char *id;
+    const char *timing_handoff_id;
+    const char *schedule_request_id;
+    const char *availability_window_id;
+    const char *conflict_type;
+    const char *customer_safe_status;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int sandbox_only;
+    int provider_go_live_requested;
+} EpochAvailabilityConflictDecision;
+
 typedef struct EpochScheduleRequestAcceptance {
     const char *id;
     const char *schedule_request_id;
@@ -162,6 +190,29 @@ typedef struct EpochBookingReceipt {
     int customer_visible;
     int provider_go_live_requested;
 } EpochBookingReceipt;
+
+typedef struct EpochTimingReturnPayload {
+    const char *id;
+    const char *timing_handoff_id;
+    const char *conflict_decision_id;
+    const char *booking_confirmation_id;
+    const char *schedule_request_id;
+    const char *return_type;
+    const char *customer_safe_status;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int provider_go_live_requested;
+} EpochTimingReturnPayload;
+
+typedef struct EpochTimingReturnReceipt {
+    const char *id;
+    const char *timing_return_payload_id;
+    const char *conflict_decision_id;
+    const char *summary;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int provider_go_live_requested;
+} EpochTimingReturnReceipt;
 
 typedef struct EpochReminderRule {
     const char *id;
@@ -249,11 +300,15 @@ const char *epoch_deadline_health_label(EpochDeadlineHealth health);
 int epoch_schedule_entry_is_valid(const EpochScheduleEntry *entry);
 int epoch_schedule_request_is_customer_safe(const EpochScheduleRequest *request);
 int epoch_availability_window_has_capacity(const EpochAvailabilityWindow *window);
+int epoch_timing_handoff_is_sandbox_safe(const EpochTimingHandoff *handoff);
+int epoch_availability_conflict_decision_is_customer_safe(const EpochAvailabilityConflictDecision *decision);
 int epoch_schedule_request_acceptance_is_ready(const EpochScheduleRequestAcceptance *acceptance);
 int epoch_availability_hold_is_ready(const EpochAvailabilityHold *hold);
 int epoch_booking_confirmation_is_customer_safe(const EpochBookingConfirmation *confirmation);
 int epoch_schedule_status_event_is_customer_safe(const EpochScheduleStatusEvent *event);
 int epoch_booking_receipt_is_customer_safe(const EpochBookingReceipt *receipt);
+int epoch_timing_return_payload_is_customer_safe(const EpochTimingReturnPayload *payload);
+int epoch_timing_return_receipt_is_customer_safe(const EpochTimingReturnReceipt *receipt);
 int epoch_reminder_rule_is_sandbox_safe(const EpochReminderRule *rule);
 int epoch_recurrence_rule_is_sandbox_safe(const EpochRecurrenceRule *rule);
 int epoch_deadline_rule_is_customer_safe(const EpochDeadlineRule *rule);
