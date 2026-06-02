@@ -2,15 +2,16 @@
 
 ## Goal
 
-Define the first shippable EPOCH slice as a narrow scheduling and education
-operations surface that proves product ownership before broader suite
-integrations are attempted.
+Define the first shippable EPOCH slice as a narrow scheduling and
+schedule-bound administration surface that proves calendar ownership before
+broader suite integrations are attempted.
 
 ## v1 intent
 
 The first slice should support a provider creating, viewing, and updating
-schedule-bound education/service work with explicit time boundaries,
-timezone-aware behavior, and a submission/review loop.
+schedule-bound work with explicit time boundaries, timezone-aware behavior, and
+deadline/status loops. Education or service workflows are clients of the
+schedule model, not EPOCH's revenue product scope.
 
 ## Implementation stance for v1
 
@@ -32,7 +33,7 @@ timezone-aware behavior, and a submission/review loop.
 
 ### Operating entry
 
-- type such as class, cohort session, diagnostic, assignment window, submission
+- type such as appointment, cohort session, assignment window, submission
   deadline, review deadline, request, or follow-up
 - linked student/customer/cohort identifier
 - owner or responsible reviewer
@@ -81,7 +82,8 @@ The current lifecycle contract is:
 - full attendee and invitation workflows
 - external calendar synchronization
 - payment processing
-- full curriculum authoring
+- full curriculum authoring and education-service packaging, which belong to
+  WORKSHOP
 - full CRM/helpdesk behavior outside schedule-bound requests
 - deep integrations with SYMBIOSIS, FURYOKU, ANVIL, NEXUS, LIBRARY, or other suite
   surfaces
@@ -89,7 +91,7 @@ The current lifecycle contract is:
 ## Why this is the right first slice
 
 This slice is large enough to prove that EPOCH can own scheduling data,
-education/service operating flow, and user-visible status, but small enough to
+schedule-bound operating flow, and user-visible status, but small enough to
 avoid coupling v1 delivery to unresolved suite-wide dependencies.
 
 ## Ready-for-implementation check
@@ -100,6 +102,6 @@ The execution issue for this slice should only move into implementation after:
 - the runtime and packaging stance is explicit
 - the minimum contract is not disputed
 - deferred integrations stay deferred
-- the commercial education lane is accepted as the first operating proof
+- WORKSHOP revenue/service scope remains separate from EPOCH schedule scope
 - EPOCH MONITOR parity is scoped as a follow-on slice rather than mixed into the
   first scheduling/admin implementation

@@ -3,13 +3,13 @@
 ## Purpose
 
 This document defines the current EPOCH MONITOR parity slice against the
-HERMES-style monitor capability model. The goal is not to copy HERMES domain
-wording, but to keep the same operator-grade surface pattern for EPOCH's
-education, service, scheduling, submission, and revenue workflows.
+HERMES-style monitor capability model. The goal is to clone the HERMES monitor
+structure for EPOCH calendar/scheduling data without copying HERMES project
+data or WORKSHOP revenue-bench scope.
 
 ## Required monitor sections
 
-EPOCH MONITOR must expose these local operator sections:
+EPOCH MONITOR must expose these local operator sections and routes:
 
 - Summary
 - Scope
@@ -28,9 +28,32 @@ EPOCH MONITOR must expose these local operator sections:
 - Customer Account History
 - Controls
 
+Required HERMES-structure routes:
+
+- `/epoch-monitor.html`
+- `/epoch-dashboard.html`
+- `/epoch-completion.html`
+- `/epoch-scorecard.html`
+- `/epoch-timeline.html`
+- `/epoch-work-audit.html`
+- `/epoch-receipts.html`
+- `/epoch-runner-log.html`
+- `/epoch-search.html`
+- `/epoch-template.html`
+- EPOCH persona and team child routes matching the HERMES route pattern
+
 The public route may reuse the visual language, but it must not expose raw
 monitor/admin state. Public pages remain intake and commercially safe status
 surfaces only.
+
+## Data rule
+
+EPOCH MONITOR data must be EPOCH-specific or empty/build-ready. HERMES queue,
+Discord, runner, receipt, and project records must not be copied into EPOCH.
+
+WORKSHOP has its own monitor at `/workshop-monitor.html` and owns the revenue
+bench. EPOCH may show schedule-bound integration health, but not WORKSHOP's
+service catalog or revenue operations as EPOCH core scope.
 
 ## Ledger-backed health controls
 

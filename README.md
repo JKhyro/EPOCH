@@ -3,23 +3,33 @@
 Scheduling, calendar, and operating-administration surface for the broader
 KHYRON, SYMBIOSIS, and CITADEL suite.
 
+## Boundary correction
+
+EPOCH is the calendar and scheduling product. It must not absorb the revenue
+bench. Revenue services, education offer packaging, consulting/tech-support
+catalogs, marketing operations, and ARA income-stream production belong to the
+separate WORKSHOP product.
+
+EPOCH may provide scheduling, availability, reminders, request timing,
+submission deadlines, status events, and notification timing for WORKSHOP. That
+integration does not make WORKSHOP scope EPOCH-owned.
+
 ## Current execution order
 
-1. Lock the expanded product boundary.
+1. Lock the corrected EPOCH calendar/scheduling boundary.
 2. Preserve the native runtime and packaging stance.
-3. Define the first shippable operating slice.
-4. Track integrations by phase so urgent education-revenue work does not
-   collapse into unbounded platform scope.
-5. Build revenue-facing platform slices after the integration queue, starting
-   with the professional public offer funnel and marketing-ready intake path.
-6. Align the public, admin, student, and monitor web surfaces with the
-   SCAFFOLD/HERMES visual direction without turning the public funnel into an
-   internal monitor page.
+3. Define the revised 13-month calendar contract before implementing it.
+4. Clone the HERMES MONITOR structure into EPOCH MONITOR with EPOCH data only.
+5. Move revenue-bench planning and offer operations into WORKSHOP.
+6. Keep public/customer surfaces controlled and schedule-bound; raw monitor and
+   admin surfaces remain local/private unless access control is verified.
 
 ## Current planning artifacts
 
 - `docs/product-boundary.md`
 - `docs/runtime-and-packaging.md`
+- `docs/revised-13-month-calendar-contract.md`
+- `docs/workshop-extraction-boundary.md`
 - `docs/v1-minimal-scheduling-surface.md`
 - `docs/education-operating-platform-boundary.md`
 - `docs/first-commercial-slice-checklist.md`
@@ -169,41 +179,36 @@ operations-shaped work:
 - MONITOR-grade operational visibility for EPOCH lanes, following the HERMES
   MONITOR capability pattern as the parity target
 
-The immediate commercial wedge is an education operating platform that supports
-premium exam/writing/test-prep offers with less live-class labor: cohorts,
-submission workflows, progress tracking, request handling, and professional
-web-facing conversion surfaces.
+Education and revenue workflows are valid EPOCH clients only when they need
+schedule state. Their service catalog, pricing, marketing, delivery packaging,
+and income-stream operations belong to WORKSHOP.
 
 EPOCH is not trying to solve every adjacent suite concern in one pass. Deep
 integration into SYMBIOSIS, FURYOKU, ANVIL, NEXUS, LIBRARY, and other CITADEL
 surfaces should follow a stable phased EPOCH boundary instead of defining it by
 accident.
 
-## First commercial operating lane
+## WORKSHOP extraction
 
-The first revenue-facing lane should support:
+The current static web prototype still contains historical education/revenue
+operating records. Treat those records as extraction candidates for WORKSHOP,
+not as proof that EPOCH owns the revenue bench. EPOCH should retain only the
+schedule-bound portions:
 
-- premium adult and serious-student education services
-- EIKEN 5-1 and later TOEIC, IELTS, TOEFL, school writing, university writing,
-  and professional English tracks
-- under-19 compatibility assessment before acceptance, or higher-touch pricing
-  when younger students are accepted
-- fewer live classes by default, with cohorts, submissions, structured feedback,
-  and progress reporting doing more of the work
-- professional public website copy and intake paths that do not lead with AI
-  terminology in Japan-facing messaging
-- controlled public intake and customer-safe status routes that do not expose
-  raw admin or EPOCH MONITOR state
-- adjacent revenue services such as consulting, tech support, clerical/admin,
-  database, CRM, management-system, and automation support
+- calendar events
+- availability windows
+- reminders and recurrence candidates
+- submission/review deadlines
+- customer-safe schedule/status events
+- monitor health for schedule-bound work
 
 ## ARA revenue direction
 
-EPOCH should also support the Agentic Response Array revenue model: MONITOR,
-SYMBIOSIS, FURYOKU, and other CITADEL projects should be able to create,
-schedule, track, operate, and report revenue-producing work with minimal manual
-input from Jack. EPOCH owns the schedule/admin layer for that future loop; the
-agent/control-plane behavior remains owned by the appropriate ARA projects.
+EPOCH supports the Agentic Response Array revenue model as the scheduling and
+calendar provider. WORKSHOP owns revenue production, service operations, and
+income-stream administration. MONITOR, SYMBIOSIS, FURYOKU, and other CITADEL
+projects may create work that EPOCH schedules, but they do not move their
+control-plane behavior into EPOCH.
 
 ## Implementation stance
 
