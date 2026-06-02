@@ -37,6 +37,10 @@
         <div><dt>Holds</dt><dd id="stat-active-holds">0</dd></div>
         <div><dt>Bookings</dt><dd id="stat-bookings">0</dd></div>
         <div><dt>Booking Receipts</dt><dd id="stat-booking-receipts">0</dd></div>
+        <div><dt>Handoffs</dt><dd id="stat-timing-handoffs">0</dd></div>
+        <div><dt>Conflicts</dt><dd id="stat-conflicts">0</dd></div>
+        <div><dt>Returns</dt><dd id="stat-timing-returns">0</dd></div>
+        <div><dt>Return Receipts</dt><dd id="stat-return-receipts">0</dd></div>
       </dl>
       <button id="reset-schedule-ledger" class="secondary-button" type="button">Reset Local Ledger</button>
     </section>
@@ -63,6 +67,22 @@
         <h2>Open Windows</h2>
       </div>
       <div id="availability-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Timing Bridge</p>
+        <h2>Timing Handoffs</h2>
+      </div>
+      <div id="timing-handoff-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Conflict Check</p>
+        <h2>Availability Conflict Decisions</h2>
+      </div>
+      <div id="conflict-decision-list" class="item-stack compact-list"></div>
     </section>
 
     <section class="panel">
@@ -103,6 +123,22 @@
         <h2>Booking Receipts</h2>
       </div>
       <div id="booking-receipt-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel wide-panel">
+      <div class="section-title">
+        <p class="eyebrow">Timing Return</p>
+        <h2>Timing Return Payloads</h2>
+      </div>
+      <div id="timing-return-list" class="item-stack"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Return Proof</p>
+        <h2>Timing Return Receipts</h2>
+      </div>
+      <div id="timing-return-receipt-list" class="item-stack compact-list"></div>
     </section>
 
     <section class="panel">
@@ -191,6 +227,6 @@
     </section>
   </main>
 
-  <script type="module" src="../shared/surface.js?v=epoch-booking-confirmation"></script>
+  <script type="module" src="../shared/surface.js?v=epoch-timing-return-context"></script>
 </body>
 </html>

@@ -36,12 +36,14 @@ static const EpochStatusName EPOCH_STATUS_NAMES[] = {
     {EPOCH_STATUS_RETURNED, "returned"},
     {EPOCH_STATUS_OVERDUE, "overdue"},
     {EPOCH_STATUS_BLOCKED, "blocked"},
+    {EPOCH_STATUS_CLEAR, "clear"},
     {EPOCH_STATUS_APPROVED, "approved"},
     {EPOCH_STATUS_DISPATCHED, "dispatched"},
     {EPOCH_STATUS_ACKNOWLEDGED, "acknowledged"},
     {EPOCH_STATUS_ACCEPTED, "accepted"},
     {EPOCH_STATUS_HELD, "held"},
     {EPOCH_STATUS_CONFIRMED, "confirmed"},
+    {EPOCH_STATUS_NEEDS_RESCHEDULE, "needs-reschedule"},
     {EPOCH_STATUS_IN_PROGRESS, "in-progress"},
     {EPOCH_STATUS_SENT, "sent"},
     {EPOCH_STATUS_FAILED, "failed"},
@@ -217,6 +219,47 @@ int epoch_availability_window_has_capacity(const EpochAvailabilityWindow *window
            window->status == EPOCH_STATUS_AVAILABLE;
 }
 
+int epoch_timing_handoff_is_sandbox_safe(const EpochTimingHandoff *handoff) {
+    if (handoff == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(handoff->id) &&
+           epoch_text_present(handoff->source_product) &&
+           epoch_text_present(handoff->source_handoff_id) &&
+           epoch_text_present(handoff->schedule_request_id) &&
+           epoch_text_present(handoff->requested_window) &&
+           epoch_text_present(handoff->timezone) &&
+           epoch_text_present(handoff->customer_safe_status) &&
+           handoff->sandbox_only &&
+           !handoff->provider_go_live_requested &&
+           handoff->status != EPOCH_STATUS_FAILED &&
+           handoff->status != EPOCH_STATUS_REJECTED &&
+           handoff->status != EPOCH_STATUS_ROLLED_BACK &&
+           handoff->status != EPOCH_STATUS_CANCELED;
+}
+
+int epoch_availability_conflict_decision_is_customer_safe(const EpochAvailabilityConflictDecision *decision) {
+    if (decision == 0) {
+        return 0;
+    }
+
+    if (decision->status == EPOCH_STATUS_CLEAR && !epoch_text_present(decision->availability_window_id)) {
+        return 0;
+    }
+
+    return epoch_text_present(decision->id) &&
+           epoch_text_present(decision->timing_handoff_id) &&
+           epoch_text_present(decision->schedule_request_id) &&
+           epoch_text_present(decision->conflict_type) &&
+           epoch_text_present(decision->customer_safe_status) &&
+           decision->customer_visible &&
+           decision->sandbox_only &&
+           !decision->provider_go_live_requested &&
+           (decision->status == EPOCH_STATUS_CLEAR ||
+            decision->status == EPOCH_STATUS_NEEDS_RESCHEDULE);
+}
+
 int epoch_schedule_request_acceptance_is_ready(const EpochScheduleRequestAcceptance *acceptance) {
     if (acceptance == 0) {
         return 0;
@@ -302,6 +345,43 @@ int epoch_booking_receipt_is_customer_safe(const EpochBookingReceipt *receipt) {
            receipt->status != EPOCH_STATUS_REJECTED &&
            receipt->status != EPOCH_STATUS_ROLLED_BACK &&
            receipt->status != EPOCH_STATUS_CANCELED;
+}
+
+int epoch_timing_return_payload_is_customer_safe(const EpochTimingReturnPayload *payload) {
+    if (payload == 0) {
+        return 0;
+    }
+
+    if (payload->status == EPOCH_STATUS_RETURNED && !epoch_text_present(payload->booking_confirmation_id)) {
+        return 0;
+    }
+
+    return epoch_text_present(payload->id) &&
+           epoch_text_present(payload->timing_handoff_id) &&
+           epoch_text_present(payload->conflict_decision_id) &&
+           epoch_text_present(payload->schedule_request_id) &&
+           epoch_text_present(payload->return_type) &&
+           epoch_text_present(payload->customer_safe_status) &&
+           payload->customer_visible &&
+           !payload->provider_go_live_requested &&
+           (payload->status == EPOCH_STATUS_RETURNED ||
+            payload->status == EPOCH_STATUS_NEEDS_RESCHEDULE);
+}
+
+int epoch_timing_return_receipt_is_customer_safe(const EpochTimingReturnReceipt *receipt) {
+    if (receipt == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(receipt->id) &&
+           epoch_text_present(receipt->timing_return_payload_id) &&
+           epoch_text_present(receipt->conflict_decision_id) &&
+           epoch_text_present(receipt->summary) &&
+           receipt->customer_visible &&
+           !receipt->provider_go_live_requested &&
+           (receipt->status == EPOCH_STATUS_COMPLETE ||
+            receipt->status == EPOCH_STATUS_NEEDS_RESCHEDULE ||
+            receipt->status == EPOCH_STATUS_RETURNED);
 }
 
 int epoch_reminder_rule_is_sandbox_safe(const EpochReminderRule *rule) {

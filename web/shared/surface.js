@@ -1,12 +1,17 @@
 import {
   EPOCH_LEDGER_KEY,
+  createAvailabilityConflictDecisionForHandoff,
   createAvailabilityHoldForAcceptance,
   createBookingConfirmationForHold,
   createBookingReceiptForConfirmation,
   createScheduleEntryForRequest,
   createScheduleRequestRecord,
   createScheduleRequestAcceptanceForRequest,
+  createScheduleStatusEventForConflict,
   createScheduleStatusEventForBooking,
+  createTimingHandoffForRequest,
+  createTimingReturnPayloadForDecision,
+  createTimingReturnReceiptForPayload,
   initialEpochLedger,
   providerGateBlocksLiveCalls,
   providerGateReadyForToggle,
@@ -16,7 +21,7 @@ import {
   scheduleNeedLabel,
   scheduleNeedOptions,
   selectOpenAvailabilityWindow
-} from "./epoch-data.js?v=epoch-booking-confirmation";
+} from "./epoch-data.js?v=epoch-timing-return-context";
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
@@ -41,11 +46,15 @@ const mergeLedger = (stored) => {
   for (const key of [
     "scheduleEntries",
     "scheduleRequests",
+    "timingHandoffs",
+    "availabilityConflictDecisions",
     "scheduleRequestAcceptances",
     "availabilityHolds",
     "bookingConfirmations",
     "scheduleStatusEvents",
     "bookingReceipts",
+    "timingReturnPayloads",
+    "timingReturnReceipts",
     "availabilityWindows",
     "deadlineItems",
     "recurrenceCandidates",
@@ -126,6 +135,10 @@ function renderStats() {
   setText("stat-active-holds", String((state.ledger.availabilityHolds || []).filter((hold) => hold.status !== "released").length));
   setText("stat-bookings", String((state.ledger.bookingConfirmations || []).length));
   setText("stat-booking-receipts", String((state.ledger.bookingReceipts || []).length));
+  setText("stat-timing-handoffs", String((state.ledger.timingHandoffs || []).length));
+  setText("stat-conflicts", String((state.ledger.availabilityConflictDecisions || []).filter((decision) => decision.status !== "clear").length));
+  setText("stat-timing-returns", String((state.ledger.timingReturnPayloads || []).length));
+  setText("stat-return-receipts", String((state.ledger.timingReturnReceipts || []).length));
 }
 
 function renderScheduleQueue() {
@@ -169,6 +182,22 @@ function renderAvailability() {
 }
 
 function renderBookingWorkflow() {
+  renderStack("timing-handoff-list", state.ledger.timingHandoffs || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.sourceProduct)} timing handoff</strong>
+      <span>${escapeHtml(item.status)} - ${escapeHtml(item.requestedWindow)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("conflict-decision-list", state.ledger.availabilityConflictDecisions || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.conflictType)}</strong>
+      <span>${escapeHtml(item.status)} - ${escapeHtml(item.availabilityWindowId || "no window")}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
   renderStack("acceptance-list", state.ledger.scheduleRequestAcceptances || [], (item) => `
     <article class="mini-row">
       <strong>${escapeHtml(item.requester)}</strong>
@@ -215,6 +244,44 @@ function renderBookingWorkflow() {
     </article>
   `);
 
+  renderStack("timing-return-list", state.ledger.timingReturnPayloads || [], (item) => `
+    <article class="item-card">
+      <div>
+        <strong>${escapeHtml(item.returnType)} - ${escapeHtml(item.requester || item.scheduleRequestId)}</strong>
+        <p>${escapeHtml(item.customerSafeStatus)}</p>
+        <small>${escapeHtml(item.timingHandoffId)}</small>
+      </div>
+      <div class="item-meta">
+        ${chip(item.status)}
+        <span>${escapeHtml(item.requestedWindow || item.bookingConfirmationId || "reschedule")}</span>
+      </div>
+    </article>
+  `);
+
+  renderStack("timing-return-receipt-list", state.ledger.timingReturnReceipts || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.id)}</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.summary)}</small>
+    </article>
+  `);
+
+  renderStack("portal-timing-handoff-status", state.ledger.timingHandoffs || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.sourceProduct)} timing</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("portal-availability-decision", state.ledger.availabilityConflictDecisions || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.status === "clear" ? "Availability clear" : "New window needed")}</strong>
+      <span>${escapeHtml(item.conflictType)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
   renderStack("portal-acceptance-status", state.ledger.scheduleRequestAcceptances || [], (item) => `
     <article class="mini-row">
       <strong>${escapeHtml(item.requester)}</strong>
@@ -248,6 +315,22 @@ function renderBookingWorkflow() {
   `);
 
   renderStack("portal-booking-receipts", state.ledger.bookingReceipts || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.status)}</strong>
+      <span>${escapeHtml(item.generatedAt || "")}</span>
+      <small>${escapeHtml(item.summary)}</small>
+    </article>
+  `);
+
+  renderStack("portal-timing-return-status", state.ledger.timingReturnPayloads || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.returnType)}</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("portal-timing-return-receipts", state.ledger.timingReturnReceipts || [], (item) => `
     <article class="mini-row">
       <strong>${escapeHtml(item.status)}</strong>
       <span>${escapeHtml(item.generatedAt || "")}</span>
@@ -439,34 +522,67 @@ function handleScheduleRequest(event) {
   const form = event.currentTarget;
   const data = new FormData(form);
   const request = createScheduleRequestRecord(data);
-  const entry = createScheduleEntryForRequest(request);
+  const handoff = createTimingHandoffForRequest(request, "EPOCH");
   const availabilityWindow = selectOpenAvailabilityWindow(state.ledger.availabilityWindows);
-  const acceptance = createScheduleRequestAcceptanceForRequest(request, availabilityWindow);
-  const hold = createAvailabilityHoldForAcceptance(acceptance, availabilityWindow);
-  const bookingConfirmation = createBookingConfirmationForHold(hold, request, entry);
-  const scheduleStatusEvent = createScheduleStatusEventForBooking(bookingConfirmation, request);
-  const bookingReceipt = createBookingReceiptForConfirmation(bookingConfirmation, scheduleStatusEvent);
-
-  request.status = "accepted";
-  request.customerSafeStatus = acceptance.customerSafeStatus;
-  entry.status = "confirmed";
-  entry.customerSafeStatus = bookingConfirmation.customerSafeStatus;
+  const conflictDecision = createAvailabilityConflictDecisionForHandoff(handoff, availabilityWindow);
 
   state.ledger.scheduleRequests.unshift(request);
-  state.ledger.scheduleEntries.unshift(entry);
-  state.ledger.scheduleRequestAcceptances.unshift(acceptance);
-  state.ledger.availabilityHolds.unshift(hold);
-  state.ledger.bookingConfirmations.unshift(bookingConfirmation);
-  state.ledger.scheduleStatusEvents.unshift(scheduleStatusEvent);
-  state.ledger.bookingReceipts.unshift(bookingReceipt);
-  if (availabilityWindow) availabilityWindow.holds = Number(availabilityWindow.holds || 0) + 1;
-  addTimeline("Request accepted", `${request.requester} requested ${scheduleNeedLabel(request.need)}.`, acceptance.status);
-  addTimeline("Booking confirmed", bookingConfirmation.customerSafeStatus, bookingConfirmation.status);
-  appendReceipt(`${request.requester} received a local-only schedule booking confirmation.`);
+  state.ledger.timingHandoffs.unshift(handoff);
+  state.ledger.availabilityConflictDecisions.unshift(conflictDecision);
+
+  let confirmationText = conflictDecision.customerSafeStatus;
+  if (conflictDecision.status === "clear") {
+    const entry = createScheduleEntryForRequest(request);
+    const acceptance = createScheduleRequestAcceptanceForRequest(request, availabilityWindow);
+    const hold = createAvailabilityHoldForAcceptance(acceptance, availabilityWindow);
+    const bookingConfirmation = createBookingConfirmationForHold(hold, request, entry);
+    const scheduleStatusEvent = createScheduleStatusEventForBooking(bookingConfirmation, request);
+    const bookingReceipt = createBookingReceiptForConfirmation(bookingConfirmation, scheduleStatusEvent);
+    const timingReturnPayload = createTimingReturnPayloadForDecision(conflictDecision, request, bookingConfirmation);
+    const timingReturnReceipt = createTimingReturnReceiptForPayload(timingReturnPayload, conflictDecision);
+
+    request.status = "accepted";
+    request.customerSafeStatus = acceptance.customerSafeStatus;
+    handoff.status = "returned";
+    handoff.customerSafeStatus = timingReturnPayload.customerSafeStatus;
+    entry.status = "confirmed";
+    entry.customerSafeStatus = bookingConfirmation.customerSafeStatus;
+
+    state.ledger.scheduleEntries.unshift(entry);
+    state.ledger.scheduleRequestAcceptances.unshift(acceptance);
+    state.ledger.availabilityHolds.unshift(hold);
+    state.ledger.bookingConfirmations.unshift(bookingConfirmation);
+    state.ledger.scheduleStatusEvents.unshift(scheduleStatusEvent);
+    state.ledger.bookingReceipts.unshift(bookingReceipt);
+    state.ledger.timingReturnPayloads.unshift(timingReturnPayload);
+    state.ledger.timingReturnReceipts.unshift(timingReturnReceipt);
+    if (availabilityWindow) availabilityWindow.holds = Number(availabilityWindow.holds || 0) + 1;
+    addTimeline("Request accepted", `${request.requester} requested ${scheduleNeedLabel(request.need)}.`, acceptance.status);
+    addTimeline("Booking confirmed", bookingConfirmation.customerSafeStatus, bookingConfirmation.status);
+    addTimeline("Timing returned", timingReturnPayload.customerSafeStatus, timingReturnPayload.status);
+    appendReceipt(`${request.requester} received a local-only schedule booking confirmation and timing return.`);
+    confirmationText = bookingConfirmation.customerSafeStatus;
+  } else {
+    const scheduleStatusEvent = createScheduleStatusEventForConflict(conflictDecision, request);
+    const timingReturnPayload = createTimingReturnPayloadForDecision(conflictDecision, request);
+    const timingReturnReceipt = createTimingReturnReceiptForPayload(timingReturnPayload, conflictDecision);
+
+    request.status = "needs-reschedule";
+    request.customerSafeStatus = conflictDecision.customerSafeStatus;
+    handoff.status = "needs-reschedule";
+    handoff.customerSafeStatus = timingReturnPayload.customerSafeStatus;
+
+    state.ledger.scheduleStatusEvents.unshift(scheduleStatusEvent);
+    state.ledger.timingReturnPayloads.unshift(timingReturnPayload);
+    state.ledger.timingReturnReceipts.unshift(timingReturnReceipt);
+    addTimeline("Timing conflict", timingReturnPayload.customerSafeStatus, timingReturnPayload.status);
+    appendReceipt(`${request.requester} received a local-only availability conflict return.`, "needs-reschedule");
+    confirmationText = timingReturnPayload.customerSafeStatus;
+  }
   saveLedger(state.ledger);
 
   const confirmation = byId("request-confirmation");
-  if (confirmation) confirmation.textContent = bookingConfirmation.customerSafeStatus;
+  if (confirmation) confirmation.textContent = confirmationText;
   form.reset();
   renderAll();
 }

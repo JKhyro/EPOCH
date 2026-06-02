@@ -16,6 +16,9 @@ only where the host, UI framework, or platform integration makes it necessary.
 - Request acceptance, local availability holds, booking confirmations,
   customer-safe schedule status events, and booking receipts are part of the
   native contract surface once they influence more than one host.
+- Timing handoffs, availability conflict decisions, timing return payloads,
+  and return receipts are also native-owned because they define EPOCH's service
+  boundary for products that request schedule state.
 - Managed code should not become the primary home of EPOCH business rules.
 
 ## Avalonia role
@@ -77,6 +80,8 @@ only where the host, UI framework, or platform integration makes it necessary.
 - The local-first booking workflow should create a schedule request, acceptance,
   availability hold, booking confirmation, status event, and receipt before any
   live calendar provider integration is approved.
+- Handoff consumers should receive either a confirmed local timing return or a
+  customer-safe reschedule/conflict return while EPOCH keeps calendar ownership.
 - The Avalonia shell should stay thin and consume the native core via explicit
   interop for internal administration.
 - A customer-safe webportal may be built before the Avalonia host, but it

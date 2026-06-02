@@ -110,6 +110,58 @@ export const initialEpochLedger = {
       createdAt: "2026-06-03T10:00:00+09:00"
     }
   ],
+  timingHandoffs: [
+    {
+      id: "EPOCH-TIME-HANDOFF-001",
+      sourceProduct: "WORKSHOP",
+      sourceHandoffId: "WORKSHOP-EPOCH-HANDOFF-001",
+      scheduleRequestId: "EPOCH-REQ-001",
+      requestedWindow: "2026-06-03 evening JST",
+      timezone: "Asia/Tokyo",
+      status: "accepted",
+      sandboxOnly: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Timing handoff accepted into EPOCH; availability is being resolved locally."
+    },
+    {
+      id: "EPOCH-TIME-HANDOFF-002",
+      sourceProduct: "WORKSHOP",
+      sourceHandoffId: "WORKSHOP-EPOCH-HANDOFF-CONFLICT-001",
+      scheduleRequestId: "EPOCH-REQ-CONFLICT-001",
+      requestedWindow: "Fully booked evening review block",
+      timezone: "Asia/Tokyo",
+      status: "needs-reschedule",
+      sandboxOnly: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Timing handoff needs a new window because local availability is full."
+    }
+  ],
+  availabilityConflictDecisions: [
+    {
+      id: "EPOCH-CONFLICT-001",
+      timingHandoffId: "EPOCH-TIME-HANDOFF-001",
+      scheduleRequestId: "EPOCH-REQ-001",
+      availabilityWindowId: "EPOCH-WIN-001",
+      status: "clear",
+      conflictType: "capacity-clear",
+      sandboxOnly: true,
+      providerGoLiveRequested: false,
+      customerVisible: true,
+      customerSafeStatus: "Availability is clear for a local booking hold."
+    },
+    {
+      id: "EPOCH-CONFLICT-002",
+      timingHandoffId: "EPOCH-TIME-HANDOFF-002",
+      scheduleRequestId: "EPOCH-REQ-CONFLICT-001",
+      availabilityWindowId: "",
+      status: "needs-reschedule",
+      conflictType: "capacity-full",
+      sandboxOnly: true,
+      providerGoLiveRequested: false,
+      customerVisible: true,
+      customerSafeStatus: "Requested timing is not available; a new window is needed."
+    }
+  ],
   scheduleRequestAcceptances: [
     {
       id: "EPOCH-ACCEPT-001",
@@ -176,6 +228,54 @@ export const initialEpochLedger = {
       status: "ready",
       summary: "Request acceptance, availability hold, booking confirmation, and customer-safe status event are locally recorded without live provider calls.",
       generatedAt: "2026-06-03T10:10:00+09:00"
+    }
+  ],
+  timingReturnPayloads: [
+    {
+      id: "EPOCH-TIME-RETURN-001",
+      timingHandoffId: "EPOCH-TIME-HANDOFF-001",
+      conflictDecisionId: "EPOCH-CONFLICT-001",
+      bookingConfirmationId: "EPOCH-BOOK-001",
+      scheduleRequestId: "EPOCH-REQ-001",
+      requester: "WORKSHOP timing handoff",
+      requestedWindow: "Mon-Wed 19:00-21:00 JST",
+      status: "returned",
+      returnType: "booking-confirmed",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Confirmed timing returned locally to the requesting workflow."
+    },
+    {
+      id: "EPOCH-TIME-RETURN-002",
+      timingHandoffId: "EPOCH-TIME-HANDOFF-002",
+      conflictDecisionId: "EPOCH-CONFLICT-002",
+      bookingConfirmationId: "",
+      scheduleRequestId: "EPOCH-REQ-CONFLICT-001",
+      requester: "Reschedule handoff",
+      requestedWindow: "Fully booked evening review block",
+      status: "needs-reschedule",
+      returnType: "availability-conflict",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "No local availability is open for the requested timing; ask for a new window."
+    }
+  ],
+  timingReturnReceipts: [
+    {
+      id: "EPOCH-TIME-RETURN-RECEIPT-001",
+      timingReturnPayloadId: "EPOCH-TIME-RETURN-001",
+      conflictDecisionId: "EPOCH-CONFLICT-001",
+      status: "ready",
+      summary: "EPOCH returned a confirmed local booking payload without live provider calls.",
+      generatedAt: "2026-06-03T10:12:00+09:00"
+    },
+    {
+      id: "EPOCH-TIME-RETURN-RECEIPT-002",
+      timingReturnPayloadId: "EPOCH-TIME-RETURN-002",
+      conflictDecisionId: "EPOCH-CONFLICT-002",
+      status: "needs-reschedule",
+      summary: "EPOCH returned a customer-safe availability conflict payload without live provider calls.",
+      generatedAt: "2026-06-03T10:13:00+09:00"
     }
   ],
   availabilityWindows: [
@@ -424,6 +524,39 @@ export function selectOpenAvailabilityWindow(windows = initialEpochLedger.availa
   return windows.find((window) => Number(window.holds || 0) < Number(window.capacity || 0)) || null;
 }
 
+export function createTimingHandoffForRequest(request, sourceProduct = "EPOCH") {
+  return {
+    id: makeId("EPOCH-TIME-HANDOFF"),
+    sourceProduct,
+    sourceHandoffId: `${sourceProduct}-LOCAL-${request.id}`,
+    scheduleRequestId: request.id,
+    requestedWindow: request.requestedWindow,
+    timezone: request.timezone,
+    status: "accepted",
+    sandboxOnly: true,
+    providerGoLiveRequested: false,
+    customerSafeStatus: "Timing handoff accepted into EPOCH; availability is being resolved locally."
+  };
+}
+
+export function createAvailabilityConflictDecisionForHandoff(handoff, availabilityWindow = null) {
+  const hasCapacity = Boolean(availabilityWindow);
+  return {
+    id: makeId("EPOCH-CONFLICT"),
+    timingHandoffId: handoff.id,
+    scheduleRequestId: handoff.scheduleRequestId,
+    availabilityWindowId: availabilityWindow?.id || "",
+    status: hasCapacity ? "clear" : "needs-reschedule",
+    conflictType: hasCapacity ? "capacity-clear" : "capacity-full",
+    sandboxOnly: true,
+    providerGoLiveRequested: false,
+    customerVisible: true,
+    customerSafeStatus: hasCapacity
+      ? "Availability is clear for a local booking hold."
+      : "Requested timing is not available; a new window is needed."
+  };
+}
+
 export function createScheduleRequestAcceptanceForRequest(request, availabilityWindow = null) {
   return {
     id: makeId("EPOCH-ACCEPT"),
@@ -489,6 +622,39 @@ export function createScheduleStatusEventForBooking(confirmation, request) {
   };
 }
 
+export function createScheduleStatusEventForConflict(decision, request) {
+  return {
+    id: makeId("EPOCH-STATUS"),
+    bookingConfirmationId: "",
+    scheduleRequestId: request.id,
+    label: "Timing needs reschedule",
+    state: "needs-reschedule",
+    customerVisible: true,
+    customerSafeStatus: decision.customerSafeStatus,
+    occurredAt: new Date().toISOString()
+  };
+}
+
+export function createTimingReturnPayloadForDecision(decision, request, bookingConfirmation = null) {
+  const bookingReady = decision.status === "clear" && bookingConfirmation;
+  return {
+    id: makeId("EPOCH-TIME-RETURN"),
+    timingHandoffId: decision.timingHandoffId,
+    conflictDecisionId: decision.id,
+    bookingConfirmationId: bookingConfirmation?.id || "",
+    scheduleRequestId: request.id,
+    requester: request.requester,
+    requestedWindow: request.requestedWindow,
+    status: bookingReady ? "returned" : "needs-reschedule",
+    returnType: bookingReady ? "booking-confirmed" : "availability-conflict",
+    customerVisible: true,
+    providerGoLiveRequested: false,
+    customerSafeStatus: bookingReady
+      ? "Confirmed timing returned locally to the requesting workflow."
+      : "No local availability is open for the requested timing; ask for a new window."
+  };
+}
+
 export function createBookingReceiptForConfirmation(confirmation, statusEvent) {
   return {
     id: makeId("EPOCH-BOOK-RECEIPT"),
@@ -496,6 +662,19 @@ export function createBookingReceiptForConfirmation(confirmation, statusEvent) {
     scheduleStatusEventId: statusEvent.id,
     status: "ready",
     summary: "Request acceptance, availability hold, booking confirmation, and customer-safe status event are locally recorded without live provider calls.",
+    generatedAt: new Date().toISOString()
+  };
+}
+
+export function createTimingReturnReceiptForPayload(payload, decision) {
+  return {
+    id: makeId("EPOCH-TIME-RETURN-RECEIPT"),
+    timingReturnPayloadId: payload.id,
+    conflictDecisionId: decision.id,
+    status: payload.status === "returned" ? "ready" : "needs-reschedule",
+    summary: payload.status === "returned"
+      ? "EPOCH returned a confirmed local booking payload without live provider calls."
+      : "EPOCH returned a customer-safe availability conflict payload without live provider calls.",
     generatedAt: new Date().toISOString()
   };
 }

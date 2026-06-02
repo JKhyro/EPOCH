@@ -21,6 +21,8 @@ EPOCH MONITOR should expose local operator sections for:
 - Schedule Risk
 - Schedule Receipts
 - Booking acceptance, hold, confirmation, status-event, and receipt aggregates
+- Timing handoff, availability conflict, timing return, and return-receipt
+  aggregates
 - Safe Access
 - Calendar Provider Readiness
 - Reminder And Recurrence Readiness
@@ -92,3 +94,7 @@ WORKSHOP service records.
 The first booking workflow keeps product interaction in EPOCH App/Webportal.
 EPOCH MONITOR reports aggregate request acceptance, availability hold, booking
 confirmation, status-event, and receipt counts plus safe local receipts only.
+
+The timing handoff return workflow follows the same placement rule: EPOCH App
+and EPOCH Webportal expose the workflow, while EPOCH MONITOR reports aggregate
+handoff, conflict, return, and receipt counts only.

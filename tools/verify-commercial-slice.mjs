@@ -22,13 +22,18 @@ const providerGate = read("../docs/calendar-provider-go-live-readiness-gate.md")
 const header = read("../native/epoch_core.h");
 const source = read("../native/epoch_core.c");
 const {
+  createAvailabilityConflictDecisionForHandoff,
   createAvailabilityHoldForAcceptance,
   createBookingConfirmationForHold,
   createBookingReceiptForConfirmation,
   createScheduleEntryForRequest,
   createScheduleRequestRecord,
   createScheduleRequestAcceptanceForRequest,
+  createScheduleStatusEventForConflict,
   createScheduleStatusEventForBooking,
+  createTimingHandoffForRequest,
+  createTimingReturnPayloadForDecision,
+  createTimingReturnReceiptForPayload,
   initialEpochLedger,
   providerGateBlocksLiveCalls,
   providerGateReadyForToggle,
@@ -62,11 +67,15 @@ for (const phrase of [
   "Local Schedule Ledger",
   "Calendar Provider Readiness",
   "No-Live Provider Proof",
+  "Timing Handoffs",
+  "Availability Conflict Decisions",
   "Schedule Request Acceptances",
   "Availability Holds",
   "Booking Confirmations",
   "Schedule Status Events",
   "Booking Receipts",
+  "Timing Return Payloads",
+  "Timing Return Receipts",
   "Native Scheduling Core",
   "Recurrence Candidates",
   "Revised Calendar Preview",
@@ -82,10 +91,14 @@ for (const phrase of [
   "Customer-Safe Timeline",
   "Next Open Windows",
   "Request Acceptance Status",
+  "Timing Handoff Status",
+  "Availability Decision",
   "Availability Hold Status",
   "Booking Confirmation Status",
   "Schedule Status Updates",
   "Booking Receipts",
+  "Timing Return Status",
+  "Timing Return Receipts",
   "Provider Status",
   "Revised Calendar Status",
   "External Calendar Connection",
@@ -112,11 +125,15 @@ for (const phrase of [
   "initialEpochLedger",
   "scheduleEntries",
   "scheduleRequests",
+  "timingHandoffs",
+  "availabilityConflictDecisions",
   "scheduleRequestAcceptances",
   "availabilityHolds",
   "bookingConfirmations",
   "scheduleStatusEvents",
   "bookingReceipts",
+  "timingReturnPayloads",
+  "timingReturnReceipts",
   "schedulingCoreReadiness",
   "reminderRules",
   "recurrenceCandidates",
@@ -125,11 +142,16 @@ for (const phrase of [
   "providerStatusEvents",
   "createScheduleRequestRecord",
   "createScheduleEntryForRequest",
+  "createTimingHandoffForRequest",
+  "createAvailabilityConflictDecisionForHandoff",
   "createScheduleRequestAcceptanceForRequest",
   "createAvailabilityHoldForAcceptance",
   "createBookingConfirmationForHold",
   "createScheduleStatusEventForBooking",
+  "createScheduleStatusEventForConflict",
   "createBookingReceiptForConfirmation",
+  "createTimingReturnPayloadForDecision",
+  "createTimingReturnReceiptForPayload",
   "selectOpenAvailabilityWindow",
   "providerGateReadyForToggle",
   "providerGateBlocksLiveCalls",
@@ -146,16 +168,24 @@ for (const phrase of [
   "schedule-need-select",
   "customer-status-list",
   "provider-readiness-list",
+  "timing-handoff-list",
+  "conflict-decision-list",
   "acceptance-list",
   "hold-list",
   "booking-confirmation-list",
   "schedule-status-event-list",
   "booking-receipt-list",
+  "timing-return-list",
+  "timing-return-receipt-list",
   "portal-acceptance-status",
+  "portal-timing-handoff-status",
+  "portal-availability-decision",
   "portal-hold-status",
   "portal-booking-status",
   "portal-schedule-status-events",
   "portal-booking-receipts",
+  "portal-timing-return-status",
+  "portal-timing-return-receipts",
   "portal-provider-status",
   "provider-check-list",
   "native-core-readiness",
@@ -171,9 +201,11 @@ for (const status of [
   "EPOCH_STATUS_PLANNED",
   "EPOCH_STATUS_AVAILABLE",
   "EPOCH_STATUS_QUEUED",
+  "EPOCH_STATUS_CLEAR",
   "EPOCH_STATUS_ACCEPTED",
   "EPOCH_STATUS_HELD",
   "EPOCH_STATUS_CONFIRMED",
+  "EPOCH_STATUS_NEEDS_RESCHEDULE",
   "EPOCH_STATUS_IN_PROGRESS",
   "EPOCH_STATUS_OVERDUE",
   "EPOCH_STATUS_COMPLETE"
@@ -181,7 +213,7 @@ for (const status of [
   if (!header.includes(status)) fail(`native header missing ${status}`);
 }
 
-for (const label of ["planned", "available", "queued", "accepted", "held", "confirmed", "in-progress", "overdue", "complete"]) {
+for (const label of ["planned", "available", "queued", "clear", "accepted", "held", "confirmed", "needs-reschedule", "in-progress", "overdue", "complete"]) {
   if (!source.includes(`"${label}"`)) fail(`native source missing label ${label}`);
 }
 
@@ -200,11 +232,15 @@ for (const phrase of [
 for (const type of [
   "EpochScheduleRequest",
   "EpochAvailabilityWindow",
+  "EpochTimingHandoff",
+  "EpochAvailabilityConflictDecision",
   "EpochScheduleRequestAcceptance",
   "EpochAvailabilityHold",
   "EpochBookingConfirmation",
   "EpochScheduleStatusEvent",
   "EpochBookingReceipt",
+  "EpochTimingReturnPayload",
+  "EpochTimingReturnReceipt",
   "EpochReminderRule",
   "EpochRecurrenceRule",
   "EpochDeadlineRule",
@@ -224,11 +260,15 @@ for (const fn of [
   "epoch_schedule_entry_is_valid",
   "epoch_schedule_request_is_customer_safe",
   "epoch_availability_window_has_capacity",
+  "epoch_timing_handoff_is_sandbox_safe",
+  "epoch_availability_conflict_decision_is_customer_safe",
   "epoch_schedule_request_acceptance_is_ready",
   "epoch_availability_hold_is_ready",
   "epoch_booking_confirmation_is_customer_safe",
   "epoch_schedule_status_event_is_customer_safe",
   "epoch_booking_receipt_is_customer_safe",
+  "epoch_timing_return_payload_is_customer_safe",
+  "epoch_timing_return_receipt_is_customer_safe",
   "epoch_reminder_rule_is_sandbox_safe",
   "epoch_recurrence_rule_is_sandbox_safe",
   "epoch_deadline_rule_is_customer_safe",
@@ -270,11 +310,19 @@ const fakeForm = new Map([
 const request = createScheduleRequestRecord(fakeForm);
 const entry = createScheduleEntryForRequest(request);
 const openWindow = selectOpenAvailabilityWindow(initialEpochLedger.availabilityWindows);
+const handoff = createTimingHandoffForRequest(request, "WORKSHOP");
+const clearDecision = createAvailabilityConflictDecisionForHandoff(handoff, openWindow);
 const acceptance = createScheduleRequestAcceptanceForRequest(request, openWindow);
 const hold = createAvailabilityHoldForAcceptance(acceptance, openWindow);
 const booking = createBookingConfirmationForHold(hold, request, entry);
 const statusEvent = createScheduleStatusEventForBooking(booking, request);
 const bookingReceipt = createBookingReceiptForConfirmation(booking, statusEvent);
+const timingReturnPayload = createTimingReturnPayloadForDecision(clearDecision, request, booking);
+const timingReturnReceipt = createTimingReturnReceiptForPayload(timingReturnPayload, clearDecision);
+const conflictDecision = createAvailabilityConflictDecisionForHandoff(handoff, null);
+const conflictStatusEvent = createScheduleStatusEventForConflict(conflictDecision, request);
+const conflictPayload = createTimingReturnPayloadForDecision(conflictDecision, request);
+const conflictReceipt = createTimingReturnReceiptForPayload(conflictPayload, conflictDecision);
 const rulepack = initialEpochLedger.revisedCalendarRulepack;
 const approvedRulepack = {
   ...rulepack,
@@ -305,11 +353,20 @@ if (request.requester !== "Schedule requester") fail("schedule request factory d
 if (request.providerGoLiveRequested !== false || request.sandboxOnly !== true) fail("schedule request factory is not sandbox-only");
 if (!entry.title.includes("Submission review return")) fail("schedule entry factory did not map need label");
 if (!openWindow || openWindow.id !== "EPOCH-WIN-001") fail("open availability selector did not choose the first open window");
+if (handoff.sourceProduct !== "WORKSHOP" || handoff.providerGoLiveRequested || !handoff.customerSafeStatus.includes("availability is being resolved")) fail("timing handoff factory did not create safe local handoff");
+if (clearDecision.status !== "clear" || clearDecision.providerGoLiveRequested || clearDecision.availabilityWindowId !== openWindow.id) fail("conflict decision factory did not create clear decision");
 if (acceptance.status !== "accepted" || !acceptance.customerVisible || acceptance.providerGoLiveRequested) fail("acceptance factory did not create safe local acceptance");
 if (hold.status !== "held" || hold.providerGoLiveRequested || hold.availabilityWindowId !== openWindow.id) fail("hold factory did not create safe local availability hold");
 if (booking.status !== "confirmed" || booking.providerGoLiveRequested || !booking.customerSafeStatus.includes("Schedule confirmed locally")) fail("booking factory did not create safe local confirmation");
 if (statusEvent.state !== "confirmed" || !statusEvent.customerVisible || !statusEvent.customerSafeStatus.includes("external calendar connection remains inactive")) fail("status event factory did not create customer-safe schedule status");
 if (bookingReceipt.status !== "ready" || !bookingReceipt.summary.includes("without live provider calls")) fail("booking receipt factory did not preserve local-only proof");
+if (timingReturnPayload.status !== "returned" || timingReturnPayload.providerGoLiveRequested || !timingReturnPayload.bookingConfirmationId) fail("timing return payload did not create confirmed return");
+if (timingReturnPayload.requester !== request.requester || timingReturnPayload.requestedWindow !== request.requestedWindow) fail("timing return payload did not preserve requester/window context");
+if (timingReturnReceipt.status !== "ready" || !timingReturnReceipt.summary.includes("without live provider calls")) fail("timing return receipt did not preserve local-only proof");
+if (conflictDecision.status !== "needs-reschedule" || conflictDecision.availabilityWindowId || !conflictDecision.customerSafeStatus.includes("new window")) fail("conflict decision did not create reschedule decision");
+if (conflictStatusEvent.state !== "needs-reschedule" || !conflictStatusEvent.customerSafeStatus.includes("new window")) fail("conflict status event is not customer-safe");
+if (conflictPayload.status !== "needs-reschedule" || conflictPayload.bookingConfirmationId || !conflictPayload.customerSafeStatus.includes("new window")) fail("conflict return payload did not create reschedule return");
+if (conflictReceipt.status !== "needs-reschedule" || !conflictReceipt.summary.includes("availability conflict")) fail("conflict return receipt did not preserve conflict proof");
 if (!providerGateReadyForToggle(gate)) fail("provider gate should be ready for live toggle after all checks");
 if (!providerGateBlocksLiveCalls(gate)) fail("provider gate should still block live calls before toggle");
 gate.liveProviderCallsEnabled = true;

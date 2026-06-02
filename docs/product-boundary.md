@@ -19,6 +19,8 @@ client acquisition, and ARA income-production workflows.
   booking/request timing.
 - Schedule request acceptance, local availability holds, booking confirmations,
   customer-safe booking receipts, and schedule-status events.
+- Timing handoff return records, availability conflict decisions, local
+  reschedule requests, and customer-safe timing return receipts.
 - Schedule-bound operating records, such as sessions, deadlines, follow-ups,
   customer-safe schedule status, and overdue schedule risk.
 - Internal administration for work that is fundamentally calendar-bound.
@@ -49,6 +51,8 @@ WORKSHOP may consume EPOCH for:
 - availability checks
 - time handoffs that become EPOCH-owned accepted request, local hold, and
   booking-confirmation records
+- timing returns that report confirmed local timing or customer-safe
+  reschedule/conflict status back to the requesting workflow
 - cohort/session calendars
 - submission and review deadlines
 - reminder and notification timing

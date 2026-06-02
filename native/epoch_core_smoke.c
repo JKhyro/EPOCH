@@ -45,6 +45,42 @@ int main(void) {
         1,
         EPOCH_STATUS_AVAILABLE,
     };
+    EpochTimingHandoff timing_handoff = {
+        "time-handoff-001",
+        "WORKSHOP",
+        "workshop-handoff-001",
+        "req-001",
+        "2026-06-04T18:00:00+09:00/2026-06-04T19:00:00+09:00",
+        "Asia/Tokyo",
+        "Timing handoff accepted into EPOCH; availability is being resolved locally.",
+        EPOCH_STATUS_ACCEPTED,
+        1,
+        0,
+    };
+    EpochAvailabilityConflictDecision clear_decision = {
+        "conflict-001",
+        "time-handoff-001",
+        "req-001",
+        "win-001",
+        "capacity-clear",
+        "Availability is clear for a local booking hold.",
+        EPOCH_STATUS_CLEAR,
+        1,
+        1,
+        0,
+    };
+    EpochAvailabilityConflictDecision conflict_decision = {
+        "conflict-002",
+        "time-handoff-002",
+        "req-002",
+        "",
+        "capacity-full",
+        "Requested timing is not available; a new window is needed.",
+        EPOCH_STATUS_NEEDS_RESCHEDULE,
+        1,
+        1,
+        0,
+    };
     EpochScheduleRequestAcceptance acceptance = {
         "accept-001",
         "req-001",
@@ -94,6 +130,39 @@ int main(void) {
         "book-001",
         "status-001",
         "Request acceptance, hold, confirmation, and customer-safe status event are recorded locally.",
+        EPOCH_STATUS_COMPLETE,
+        1,
+        0,
+    };
+    EpochTimingReturnPayload timing_return_payload = {
+        "time-return-001",
+        "time-handoff-001",
+        "conflict-001",
+        "book-001",
+        "req-001",
+        "booking-confirmed",
+        "Confirmed timing returned locally to the requesting workflow.",
+        EPOCH_STATUS_RETURNED,
+        1,
+        0,
+    };
+    EpochTimingReturnPayload conflict_return_payload = {
+        "time-return-002",
+        "time-handoff-002",
+        "conflict-002",
+        "",
+        "req-002",
+        "availability-conflict",
+        "No local availability is open for the requested timing; ask for a new window.",
+        EPOCH_STATUS_NEEDS_RESCHEDULE,
+        1,
+        0,
+    };
+    EpochTimingReturnReceipt timing_return_receipt = {
+        "time-return-receipt-001",
+        "time-return-001",
+        "conflict-001",
+        "EPOCH returned a confirmed local booking payload without live provider calls.",
         EPOCH_STATUS_COMPLETE,
         1,
         0,
@@ -184,9 +253,11 @@ int main(void) {
     assert(strcmp(epoch_status_label(EPOCH_STATUS_RETRY_READY), "retry-ready") == 0);
     assert(strcmp(epoch_status_label(EPOCH_STATUS_PAYMENT_BLOCKED), "payment-blocked") == 0);
     assert(strcmp(epoch_status_label(EPOCH_STATUS_ACKNOWLEDGED), "acknowledged") == 0);
+    assert(strcmp(epoch_status_label(EPOCH_STATUS_CLEAR), "clear") == 0);
     assert(strcmp(epoch_status_label(EPOCH_STATUS_ACCEPTED), "accepted") == 0);
     assert(strcmp(epoch_status_label(EPOCH_STATUS_HELD), "held") == 0);
     assert(strcmp(epoch_status_label(EPOCH_STATUS_CONFIRMED), "confirmed") == 0);
+    assert(strcmp(epoch_status_label(EPOCH_STATUS_NEEDS_RESCHEDULE), "needs-reschedule") == 0);
     assert(epoch_status_from_label("reviewing", &status) == 1);
     assert(status == EPOCH_STATUS_REVIEWING);
     assert(epoch_status_from_label("in-progress", &status) == 1);
@@ -195,6 +266,8 @@ int main(void) {
     assert(status == EPOCH_STATUS_QUEUED);
     assert(epoch_status_from_label("confirmed", &status) == 1);
     assert(status == EPOCH_STATUS_CONFIRMED);
+    assert(epoch_status_from_label("needs-reschedule", &status) == 1);
+    assert(status == EPOCH_STATUS_NEEDS_RESCHEDULE);
     assert(epoch_status_from_label("snoozed", &status) == 1);
     assert(status == EPOCH_STATUS_SNOOZED);
     assert(epoch_status_from_label("paid-recorded", &status) == 1);
@@ -212,11 +285,23 @@ int main(void) {
     assert(epoch_schedule_entry_is_valid(&schedule_entry) == 1);
     assert(epoch_schedule_request_is_customer_safe(&request) == 1);
     assert(epoch_availability_window_has_capacity(&window) == 1);
+    assert(epoch_timing_handoff_is_sandbox_safe(&timing_handoff) == 1);
+    assert(epoch_availability_conflict_decision_is_customer_safe(&clear_decision) == 1);
+    assert(epoch_availability_conflict_decision_is_customer_safe(&conflict_decision) == 1);
+    clear_decision.availability_window_id = "";
+    assert(epoch_availability_conflict_decision_is_customer_safe(&clear_decision) == 0);
+    clear_decision.availability_window_id = "win-001";
     assert(epoch_schedule_request_acceptance_is_ready(&acceptance) == 1);
     assert(epoch_availability_hold_is_ready(&hold) == 1);
     assert(epoch_booking_confirmation_is_customer_safe(&booking) == 1);
     assert(epoch_schedule_status_event_is_customer_safe(&status_event) == 1);
     assert(epoch_booking_receipt_is_customer_safe(&booking_receipt) == 1);
+    assert(epoch_timing_return_payload_is_customer_safe(&timing_return_payload) == 1);
+    assert(epoch_timing_return_payload_is_customer_safe(&conflict_return_payload) == 1);
+    assert(epoch_timing_return_receipt_is_customer_safe(&timing_return_receipt) == 1);
+    timing_return_payload.provider_go_live_requested = 1;
+    assert(epoch_timing_return_payload_is_customer_safe(&timing_return_payload) == 0);
+    timing_return_payload.provider_go_live_requested = 0;
     booking.provider_go_live_requested = 1;
     assert(epoch_booking_confirmation_is_customer_safe(&booking) == 0);
     booking.provider_go_live_requested = 0;
