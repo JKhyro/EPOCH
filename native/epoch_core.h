@@ -235,6 +235,63 @@ typedef struct EpochRecurrenceRule {
     int creates_future_entries;
 } EpochRecurrenceRule;
 
+typedef struct EpochRecurringBookingSeries {
+    const char *id;
+    const char *recurrence_rule_id;
+    const char *schedule_entry_id;
+    const char *rrule;
+    const char *timezone;
+    const char *customer_safe_status;
+    EpochCalendarSystem calendar_system;
+    EpochOperatingStatus status;
+    int instance_count;
+    int confirmed_count;
+    int exception_count;
+    int customer_visible;
+    int sandbox_only;
+    int provider_go_live_requested;
+} EpochRecurringBookingSeries;
+
+typedef struct EpochRecurringBookingInstance {
+    const char *id;
+    const char *series_id;
+    const char *recurrence_rule_id;
+    const char *schedule_entry_id;
+    const char *booking_confirmation_id;
+    const char *availability_window_id;
+    const char *conflict_exception_id;
+    const char *start_iso;
+    const char *end_iso;
+    const char *timezone;
+    const char *customer_safe_status;
+    int occurrence_index;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int provider_go_live_requested;
+} EpochRecurringBookingInstance;
+
+typedef struct EpochRecurrenceConflictException {
+    const char *id;
+    const char *series_id;
+    const char *instance_id;
+    const char *recurrence_rule_id;
+    const char *conflict_type;
+    const char *requested_window;
+    const char *customer_safe_status;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int provider_go_live_requested;
+} EpochRecurrenceConflictException;
+
+typedef struct EpochRecurringSeriesReceipt {
+    const char *id;
+    const char *series_id;
+    const char *summary;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int provider_go_live_requested;
+} EpochRecurringSeriesReceipt;
+
 typedef struct EpochDeadlineRule {
     const char *id;
     const char *linked_entry_id;
@@ -311,6 +368,10 @@ int epoch_timing_return_payload_is_customer_safe(const EpochTimingReturnPayload 
 int epoch_timing_return_receipt_is_customer_safe(const EpochTimingReturnReceipt *receipt);
 int epoch_reminder_rule_is_sandbox_safe(const EpochReminderRule *rule);
 int epoch_recurrence_rule_is_sandbox_safe(const EpochRecurrenceRule *rule);
+int epoch_recurring_booking_series_is_customer_safe(const EpochRecurringBookingSeries *series);
+int epoch_recurring_booking_instance_is_customer_safe(const EpochRecurringBookingInstance *instance);
+int epoch_recurrence_conflict_exception_is_customer_safe(const EpochRecurrenceConflictException *exception);
+int epoch_recurring_series_receipt_is_customer_safe(const EpochRecurringSeriesReceipt *receipt);
 int epoch_deadline_rule_is_customer_safe(const EpochDeadlineRule *rule);
 int epoch_revised_calendar_rulepack_has_required_approvals(const EpochRevisedCalendarRulepack *rulepack);
 int epoch_revised_calendar_rulepack_conversion_ready(const EpochRevisedCalendarRulepack *rulepack);
