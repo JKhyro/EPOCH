@@ -30,6 +30,17 @@ schedule model, not EPOCH's revenue product scope.
 - end timestamp
 - timezone
 - status such as active or canceled
+- native validity through `EpochScheduleEntry` and
+  `epoch_schedule_entry_is_valid`
+
+### Scheduling guard records
+
+- `EpochScheduleRequest` for customer-safe schedule requests
+- `EpochAvailabilityWindow` for local capacity checks
+- `EpochReminderRule` for sandbox-only reminder previews
+- `EpochRecurrenceRule` for preview-only recurrence candidates
+- `EpochDeadlineRule` for schedule-owned deadline health
+- `EpochRevisedCalendarRulepack` for the owner-approved 13-month calendar gate
 
 ### Operating entry
 

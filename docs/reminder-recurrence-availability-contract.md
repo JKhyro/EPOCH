@@ -17,6 +17,15 @@ invitations, syncing external calendars, or delivering automated reminders.
   approval before creating future sessions.
 - `availabilityWindows`: provider/operator availability and blocked windows for
   booking, cohort clustering, and capacity planning.
+- `deadlineItems`: deadline-health records that keep due-state visibility inside
+  EPOCH scheduling rather than in service-delivery or CRM records.
+
+## Native C guard
+
+`EpochRecurrenceRule` is sandbox-safe only when it is local-only, does not create
+future schedule entries, has a valid RRULE, and is not failed, blocked, or
+canceled. Revised-calendar recurrence additionally requires operator approval
+because the 13-month rulepack is not yet owner-approved.
 
 ## Visibility
 

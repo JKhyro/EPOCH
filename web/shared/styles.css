@@ -261,6 +261,10 @@ button {
   gap: 12px;
 }
 
+.readiness-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .item-card,
 .mini-row {
   display: grid;
@@ -448,6 +452,10 @@ select {
   }
 
   .item-card {
+    grid-template-columns: 1fr;
+  }
+
+  .readiness-grid {
     grid-template-columns: 1fr;
   }
 

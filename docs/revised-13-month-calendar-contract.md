@@ -30,6 +30,20 @@ or approved:
 
 ## Native C contract
 
+Current native boundary records rulepack readiness before conversion logic is
+allowed. The first implementation uses:
+
+- `EpochCalendarSystem` to distinguish Gregorian and revised-calendar schedule
+  context.
+- `EpochRecurrenceRule` to keep recurrence previews sandboxed until an operator
+  approves the calendar context.
+- `EpochDeadlineRule` and `EpochDeadlineHealth` to keep deadline status
+  schedule-owned and customer-safe.
+- `EpochRevisedCalendarRulepack` to hold every owner-approved decision required
+  before revised-date conversion can run.
+- `epoch_revised_calendar_rulepack_blocks_conversion` as the guard for draft,
+  partial, or disabled rulepacks.
+
 Once approved, the native C core should own:
 
 - Gregorian to revised-date conversion

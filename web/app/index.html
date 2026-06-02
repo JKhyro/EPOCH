@@ -31,6 +31,8 @@
         <div><dt>Open Windows</dt><dd id="stat-open-windows">0</dd></div>
         <div><dt>Blocked Gates</dt><dd id="stat-provider-blocks">0</dd></div>
         <div><dt>Provider State</dt><dd id="stat-live-state">Sandbox only</dd></div>
+        <div><dt>Core State</dt><dd id="stat-core-state">pending</dd></div>
+        <div><dt>Rulepack</dt><dd id="stat-rulepack-state">held</dd></div>
       </dl>
       <button id="reset-schedule-ledger" class="secondary-button" type="button">Reset Local Ledger</button>
     </section>
@@ -75,6 +77,22 @@
       <div id="reminder-rule-list" class="item-stack compact-list"></div>
     </section>
 
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Recurrence</p>
+        <h2>Recurrence Candidates</h2>
+      </div>
+      <div id="recurrence-candidate-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel wide-panel">
+      <div class="section-title">
+        <p class="eyebrow">Native Core</p>
+        <h2>Native Scheduling Core</h2>
+      </div>
+      <div id="native-core-readiness" class="item-stack compact-list readiness-grid"></div>
+    </section>
+
     <section class="panel wide-panel">
       <div class="section-title">
         <p class="eyebrow">Provider Gate</p>
@@ -97,6 +115,14 @@
         <h2>Revised Calendar Preview</h2>
       </div>
       <div id="revised-calendar" class="month-grid"></div>
+    </section>
+
+    <section class="panel wide-panel">
+      <div class="section-title">
+        <p class="eyebrow">13-Month Contract</p>
+        <h2>Revised Rulepack Boundary</h2>
+      </div>
+      <div id="revised-rulepack-status" class="item-stack"></div>
     </section>
 
     <section class="panel wide-panel">

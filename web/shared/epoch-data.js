@@ -11,6 +11,53 @@ export const scheduleNeedOptions = [
 export const initialEpochLedger = {
   version: 1,
   generatedAt: "2026-06-03T10:00:00+09:00",
+  schedulingCoreReadiness: {
+    id: "EPOCH-CORE-SCHEDULING-001",
+    nativeContract: "epoch_core",
+    scheduleEntryValidation: "ready",
+    scheduleRequestValidation: "ready",
+    availabilityValidation: "ready",
+    deadlineHealthValidation: "ready",
+    recurrenceSandboxValidation: "ready",
+    customerSafeStatusValidation: "ready",
+    revisedRulepackGate: "conversion-held",
+    liveProviderPosture: "blocked"
+  },
+  revisedCalendarRulepack: {
+    id: "EPOCH-RULEPACK-DRAFT-001",
+    versionId: "owner-approved-rulepack-required",
+    calendarSystem: "revised-13-month",
+    monthCount: 13,
+    status: "draft-only",
+    ownerApproved: false,
+    monthNamesApproved: false,
+    dayDistributionApproved: false,
+    intercalaryDaysApproved: false,
+    leapRuleApproved: false,
+    epochAnchorApproved: false,
+    dayOfWeekMappingApproved: false,
+    formattingRulesApproved: false,
+    timezoneBoundaryApproved: false,
+    recurrenceMappingApproved: false,
+    publicDisplayWordingApproved: false,
+    storageIdentifierApproved: false,
+    conversionRulesApproved: false,
+    conversionLogicEnabled: false,
+    missingApprovals: [
+      "month names and display order",
+      "number of days in each month",
+      "extra or intercalary day treatment",
+      "leap rule",
+      "Gregorian anchor",
+      "day-of-week mapping",
+      "formatting and parsing",
+      "timezone boundary behavior",
+      "recurrence behavior",
+      "public display wording",
+      "storage representation"
+    ],
+    customerSafeStatus: "Revised calendar display is draft-only; schedule conversion waits for the owner-approved rulepack."
+  },
   scheduleEntries: [
     {
       id: "EPOCH-SCH-001",
@@ -99,9 +146,35 @@ export const initialEpochLedger = {
     }
   ],
   deadlineItems: [
-    { id: "EPOCH-DUE-001", label: "Customer schedule confirmation", due: "2026-06-03 12:00 JST", state: "waiting" },
-    { id: "EPOCH-DUE-002", label: "Reminder recurrence review", due: "2026-06-05 17:00 JST", state: "planned" },
-    { id: "EPOCH-DUE-003", label: "Calendar export handoff", due: "2026-06-07 09:00 JST", state: "blocked on adapter selection" }
+    { id: "EPOCH-DUE-001", label: "Customer schedule confirmation", due: "2026-06-03 12:00 JST", state: "waiting", health: "at-risk", customerSafeStatus: "Confirmation is waiting for operator review." },
+    { id: "EPOCH-DUE-002", label: "Reminder recurrence review", due: "2026-06-05 17:00 JST", state: "planned", health: "on-track", customerSafeStatus: "Reminder rule review is planned." },
+    { id: "EPOCH-DUE-003", label: "Calendar export handoff", due: "2026-06-07 09:00 JST", state: "blocked on adapter selection", health: "blocked", customerSafeStatus: "Calendar export is not active." }
+  ],
+  recurrenceCandidates: [
+    {
+      id: "EPOCH-REC-001",
+      scheduleEntryId: "EPOCH-SCH-001",
+      label: "Weekly return-window review",
+      rrule: "FREQ=WEEKLY;COUNT=4",
+      calendarSystem: "gregorian",
+      status: "planned",
+      sandboxOnly: true,
+      operatorApproved: false,
+      createsFutureEntries: false,
+      customerSafeStatus: "Repeat pattern is a local preview."
+    },
+    {
+      id: "EPOCH-REC-002",
+      scheduleEntryId: "EPOCH-SCH-003",
+      label: "Revised-calendar recurrence hold",
+      rrule: "FREQ=MONTHLY;COUNT=2",
+      calendarSystem: "revised-13-month",
+      status: "blocked",
+      sandboxOnly: true,
+      operatorApproved: false,
+      createsFutureEntries: false,
+      customerSafeStatus: "Revised-calendar recurrence waits for the owner-approved rulepack."
+    }
   ],
   reminderRules: [
     {
@@ -173,8 +246,10 @@ export const initialEpochLedger = {
 };
 
 export const revisedMonths = [
-  "Aster", "Beryl", "Crown", "Dawn", "Ember", "Frost", "Grove",
-  "Harbor", "Ivory", "Juniper", "Keystone", "Lumen", "Meridian"
+  "Draft Month 01", "Draft Month 02", "Draft Month 03", "Draft Month 04",
+  "Draft Month 05", "Draft Month 06", "Draft Month 07", "Draft Month 08",
+  "Draft Month 09", "Draft Month 10", "Draft Month 11", "Draft Month 12",
+  "Draft Month 13"
 ];
 
 export const epochSchedule = initialEpochLedger.scheduleEntries;
@@ -211,6 +286,35 @@ export function providerGateReadyForToggle(gate) {
 
 export function providerGateBlocksLiveCalls(gate) {
   return !providerGatePrerequisitesPassed(gate) || !gate?.liveProviderCallsEnabled;
+}
+
+export function revisedRulepackHasRequiredApprovals(rulepack) {
+  return Boolean(
+    rulepack?.id &&
+    rulepack?.versionId &&
+    rulepack?.monthCount === 13 &&
+    rulepack?.monthNamesApproved &&
+    rulepack?.dayDistributionApproved &&
+    rulepack?.intercalaryDaysApproved &&
+    rulepack?.leapRuleApproved &&
+    rulepack?.epochAnchorApproved &&
+    rulepack?.dayOfWeekMappingApproved &&
+    rulepack?.formattingRulesApproved &&
+    rulepack?.timezoneBoundaryApproved &&
+    rulepack?.recurrenceMappingApproved &&
+    rulepack?.publicDisplayWordingApproved &&
+    rulepack?.storageIdentifierApproved &&
+    rulepack?.conversionRulesApproved &&
+    rulepack?.ownerApproved
+  );
+}
+
+export function revisedRulepackReady(rulepack) {
+  return revisedRulepackHasRequiredApprovals(rulepack) && Boolean(rulepack?.conversionLogicEnabled);
+}
+
+export function revisedRulepackBlocksConversion(rulepack) {
+  return !revisedRulepackReady(rulepack);
 }
 
 export function createScheduleRequestRecord(form) {
