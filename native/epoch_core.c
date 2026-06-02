@@ -410,6 +410,93 @@ int epoch_recurrence_rule_is_sandbox_safe(const EpochRecurrenceRule *rule) {
            (rule->calendar_system != EPOCH_CALENDAR_REVISED_13_MONTH || rule->operator_approved);
 }
 
+int epoch_recurring_booking_series_is_customer_safe(const EpochRecurringBookingSeries *series) {
+    if (series == 0 || series->instance_count <= 0 || series->confirmed_count < 0 || series->exception_count < 0) {
+        return 0;
+    }
+
+    if (series->confirmed_count + series->exception_count > series->instance_count) {
+        return 0;
+    }
+
+    return epoch_text_present(series->id) &&
+           epoch_text_present(series->recurrence_rule_id) &&
+           epoch_text_present(series->schedule_entry_id) &&
+           epoch_text_present(series->rrule) &&
+           epoch_text_present(series->timezone) &&
+           epoch_text_present(series->customer_safe_status) &&
+           series->customer_visible &&
+           series->sandbox_only &&
+           !series->provider_go_live_requested &&
+           series->calendar_system == EPOCH_CALENDAR_GREGORIAN &&
+           (series->status == EPOCH_STATUS_CONFIRMED ||
+            series->status == EPOCH_STATUS_IN_PROGRESS ||
+            series->status == EPOCH_STATUS_PLANNED);
+}
+
+int epoch_recurring_booking_instance_is_customer_safe(const EpochRecurringBookingInstance *instance) {
+    if (instance == 0 || instance->occurrence_index <= 0) {
+        return 0;
+    }
+
+    if (instance->status == EPOCH_STATUS_CONFIRMED &&
+        (!epoch_text_present(instance->schedule_entry_id) ||
+         !epoch_text_present(instance->booking_confirmation_id) ||
+         !epoch_text_present(instance->availability_window_id))) {
+        return 0;
+    }
+
+    if (instance->status == EPOCH_STATUS_NEEDS_RESCHEDULE &&
+        !epoch_text_present(instance->conflict_exception_id)) {
+        return 0;
+    }
+
+    return epoch_text_present(instance->id) &&
+           epoch_text_present(instance->series_id) &&
+           epoch_text_present(instance->recurrence_rule_id) &&
+           epoch_text_present(instance->start_iso) &&
+           epoch_text_present(instance->end_iso) &&
+           epoch_text_present(instance->timezone) &&
+           epoch_text_present(instance->customer_safe_status) &&
+           instance->customer_visible &&
+           !instance->provider_go_live_requested &&
+           (instance->status == EPOCH_STATUS_CONFIRMED ||
+            instance->status == EPOCH_STATUS_NEEDS_RESCHEDULE);
+}
+
+int epoch_recurrence_conflict_exception_is_customer_safe(const EpochRecurrenceConflictException *exception) {
+    if (exception == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(exception->id) &&
+           epoch_text_present(exception->series_id) &&
+           epoch_text_present(exception->instance_id) &&
+           epoch_text_present(exception->recurrence_rule_id) &&
+           epoch_text_present(exception->conflict_type) &&
+           epoch_text_present(exception->requested_window) &&
+           epoch_text_present(exception->customer_safe_status) &&
+           exception->customer_visible &&
+           !exception->provider_go_live_requested &&
+           (exception->status == EPOCH_STATUS_NEEDS_RESCHEDULE ||
+            exception->status == EPOCH_STATUS_BLOCKED);
+}
+
+int epoch_recurring_series_receipt_is_customer_safe(const EpochRecurringSeriesReceipt *receipt) {
+    if (receipt == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(receipt->id) &&
+           epoch_text_present(receipt->series_id) &&
+           epoch_text_present(receipt->summary) &&
+           receipt->customer_visible &&
+           !receipt->provider_go_live_requested &&
+           (receipt->status == EPOCH_STATUS_COMPLETE ||
+            receipt->status == EPOCH_STATUS_NEEDS_RESCHEDULE ||
+            receipt->status == EPOCH_STATUS_RETURNED);
+}
+
 int epoch_deadline_rule_is_customer_safe(const EpochDeadlineRule *rule) {
     if (rule == 0) {
         return 0;

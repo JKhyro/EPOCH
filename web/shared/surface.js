@@ -9,6 +9,10 @@ import {
   createScheduleRequestAcceptanceForRequest,
   createScheduleStatusEventForConflict,
   createScheduleStatusEventForBooking,
+  createRecurrenceConflictExceptionForInstance,
+  createRecurringBookingInstanceForSeries,
+  createRecurringBookingSeriesForRule,
+  createRecurringSeriesReceiptForSeries,
   createTimingHandoffForRequest,
   createTimingReturnPayloadForDecision,
   createTimingReturnReceiptForPayload,
@@ -58,6 +62,10 @@ const mergeLedger = (stored) => {
     "availabilityWindows",
     "deadlineItems",
     "recurrenceCandidates",
+    "recurringBookingSeries",
+    "recurringBookingInstances",
+    "recurrenceConflictExceptions",
+    "recurringSeriesReceipts",
     "reminderRules",
     "providerReadinessGates",
     "providerStatusEvents",
@@ -139,6 +147,10 @@ function renderStats() {
   setText("stat-conflicts", String((state.ledger.availabilityConflictDecisions || []).filter((decision) => decision.status !== "clear").length));
   setText("stat-timing-returns", String((state.ledger.timingReturnPayloads || []).length));
   setText("stat-return-receipts", String((state.ledger.timingReturnReceipts || []).length));
+  setText("stat-recurring-series", String((state.ledger.recurringBookingSeries || []).length));
+  setText("stat-series-instances", String((state.ledger.recurringBookingInstances || []).length));
+  setText("stat-series-exceptions", String((state.ledger.recurrenceConflictExceptions || []).length));
+  setText("stat-series-receipts", String((state.ledger.recurringSeriesReceipts || []).length));
 }
 
 function renderScheduleQueue() {
@@ -356,6 +368,68 @@ function renderDeadlinesAndReminders() {
     </article>
   `);
 
+  renderStack("recurring-series-list", state.ledger.recurringBookingSeries || [], (item) => `
+    <article class="item-card">
+      <div>
+        <strong>${escapeHtml(item.title)}</strong>
+        <p>${escapeHtml(item.customerSafeStatus)}</p>
+        <small>${escapeHtml(item.rrule)} - ${escapeHtml(item.calendarSystem)} - ${escapeHtml(item.timezone)}</small>
+      </div>
+      <div class="item-meta">
+        ${chip(item.status)}
+        <span>${escapeHtml(item.confirmedCount ?? 0)} confirmed / ${escapeHtml(item.exceptionCount ?? 0)} exceptions</span>
+      </div>
+    </article>
+  `);
+
+  renderStack("recurring-instance-list", state.ledger.recurringBookingInstances || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.seriesId)} #${escapeHtml(item.occurrenceIndex)}</strong>
+      <span>${escapeHtml(item.status)} - ${escapeHtml(item.startIso || "window pending")}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("recurrence-exception-list", state.ledger.recurrenceConflictExceptions || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.conflictType)}</strong>
+      <span>${escapeHtml(item.status)} - ${escapeHtml(item.requestedWindow)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("recurring-series-receipt-list", state.ledger.recurringSeriesReceipts || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.id)}</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.summary)}</small>
+    </article>
+  `);
+
+  renderStack("portal-recurring-series-status", state.ledger.recurringBookingSeries || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.title)}</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("portal-recurring-instance-status", state.ledger.recurringBookingInstances || [], (item) => `
+    <article class="mini-row">
+      <strong>Occurrence ${escapeHtml(item.occurrenceIndex)}</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("portal-recurring-exceptions", state.ledger.recurrenceConflictExceptions || [], (item) => `
+    <article class="mini-row">
+      <strong>New window needed</strong>
+      <span>${escapeHtml(item.conflictType)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
   renderStack("reminder-rule-list", state.ledger.reminderRules, (item) => `
     <article class="mini-row">
       <strong>${escapeHtml(item.label)}</strong>
@@ -502,6 +576,55 @@ function addTimeline(label, detail, timelineState = "queued") {
   state.ledger.portalTimeline.unshift({ label, detail, state: timelineState });
 }
 
+function handleGenerateRecurringSeries() {
+  const existingActiveSeries = (state.ledger.recurringBookingSeries || []).find((series) => series.status !== "canceled");
+  if (existingActiveSeries) {
+    const confirmation = byId("series-confirmation");
+    if (confirmation) confirmation.textContent = "A local recurring booking series is already generated.";
+    return;
+  }
+
+  const candidate = (state.ledger.recurrenceCandidates || []).find((item) => item.createsFutureEntries && item.calendarSystem === "gregorian");
+  const entry = (state.ledger.scheduleEntries || []).find((item) => item.id === candidate?.scheduleEntryId);
+  if (!candidate || !entry) {
+    const confirmation = byId("series-confirmation");
+    if (confirmation) confirmation.textContent = "No approved Gregorian recurrence candidate is ready for local series generation.";
+    return;
+  }
+
+  const series = createRecurringBookingSeriesForRule(candidate, entry);
+  const openWindows = (state.ledger.availabilityWindows || []).filter((window) => Number(window.holds || 0) < Number(window.capacity || 0));
+  const instances = Array.from({ length: series.instanceCount }, (_, index) => {
+    const window = index === 2 ? null : openWindows[index % Math.max(openWindows.length, 1)] || null;
+    return createRecurringBookingInstanceForSeries(series, index + 1, window, entry);
+  });
+  const exceptions = instances
+    .filter((instance) => instance.status === "needs-reschedule")
+    .map((instance) => {
+      const exception = createRecurrenceConflictExceptionForInstance(instance, series);
+      instance.conflictExceptionId = exception.id;
+      return exception;
+    });
+  series.confirmedCount = instances.filter((instance) => instance.status === "confirmed").length;
+  series.exceptionCount = exceptions.length;
+  series.customerSafeStatus = exceptions.length
+    ? "Recurring booking series is generated locally; one instance needs a new window."
+    : "Recurring booking series is generated locally with all instances confirmed.";
+  const receipt = createRecurringSeriesReceiptForSeries(series, instances, exceptions);
+
+  state.ledger.recurringBookingSeries.unshift(series);
+  state.ledger.recurringBookingInstances.unshift(...instances);
+  state.ledger.recurrenceConflictExceptions.unshift(...exceptions);
+  state.ledger.recurringSeriesReceipts.unshift(receipt);
+  addTimeline("Recurring series generated", series.customerSafeStatus, series.status);
+  appendReceipt(receipt.summary, receipt.status);
+  saveLedger(state.ledger);
+
+  const confirmation = byId("series-confirmation");
+  if (confirmation) confirmation.textContent = series.customerSafeStatus;
+  renderAll();
+}
+
 function renderAll() {
   renderNeedOptions();
   renderStats();
@@ -599,6 +722,9 @@ function bindControls() {
       renderAll();
     });
   }
+
+  const seriesButton = byId("generate-recurring-series");
+  if (seriesButton) seriesButton.addEventListener("click", handleGenerateRecurringSeries);
 }
 
 renderAll();

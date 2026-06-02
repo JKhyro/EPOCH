@@ -186,6 +186,76 @@ int main(void) {
         0,
         0,
     };
+    EpochRecurringBookingSeries recurring_series = {
+        "series-001",
+        "rec-001",
+        "sch-001",
+        "FREQ=WEEKLY;COUNT=4",
+        "Asia/Tokyo",
+        "Recurring booking series is generated locally; one instance needs a new window.",
+        EPOCH_CALENDAR_GREGORIAN,
+        EPOCH_STATUS_CONFIRMED,
+        4,
+        3,
+        1,
+        1,
+        1,
+        0,
+    };
+    EpochRecurringBookingInstance recurring_instance = {
+        "series-inst-001",
+        "series-001",
+        "rec-001",
+        "sch-001",
+        "book-001",
+        "win-001",
+        "",
+        "2026-06-04T18:00:00+09:00",
+        "2026-06-04T19:00:00+09:00",
+        "Asia/Tokyo",
+        "Recurring schedule instance confirmed locally.",
+        1,
+        EPOCH_STATUS_CONFIRMED,
+        1,
+        0,
+    };
+    EpochRecurringBookingInstance conflict_instance = {
+        "series-inst-002",
+        "series-001",
+        "rec-001",
+        "",
+        "",
+        "",
+        "series-exception-001",
+        "2026-06-11T18:00:00+09:00",
+        "2026-06-11T19:00:00+09:00",
+        "Asia/Tokyo",
+        "Recurring schedule instance needs a new window.",
+        2,
+        EPOCH_STATUS_NEEDS_RESCHEDULE,
+        1,
+        0,
+    };
+    EpochRecurrenceConflictException recurrence_exception = {
+        "series-exception-001",
+        "series-001",
+        "series-inst-002",
+        "rec-001",
+        "capacity-full",
+        "2026-06-11T18:00:00+09:00/2026-06-11T19:00:00+09:00",
+        "One recurring booking instance needs a new window; no external calendar write was made.",
+        EPOCH_STATUS_NEEDS_RESCHEDULE,
+        1,
+        0,
+    };
+    EpochRecurringSeriesReceipt recurring_series_receipt = {
+        "series-receipt-001",
+        "series-001",
+        "Recurring booking series generated local instances and propagated one conflict exception without live provider calls.",
+        EPOCH_STATUS_COMPLETE,
+        1,
+        0,
+    };
     EpochDeadlineRule deadline = {
         "due-001",
         "EPOCH-SCH-001",
@@ -310,6 +380,20 @@ int main(void) {
     hold.status = EPOCH_STATUS_HELD;
     assert(epoch_reminder_rule_is_sandbox_safe(&reminder) == 1);
     assert(epoch_recurrence_rule_is_sandbox_safe(&recurrence) == 1);
+    assert(epoch_recurring_booking_series_is_customer_safe(&recurring_series) == 1);
+    assert(epoch_recurring_booking_instance_is_customer_safe(&recurring_instance) == 1);
+    assert(epoch_recurring_booking_instance_is_customer_safe(&conflict_instance) == 1);
+    assert(epoch_recurrence_conflict_exception_is_customer_safe(&recurrence_exception) == 1);
+    assert(epoch_recurring_series_receipt_is_customer_safe(&recurring_series_receipt) == 1);
+    recurring_series.provider_go_live_requested = 1;
+    assert(epoch_recurring_booking_series_is_customer_safe(&recurring_series) == 0);
+    recurring_series.provider_go_live_requested = 0;
+    conflict_instance.conflict_exception_id = "";
+    assert(epoch_recurring_booking_instance_is_customer_safe(&conflict_instance) == 0);
+    conflict_instance.conflict_exception_id = "series-exception-001";
+    recurrence_exception.provider_go_live_requested = 1;
+    assert(epoch_recurrence_conflict_exception_is_customer_safe(&recurrence_exception) == 0);
+    recurrence_exception.provider_go_live_requested = 0;
     assert(epoch_deadline_rule_is_customer_safe(&deadline) == 1);
     assert(epoch_revised_calendar_rulepack_has_required_approvals(&draft_rulepack) == 0);
     assert(epoch_revised_calendar_rulepack_conversion_ready(&draft_rulepack) == 0);

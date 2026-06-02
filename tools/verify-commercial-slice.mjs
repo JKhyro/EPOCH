@@ -31,6 +31,10 @@ const {
   createScheduleRequestAcceptanceForRequest,
   createScheduleStatusEventForConflict,
   createScheduleStatusEventForBooking,
+  createRecurrenceConflictExceptionForInstance,
+  createRecurringBookingInstanceForSeries,
+  createRecurringBookingSeriesForRule,
+  createRecurringSeriesReceiptForSeries,
   createTimingHandoffForRequest,
   createTimingReturnPayloadForDecision,
   createTimingReturnReceiptForPayload,
@@ -78,6 +82,10 @@ for (const phrase of [
   "Timing Return Receipts",
   "Native Scheduling Core",
   "Recurrence Candidates",
+  "Recurring Booking Series",
+  "Recurring Booking Instances",
+  "Recurrence Conflict Exceptions",
+  "Recurring Series Receipts",
   "Revised Calendar Preview",
   "Revised Rulepack Boundary",
   "Native C Core"
@@ -99,6 +107,9 @@ for (const phrase of [
   "Booking Receipts",
   "Timing Return Status",
   "Timing Return Receipts",
+  "Recurring Schedule Status",
+  "Recurring Instance Status",
+  "Recurring Exception Status",
   "Provider Status",
   "Revised Calendar Status",
   "External Calendar Connection",
@@ -137,6 +148,10 @@ for (const phrase of [
   "schedulingCoreReadiness",
   "reminderRules",
   "recurrenceCandidates",
+  "recurringBookingSeries",
+  "recurringBookingInstances",
+  "recurrenceConflictExceptions",
+  "recurringSeriesReceipts",
   "revisedCalendarRulepack",
   "providerReadinessGates",
   "providerStatusEvents",
@@ -152,6 +167,10 @@ for (const phrase of [
   "createBookingReceiptForConfirmation",
   "createTimingReturnPayloadForDecision",
   "createTimingReturnReceiptForPayload",
+  "createRecurringBookingSeriesForRule",
+  "createRecurringBookingInstanceForSeries",
+  "createRecurrenceConflictExceptionForInstance",
+  "createRecurringSeriesReceiptForSeries",
   "selectOpenAvailabilityWindow",
   "providerGateReadyForToggle",
   "providerGateBlocksLiveCalls",
@@ -190,6 +209,14 @@ for (const phrase of [
   "provider-check-list",
   "native-core-readiness",
   "recurrence-candidate-list",
+  "recurring-series-list",
+  "recurring-instance-list",
+  "recurrence-exception-list",
+  "recurring-series-receipt-list",
+  "portal-recurring-series-status",
+  "portal-recurring-instance-status",
+  "portal-recurring-exceptions",
+  "generate-recurring-series",
   "revised-rulepack-status",
   "portal-revised-status",
   "reset-schedule-ledger"
@@ -243,6 +270,10 @@ for (const type of [
   "EpochTimingReturnReceipt",
   "EpochReminderRule",
   "EpochRecurrenceRule",
+  "EpochRecurringBookingSeries",
+  "EpochRecurringBookingInstance",
+  "EpochRecurrenceConflictException",
+  "EpochRecurringSeriesReceipt",
   "EpochDeadlineRule",
   "EpochRevisedCalendarRulepack",
   "EpochCalendarSystem",
@@ -271,6 +302,10 @@ for (const fn of [
   "epoch_timing_return_receipt_is_customer_safe",
   "epoch_reminder_rule_is_sandbox_safe",
   "epoch_recurrence_rule_is_sandbox_safe",
+  "epoch_recurring_booking_series_is_customer_safe",
+  "epoch_recurring_booking_instance_is_customer_safe",
+  "epoch_recurrence_conflict_exception_is_customer_safe",
+  "epoch_recurring_series_receipt_is_customer_safe",
   "epoch_deadline_rule_is_customer_safe",
   "epoch_revised_calendar_rulepack_conversion_ready",
   "epoch_revised_calendar_rulepack_blocks_conversion",
@@ -323,6 +358,13 @@ const conflictDecision = createAvailabilityConflictDecisionForHandoff(handoff, n
 const conflictStatusEvent = createScheduleStatusEventForConflict(conflictDecision, request);
 const conflictPayload = createTimingReturnPayloadForDecision(conflictDecision, request);
 const conflictReceipt = createTimingReturnReceiptForPayload(conflictPayload, conflictDecision);
+const recurrenceCandidate = initialEpochLedger.recurrenceCandidates.find((candidate) => candidate.createsFutureEntries);
+const recurringSeries = createRecurringBookingSeriesForRule(recurrenceCandidate, entry);
+const recurringInstance = createRecurringBookingInstanceForSeries(recurringSeries, 1, openWindow, entry);
+const recurringConflictInstance = createRecurringBookingInstanceForSeries(recurringSeries, 2, null, entry);
+const recurringException = createRecurrenceConflictExceptionForInstance(recurringConflictInstance, recurringSeries);
+recurringConflictInstance.conflictExceptionId = recurringException.id;
+const recurringReceipt = createRecurringSeriesReceiptForSeries(recurringSeries, [recurringInstance, recurringConflictInstance], [recurringException]);
 const rulepack = initialEpochLedger.revisedCalendarRulepack;
 const approvedRulepack = {
   ...rulepack,
@@ -367,6 +409,12 @@ if (conflictDecision.status !== "needs-reschedule" || conflictDecision.availabil
 if (conflictStatusEvent.state !== "needs-reschedule" || !conflictStatusEvent.customerSafeStatus.includes("new window")) fail("conflict status event is not customer-safe");
 if (conflictPayload.status !== "needs-reschedule" || conflictPayload.bookingConfirmationId || !conflictPayload.customerSafeStatus.includes("new window")) fail("conflict return payload did not create reschedule return");
 if (conflictReceipt.status !== "needs-reschedule" || !conflictReceipt.summary.includes("availability conflict")) fail("conflict return receipt did not preserve conflict proof");
+if (!recurrenceCandidate || recurrenceCandidate.calendarSystem !== "gregorian") fail("approved recurrence candidate missing for series generation");
+if (recurringSeries.status !== "confirmed" || recurringSeries.providerGoLiveRequested || !recurringSeries.customerSafeStatus.includes("generated locally")) fail("recurring series factory did not create safe local series");
+if (recurringInstance.status !== "confirmed" || recurringInstance.providerGoLiveRequested || !recurringInstance.bookingConfirmationId) fail("recurring instance factory did not create confirmed local instance");
+if (recurringConflictInstance.status !== "needs-reschedule" || !recurringConflictInstance.customerSafeStatus.includes("new window")) fail("recurring instance factory did not create conflict instance");
+if (recurringException.status !== "needs-reschedule" || recurringException.providerGoLiveRequested || !recurringException.customerSafeStatus.includes("new window")) fail("recurrence exception factory did not preserve customer-safe conflict");
+if (recurringReceipt.status !== "needs-reschedule" || !recurringReceipt.summary.includes("conflict exceptions")) fail("recurring series receipt did not summarize exceptions");
 if (!providerGateReadyForToggle(gate)) fail("provider gate should be ready for live toggle after all checks");
 if (!providerGateBlocksLiveCalls(gate)) fail("provider gate should still block live calls before toggle");
 gate.liveProviderCallsEnabled = true;

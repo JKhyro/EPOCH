@@ -41,6 +41,10 @@
         <div><dt>Conflicts</dt><dd id="stat-conflicts">0</dd></div>
         <div><dt>Returns</dt><dd id="stat-timing-returns">0</dd></div>
         <div><dt>Return Receipts</dt><dd id="stat-return-receipts">0</dd></div>
+        <div><dt>Series</dt><dd id="stat-recurring-series">0</dd></div>
+        <div><dt>Instances</dt><dd id="stat-series-instances">0</dd></div>
+        <div><dt>Exceptions</dt><dd id="stat-series-exceptions">0</dd></div>
+        <div><dt>Series Receipts</dt><dd id="stat-series-receipts">0</dd></div>
       </dl>
       <button id="reset-schedule-ledger" class="secondary-button" type="button">Reset Local Ledger</button>
     </section>
@@ -163,6 +167,40 @@
         <h2>Recurrence Candidates</h2>
       </div>
       <div id="recurrence-candidate-list" class="item-stack compact-list"></div>
+      <button id="generate-recurring-series" class="secondary-button" type="button">Generate Local Series</button>
+      <p id="series-confirmation" class="confirmation" role="status"></p>
+    </section>
+
+    <section class="panel wide-panel">
+      <div class="section-title">
+        <p class="eyebrow">Series</p>
+        <h2>Recurring Booking Series</h2>
+      </div>
+      <div id="recurring-series-list" class="item-stack"></div>
+    </section>
+
+    <section class="panel wide-panel">
+      <div class="section-title">
+        <p class="eyebrow">Generated Instances</p>
+        <h2>Recurring Booking Instances</h2>
+      </div>
+      <div id="recurring-instance-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Series Conflicts</p>
+        <h2>Recurrence Conflict Exceptions</h2>
+      </div>
+      <div id="recurrence-exception-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Series Proof</p>
+        <h2>Recurring Series Receipts</h2>
+      </div>
+      <div id="recurring-series-receipt-list" class="item-stack compact-list"></div>
     </section>
 
     <section class="panel wide-panel">
@@ -227,6 +265,6 @@
     </section>
   </main>
 
-  <script type="module" src="../shared/surface.js?v=epoch-timing-return-context"></script>
+  <script type="module" src="../shared/surface.js?v=epoch-recurring-series-context"></script>
 </body>
 </html>

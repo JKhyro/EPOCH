@@ -1,4 +1,4 @@
-export const EPOCH_LEDGER_KEY = "epoch.operatingLedger.v1";
+export const EPOCH_LEDGER_KEY = "epoch.operatingLedger.v2";
 
 export const scheduleNeedOptions = [
   { value: "diagnostic-call", label: "Diagnostic call", entryType: "request" },
@@ -9,8 +9,8 @@ export const scheduleNeedOptions = [
 ];
 
 export const initialEpochLedger = {
-  version: 1,
-  generatedAt: "2026-06-03T10:00:00+09:00",
+  version: 2,
+  generatedAt: "2026-06-03T22:40:00+09:00",
   schedulingCoreReadiness: {
     id: "EPOCH-CORE-SCHEDULING-001",
     nativeContract: "epoch_core",
@@ -19,6 +19,7 @@ export const initialEpochLedger = {
     availabilityValidation: "ready",
     deadlineHealthValidation: "ready",
     recurrenceSandboxValidation: "ready",
+    recurrenceSeriesValidation: "ready",
     customerSafeStatusValidation: "ready",
     revisedRulepackGate: "conversion-held",
     liveProviderPosture: "blocked"
@@ -325,11 +326,11 @@ export const initialEpochLedger = {
       label: "Weekly return-window review",
       rrule: "FREQ=WEEKLY;COUNT=4",
       calendarSystem: "gregorian",
-      status: "planned",
+      status: "approved",
       sandboxOnly: true,
-      operatorApproved: false,
-      createsFutureEntries: false,
-      customerSafeStatus: "Repeat pattern is a local preview."
+      operatorApproved: true,
+      createsFutureEntries: true,
+      customerSafeStatus: "Repeat pattern is approved for local EPOCH-generated instances."
     },
     {
       id: "EPOCH-REC-002",
@@ -342,6 +343,118 @@ export const initialEpochLedger = {
       operatorApproved: false,
       createsFutureEntries: false,
       customerSafeStatus: "Revised-calendar recurrence waits for the owner-approved rulepack."
+    }
+  ],
+  recurringBookingSeries: [
+    {
+      id: "EPOCH-SERIES-001",
+      recurrenceRuleId: "EPOCH-REC-001",
+      scheduleEntryId: "EPOCH-SCH-001",
+      title: "Weekly return-window review series",
+      rrule: "FREQ=WEEKLY;COUNT=4",
+      calendarSystem: "gregorian",
+      timezone: "Asia/Tokyo",
+      status: "confirmed",
+      instanceCount: 4,
+      confirmedCount: 3,
+      exceptionCount: 1,
+      customerVisible: true,
+      sandboxOnly: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Weekly return-window review is confirmed locally; one instance needs a new window."
+    }
+  ],
+  recurringBookingInstances: [
+    {
+      id: "EPOCH-SERIES-INST-001",
+      seriesId: "EPOCH-SERIES-001",
+      recurrenceRuleId: "EPOCH-REC-001",
+      occurrenceIndex: 1,
+      scheduleEntryId: "EPOCH-SCH-001",
+      bookingConfirmationId: "EPOCH-BOOK-001",
+      availabilityWindowId: "EPOCH-WIN-001",
+      startIso: "2026-06-03T19:00:00+09:00",
+      endIso: "2026-06-03T20:00:00+09:00",
+      timezone: "Asia/Tokyo",
+      status: "confirmed",
+      conflictExceptionId: "",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Recurring schedule instance confirmed locally for 2026-06-03 19:00 JST."
+    },
+    {
+      id: "EPOCH-SERIES-INST-002",
+      seriesId: "EPOCH-SERIES-001",
+      recurrenceRuleId: "EPOCH-REC-001",
+      occurrenceIndex: 2,
+      scheduleEntryId: "EPOCH-SCH-SERIES-002",
+      bookingConfirmationId: "EPOCH-BOOK-SERIES-002",
+      availabilityWindowId: "EPOCH-WIN-001",
+      startIso: "2026-06-10T19:00:00+09:00",
+      endIso: "2026-06-10T20:00:00+09:00",
+      timezone: "Asia/Tokyo",
+      status: "confirmed",
+      conflictExceptionId: "",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Recurring schedule instance confirmed locally for 2026-06-10 19:00 JST."
+    },
+    {
+      id: "EPOCH-SERIES-INST-003",
+      seriesId: "EPOCH-SERIES-001",
+      recurrenceRuleId: "EPOCH-REC-001",
+      occurrenceIndex: 3,
+      scheduleEntryId: "",
+      bookingConfirmationId: "",
+      availabilityWindowId: "",
+      startIso: "2026-06-17T19:00:00+09:00",
+      endIso: "2026-06-17T20:00:00+09:00",
+      timezone: "Asia/Tokyo",
+      status: "needs-reschedule",
+      conflictExceptionId: "EPOCH-SERIES-EXCEPTION-001",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Recurring schedule instance needs a new window for 2026-06-17."
+    },
+    {
+      id: "EPOCH-SERIES-INST-004",
+      seriesId: "EPOCH-SERIES-001",
+      recurrenceRuleId: "EPOCH-REC-001",
+      occurrenceIndex: 4,
+      scheduleEntryId: "EPOCH-SCH-SERIES-004",
+      bookingConfirmationId: "EPOCH-BOOK-SERIES-004",
+      availabilityWindowId: "EPOCH-WIN-003",
+      startIso: "2026-06-24T16:00:00+09:00",
+      endIso: "2026-06-24T17:00:00+09:00",
+      timezone: "Asia/Tokyo",
+      status: "confirmed",
+      conflictExceptionId: "",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Recurring schedule instance confirmed locally for 2026-06-24 16:00 JST."
+    }
+  ],
+  recurrenceConflictExceptions: [
+    {
+      id: "EPOCH-SERIES-EXCEPTION-001",
+      seriesId: "EPOCH-SERIES-001",
+      instanceId: "EPOCH-SERIES-INST-003",
+      recurrenceRuleId: "EPOCH-REC-001",
+      conflictType: "capacity-full",
+      requestedWindow: "2026-06-17T19:00:00+09:00/2026-06-17T20:00:00+09:00",
+      status: "needs-reschedule",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "One recurring booking instance needs a new window; no external calendar write was made."
+    }
+  ],
+  recurringSeriesReceipts: [
+    {
+      id: "EPOCH-SERIES-RECEIPT-001",
+      seriesId: "EPOCH-SERIES-001",
+      status: "ready",
+      summary: "Recurring booking series generated local instances and propagated one customer-safe conflict exception without live provider calls.",
+      generatedAt: "2026-06-03T22:40:00+09:00"
     }
   ],
   reminderRules: [
@@ -675,6 +788,107 @@ export function createTimingReturnReceiptForPayload(payload, decision) {
     summary: payload.status === "returned"
       ? "EPOCH returned a confirmed local booking payload without live provider calls."
       : "EPOCH returned a customer-safe availability conflict payload without live provider calls.",
+    generatedAt: new Date().toISOString()
+  };
+}
+
+function addDaysIso(iso, days) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString();
+}
+
+function formatCustomerWindow(iso, timezone = "Asia/Tokyo") {
+  if (!iso) return "window pending";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const min = String(date.getMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd} ${hh}:${min} ${timezone.replace("Asia/Tokyo", "JST")}`;
+}
+
+function recurrenceCountFromRule(rrule, fallback = 4) {
+  const match = String(rrule || "").match(/COUNT=(\d+)/i);
+  return match ? Math.max(1, Number(match[1])) : fallback;
+}
+
+export function createRecurringBookingSeriesForRule(rule, entry) {
+  const count = recurrenceCountFromRule(rule?.rrule, 4);
+  return {
+    id: makeId("EPOCH-SERIES"),
+    recurrenceRuleId: rule?.id || "",
+    scheduleEntryId: entry?.id || rule?.scheduleEntryId || "",
+    title: `${rule?.label || entry?.title || "Recurring booking"} series`,
+    rrule: rule?.rrule || "",
+    calendarSystem: rule?.calendarSystem || "gregorian",
+    timezone: entry?.timezone || "Asia/Tokyo",
+    status: rule?.status === "blocked" ? "blocked" : "confirmed",
+    instanceCount: count,
+    confirmedCount: 0,
+    exceptionCount: 0,
+    customerVisible: true,
+    sandboxOnly: true,
+    providerGoLiveRequested: false,
+    customerSafeStatus: rule?.status === "blocked"
+      ? "Recurring booking series is held until calendar rules are approved."
+      : "Recurring booking series is generated locally; external calendar connection remains inactive."
+  };
+}
+
+export function createRecurringBookingInstanceForSeries(series, occurrenceIndex, availabilityWindow = null, entry = null) {
+  const hasCapacity = Boolean(availabilityWindow && Number(availabilityWindow.holds || 0) < Number(availabilityWindow.capacity || 0));
+  const baseStart = entry?.startIso || availabilityWindow?.startIso || "";
+  const baseEnd = entry?.endIso || availabilityWindow?.endIso || "";
+  const days = Math.max(0, Number(occurrenceIndex || 1) - 1) * 7;
+  const startIso = addDaysIso(baseStart, days) || baseStart;
+  const endIso = addDaysIso(baseEnd, days) || baseEnd;
+  const timezone = series?.timezone || availabilityWindow?.timezone || entry?.timezone || "Asia/Tokyo";
+  return {
+    id: makeId("EPOCH-SERIES-INST"),
+    seriesId: series?.id || "",
+    recurrenceRuleId: series?.recurrenceRuleId || "",
+    occurrenceIndex: Number(occurrenceIndex || 1),
+    scheduleEntryId: hasCapacity ? (entry?.id || series?.scheduleEntryId || "") : "",
+    bookingConfirmationId: hasCapacity ? makeId("EPOCH-BOOK-SERIES") : "",
+    availabilityWindowId: hasCapacity ? availabilityWindow.id : "",
+    startIso,
+    endIso,
+    timezone,
+    status: hasCapacity ? "confirmed" : "needs-reschedule",
+    conflictExceptionId: "",
+    customerVisible: true,
+    providerGoLiveRequested: false,
+    customerSafeStatus: hasCapacity
+      ? `Recurring schedule instance confirmed locally for ${formatCustomerWindow(startIso, timezone)}.`
+      : "Recurring schedule instance needs a new window before confirmation."
+  };
+}
+
+export function createRecurrenceConflictExceptionForInstance(instance, series) {
+  return {
+    id: makeId("EPOCH-SERIES-EXCEPTION"),
+    seriesId: series?.id || instance?.seriesId || "",
+    instanceId: instance?.id || "",
+    recurrenceRuleId: series?.recurrenceRuleId || instance?.recurrenceRuleId || "",
+    conflictType: "capacity-full",
+    requestedWindow: `${instance?.startIso || "window pending"}/${instance?.endIso || "window pending"}`,
+    status: "needs-reschedule",
+    customerVisible: true,
+    providerGoLiveRequested: false,
+    customerSafeStatus: "One recurring booking instance needs a new window; no external calendar write was made."
+  };
+}
+
+export function createRecurringSeriesReceiptForSeries(series, instances = [], exceptions = []) {
+  return {
+    id: makeId("EPOCH-SERIES-RECEIPT"),
+    seriesId: series?.id || "",
+    status: exceptions.length ? "needs-reschedule" : "ready",
+    summary: `${instances.length} recurring booking instances generated locally; ${exceptions.length} customer-safe conflict exceptions propagated without live provider calls.`,
     generatedAt: new Date().toISOString()
   };
 }
