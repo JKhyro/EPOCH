@@ -17,6 +17,8 @@ client acquisition, and ARA income-production workflows.
 - Date/time primitives, timezone-aware scheduling, schedule entries, calendar
   views, availability windows, reminder rules, recurrence candidates, and
   booking/request timing.
+- Schedule request acceptance, local availability holds, booking confirmations,
+  customer-safe booking receipts, and schedule-status events.
 - Schedule-bound operating records, such as sessions, deadlines, follow-ups,
   customer-safe schedule status, and overdue schedule risk.
 - Internal administration for work that is fundamentally calendar-bound.
@@ -45,6 +47,8 @@ WORKSHOP may consume EPOCH for:
 
 - appointment scheduling
 - availability checks
+- time handoffs that become EPOCH-owned accepted request, local hold, and
+  booking-confirmation records
 - cohort/session calendars
 - submission and review deadlines
 - reminder and notification timing

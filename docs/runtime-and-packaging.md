@@ -13,6 +13,9 @@ only where the host, UI framework, or platform integration makes it necessary.
 - Schedule-bound operating logic for sessions, cohorts, submission windows,
   review deadlines, queue state, and status transitions should also prefer the
   native core when the behavior is reusable beyond one host.
+- Request acceptance, local availability holds, booking confirmations,
+  customer-safe schedule status events, and booking receipts are part of the
+  native contract surface once they influence more than one host.
 - Managed code should not become the primary home of EPOCH business rules.
 
 ## Avalonia role
@@ -71,6 +74,9 @@ only where the host, UI framework, or platform integration makes it necessary.
 
 - The v1 operating surface should prove the native C core first for
   schedule-bound objects and status transitions.
+- The local-first booking workflow should create a schedule request, acceptance,
+  availability hold, booking confirmation, status event, and receipt before any
+  live calendar provider integration is approved.
 - The Avalonia shell should stay thin and consume the native core via explicit
   interop for internal administration.
 - A customer-safe webportal may be built before the Avalonia host, but it

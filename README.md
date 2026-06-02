@@ -10,6 +10,8 @@ EPOCH owns:
 - Gregorian calendar and revised 13-month calendar contracts
 - availability windows
 - schedule requests
+- schedule request acceptances, local availability holds, booking
+  confirmations, and customer-safe schedule status events
 - reminders and recurrence candidates
 - customer-safe schedule status
 - submission/review deadlines when another product needs timing state
@@ -39,7 +41,9 @@ the operational control and verification surface.
   schedule/operating primitives.
 - `native/epoch_core_smoke.c`: native smoke test for the core contract.
 - `web/shared/epoch-data.js`: schedule-focused demo data for app and webportal
-  rendering plus the local EPOCH operating ledger.
+  rendering plus the local EPOCH operating ledger, including the request
+  acceptance, availability hold, booking confirmation, and schedule-status
+  records used by the first booking workflow.
 - `web/shared/surface.js`: shared app/webportal renderer and local request
   interaction.
 - `web/shared/styles.css`: EPOCH-specific surface styling.

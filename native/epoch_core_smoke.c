@@ -45,6 +45,59 @@ int main(void) {
         1,
         EPOCH_STATUS_AVAILABLE,
     };
+    EpochScheduleRequestAcceptance acceptance = {
+        "accept-001",
+        "req-001",
+        "win-001",
+        "Schedule request accepted; a local availability hold is being prepared.",
+        EPOCH_STATUS_ACCEPTED,
+        1,
+        1,
+        0,
+    };
+    EpochAvailabilityHold hold = {
+        "hold-001",
+        "accept-001",
+        "req-001",
+        "win-001",
+        "2026-06-04T18:00:00+09:00",
+        "2026-06-04T19:00:00+09:00",
+        "Asia/Tokyo",
+        EPOCH_STATUS_HELD,
+        1,
+        0,
+    };
+    EpochBookingConfirmation booking = {
+        "book-001",
+        "accept-001",
+        "hold-001",
+        "sch-001",
+        "req-001",
+        "2026-06-04T18:00:00+09:00/2026-06-04T19:00:00+09:00",
+        "Asia/Tokyo",
+        "Schedule confirmed locally for 2026-06-04T18:00:00+09:00.",
+        EPOCH_STATUS_CONFIRMED,
+        1,
+        0,
+    };
+    EpochScheduleStatusEvent status_event = {
+        "status-001",
+        "book-001",
+        "req-001",
+        "confirmed",
+        "Schedule confirmed locally; external calendar connection remains inactive.",
+        EPOCH_STATUS_CONFIRMED,
+        1,
+    };
+    EpochBookingReceipt booking_receipt = {
+        "book-receipt-001",
+        "book-001",
+        "status-001",
+        "Request acceptance, hold, confirmation, and customer-safe status event are recorded locally.",
+        EPOCH_STATUS_COMPLETE,
+        1,
+        0,
+    };
     EpochReminderRule reminder = {
         "rem-001",
         "EPOCH-SCH-001",
@@ -131,12 +184,17 @@ int main(void) {
     assert(strcmp(epoch_status_label(EPOCH_STATUS_RETRY_READY), "retry-ready") == 0);
     assert(strcmp(epoch_status_label(EPOCH_STATUS_PAYMENT_BLOCKED), "payment-blocked") == 0);
     assert(strcmp(epoch_status_label(EPOCH_STATUS_ACKNOWLEDGED), "acknowledged") == 0);
+    assert(strcmp(epoch_status_label(EPOCH_STATUS_ACCEPTED), "accepted") == 0);
+    assert(strcmp(epoch_status_label(EPOCH_STATUS_HELD), "held") == 0);
+    assert(strcmp(epoch_status_label(EPOCH_STATUS_CONFIRMED), "confirmed") == 0);
     assert(epoch_status_from_label("reviewing", &status) == 1);
     assert(status == EPOCH_STATUS_REVIEWING);
     assert(epoch_status_from_label("in-progress", &status) == 1);
     assert(status == EPOCH_STATUS_IN_PROGRESS);
     assert(epoch_status_from_label("queued", &status) == 1);
     assert(status == EPOCH_STATUS_QUEUED);
+    assert(epoch_status_from_label("confirmed", &status) == 1);
+    assert(status == EPOCH_STATUS_CONFIRMED);
     assert(epoch_status_from_label("snoozed", &status) == 1);
     assert(status == EPOCH_STATUS_SNOOZED);
     assert(epoch_status_from_label("paid-recorded", &status) == 1);
@@ -154,6 +212,17 @@ int main(void) {
     assert(epoch_schedule_entry_is_valid(&schedule_entry) == 1);
     assert(epoch_schedule_request_is_customer_safe(&request) == 1);
     assert(epoch_availability_window_has_capacity(&window) == 1);
+    assert(epoch_schedule_request_acceptance_is_ready(&acceptance) == 1);
+    assert(epoch_availability_hold_is_ready(&hold) == 1);
+    assert(epoch_booking_confirmation_is_customer_safe(&booking) == 1);
+    assert(epoch_schedule_status_event_is_customer_safe(&status_event) == 1);
+    assert(epoch_booking_receipt_is_customer_safe(&booking_receipt) == 1);
+    booking.provider_go_live_requested = 1;
+    assert(epoch_booking_confirmation_is_customer_safe(&booking) == 0);
+    booking.provider_go_live_requested = 0;
+    hold.status = EPOCH_STATUS_CANCELED;
+    assert(epoch_availability_hold_is_ready(&hold) == 0);
+    hold.status = EPOCH_STATUS_HELD;
     assert(epoch_reminder_rule_is_sandbox_safe(&reminder) == 1);
     assert(epoch_recurrence_rule_is_sandbox_safe(&recurrence) == 1);
     assert(epoch_deadline_rule_is_customer_safe(&deadline) == 1);
