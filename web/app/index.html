@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EPOCH App</title>
+  <link rel="stylesheet" href="../shared/styles.css" />
+</head>
+<body class="surface-shell app-surface">
+  <header class="topbar compact">
+    <div>
+      <p class="eyebrow">EPOCH App</p>
+      <h1>Schedule Command</h1>
+      <p class="lede">Internal calendar and scheduling operations over the EPOCH Native C core.</p>
+    </div>
+    <nav class="header-actions" aria-label="EPOCH app routes">
+      <a href="../index.html">Directory</a>
+      <a href="../webportal/index.html">Webportal</a>
+      <a href="http://127.0.0.1:8765/epoch-monitor.html">MONITOR</a>
+    </nav>
+  </header>
+
+  <main class="workspace-grid">
+    <section class="panel command-panel">
+      <div class="section-title">
+        <p class="eyebrow">Today</p>
+        <h2>Schedule Queue</h2>
+      </div>
+      <div id="schedule-queue" class="item-stack"></div>
+    </section>
+
+    <section class="panel calendar-panel">
+      <div class="section-title">
+        <p class="eyebrow">Gregorian</p>
+        <h2>Calendar Board</h2>
+      </div>
+      <div id="calendar-board" class="calendar-board"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Availability</p>
+        <h2>Open Windows</h2>
+      </div>
+      <div id="availability-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Deadlines</p>
+        <h2>Schedule-Bound Work</h2>
+      </div>
+      <div id="deadline-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">13-Month Contract</p>
+        <h2>Revised Calendar Preview</h2>
+      </div>
+      <div id="revised-calendar" class="month-grid"></div>
+    </section>
+
+    <section class="panel status-panel">
+      <div class="section-title">
+        <p class="eyebrow">Runtime Boundary</p>
+        <h2>Native C Core</h2>
+      </div>
+      <dl class="status-grid">
+        <div><dt>Core</dt><dd>epoch_core</dd></div>
+        <div><dt>Host</dt><dd>Avalonia planned</dd></div>
+        <div><dt>Web Role</dt><dd>Client surface</dd></div>
+        <div><dt>MONITOR Role</dt><dd>Status/control only</dd></div>
+      </dl>
+    </section>
+  </main>
+
+  <script type="module" src="../shared/surface.js"></script>
+</body>
+</html>

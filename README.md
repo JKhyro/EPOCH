@@ -1,224 +1,70 @@
 # EPOCH
 
-Scheduling, calendar, and operating-administration surface for the broader
+EPOCH is the calendar, scheduling, and time-operations product for the broader
 KHYRON, SYMBIOSIS, and CITADEL suite.
 
-## Current execution order
+## Product Boundary
 
-1. Lock the expanded product boundary.
-2. Preserve the native runtime and packaging stance.
-3. Define the first shippable operating slice.
-4. Track integrations by phase so urgent education-revenue work does not
-   collapse into unbounded platform scope.
-5. Build revenue-facing platform slices after the integration queue, starting
-   with the professional public offer funnel and marketing-ready intake path.
-6. Align the public, admin, student, and monitor web surfaces with the
-   SCAFFOLD/HERMES visual direction without turning the public funnel into an
-   internal monitor page.
+EPOCH owns:
 
-## Current planning artifacts
+- Gregorian calendar and revised 13-month calendar contracts
+- availability windows
+- schedule requests
+- reminders and recurrence candidates
+- customer-safe schedule status
+- submission/review deadlines when another product needs timing state
+- EPOCH MONITOR operational health, receipts, timeline, and control status
 
-- `docs/product-boundary.md`
-- `docs/runtime-and-packaging.md`
-- `docs/v1-minimal-scheduling-surface.md`
-- `docs/education-operating-platform-boundary.md`
-- `docs/first-commercial-slice-checklist.md`
-- `docs/integration-priority-ranking.md`
-- `docs/curriculum-gameplan-framework.md`
-- `docs/monitor-parity-health-controls.md`
-- `docs/agentic-revenue-handoff-contract.md`
-- `docs/synapse-route-placement-contract.md`
-- `docs/controlled-public-customer-access-gateway.md`
-- `docs/library-ledger-sync-recovery-contract.md`
-- `docs/calendar-provider-handoff-invitation-contract.md`
-- `docs/notification-provider-handoff-template-consent-contract.md`
-- `docs/payment-provider-handoff-invoice-checkout-contract.md`
-- `docs/auth-session-role-readiness-contract.md`
-- `docs/marketing-conversion-analytics-readiness-contract.md`
-- `docs/provider-adapter-selection-readiness-contract.md`
-- `docs/sandbox-calendar-adapter-prototype-contract.md`
-- `docs/sandbox-notification-provider-prototype-contract.md`
-- `docs/sandbox-payment-provider-prototype-contract.md`
-- `docs/sandbox-auth-provider-prototype-contract.md`
-- `docs/sandbox-marketing-analytics-adapter-prototype-contract.md`
-- `docs/customer-account-history-contract.md`
+EPOCH does not own service packages, pricing, revenue operations, offer funnels,
+education delivery, consulting/support pipelines, CRM, or income-stream
+production. Those belong to WORKSHOP.
 
-## Current implementation artifacts
+## Surface Map
 
-- `native/epoch_core.h` and `native/epoch_core.c`: first native C operating
-  contract for statuses, schedule entries, operating entries, and attention
-  checks.
+- `web/index.html`: EPOCH surface directory.
+- `web/app/index.html`: EPOCH App, the internal scheduling command surface.
+- `web/webportal/index.html`: EPOCH Webportal, the customer-safe schedule
+  request and status surface.
+- `http://127.0.0.1:8765/epoch-monitor.html`: EPOCH MONITOR, the local
+  operational status/control surface.
+
+The app and webportal are product surfaces. MONITOR is not the product UI; it is
+the operational control and verification surface.
+
+## Current Implementation Artifacts
+
+- `native/epoch_core.h` and `native/epoch_core.c`: native C status and
+  schedule/operating primitives.
 - `native/epoch_core_smoke.c`: native smoke test for the core contract.
-- `web/index.html`: static first-slice admin, student/customer, monitor, and
-  public offer-funnel/intake surface, including a SCAFFOLD/HERMES-style route
-  rail, top operating-ledger control panel, command strips, and an adult-first
-  public intake route.
-- `web/operating-records.js`: browser-local intake-to-operating-record helper
-  that turns a public request into lead, customer, request, follow-up, and
-  receipt records, then supports opportunity-to-engagement conversion,
-  customer-visible update events, scheduling, TEMPO-ready calendar export
-  entries, submission creation, deadline summaries, returned-review receipts,
-  monitor health reports, ledger-backed monitor health checks, and versioned
-  operating-ledger export/import with a LIBRARY-ready durable persistence
-  envelope, LIBRARY sync/recovery handoff records, plus SYMBIOSIS/ANVIL
-  agentic revenue handoff records and SYNAPSE route placement metadata.
-  Calendar provider handoff records remain provider-neutral and no-live-send
-  until a later adapter slice implements Google or Microsoft sync.
-  Notification provider handoff records remain provider-neutral and
-  no-live-send until a later delivery slice implements live email, LINE, SMS,
-  NEXUS, or webhook integration.
-  Payment provider handoff records remain provider-neutral and no-live-payment
-  until a later payment adapter implements invoice sending, checkout sessions,
-  credential storage, processor webhooks, or capture.
-  Auth/session role handoff records remain provider-neutral and no-live-auth
-  until a later identity-provider slice implements production login, OAuth,
-  credential storage, token storage, or external sessions.
-  Marketing conversion KPI records remain provider-neutral, first-party, and
-  no-live-tracking until a later analytics or advertising adapter is explicitly
-  selected and reviewed.
-  Provider adapter candidate records remain sandbox-only and no-live-provider
-  until a later go/no-go decision explicitly permits a scoped live prototype.
-  Sandbox marketing analytics adapter prototype records can generate local
-  provider-neutral conversion payload previews from marketing KPI records, but
-  still do not attach live pixels, write ad APIs, store analytics credentials,
-  create webhooks, write provider records, track people invasively, store
-  personal data, create cross-site identifiers, expose public proof surfaces,
-  or permit under-19 paid action before consent.
-  Sandbox calendar adapter prototype records can generate local payload previews
-  from EPOCH calendar export data, but still do not call calendar APIs, configure
-  OAuth, store secrets, create webhooks, write provider records, send
-  invitations, or show customer-visible updates.
-  Sandbox notification provider prototype records can generate local
-  provider-neutral message payload previews from customer-safe update records,
-  but still do not send email, LINE, SMS, NEXUS, or webhook messages, configure
-  OAuth, store secrets, write provider records, or create customer-visible
-  sends.
-  Sandbox payment provider prototype records can generate local
-  provider-neutral payment payload previews from quote, opportunity, and
-  package readiness records, but still do not create checkout sessions, send
-  invoices, capture payments, issue refunds, configure OAuth, store secrets,
-  create webhooks, write provider records, or create customer-visible payment
-  requests.
-  Sandbox auth provider prototype records can generate local provider-neutral
-  access payload previews from auth/session role readiness records, but still
-  do not create production login, OAuth clients, secrets, credentials, token
-  storage, refresh-token storage, webhooks, provider writes, external sessions,
-  customer-visible auth behavior, or raw admin/monitor exposure.
-  Durable customer account history records link customer status, submissions,
-  cohorts, service records, receipts, and customer-safe updates while remaining
-  local-only and controlled-customer.
-- `web/app.js`: shared renderer and local persistence flow for admin,
-  student/customer, monitor, public request, scheduling, submission, and
-  review-return views, including local ledger save/load, durable snapshot status,
-  recovery-import state, JSON export/import, and MONITOR-visible SYNAPSE route
-  placement cards, plus marketing-route and labor-model offer catalog display,
-  body-level active-view state, shared data-view activation, controlled
-  public/customer access gateway controls, and internal-only LIBRARY
-  sync/recovery controls plus provider-neutral calendar and notification
-  provider handoff controls, auth/session readiness controls, and local
-  marketing conversion KPI controls, provider adapter go/no-go controls,
-  sandbox marketing analytics adapter prototype console, sandbox calendar
-  adapter prototype console, sandbox notification provider
-  prototype console, sandbox payment provider prototype console, sandbox auth
-  provider prototype console, plus customer account history cards for controlled
-  customer-safe status timelines.
-- `web/seed-data.js`: demo commercial workflow covering leads, tracks, cohorts,
-  offer packages, curriculum frameworks, package gameplans, opportunities,
-  update events, sessions, assignments, submissions, reviews, follow-ups,
-  receipts, SYNAPSE route placements, and marketing-ready package metadata.
-  It also seeds internal LIBRARY ledger sync/recovery handoff records and
-  provider-neutral calendar/invitation-readiness handoff records, plus
-  notification provider template/consent readiness, payment provider
-  invoice/checkout readiness, auth/session role readiness handoff records, and
-  local marketing conversion KPI records for Japan, global, submission-first,
-  and under-19 guarded routes, plus provider adapter candidate records for
-  calendar, notification, payment, auth/session, analytics, and persistence
-  go/no-go readiness, sandbox marketing analytics conversion-preview records,
-  a local calendar payload-preview prototype, and durable
-  customer account history records, plus sandbox notification provider
-  message-preview, sandbox payment provider checkout-preview, and sandbox auth
-  provider access-preview prototypes.
-- `tools/verify-commercial-slice.mjs`: repository verifier for the first
-  commercial slice.
+- `web/shared/epoch-data.js`: schedule-focused demo data for app and webportal
+  rendering.
+- `web/shared/surface.js`: shared app/webportal renderer and local request
+  interaction.
+- `web/shared/styles.css`: EPOCH-specific surface styling.
+- `tools/verify-commercial-slice.mjs`: repository verifier for EPOCH product
+  boundary and surface placement.
 
 ## Verification
 
 ```powershell
 npm run verify
-cmake -S . -B $env:TEMP\epoch-cmake-build
-cmake --build $env:TEMP\epoch-cmake-build --config Debug
-ctest --test-dir $env:TEMP\epoch-cmake-build -C Debug --output-on-failure
+cmake -S . -B build
+cmake --build build --config Debug
+ctest --test-dir build -C Debug --output-on-failure
 ```
 
-To preview the static portal, serve the `web` folder with any local static file
-server and open `index.html`.
+To preview the web surfaces, serve the `web` folder and open:
 
-## Initial product intent
+- `/index.html`
+- `/app/index.html`
+- `/webportal/index.html`
 
-EPOCH is the suite surface responsible for time-, calendar-, schedule-, and
-operations-shaped work:
+## Runtime Stance
 
-- time-based objects such as events and schedule entries
-- user-facing planning and viewing flows
-- timezone-aware scheduling behavior
-- the contract for future reminders, recurrence, and availability work
-- internal administration over programs, classes, requests, submissions, and
-  review cycles when those workflows are schedule-bound
-- external student/customer notification, update, tracking, request, and
-  submission surfaces when they depend on schedule state
-- MONITOR-grade operational visibility for EPOCH lanes, following the HERMES
-  MONITOR capability pattern as the parity target
+Native C is the default implementation language for reusable EPOCH logic.
+Avalonia is the planned desktop shell and UI host. Web surfaces are clients over
+the EPOCH contract, not the durable source of scheduling truth.
 
-The immediate commercial wedge is an education operating platform that supports
-premium exam/writing/test-prep offers with less live-class labor: cohorts,
-submission workflows, progress tracking, request handling, and professional
-web-facing conversion surfaces.
-
-EPOCH is not trying to solve every adjacent suite concern in one pass. Deep
-integration into SYMBIOSIS, FURYOKU, ANVIL, NEXUS, LIBRARY, and other CITADEL
-surfaces should follow a stable phased EPOCH boundary instead of defining it by
-accident.
-
-## First commercial operating lane
-
-The first revenue-facing lane should support:
-
-- premium adult and serious-student education services
-- EIKEN 5-1 and later TOEIC, IELTS, TOEFL, school writing, university writing,
-  and professional English tracks
-- under-19 compatibility assessment before acceptance, or higher-touch pricing
-  when younger students are accepted
-- fewer live classes by default, with cohorts, submissions, structured feedback,
-  and progress reporting doing more of the work
-- professional public website copy and intake paths that do not lead with AI
-  terminology in Japan-facing messaging
-- controlled public intake and customer-safe status routes that do not expose
-  raw admin or EPOCH MONITOR state
-- adjacent revenue services such as consulting, tech support, clerical/admin,
-  database, CRM, management-system, and automation support
-
-## ARA revenue direction
-
-EPOCH should also support the Agentic Response Array revenue model: MONITOR,
-SYMBIOSIS, FURYOKU, and other CITADEL projects should be able to create,
-schedule, track, operate, and report revenue-producing work with minimal manual
-input from Jack. EPOCH owns the schedule/admin layer for that future loop; the
-agent/control-plane behavior remains owned by the appropriate ARA projects.
-
-## Implementation stance
-
-- Native C is the default implementation language for EPOCH.
-- Avalonia is the desktop host and UI surface.
-- The boundary between the Avalonia host and the EPOCH core should be explicit
-  native C interop instead of managed business logic.
-- C# should be limited to the thin host, binding, and interop glue that
-  Avalonia or platform integration requires.
-
-## Near-term goal
-
-The immediate goal is to replace the narrow calendar-only bootstrap with a
-minimal but executable operating product contract: a scheduling core, a class
-and submission administration surface, a HERMES-style monitor parity target, and
-a public website/intake path. This should prove EPOCH can own schedule-bound
-operations without premature coupling to every CITADEL integration or
-unnecessary managed implementation spread.
+WORKSHOP can consume EPOCH scheduling services for appointments, deadlines,
+reminders, and customer-safe timing updates without moving service delivery into
+EPOCH.

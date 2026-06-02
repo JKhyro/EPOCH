@@ -2,110 +2,106 @@
 
 ## Purpose
 
-EPOCH is the calendar, scheduling, and schedule-bound operating administration
-surface for the broader KHYRON, SYMBIOSIS, and CITADEL suite. It owns the model
-and user-facing surface of time-organized work without requiring immediate deep
-integration into every adjacent product.
+EPOCH is the calendar, scheduling, availability, reminder, recurrence, and
+schedule-bound administration product for KHYRON, SYMBIOSIS, and CITADEL.
 
-The current commercial pressure adds an education-platform wedge: EPOCH must be
-able to support classes, cohorts, student/customer requests, submissions,
-progress tracking, notifications, and professional public intake for premium
-education offers while preserving a reusable scheduling core.
+EPOCH is not the revenue bench. WORKSHOP owns revenue streams, education offer
+packaging, consulting and support catalogs, marketing operations, pricing,
+client acquisition, and ARA income-production workflows.
 
 ## EPOCH owns
 
-- event and schedule-entry primitives
-- timezone-aware date and time handling for scheduling workflows
-- calendar and schedule presentation surfaces
-- the contract for reminders, recurrence, and availability
-- the primary place where scheduling intent is created, reviewed, and updated
-- schedule-bound operating objects such as cohorts, sessions, submission
-  windows, review deadlines, request queues, and follow-up checkpoints
-- internal administration for schedule-dependent education and service delivery
-- external student/customer views for notification, update, tracking, request,
-  and submission workflows
-- EPOCH MONITOR visibility over schedule health, queue state, overdue work,
-  workload, review status, delivery risk, and lane history
-- a public website/intake surface when the site is directly feeding EPOCH
-  scheduling, onboarding, request, or submission workflows
+- Gregorian calendar scheduling.
+- The owner-reviewed revised 13-month calendar contract and later native
+  conversion implementation.
+- Date/time primitives, timezone-aware scheduling, schedule entries, calendar
+  views, availability windows, reminder rules, recurrence candidates, and
+  booking/request timing.
+- Schedule-bound operating records, such as sessions, deadlines, follow-ups,
+  customer-safe schedule status, and overdue schedule risk.
+- Internal administration for work that is fundamentally calendar-bound.
+- External request, submission, tracking, and notification timing when those
+  flows depend on schedule state.
+- EPOCH MONITOR: a HERMES MONITOR structural clone using EPOCH data only.
+- EPOCH App: `web/app/index.html`, the internal scheduling command surface.
+- EPOCH Webportal: `web/webportal/index.html`, the customer-safe scheduling
+  request and status surface.
 
-## EPOCH does not own right now
+## EPOCH does not own
 
-- full cross-suite orchestration or agentic decision-making
-- all education curriculum or pedagogical content as a separate knowledge domain
-- payment processing as a first-class finance system
-- external calendar sync beyond defining import/export and future integration
-  contracts
-- complex resource booking outside the first education/service operating lanes
-- generalized CRM, database, or helpdesk products that are not schedule-bound
-- notification delivery infrastructure outside the EPOCH contract itself
+- WORKSHOP service catalogs, pricing, revenue models, marketing plans, paid
+  education packages, consulting offers, tech-support offers, clerical/admin
+  services, CRM/database service delivery, or AI/dev service packaging.
+- General curriculum/content strategy except where a schedule or deadline must
+  represent it.
+- Payment processing as a finance product.
+- Production authentication as an identity product.
+- Cross-suite agentic decision-making.
+- Raw public exposure of admin or monitor surfaces.
 
-## Relationship to adjacent products
+## WORKSHOP relationship
 
-- `TEMPO` is the closest conceptual peer for time primitives and adjacent time UX.
-- `SYMBIOSIS` is a likely runtime and agent-facing integration surface.
-- `FURYOKU` and `HERMES` are the monitor/autopilot pattern sources for EPOCH
-  MONITOR parity.
-- `ANVIL` is a likely workflow and work-planning integration surface.
-- `NEXUS` is a likely communications and coordination integration surface.
-- `LIBRARY` is the likely durable data/retrieval substrate when EPOCH needs
-  long-lived records or knowledge-linked history.
+WORKSHOP may consume EPOCH for:
 
-These relationships matter, but they should be phased. EPOCH should not wait for
-every suite dependency before delivering its first commercial operating slice.
+- appointment scheduling
+- availability checks
+- cohort/session calendars
+- submission and review deadlines
+- reminder and notification timing
+- customer-safe schedule/status events
+- schedule health exposed through EPOCH MONITOR
 
-## Phased boundary
+That integration is provider-client integration. It does not merge the products.
 
-### Phase 0: Boundary reset
+## MONITOR parity
 
-Record the expanded EPOCH ownership model and explicitly separate owned,
-integrated, and deferred scope.
+EPOCH MONITOR must clone the HERMES MONITOR structure:
 
-### Phase 1: Education operating slice
+- monitor, dashboard, completion, scorecard, timeline, audit, receipts,
+  runner-status, search, template, persona, and team route roles
+- EPOCH-specific visible route names such as Schedule Completion, Schedule
+  Scorecard, Schedule Timeline, Schedule Audit, Schedule Receipts, Scheduler
+  Log, Calendar Search, and Schedule Template
+- CITADEL left-side tree integration
+- Summary, Scope, Memory, Queue, Timeline, Risks, Receipts, and Controls
+- local-first generated status data
+- safe no-op controls until EPOCH-specific runners are wired
 
-Support a premium education-service workflow with:
+The clone must not copy HERMES project data. Empty/build-ready EPOCH data is
+correct until EPOCH-specific queues, records, and runners exist. The clone must
+not preserve generic HERMES labels when those labels make EPOCH look like the
+same workbench as WORKSHOP.
 
-- public website and intake path
-- adult/serious-student positioning with under-19 compatibility assessment or
-  higher-touch pricing
-- class/cohort/session calendar
-- assignment and submission windows
-- review and feedback deadlines
-- student/customer status tracking
-- internal admin dashboard for next actions, overdue items, and workload
+## Native C directive
 
-### Phase 2: EPOCH MONITOR parity
+Native C remains the default for EPOCH core logic. The native core should own
+calendar conversion, scheduling rules, recurrence evaluation, validation, and
+schedule-state mutation once the contracts are approved.
 
-Clone the HERMES MONITOR capability pattern into an EPOCH-specific monitor:
+Avalonia or web surfaces are host/client layers. They consume the EPOCH core;
+they do not become the permanent source of scheduling truth.
 
-- lane tree and status pages
-- sections for Summary, Scope, Memory, Queue, Timeline, Risks, and Receipts
-- health and overdue-state generation
-- visible project/menu integration
-- safe local-first operation with public exposure denied until access control is
-  explicitly configured
+## Surface Separation
 
-### Phase 3: ARA revenue operations
+EPOCH has three separate surface classes:
 
-Use EPOCH to schedule, track, and report revenue-producing work created by ARA
-projects, including education, consulting, tech support, clerical/admin,
-database/CRM/management systems, and automation/service delivery.
+- App: internal product operations for calendar, availability, deadlines,
+  reminders, recurrence, and schedule-bound administration.
+- Webportal: customer-safe schedule request, availability, deadline, and
+  status views.
+- MONITOR: operational status/control only, following the HERMES structure with
+  EPOCH data.
 
-## Immediate boundary questions
+Service catalog, package delivery, revenue pipeline, CRM, consulting/support
+work, and submission-product operations belong in WORKSHOP App/Webportal, not
+EPOCH App/Webportal and not EPOCH MONITOR.
 
-- What is the minimal schedule-bound operating object EPOCH must own in v1?
-- Which class/cohort/submission actions must exist in the first shippable
-  education operating surface?
-- Which HERMES MONITOR capabilities are cloned exactly, and which are renamed or
-  adapted for EPOCH?
-- Which public website/intake features are EPOCH-owned versus marketing/content
-  artifacts?
-- Which integrations are hard dependencies, and which are explicitly deferred?
+## Immediate lock criteria
 
-## Exit criteria for boundary lock
-
-- EPOCH has a clear ownership statement for scheduling.
-- EPOCH has a clear ownership statement for schedule-bound operating
-  administration.
-- The v1 surface is defined as a narrow education/service operating slice.
-- Deferred integrations are recorded separately instead of pulled into v1.
+- EPOCH owns calendar/scheduling and schedule-bound administration.
+- WORKSHOP owns the revenue bench.
+- The revised 13-month calendar remains draft-only until the exact owner
+  contract is approved.
+- EPOCH MONITOR has HERMES structural parity without HERMES data.
+- Existing revenue-facing prototype assets are treated as extraction candidates,
+  not as durable EPOCH ownership.

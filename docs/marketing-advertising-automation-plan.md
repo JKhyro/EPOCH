@@ -1,8 +1,16 @@
 # Marketing And Advertising Automation Plan
 
+## Boundary correction
+
+This plan is preserved prototype work for WORKSHOP. Campaign strategy, offer
+copy, lead conversion, pricing posture, education/service bundles, and
+advertising automation are WORKSHOP-owned. EPOCH may provide schedule-bound
+route timing, booking windows, deadlines, reminders, and customer-safe
+schedule/status events.
+
 ## Purpose
 
-EPOCH marketing must convert outreach into tracked diagnostic, submission,
+WORKSHOP marketing must convert outreach into tracked diagnostic, submission,
 cohort, or scoped service work. The plan is intentionally route-first: every
 ad, post, referral message, and partner placement maps to a campaign route,
 source campaign id, conversion action, copy policy, and monitor KPI set before
@@ -35,7 +43,9 @@ any spend or outreach begins.
 
 ## Conversion KPI Readiness
 
-EPOCH measures conversion readiness with first-party route attribution only.
+WORKSHOP measures conversion readiness with first-party route attribution only.
+EPOCH may receive only the schedule-bound route timing and status fields needed
+for bookings, deadlines, reminders, and customer-safe schedule updates.
 The local KPI layer should answer which route is ready for views, diagnostic
 submissions, writing-sample submissions, consultation bookings, and guarded
 under-19 compatibility requests.
@@ -92,7 +102,7 @@ and consent boundary are explicit.
 - Global: search, LinkedIn, partner newsletters, education communities, remote
   support communities, and proof-bundle follow-up sequences.
 - Every channel must preserve its `routeKey`, `campaignId`, and
-  `primaryConversion` through intake so EPOCH can measure source quality and
+  `primaryConversion` through intake so WORKSHOP can measure source quality and
   avoid untracked open-ended calls.
 
 ## Under-19 Governance
@@ -107,7 +117,7 @@ and consent boundary are explicit.
 
 ## Adjacent Services
 
-Campaign routes are not limited to English teaching. EPOCH should also route:
+Campaign routes are not limited to English teaching. WORKSHOP should also route:
 
 - technical support retainers
 - CRM and database cleanup or build work
@@ -120,7 +130,7 @@ check, and monitor-visible next action.
 
 ## Monitor Readiness
 
-EPOCH MONITOR should report:
+WORKSHOP MONITOR should report:
 
 - total campaign routes
 - ready campaign routes
