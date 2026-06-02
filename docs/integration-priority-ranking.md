@@ -1,5 +1,13 @@
 # EPOCH Integration Priority Ranking
 
+## Boundary correction
+
+This ranking preserves earlier commercial-platform planning, but any revenue,
+education, offer, marketing, or service-delivery lane is now WORKSHOP-owned.
+EPOCH priority work should be read as schedule/calendar provider work:
+monitoring schedule health, availability, deadlines, reminders, notifications,
+calendar providers, customer-safe schedule status, and handoff visibility.
+
 ## Goal
 
 Rank deferred EPOCH integrations after the first commercial operating surface
@@ -8,10 +16,11 @@ instead of reopening the v1 scope.
 
 ## Ranking Rule
 
-Prioritize integrations that directly improve revenue operations, reduce manual
-coordination, or protect schedule accuracy. Defer integrations that mainly add
-suite polish, alternate shells, or deep storage before the operating contract is
-stable.
+Prioritize integrations that protect schedule accuracy, reduce manual schedule
+coordination, or make cross-product schedule/status handoffs visible. WORKSHOP
+owns revenue operations; EPOCH should expose only the schedule/calendar pieces
+needed for those operations. Defer integrations that mainly add suite polish,
+alternate shells, or deep storage before the operating contract is stable.
 
 ## Ranked Lanes
 
@@ -24,8 +33,8 @@ risks, receipts, controls, and local access discipline.
 - Classification: hard next step.
 - Reason: the commercial operating surface now creates live operating records,
   so the control surface must be visible and monitor-grade.
-- Consumes EPOCH data: operating ledger, monitor report, queue, risk, receipts,
-  revenue summary.
+- Consumes EPOCH data: operating ledger, monitor report, schedule queue, timing
+  risk, schedule/status receipts, and provider readiness summaries.
 - Produces EPOCH data: monitor receipts, operator actions, health snapshots.
 - Keep out for now: public raw monitor exposure.
 
@@ -36,7 +45,7 @@ channels are automated. EPOCH should define notification events for accepted
 engagements, onboarding, first submission plans, schedule changes, review
 returns, overdue work, and follow-ups.
 
-- Classification: hard revenue follow-on.
+- Classification: hard schedule/status follow-on.
 - Reason: accepted customers need clear request, submission, update, and
   tracking messages without Jack manually rewriting status every time.
 - Consumes EPOCH data: customers, assignments, sessions, submissions, reviews,

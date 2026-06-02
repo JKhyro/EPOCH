@@ -54,15 +54,20 @@ That integration is provider-client integration. It does not merge the products.
 
 EPOCH MONITOR must clone the HERMES MONITOR structure:
 
-- monitor, dashboard, completion, scorecard, timeline, work-audit, receipts,
-  runner-log, search, template, persona, and team routes
+- monitor, dashboard, completion, scorecard, timeline, audit, receipts,
+  runner-status, search, template, persona, and team route roles
+- EPOCH-specific visible route names such as Schedule Completion, Schedule
+  Scorecard, Schedule Timeline, Schedule Audit, Schedule Receipts, Scheduler
+  Log, Calendar Search, and Schedule Template
 - CITADEL left-side tree integration
 - Summary, Scope, Memory, Queue, Timeline, Risks, Receipts, and Controls
 - local-first generated status data
 - safe no-op controls until EPOCH-specific runners are wired
 
 The clone must not copy HERMES project data. Empty/build-ready EPOCH data is
-correct until EPOCH-specific queues, records, and runners exist.
+correct until EPOCH-specific queues, records, and runners exist. The clone must
+not preserve generic HERMES labels when those labels make EPOCH look like the
+same workbench as WORKSHOP.
 
 ## Native C directive
 

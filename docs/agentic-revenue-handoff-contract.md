@@ -1,5 +1,13 @@
 # Agentic Revenue Handoff Contract
 
+## Boundary correction
+
+This remains useful only as an EPOCH schedule/status handoff contract. WORKSHOP
+owns revenue work generation, offer ownership, service delivery, pricing,
+customer acquisition, and outcome packaging. EPOCH owns schedule-bound
+handoff visibility, approval timing, deadlines, reminders, and customer-safe
+status events when WORKSHOP or another system asks EPOCH to coordinate time.
+
 ## Purpose
 
 This document defines the EPOCH-side handoff record contract for revenue work

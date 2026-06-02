@@ -35,12 +35,17 @@ Required HERMES-structure routes:
 - `/epoch-completion.html`
 - `/epoch-scorecard.html`
 - `/epoch-timeline.html`
-- `/epoch-work-audit.html`
+- `/epoch-schedule-audit.html`
 - `/epoch-receipts.html`
-- `/epoch-runner-log.html`
+- `/epoch-scheduler-log.html`
 - `/epoch-search.html`
 - `/epoch-template.html`
 - EPOCH persona and team child routes matching the HERMES route pattern
+
+Compatibility aliases may continue to answer `/epoch-work-audit.html` and
+`/epoch-runner-log.html`, but the left-side tree and focused page titles should
+use EPOCH-specific schedule/calendar language. The route structure is cloned;
+the product meaning is not.
 
 The public route may reuse the visual language, but it must not expose raw
 monitor/admin state. Public pages remain intake and commercially safe status

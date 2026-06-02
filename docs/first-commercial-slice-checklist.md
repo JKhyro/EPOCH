@@ -1,9 +1,19 @@
 # First Commercial Slice Checklist
 
+## Boundary correction
+
+This checklist is preserved as prior useful work, not discarded. Its revenue,
+education, offer, pricing, marketing, and service-delivery pieces are now
+WORKSHOP-owned. EPOCH keeps the schedule-bound pieces: availability, sessions,
+deadlines, reminders, follow-ups, customer-safe schedule status, and monitor
+health for timing risk.
+
 ## Goal
 
-Define the first implementable EPOCH slice for revenue-supporting education and
-service operations without waiting for every future CITADEL integration.
+Define the first implementable WORKSHOP slice for revenue-supporting education
+and service operations without waiting for every future CITADEL integration.
+EPOCH participates only as the scheduling, deadline, reminder, and
+customer-safe status provider.
 
 ## Required screens or surfaces
 
@@ -12,7 +22,10 @@ service operations without waiting for every future CITADEL integration.
   requests.
 - Internal schedule/admin view.
 - Student/customer status view or export-ready status page.
-- EPOCH MONITOR status page for queue, overdue, risk, and receipt visibility.
+- WORKSHOP MONITOR status page for queue, delivery, revenue, risk, and receipt
+  visibility.
+- EPOCH MONITOR schedule-health page for availability, sessions, deadlines,
+  reminders, overdue schedule risk, and customer-safe schedule status.
 - SCAFFOLD/HERMES-aligned route rail, top operating controls, command strips,
   muted operational cards, and monitor side navigation across the internal
   surfaces, with the public page using the same visual language in a

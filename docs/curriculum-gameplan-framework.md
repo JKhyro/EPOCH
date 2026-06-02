@@ -1,8 +1,15 @@
 # Curriculum Gameplan Framework
 
+## Boundary correction
+
+This is preserved prototype work for WORKSHOP. Curriculum, package gameplans,
+education offer design, and public education positioning are WORKSHOP-owned.
+EPOCH should retain only schedule-bound fields that WORKSHOP needs for
+appointments, deadlines, reminders, status events, and customer-safe timing.
+
 ## Purpose
 
-EPOCH needs a concrete education-delivery framework that supports premium,
+WORKSHOP needs a concrete education-delivery framework that supports premium,
 submission-first offers without turning the business back into generic hourly
 tutoring. The framework separates reusable curriculum structure from
 package-specific gameplans and customer-visible progress summaries.
@@ -43,8 +50,9 @@ package-specific gameplans and customer-visible progress summaries.
 
 ## Monitor Expectations
 
-EPOCH MONITOR should report curriculum readiness alongside queue, revenue,
-handoff, persistence, calendar, and receipt state:
+WORKSHOP MONITOR should report curriculum readiness alongside queue, revenue,
+handoff, persistence, delivery, and receipt state. EPOCH MONITOR should show
+only related schedule/deadline health when WORKSHOP hands off timed work:
 
 - framework count
 - active or planned gameplan count
