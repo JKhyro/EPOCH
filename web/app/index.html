@@ -21,6 +21,20 @@
   </header>
 
   <main class="workspace-grid">
+    <section class="panel status-panel">
+      <div class="section-title">
+        <p class="eyebrow">Operating State</p>
+        <h2>Local Schedule Ledger</h2>
+      </div>
+      <dl class="status-grid">
+        <div><dt>Requests</dt><dd id="stat-schedule-requests">0</dd></div>
+        <div><dt>Open Windows</dt><dd id="stat-open-windows">0</dd></div>
+        <div><dt>Blocked Gates</dt><dd id="stat-provider-blocks">0</dd></div>
+        <div><dt>Provider State</dt><dd id="stat-live-state">Sandbox only</dd></div>
+      </dl>
+      <button id="reset-schedule-ledger" class="secondary-button" type="button">Reset Local Ledger</button>
+    </section>
+
     <section class="panel command-panel">
       <div class="section-title">
         <p class="eyebrow">Today</p>
@@ -55,10 +69,42 @@
 
     <section class="panel">
       <div class="section-title">
+        <p class="eyebrow">Reminders</p>
+        <h2>Sandbox Reminder Rules</h2>
+      </div>
+      <div id="reminder-rule-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel wide-panel">
+      <div class="section-title">
+        <p class="eyebrow">Provider Gate</p>
+        <h2>Calendar Provider Readiness</h2>
+      </div>
+      <div id="provider-readiness-list" class="item-stack"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Gate Checks</p>
+        <h2>No-Live Provider Proof</h2>
+      </div>
+      <div id="provider-check-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
         <p class="eyebrow">13-Month Contract</p>
         <h2>Revised Calendar Preview</h2>
       </div>
       <div id="revised-calendar" class="month-grid"></div>
+    </section>
+
+    <section class="panel wide-panel">
+      <div class="section-title">
+        <p class="eyebrow">Receipts</p>
+        <h2>Local Schedule Evidence</h2>
+      </div>
+      <div id="receipt-list" class="item-stack compact-list"></div>
     </section>
 
     <section class="panel status-panel">
