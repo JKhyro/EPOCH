@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EPOCH Webportal</title>
+  <link rel="stylesheet" href="../shared/styles.css" />
+</head>
+<body class="surface-shell portal-surface">
+  <header class="topbar compact">
+    <div>
+      <p class="eyebrow">EPOCH Webportal</p>
+      <h1>Schedule Request And Status Portal</h1>
+      <p class="lede">Customer-safe timing, availability, deadline, and reminder surface. Internal MONITOR controls are not exposed here.</p>
+    </div>
+    <nav class="header-actions" aria-label="EPOCH webportal routes">
+      <a href="../index.html">Directory</a>
+      <a href="../app/index.html">App</a>
+      <a href="http://127.0.0.1:8765/epoch-monitor.html">MONITOR</a>
+    </nav>
+  </header>
+
+  <main class="portal-grid">
+    <section class="panel request-panel">
+      <div class="section-title">
+        <p class="eyebrow">Request</p>
+        <h2>Ask For A Time</h2>
+      </div>
+      <form id="schedule-request-form" class="surface-form">
+        <label>
+          Name
+          <input name="requester" value="Sample Customer" required />
+        </label>
+        <label>
+          Schedule need
+          <select name="need">
+            <option>Diagnostic call</option>
+            <option>Submission review return</option>
+            <option>Project planning session</option>
+            <option>Deadline check-in</option>
+          </select>
+        </label>
+        <label>
+          Preferred window
+          <input name="window" value="Weekday evening Japan time" required />
+        </label>
+        <label>
+          Timezone
+          <input name="timezone" value="Asia/Tokyo" required />
+        </label>
+        <button type="submit">Add Schedule Request</button>
+      </form>
+      <p id="request-confirmation" class="confirmation" role="status"></p>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Status</p>
+        <h2>Customer-Safe Timeline</h2>
+      </div>
+      <div id="portal-timeline" class="item-stack"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Availability</p>
+        <h2>Next Open Windows</h2>
+      </div>
+      <div id="portal-availability" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Boundary</p>
+        <h2>What This Portal Does</h2>
+      </div>
+      <ul class="boundary-list">
+        <li>Accepts schedule and deadline requests.</li>
+        <li>Shows customer-safe timing updates.</li>
+        <li>Does not sell packages or run delivery work.</li>
+        <li>Does not expose raw admin or MONITOR controls.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script type="module" src="../shared/surface.js"></script>
+</body>
+</html>

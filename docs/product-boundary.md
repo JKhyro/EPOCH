@@ -23,6 +23,9 @@ client acquisition, and ARA income-production workflows.
 - External request, submission, tracking, and notification timing when those
   flows depend on schedule state.
 - EPOCH MONITOR: a HERMES MONITOR structural clone using EPOCH data only.
+- EPOCH App: `web/app/index.html`, the internal scheduling command surface.
+- EPOCH Webportal: `web/webportal/index.html`, the customer-safe scheduling
+  request and status surface.
 
 ## EPOCH does not own
 
@@ -77,6 +80,21 @@ schedule-state mutation once the contracts are approved.
 
 Avalonia or web surfaces are host/client layers. They consume the EPOCH core;
 they do not become the permanent source of scheduling truth.
+
+## Surface Separation
+
+EPOCH has three separate surface classes:
+
+- App: internal product operations for calendar, availability, deadlines,
+  reminders, recurrence, and schedule-bound administration.
+- Webportal: customer-safe schedule request, availability, deadline, and
+  status views.
+- MONITOR: operational status/control only, following the HERMES structure with
+  EPOCH data.
+
+Service catalog, package delivery, revenue pipeline, CRM, consulting/support
+work, and submission-product operations belong in WORKSHOP App/Webportal, not
+EPOCH App/Webportal and not EPOCH MONITOR.
 
 ## Immediate lock criteria
 

@@ -23,7 +23,8 @@ only where the host, UI framework, or platform integration makes it necessary.
 - Avalonia should consume EPOCH through a deliberate interop boundary rather
   than by reimplementing the core scheduling model in C#.
 - Avalonia may host the first internal administration surface for calendars,
-  cohorts, submissions, overdue work, and EPOCH MONITOR status.
+  availability windows, deadlines, reminders, recurrence, schedule-bound
+  requests, and EPOCH MONITOR status.
 
 ## Interop boundary
 
@@ -33,9 +34,8 @@ only where the host, UI framework, or platform integration makes it necessary.
   chatty object-shaped crossings.
 - Design the interop boundary so the native core can later be hosted by other
   shells without CLR coupling.
-- Public website, student/customer portal, and ARA service surfaces should
-  consume the same scheduling/operating contract rather than inventing separate
-  schedule state.
+- Public/customer webportal and client surfaces should consume the same
+  scheduling/operating contract rather than inventing separate schedule state.
 
 ## C# is allowed where necessary
 
@@ -73,7 +73,8 @@ only where the host, UI framework, or platform integration makes it necessary.
   schedule-bound objects and status transitions.
 - The Avalonia shell should stay thin and consume the native core via explicit
   interop for internal administration.
-- A website or student/customer portal may be built sooner for revenue, but it
-  should be treated as a host/client surface over the EPOCH contract.
+- A customer-safe webportal may be built before the Avalonia host, but it
+  should be treated as a host/client surface over the EPOCH contract. Revenue
+  and service-delivery portals belong to WORKSHOP.
 - If logic must land in C# for host reasons, document the exception instead of
   letting it silently become the new default.
