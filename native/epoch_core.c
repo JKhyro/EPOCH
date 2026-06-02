@@ -39,6 +39,9 @@ static const EpochStatusName EPOCH_STATUS_NAMES[] = {
     {EPOCH_STATUS_APPROVED, "approved"},
     {EPOCH_STATUS_DISPATCHED, "dispatched"},
     {EPOCH_STATUS_ACKNOWLEDGED, "acknowledged"},
+    {EPOCH_STATUS_ACCEPTED, "accepted"},
+    {EPOCH_STATUS_HELD, "held"},
+    {EPOCH_STATUS_CONFIRMED, "confirmed"},
     {EPOCH_STATUS_IN_PROGRESS, "in-progress"},
     {EPOCH_STATUS_SENT, "sent"},
     {EPOCH_STATUS_FAILED, "failed"},
@@ -212,6 +215,93 @@ int epoch_availability_window_has_capacity(const EpochAvailabilityWindow *window
 
     return window->holds < window->capacity &&
            window->status == EPOCH_STATUS_AVAILABLE;
+}
+
+int epoch_schedule_request_acceptance_is_ready(const EpochScheduleRequestAcceptance *acceptance) {
+    if (acceptance == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(acceptance->id) &&
+           epoch_text_present(acceptance->schedule_request_id) &&
+           epoch_text_present(acceptance->availability_window_id) &&
+           epoch_text_present(acceptance->customer_safe_status) &&
+           acceptance->customer_visible &&
+           acceptance->sandbox_only &&
+           !acceptance->provider_go_live_requested &&
+           (acceptance->status == EPOCH_STATUS_ACCEPTED ||
+            acceptance->status == EPOCH_STATUS_APPROVED ||
+            acceptance->status == EPOCH_STATUS_ACKNOWLEDGED);
+}
+
+int epoch_availability_hold_is_ready(const EpochAvailabilityHold *hold) {
+    if (hold == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(hold->id) &&
+           epoch_text_present(hold->acceptance_id) &&
+           epoch_text_present(hold->schedule_request_id) &&
+           epoch_text_present(hold->availability_window_id) &&
+           epoch_text_present(hold->start_iso) &&
+           epoch_text_present(hold->end_iso) &&
+           epoch_text_present(hold->timezone) &&
+           hold->sandbox_only &&
+           !hold->provider_go_live_requested &&
+           hold->status == EPOCH_STATUS_HELD;
+}
+
+int epoch_booking_confirmation_is_customer_safe(const EpochBookingConfirmation *confirmation) {
+    if (confirmation == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(confirmation->id) &&
+           epoch_text_present(confirmation->acceptance_id) &&
+           epoch_text_present(confirmation->availability_hold_id) &&
+           epoch_text_present(confirmation->schedule_entry_id) &&
+           epoch_text_present(confirmation->schedule_request_id) &&
+           epoch_text_present(confirmation->confirmed_window) &&
+           epoch_text_present(confirmation->timezone) &&
+           epoch_text_present(confirmation->customer_safe_status) &&
+           confirmation->customer_visible &&
+           !confirmation->provider_go_live_requested &&
+           confirmation->status == EPOCH_STATUS_CONFIRMED;
+}
+
+int epoch_schedule_status_event_is_customer_safe(const EpochScheduleStatusEvent *event) {
+    if (event == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(event->id) &&
+           epoch_text_present(event->booking_confirmation_id) &&
+           epoch_text_present(event->schedule_request_id) &&
+           epoch_text_present(event->state_label) &&
+           epoch_text_present(event->customer_safe_status) &&
+           event->customer_visible &&
+           event->status != EPOCH_STATUS_BLOCKED &&
+           event->status != EPOCH_STATUS_FAILED &&
+           event->status != EPOCH_STATUS_REJECTED &&
+           event->status != EPOCH_STATUS_ROLLED_BACK &&
+           event->status != EPOCH_STATUS_CANCELED;
+}
+
+int epoch_booking_receipt_is_customer_safe(const EpochBookingReceipt *receipt) {
+    if (receipt == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(receipt->id) &&
+           epoch_text_present(receipt->booking_confirmation_id) &&
+           epoch_text_present(receipt->schedule_status_event_id) &&
+           epoch_text_present(receipt->summary) &&
+           receipt->customer_visible &&
+           !receipt->provider_go_live_requested &&
+           receipt->status != EPOCH_STATUS_FAILED &&
+           receipt->status != EPOCH_STATUS_REJECTED &&
+           receipt->status != EPOCH_STATUS_ROLLED_BACK &&
+           receipt->status != EPOCH_STATUS_CANCELED;
 }
 
 int epoch_reminder_rule_is_sandbox_safe(const EpochReminderRule *rule) {

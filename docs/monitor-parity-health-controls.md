@@ -20,6 +20,7 @@ EPOCH MONITOR should expose local operator sections for:
 - Schedule Timeline
 - Schedule Risk
 - Schedule Receipts
+- Booking acceptance, hold, confirmation, status-event, and receipt aggregates
 - Safe Access
 - Calendar Provider Readiness
 - Reminder And Recurrence Readiness
@@ -87,3 +88,7 @@ should stay safe and local:
 Controls may create local receipts, but must not create customer-visible
 messages, external calendar writes, provider calls, public monitor exposure, or
 WORKSHOP service records.
+
+The first booking workflow keeps product interaction in EPOCH App/Webportal.
+EPOCH MONITOR reports aggregate request acceptance, availability hold, booking
+confirmation, status-event, and receipt counts plus safe local receipts only.

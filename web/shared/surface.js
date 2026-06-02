@@ -1,7 +1,12 @@
 import {
   EPOCH_LEDGER_KEY,
+  createAvailabilityHoldForAcceptance,
+  createBookingConfirmationForHold,
+  createBookingReceiptForConfirmation,
   createScheduleEntryForRequest,
   createScheduleRequestRecord,
+  createScheduleRequestAcceptanceForRequest,
+  createScheduleStatusEventForBooking,
   initialEpochLedger,
   providerGateBlocksLiveCalls,
   providerGateReadyForToggle,
@@ -9,8 +14,9 @@ import {
   revisedRulepackReady,
   revisedMonths,
   scheduleNeedLabel,
-  scheduleNeedOptions
-} from "./epoch-data.js";
+  scheduleNeedOptions,
+  selectOpenAvailabilityWindow
+} from "./epoch-data.js?v=epoch-booking-confirmation";
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
@@ -35,6 +41,11 @@ const mergeLedger = (stored) => {
   for (const key of [
     "scheduleEntries",
     "scheduleRequests",
+    "scheduleRequestAcceptances",
+    "availabilityHolds",
+    "bookingConfirmations",
+    "scheduleStatusEvents",
+    "bookingReceipts",
     "availabilityWindows",
     "deadlineItems",
     "recurrenceCandidates",
@@ -111,6 +122,10 @@ function renderStats() {
   setText("stat-live-state", gates.some((gate) => gate.liveProviderCallsEnabled) ? "Live enabled" : "Sandbox only");
   setText("stat-core-state", state.ledger.schedulingCoreReadiness?.scheduleEntryValidation || "pending");
   setText("stat-rulepack-state", revisedRulepackReady(state.ledger.revisedCalendarRulepack) ? "ready" : "held");
+  setText("stat-accepted-requests", String((state.ledger.scheduleRequestAcceptances || []).length));
+  setText("stat-active-holds", String((state.ledger.availabilityHolds || []).filter((hold) => hold.status !== "released").length));
+  setText("stat-bookings", String((state.ledger.bookingConfirmations || []).length));
+  setText("stat-booking-receipts", String((state.ledger.bookingReceipts || []).length));
 }
 
 function renderScheduleQueue() {
@@ -151,6 +166,94 @@ function renderAvailability() {
   `;
   renderStack("availability-list", state.ledger.availabilityWindows, renderWindow);
   renderStack("portal-availability", state.ledger.availabilityWindows, renderWindow);
+}
+
+function renderBookingWorkflow() {
+  renderStack("acceptance-list", state.ledger.scheduleRequestAcceptances || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.requester)}</strong>
+      <span>${escapeHtml(item.status)} - ${escapeHtml(item.availabilityWindowId || "window pending")}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("hold-list", state.ledger.availabilityHolds || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.availabilityWindowId || "operator-selected window")}</strong>
+      <span>${escapeHtml(item.status)} - ${escapeHtml(item.timezone)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("booking-confirmation-list", state.ledger.bookingConfirmations || [], (item) => `
+    <article class="item-card">
+      <div>
+        <strong>${escapeHtml(item.requester)}</strong>
+        <p>${escapeHtml(item.customerSafeStatus)}</p>
+        <small>${escapeHtml(item.scheduleEntryId || "local entry pending")}</small>
+      </div>
+      <div class="item-meta">
+        ${chip(item.status)}
+        <span>${escapeHtml(item.confirmedWindow)}</span>
+      </div>
+    </article>
+  `);
+
+  renderStack("schedule-status-event-list", state.ledger.scheduleStatusEvents || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.label)}</strong>
+      <span>${escapeHtml(item.state)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("booking-receipt-list", state.ledger.bookingReceipts || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.id)}</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.summary)}</small>
+    </article>
+  `);
+
+  renderStack("portal-acceptance-status", state.ledger.scheduleRequestAcceptances || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.requester)}</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("portal-hold-status", state.ledger.availabilityHolds || [], (item) => `
+    <article class="mini-row">
+      <strong>Availability hold</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("portal-booking-status", state.ledger.bookingConfirmations || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.requester)}</strong>
+      <span>${escapeHtml(item.confirmedWindow)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("portal-schedule-status-events", state.ledger.scheduleStatusEvents || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.label)}</strong>
+      <span>${escapeHtml(item.state)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("portal-booking-receipts", state.ledger.bookingReceipts || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.status)}</strong>
+      <span>${escapeHtml(item.generatedAt || "")}</span>
+      <small>${escapeHtml(item.summary)}</small>
+    </article>
+  `);
 }
 
 function renderDeadlinesAndReminders() {
@@ -322,6 +425,7 @@ function renderAll() {
   renderScheduleQueue();
   renderCalendarBoard();
   renderAvailability();
+  renderBookingWorkflow();
   renderDeadlinesAndReminders();
   renderCoreReadiness();
   renderRevisedCalendar();
@@ -336,15 +440,33 @@ function handleScheduleRequest(event) {
   const data = new FormData(form);
   const request = createScheduleRequestRecord(data);
   const entry = createScheduleEntryForRequest(request);
+  const availabilityWindow = selectOpenAvailabilityWindow(state.ledger.availabilityWindows);
+  const acceptance = createScheduleRequestAcceptanceForRequest(request, availabilityWindow);
+  const hold = createAvailabilityHoldForAcceptance(acceptance, availabilityWindow);
+  const bookingConfirmation = createBookingConfirmationForHold(hold, request, entry);
+  const scheduleStatusEvent = createScheduleStatusEventForBooking(bookingConfirmation, request);
+  const bookingReceipt = createBookingReceiptForConfirmation(bookingConfirmation, scheduleStatusEvent);
+
+  request.status = "accepted";
+  request.customerSafeStatus = acceptance.customerSafeStatus;
+  entry.status = "confirmed";
+  entry.customerSafeStatus = bookingConfirmation.customerSafeStatus;
 
   state.ledger.scheduleRequests.unshift(request);
   state.ledger.scheduleEntries.unshift(entry);
-  addTimeline("New request queued", `${request.requester} requested ${scheduleNeedLabel(request.need)}.`, request.status);
-  appendReceipt(`${request.requester} added a local-only schedule request.`);
+  state.ledger.scheduleRequestAcceptances.unshift(acceptance);
+  state.ledger.availabilityHolds.unshift(hold);
+  state.ledger.bookingConfirmations.unshift(bookingConfirmation);
+  state.ledger.scheduleStatusEvents.unshift(scheduleStatusEvent);
+  state.ledger.bookingReceipts.unshift(bookingReceipt);
+  if (availabilityWindow) availabilityWindow.holds = Number(availabilityWindow.holds || 0) + 1;
+  addTimeline("Request accepted", `${request.requester} requested ${scheduleNeedLabel(request.need)}.`, acceptance.status);
+  addTimeline("Booking confirmed", bookingConfirmation.customerSafeStatus, bookingConfirmation.status);
+  appendReceipt(`${request.requester} received a local-only schedule booking confirmation.`);
   saveLedger(state.ledger);
 
   const confirmation = byId("request-confirmation");
-  if (confirmation) confirmation.textContent = request.customerSafeStatus;
+  if (confirmation) confirmation.textContent = bookingConfirmation.customerSafeStatus;
   form.reset();
   renderAll();
 }

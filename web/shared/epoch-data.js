@@ -110,6 +110,74 @@ export const initialEpochLedger = {
       createdAt: "2026-06-03T10:00:00+09:00"
     }
   ],
+  scheduleRequestAcceptances: [
+    {
+      id: "EPOCH-ACCEPT-001",
+      scheduleRequestId: "EPOCH-REQ-001",
+      availabilityWindowId: "EPOCH-WIN-001",
+      requester: "WORKSHOP timing handoff",
+      status: "accepted",
+      acceptedAt: "2026-06-03T10:05:00+09:00",
+      sandboxOnly: true,
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Schedule request accepted; a local availability hold is being prepared."
+    }
+  ],
+  availabilityHolds: [
+    {
+      id: "EPOCH-HOLD-001",
+      acceptanceId: "EPOCH-ACCEPT-001",
+      scheduleRequestId: "EPOCH-REQ-001",
+      availabilityWindowId: "EPOCH-WIN-001",
+      startIso: "2026-06-03T19:00:00+09:00",
+      endIso: "2026-06-03T20:00:00+09:00",
+      timezone: "Asia/Tokyo",
+      status: "held",
+      expiresAt: "2026-06-03T12:00:00+09:00",
+      sandboxOnly: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Availability is held locally while the booking confirmation is prepared."
+    }
+  ],
+  bookingConfirmations: [
+    {
+      id: "EPOCH-BOOK-001",
+      acceptanceId: "EPOCH-ACCEPT-001",
+      availabilityHoldId: "EPOCH-HOLD-001",
+      scheduleEntryId: "EPOCH-SCH-001",
+      scheduleRequestId: "EPOCH-REQ-001",
+      requester: "WORKSHOP timing handoff",
+      confirmedWindow: "2026-06-03 19:00 JST",
+      timezone: "Asia/Tokyo",
+      status: "confirmed",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Schedule confirmed locally for 2026-06-03 19:00 JST."
+    }
+  ],
+  scheduleStatusEvents: [
+    {
+      id: "EPOCH-STATUS-001",
+      bookingConfirmationId: "EPOCH-BOOK-001",
+      scheduleRequestId: "EPOCH-REQ-001",
+      label: "Booking confirmed",
+      state: "confirmed",
+      customerVisible: true,
+      customerSafeStatus: "Schedule confirmed locally; external calendar connection remains inactive.",
+      occurredAt: "2026-06-03T10:10:00+09:00"
+    }
+  ],
+  bookingReceipts: [
+    {
+      id: "EPOCH-BOOK-RECEIPT-001",
+      bookingConfirmationId: "EPOCH-BOOK-001",
+      scheduleStatusEventId: "EPOCH-STATUS-001",
+      status: "ready",
+      summary: "Request acceptance, availability hold, booking confirmation, and customer-safe status event are locally recorded without live provider calls.",
+      generatedAt: "2026-06-03T10:10:00+09:00"
+    }
+  ],
   availabilityWindows: [
     {
       id: "EPOCH-WIN-001",
@@ -349,5 +417,85 @@ export function createScheduleEntryForRequest(request) {
     timezone: request.timezone,
     customerSafeStatus: request.customerSafeStatus,
     detail: `${request.requester} requested ${scheduleNeedLabel(request.need)}.`
+  };
+}
+
+export function selectOpenAvailabilityWindow(windows = initialEpochLedger.availabilityWindows) {
+  return windows.find((window) => Number(window.holds || 0) < Number(window.capacity || 0)) || null;
+}
+
+export function createScheduleRequestAcceptanceForRequest(request, availabilityWindow = null) {
+  return {
+    id: makeId("EPOCH-ACCEPT"),
+    scheduleRequestId: request.id,
+    availabilityWindowId: availabilityWindow?.id || "",
+    requester: request.requester,
+    status: "accepted",
+    acceptedAt: new Date().toISOString(),
+    sandboxOnly: true,
+    customerVisible: true,
+    providerGoLiveRequested: false,
+    customerSafeStatus: "Schedule request accepted; a local availability hold is being prepared."
+  };
+}
+
+export function createAvailabilityHoldForAcceptance(acceptance, availabilityWindow = null) {
+  return {
+    id: makeId("EPOCH-HOLD"),
+    acceptanceId: acceptance.id,
+    scheduleRequestId: acceptance.scheduleRequestId,
+    availabilityWindowId: acceptance.availabilityWindowId || availabilityWindow?.id || "",
+    startIso: availabilityWindow?.startIso || "",
+    endIso: availabilityWindow?.endIso || "",
+    timezone: availabilityWindow?.timezone || "Asia/Tokyo",
+    status: "held",
+    expiresAt: new Date().toISOString(),
+    sandboxOnly: true,
+    providerGoLiveRequested: false,
+    customerSafeStatus: availabilityWindow
+      ? "Availability is held locally while the booking confirmation is prepared."
+      : "Availability hold is pending an operator-selected window."
+  };
+}
+
+export function createBookingConfirmationForHold(hold, request, entry = null) {
+  const confirmedWindow = entry?.time || request.requestedWindow || "Window to be confirmed";
+  return {
+    id: makeId("EPOCH-BOOK"),
+    acceptanceId: hold.acceptanceId,
+    availabilityHoldId: hold.id,
+    scheduleEntryId: entry?.id || "",
+    scheduleRequestId: request.id,
+    requester: request.requester,
+    confirmedWindow,
+    timezone: hold.timezone || request.timezone,
+    status: "confirmed",
+    customerVisible: true,
+    providerGoLiveRequested: false,
+    customerSafeStatus: `Schedule confirmed locally for ${confirmedWindow}.`
+  };
+}
+
+export function createScheduleStatusEventForBooking(confirmation, request) {
+  return {
+    id: makeId("EPOCH-STATUS"),
+    bookingConfirmationId: confirmation.id,
+    scheduleRequestId: request.id,
+    label: "Booking confirmed",
+    state: "confirmed",
+    customerVisible: true,
+    customerSafeStatus: "Schedule confirmed locally; external calendar connection remains inactive.",
+    occurredAt: new Date().toISOString()
+  };
+}
+
+export function createBookingReceiptForConfirmation(confirmation, statusEvent) {
+  return {
+    id: makeId("EPOCH-BOOK-RECEIPT"),
+    bookingConfirmationId: confirmation.id,
+    scheduleStatusEventId: statusEvent.id,
+    status: "ready",
+    summary: "Request acceptance, availability hold, booking confirmation, and customer-safe status event are locally recorded without live provider calls.",
+    generatedAt: new Date().toISOString()
   };
 }

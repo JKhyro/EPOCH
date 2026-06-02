@@ -22,13 +22,19 @@ const providerGate = read("../docs/calendar-provider-go-live-readiness-gate.md")
 const header = read("../native/epoch_core.h");
 const source = read("../native/epoch_core.c");
 const {
+  createAvailabilityHoldForAcceptance,
+  createBookingConfirmationForHold,
+  createBookingReceiptForConfirmation,
   createScheduleEntryForRequest,
   createScheduleRequestRecord,
+  createScheduleRequestAcceptanceForRequest,
+  createScheduleStatusEventForBooking,
   initialEpochLedger,
   providerGateBlocksLiveCalls,
   providerGateReadyForToggle,
   revisedRulepackBlocksConversion,
-  revisedRulepackReady
+  revisedRulepackReady,
+  selectOpenAvailabilityWindow
 } = await import("../web/shared/epoch-data.js");
 
 for (const phrase of ["EPOCH App", "EPOCH Webportal", "EPOCH MONITOR"]) {
@@ -56,6 +62,11 @@ for (const phrase of [
   "Local Schedule Ledger",
   "Calendar Provider Readiness",
   "No-Live Provider Proof",
+  "Schedule Request Acceptances",
+  "Availability Holds",
+  "Booking Confirmations",
+  "Schedule Status Events",
+  "Booking Receipts",
   "Native Scheduling Core",
   "Recurrence Candidates",
   "Revised Calendar Preview",
@@ -70,6 +81,11 @@ for (const phrase of [
   "Ask For A Time",
   "Customer-Safe Timeline",
   "Next Open Windows",
+  "Request Acceptance Status",
+  "Availability Hold Status",
+  "Booking Confirmation Status",
+  "Schedule Status Updates",
+  "Booking Receipts",
   "Provider Status",
   "Revised Calendar Status",
   "External Calendar Connection",
@@ -96,6 +112,11 @@ for (const phrase of [
   "initialEpochLedger",
   "scheduleEntries",
   "scheduleRequests",
+  "scheduleRequestAcceptances",
+  "availabilityHolds",
+  "bookingConfirmations",
+  "scheduleStatusEvents",
+  "bookingReceipts",
   "schedulingCoreReadiness",
   "reminderRules",
   "recurrenceCandidates",
@@ -104,6 +125,12 @@ for (const phrase of [
   "providerStatusEvents",
   "createScheduleRequestRecord",
   "createScheduleEntryForRequest",
+  "createScheduleRequestAcceptanceForRequest",
+  "createAvailabilityHoldForAcceptance",
+  "createBookingConfirmationForHold",
+  "createScheduleStatusEventForBooking",
+  "createBookingReceiptForConfirmation",
+  "selectOpenAvailabilityWindow",
   "providerGateReadyForToggle",
   "providerGateBlocksLiveCalls",
   "revisedRulepackReady",
@@ -119,6 +146,16 @@ for (const phrase of [
   "schedule-need-select",
   "customer-status-list",
   "provider-readiness-list",
+  "acceptance-list",
+  "hold-list",
+  "booking-confirmation-list",
+  "schedule-status-event-list",
+  "booking-receipt-list",
+  "portal-acceptance-status",
+  "portal-hold-status",
+  "portal-booking-status",
+  "portal-schedule-status-events",
+  "portal-booking-receipts",
   "portal-provider-status",
   "provider-check-list",
   "native-core-readiness",
@@ -134,6 +171,9 @@ for (const status of [
   "EPOCH_STATUS_PLANNED",
   "EPOCH_STATUS_AVAILABLE",
   "EPOCH_STATUS_QUEUED",
+  "EPOCH_STATUS_ACCEPTED",
+  "EPOCH_STATUS_HELD",
+  "EPOCH_STATUS_CONFIRMED",
   "EPOCH_STATUS_IN_PROGRESS",
   "EPOCH_STATUS_OVERDUE",
   "EPOCH_STATUS_COMPLETE"
@@ -141,7 +181,7 @@ for (const status of [
   if (!header.includes(status)) fail(`native header missing ${status}`);
 }
 
-for (const label of ["planned", "available", "queued", "in-progress", "overdue", "complete"]) {
+for (const label of ["planned", "available", "queued", "accepted", "held", "confirmed", "in-progress", "overdue", "complete"]) {
   if (!source.includes(`"${label}"`)) fail(`native source missing label ${label}`);
 }
 
@@ -160,6 +200,11 @@ for (const phrase of [
 for (const type of [
   "EpochScheduleRequest",
   "EpochAvailabilityWindow",
+  "EpochScheduleRequestAcceptance",
+  "EpochAvailabilityHold",
+  "EpochBookingConfirmation",
+  "EpochScheduleStatusEvent",
+  "EpochBookingReceipt",
   "EpochReminderRule",
   "EpochRecurrenceRule",
   "EpochDeadlineRule",
@@ -179,6 +224,11 @@ for (const fn of [
   "epoch_schedule_entry_is_valid",
   "epoch_schedule_request_is_customer_safe",
   "epoch_availability_window_has_capacity",
+  "epoch_schedule_request_acceptance_is_ready",
+  "epoch_availability_hold_is_ready",
+  "epoch_booking_confirmation_is_customer_safe",
+  "epoch_schedule_status_event_is_customer_safe",
+  "epoch_booking_receipt_is_customer_safe",
   "epoch_reminder_rule_is_sandbox_safe",
   "epoch_recurrence_rule_is_sandbox_safe",
   "epoch_deadline_rule_is_customer_safe",
@@ -219,6 +269,12 @@ const fakeForm = new Map([
 ]);
 const request = createScheduleRequestRecord(fakeForm);
 const entry = createScheduleEntryForRequest(request);
+const openWindow = selectOpenAvailabilityWindow(initialEpochLedger.availabilityWindows);
+const acceptance = createScheduleRequestAcceptanceForRequest(request, openWindow);
+const hold = createAvailabilityHoldForAcceptance(acceptance, openWindow);
+const booking = createBookingConfirmationForHold(hold, request, entry);
+const statusEvent = createScheduleStatusEventForBooking(booking, request);
+const bookingReceipt = createBookingReceiptForConfirmation(booking, statusEvent);
 const rulepack = initialEpochLedger.revisedCalendarRulepack;
 const approvedRulepack = {
   ...rulepack,
@@ -248,6 +304,12 @@ const gate = {
 if (request.requester !== "Schedule requester") fail("schedule request factory did not default blank requester");
 if (request.providerGoLiveRequested !== false || request.sandboxOnly !== true) fail("schedule request factory is not sandbox-only");
 if (!entry.title.includes("Submission review return")) fail("schedule entry factory did not map need label");
+if (!openWindow || openWindow.id !== "EPOCH-WIN-001") fail("open availability selector did not choose the first open window");
+if (acceptance.status !== "accepted" || !acceptance.customerVisible || acceptance.providerGoLiveRequested) fail("acceptance factory did not create safe local acceptance");
+if (hold.status !== "held" || hold.providerGoLiveRequested || hold.availabilityWindowId !== openWindow.id) fail("hold factory did not create safe local availability hold");
+if (booking.status !== "confirmed" || booking.providerGoLiveRequested || !booking.customerSafeStatus.includes("Schedule confirmed locally")) fail("booking factory did not create safe local confirmation");
+if (statusEvent.state !== "confirmed" || !statusEvent.customerVisible || !statusEvent.customerSafeStatus.includes("external calendar connection remains inactive")) fail("status event factory did not create customer-safe schedule status");
+if (bookingReceipt.status !== "ready" || !bookingReceipt.summary.includes("without live provider calls")) fail("booking receipt factory did not preserve local-only proof");
 if (!providerGateReadyForToggle(gate)) fail("provider gate should be ready for live toggle after all checks");
 if (!providerGateBlocksLiveCalls(gate)) fail("provider gate should still block live calls before toggle");
 gate.liveProviderCallsEnabled = true;

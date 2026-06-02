@@ -33,6 +33,10 @@
         <div><dt>Provider State</dt><dd id="stat-live-state">Sandbox only</dd></div>
         <div><dt>Core State</dt><dd id="stat-core-state">pending</dd></div>
         <div><dt>Rulepack</dt><dd id="stat-rulepack-state">held</dd></div>
+        <div><dt>Accepted</dt><dd id="stat-accepted-requests">0</dd></div>
+        <div><dt>Holds</dt><dd id="stat-active-holds">0</dd></div>
+        <div><dt>Bookings</dt><dd id="stat-bookings">0</dd></div>
+        <div><dt>Booking Receipts</dt><dd id="stat-booking-receipts">0</dd></div>
       </dl>
       <button id="reset-schedule-ledger" class="secondary-button" type="button">Reset Local Ledger</button>
     </section>
@@ -59,6 +63,46 @@
         <h2>Open Windows</h2>
       </div>
       <div id="availability-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Acceptance</p>
+        <h2>Schedule Request Acceptances</h2>
+      </div>
+      <div id="acceptance-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Holds</p>
+        <h2>Availability Holds</h2>
+      </div>
+      <div id="hold-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel wide-panel">
+      <div class="section-title">
+        <p class="eyebrow">Confirmation</p>
+        <h2>Booking Confirmations</h2>
+      </div>
+      <div id="booking-confirmation-list" class="item-stack"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Customer Status</p>
+        <h2>Schedule Status Events</h2>
+      </div>
+      <div id="schedule-status-event-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Booking Proof</p>
+        <h2>Booking Receipts</h2>
+      </div>
+      <div id="booking-receipt-list" class="item-stack compact-list"></div>
     </section>
 
     <section class="panel">
@@ -147,6 +191,6 @@
     </section>
   </main>
 
-  <script type="module" src="../shared/surface.js"></script>
+  <script type="module" src="../shared/surface.js?v=epoch-booking-confirmation"></script>
 </body>
 </html>
