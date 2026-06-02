@@ -5,6 +5,8 @@ import {
   initialEpochLedger,
   providerGateBlocksLiveCalls,
   providerGateReadyForToggle,
+  revisedRulepackBlocksConversion,
+  revisedRulepackReady,
   revisedMonths,
   scheduleNeedLabel,
   scheduleNeedOptions
@@ -35,6 +37,7 @@ const mergeLedger = (stored) => {
     "scheduleRequests",
     "availabilityWindows",
     "deadlineItems",
+    "recurrenceCandidates",
     "reminderRules",
     "providerReadinessGates",
     "providerStatusEvents",
@@ -42,6 +45,12 @@ const mergeLedger = (stored) => {
     "receipts"
   ]) {
     if (Array.isArray(stored[key])) base[key] = stored[key];
+  }
+  if (stored.schedulingCoreReadiness && typeof stored.schedulingCoreReadiness === "object") {
+    base.schedulingCoreReadiness = stored.schedulingCoreReadiness;
+  }
+  if (stored.revisedCalendarRulepack && typeof stored.revisedCalendarRulepack === "object") {
+    base.revisedCalendarRulepack = stored.revisedCalendarRulepack;
   }
   base.version = stored.version || base.version;
   base.generatedAt = stored.generatedAt || base.generatedAt;
@@ -100,6 +109,8 @@ function renderStats() {
   setText("stat-open-windows", String(openWindowCount));
   setText("stat-provider-blocks", String(blockedGateCount));
   setText("stat-live-state", gates.some((gate) => gate.liveProviderCallsEnabled) ? "Live enabled" : "Sandbox only");
+  setText("stat-core-state", state.ledger.schedulingCoreReadiness?.scheduleEntryValidation || "pending");
+  setText("stat-rulepack-state", revisedRulepackReady(state.ledger.revisedCalendarRulepack) ? "ready" : "held");
 }
 
 function renderScheduleQueue() {
@@ -147,7 +158,15 @@ function renderDeadlinesAndReminders() {
     <article class="mini-row">
       <strong>${escapeHtml(item.label)}</strong>
       <span>${escapeHtml(item.due)}</span>
-      <small>${escapeHtml(item.state)}</small>
+      <small>${escapeHtml(item.health || "unscored")} - ${escapeHtml(item.customerSafeStatus || item.state)}</small>
+    </article>
+  `);
+
+  renderStack("recurrence-candidate-list", state.ledger.recurrenceCandidates || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.label)}</strong>
+      <span>${escapeHtml(item.rrule)} - ${escapeHtml(item.calendarSystem)}</span>
+      <small>${item.createsFutureEntries ? "future creation enabled" : "preview only"} - ${escapeHtml(item.customerSafeStatus)}</small>
     </article>
   `);
 
@@ -162,13 +181,60 @@ function renderDeadlinesAndReminders() {
 
 function renderRevisedCalendar() {
   const monthGrid = byId("revised-calendar");
-  if (!monthGrid) return;
-  monthGrid.innerHTML = revisedMonths.map((month, index) => `
-    <span>
-      <strong>${String(index + 1).padStart(2, "0")}</strong>
-      ${escapeHtml(month)}
-    </span>
-  `).join("");
+  if (monthGrid) {
+    monthGrid.innerHTML = revisedMonths.map((month, index) => `
+      <span>
+        <strong>${String(index + 1).padStart(2, "0")}</strong>
+        ${escapeHtml(month)}
+      </span>
+    `).join("");
+  }
+
+  const rulepack = state.ledger.revisedCalendarRulepack || {};
+  const blocked = revisedRulepackBlocksConversion(rulepack);
+  const missing = Array.isArray(rulepack.missingApprovals) ? rulepack.missingApprovals : [];
+  renderStack("revised-rulepack-status", [rulepack], (item) => `
+    <article class="item-card">
+      <div>
+        <strong>${escapeHtml(item.id || "rulepack")}</strong>
+        <p>${escapeHtml(item.customerSafeStatus || "Rulepack status unavailable.")}</p>
+        <small>${missing.slice(0, 5).map(escapeHtml).join(", ")}${missing.length > 5 ? "..." : ""}</small>
+      </div>
+      <div class="item-meta">
+        ${chip(blocked ? "conversion held" : "conversion ready")}
+        <span>${escapeHtml(item.versionId || "no version")}</span>
+      </div>
+    </article>
+  `);
+
+  renderStack("portal-revised-status", [rulepack], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.calendarSystem || "revised calendar")}</strong>
+      <span>${blocked ? "conversion inactive" : "conversion ready"}</span>
+      <small>${escapeHtml(item.customerSafeStatus || "")}</small>
+    </article>
+  `);
+}
+
+function renderCoreReadiness() {
+  const core = state.ledger.schedulingCoreReadiness || {};
+  const checks = [
+    ["Schedule Entry", core.scheduleEntryValidation],
+    ["Schedule Request", core.scheduleRequestValidation],
+    ["Availability", core.availabilityValidation],
+    ["Deadline Health", core.deadlineHealthValidation],
+    ["Recurrence", core.recurrenceSandboxValidation],
+    ["Customer Status", core.customerSafeStatusValidation],
+    ["Rulepack Gate", core.revisedRulepackGate],
+    ["Live Provider", core.liveProviderPosture]
+  ];
+  renderStack("native-core-readiness", checks, ([label, value]) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(label)}</strong>
+      <span>${escapeHtml(value || "pending")}</span>
+      <small>${escapeHtml(core.nativeContract || "epoch_core")}</small>
+    </article>
+  `);
 }
 
 function renderProviderReadiness() {
@@ -257,6 +323,7 @@ function renderAll() {
   renderCalendarBoard();
   renderAvailability();
   renderDeadlinesAndReminders();
+  renderCoreReadiness();
   renderRevisedCalendar();
   renderProviderReadiness();
   renderPortalTimeline();

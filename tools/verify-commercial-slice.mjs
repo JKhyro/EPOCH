@@ -26,7 +26,9 @@ const {
   createScheduleRequestRecord,
   initialEpochLedger,
   providerGateBlocksLiveCalls,
-  providerGateReadyForToggle
+  providerGateReadyForToggle,
+  revisedRulepackBlocksConversion,
+  revisedRulepackReady
 } = await import("../web/shared/epoch-data.js");
 
 for (const phrase of ["EPOCH App", "EPOCH Webportal", "EPOCH MONITOR"]) {
@@ -54,7 +56,10 @@ for (const phrase of [
   "Local Schedule Ledger",
   "Calendar Provider Readiness",
   "No-Live Provider Proof",
+  "Native Scheduling Core",
+  "Recurrence Candidates",
   "Revised Calendar Preview",
+  "Revised Rulepack Boundary",
   "Native C Core"
 ]) {
   if (!app.includes(phrase)) fail(`EPOCH app missing ${phrase}`);
@@ -66,6 +71,7 @@ for (const phrase of [
   "Customer-Safe Timeline",
   "Next Open Windows",
   "Provider Status",
+  "Revised Calendar Status",
   "External Calendar Connection",
   "Shows provider status without enabling live provider calls",
   "Does not expose raw admin or MONITOR controls"
@@ -90,13 +96,18 @@ for (const phrase of [
   "initialEpochLedger",
   "scheduleEntries",
   "scheduleRequests",
+  "schedulingCoreReadiness",
   "reminderRules",
+  "recurrenceCandidates",
+  "revisedCalendarRulepack",
   "providerReadinessGates",
   "providerStatusEvents",
   "createScheduleRequestRecord",
   "createScheduleEntryForRequest",
   "providerGateReadyForToggle",
-  "providerGateBlocksLiveCalls"
+  "providerGateBlocksLiveCalls",
+  "revisedRulepackReady",
+  "revisedRulepackBlocksConversion"
 ]) {
   if (!data.includes(phrase)) fail(`EPOCH data missing ledger phrase ${phrase}`);
 }
@@ -110,6 +121,10 @@ for (const phrase of [
   "provider-readiness-list",
   "portal-provider-status",
   "provider-check-list",
+  "native-core-readiness",
+  "recurrence-candidate-list",
+  "revised-rulepack-status",
+  "portal-revised-status",
   "reset-schedule-ledger"
 ]) {
   if (!script.includes(phrase) && !app.includes(phrase) && !portal.includes(phrase)) fail(`EPOCH workflow missing ${phrase}`);
@@ -146,6 +161,11 @@ for (const type of [
   "EpochScheduleRequest",
   "EpochAvailabilityWindow",
   "EpochReminderRule",
+  "EpochRecurrenceRule",
+  "EpochDeadlineRule",
+  "EpochRevisedCalendarRulepack",
+  "EpochCalendarSystem",
+  "EpochDeadlineHealth",
   "EpochCalendarProviderReadinessGate",
   "EpochProviderKind"
 ]) {
@@ -154,9 +174,16 @@ for (const type of [
 
 for (const fn of [
   "epoch_provider_kind_label",
+  "epoch_calendar_system_label",
+  "epoch_deadline_health_label",
+  "epoch_schedule_entry_is_valid",
   "epoch_schedule_request_is_customer_safe",
   "epoch_availability_window_has_capacity",
   "epoch_reminder_rule_is_sandbox_safe",
+  "epoch_recurrence_rule_is_sandbox_safe",
+  "epoch_deadline_rule_is_customer_safe",
+  "epoch_revised_calendar_rulepack_conversion_ready",
+  "epoch_revised_calendar_rulepack_blocks_conversion",
   "epoch_calendar_provider_gate_ready_for_live_toggle",
   "epoch_calendar_provider_gate_blocks_live_calls"
 ]) {
@@ -192,6 +219,25 @@ const fakeForm = new Map([
 ]);
 const request = createScheduleRequestRecord(fakeForm);
 const entry = createScheduleEntryForRequest(request);
+const rulepack = initialEpochLedger.revisedCalendarRulepack;
+const approvedRulepack = {
+  ...rulepack,
+  versionId: "owner-approved-rulepack-v1",
+  ownerApproved: true,
+  monthNamesApproved: true,
+  dayDistributionApproved: true,
+  intercalaryDaysApproved: true,
+  leapRuleApproved: true,
+  epochAnchorApproved: true,
+  dayOfWeekMappingApproved: true,
+  formattingRulesApproved: true,
+  timezoneBoundaryApproved: true,
+  recurrenceMappingApproved: true,
+  publicDisplayWordingApproved: true,
+  storageIdentifierApproved: true,
+  conversionRulesApproved: true,
+  conversionLogicEnabled: true
+};
 const gate = {
   ...initialEpochLedger.providerReadinessGates[0],
   revisedCalendarMappingVerified: true,
@@ -206,5 +252,10 @@ if (!providerGateReadyForToggle(gate)) fail("provider gate should be ready for l
 if (!providerGateBlocksLiveCalls(gate)) fail("provider gate should still block live calls before toggle");
 gate.liveProviderCallsEnabled = true;
 if (providerGateBlocksLiveCalls(gate)) fail("provider gate should allow live calls after explicit toggle and checks");
+if (revisedRulepackReady(rulepack)) fail("draft revised rulepack must not be conversion-ready");
+if (!revisedRulepackBlocksConversion(rulepack)) fail("draft revised rulepack must block conversion");
+if (!revisedRulepackReady(approvedRulepack)) fail("approved revised rulepack should be conversion-ready");
+approvedRulepack.conversionLogicEnabled = false;
+if (revisedRulepackReady(approvedRulepack)) fail("disabled conversion logic should keep approved rulepack held");
 
 console.log("EPOCH surface boundary verification passed");

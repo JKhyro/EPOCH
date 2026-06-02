@@ -26,6 +26,15 @@ int main(void) {
         1,
         0,
     };
+    EpochScheduleEntry schedule_entry = {
+        "sch-001",
+        "Gregorian schedule review",
+        "local-only schedule entry",
+        "2026-06-04T18:00:00+09:00",
+        "2026-06-04T19:00:00+09:00",
+        "Asia/Tokyo",
+        EPOCH_STATUS_QUEUED,
+    };
     EpochAvailabilityWindow window = {
         "win-001",
         "Evening review block",
@@ -44,6 +53,64 @@ int main(void) {
         EPOCH_STATUS_PLANNED,
         1,
         0,
+    };
+    EpochRecurrenceRule recurrence = {
+        "rec-001",
+        "EPOCH-SCH-001",
+        "FREQ=WEEKLY;COUNT=2",
+        EPOCH_CALENDAR_GREGORIAN,
+        EPOCH_STATUS_PLANNED,
+        1,
+        0,
+        0,
+    };
+    EpochDeadlineRule deadline = {
+        "due-001",
+        "EPOCH-SCH-001",
+        "2026-06-05T17:00:00+09:00",
+        "Asia/Tokyo",
+        "Deadline is on track.",
+        EPOCH_DEADLINE_ON_TRACK,
+        EPOCH_STATUS_PLANNED,
+        1,
+    };
+    EpochRevisedCalendarRulepack draft_rulepack = {
+        "rulepack-draft",
+        "owner-approved-rulepack-required",
+        13,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+    };
+    EpochRevisedCalendarRulepack approved_rulepack = {
+        "rulepack-approved",
+        "owner-approved-rulepack-v1",
+        13,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
     };
     EpochCalendarProviderReadinessGate gate = {
         "gate-001",
@@ -82,9 +149,22 @@ int main(void) {
     assert(epoch_operating_entry_needs_attention(&overdue) == 1);
     assert(strcmp(epoch_provider_kind_label(EPOCH_PROVIDER_CALENDAR), "calendar") == 0);
     assert(strcmp(epoch_provider_kind_label(EPOCH_PROVIDER_STATUS), "status") == 0);
+    assert(strcmp(epoch_calendar_system_label(EPOCH_CALENDAR_REVISED_13_MONTH), "revised-13-month") == 0);
+    assert(strcmp(epoch_deadline_health_label(EPOCH_DEADLINE_AT_RISK), "at-risk") == 0);
+    assert(epoch_schedule_entry_is_valid(&schedule_entry) == 1);
     assert(epoch_schedule_request_is_customer_safe(&request) == 1);
     assert(epoch_availability_window_has_capacity(&window) == 1);
     assert(epoch_reminder_rule_is_sandbox_safe(&reminder) == 1);
+    assert(epoch_recurrence_rule_is_sandbox_safe(&recurrence) == 1);
+    assert(epoch_deadline_rule_is_customer_safe(&deadline) == 1);
+    assert(epoch_revised_calendar_rulepack_has_required_approvals(&draft_rulepack) == 0);
+    assert(epoch_revised_calendar_rulepack_conversion_ready(&draft_rulepack) == 0);
+    assert(epoch_revised_calendar_rulepack_blocks_conversion(&draft_rulepack) == 1);
+    assert(epoch_revised_calendar_rulepack_has_required_approvals(&approved_rulepack) == 1);
+    assert(epoch_revised_calendar_rulepack_conversion_ready(&approved_rulepack) == 1);
+    assert(epoch_revised_calendar_rulepack_blocks_conversion(&approved_rulepack) == 0);
+    approved_rulepack.conversion_logic_enabled = 0;
+    assert(epoch_revised_calendar_rulepack_conversion_ready(&approved_rulepack) == 0);
     assert(epoch_calendar_provider_gate_ready_for_live_toggle(&gate) == 1);
     assert(epoch_calendar_provider_gate_blocks_live_calls(&gate) == 1);
     gate.live_provider_calls_enabled = 1;

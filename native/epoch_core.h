@@ -57,6 +57,18 @@ typedef enum EpochProviderKind {
     EPOCH_PROVIDER_STATUS
 } EpochProviderKind;
 
+typedef enum EpochCalendarSystem {
+    EPOCH_CALENDAR_GREGORIAN = 0,
+    EPOCH_CALENDAR_REVISED_13_MONTH
+} EpochCalendarSystem;
+
+typedef enum EpochDeadlineHealth {
+    EPOCH_DEADLINE_ON_TRACK = 0,
+    EPOCH_DEADLINE_AT_RISK,
+    EPOCH_DEADLINE_OVERDUE,
+    EPOCH_DEADLINE_BLOCKED
+} EpochDeadlineHealth;
+
 typedef struct EpochScheduleEntry {
     const char *id;
     const char *title;
@@ -100,6 +112,48 @@ typedef struct EpochReminderRule {
     int customer_visible;
 } EpochReminderRule;
 
+typedef struct EpochRecurrenceRule {
+    const char *id;
+    const char *schedule_entry_id;
+    const char *rrule;
+    EpochCalendarSystem calendar_system;
+    EpochOperatingStatus status;
+    int sandbox_only;
+    int operator_approved;
+    int creates_future_entries;
+} EpochRecurrenceRule;
+
+typedef struct EpochDeadlineRule {
+    const char *id;
+    const char *linked_entry_id;
+    const char *due_iso;
+    const char *timezone;
+    const char *customer_safe_status;
+    EpochDeadlineHealth health;
+    EpochOperatingStatus status;
+    int customer_visible;
+} EpochDeadlineRule;
+
+typedef struct EpochRevisedCalendarRulepack {
+    const char *id;
+    const char *version_id;
+    int month_count;
+    int month_names_approved;
+    int day_distribution_approved;
+    int intercalary_days_approved;
+    int leap_rule_approved;
+    int epoch_anchor_approved;
+    int day_of_week_mapping_approved;
+    int formatting_rules_approved;
+    int timezone_boundary_approved;
+    int recurrence_mapping_approved;
+    int public_display_wording_approved;
+    int storage_identifier_approved;
+    int conversion_rules_approved;
+    int owner_approved;
+    int conversion_logic_enabled;
+} EpochRevisedCalendarRulepack;
+
 typedef struct EpochCalendarProviderReadinessGate {
     const char *id;
     EpochProviderKind provider_kind;
@@ -129,9 +183,17 @@ int epoch_status_from_label(const char *label, EpochOperatingStatus *out_status)
 int epoch_status_is_terminal(EpochOperatingStatus status);
 int epoch_operating_entry_needs_attention(const EpochOperatingEntry *entry);
 const char *epoch_provider_kind_label(EpochProviderKind kind);
+const char *epoch_calendar_system_label(EpochCalendarSystem system);
+const char *epoch_deadline_health_label(EpochDeadlineHealth health);
+int epoch_schedule_entry_is_valid(const EpochScheduleEntry *entry);
 int epoch_schedule_request_is_customer_safe(const EpochScheduleRequest *request);
 int epoch_availability_window_has_capacity(const EpochAvailabilityWindow *window);
 int epoch_reminder_rule_is_sandbox_safe(const EpochReminderRule *rule);
+int epoch_recurrence_rule_is_sandbox_safe(const EpochRecurrenceRule *rule);
+int epoch_deadline_rule_is_customer_safe(const EpochDeadlineRule *rule);
+int epoch_revised_calendar_rulepack_has_required_approvals(const EpochRevisedCalendarRulepack *rulepack);
+int epoch_revised_calendar_rulepack_conversion_ready(const EpochRevisedCalendarRulepack *rulepack);
+int epoch_revised_calendar_rulepack_blocks_conversion(const EpochRevisedCalendarRulepack *rulepack);
 int epoch_calendar_provider_gate_ready_for_live_toggle(const EpochCalendarProviderReadinessGate *gate);
 int epoch_calendar_provider_gate_blocks_live_calls(const EpochCalendarProviderReadinessGate *gate);
 
