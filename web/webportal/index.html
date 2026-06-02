@@ -29,24 +29,19 @@
       <form id="schedule-request-form" class="surface-form">
         <label>
           Name
-          <input name="requester" value="Sample Customer" required />
+          <input id="requester" name="requester" value="Sample Customer" required />
         </label>
         <label>
           Schedule need
-          <select name="need">
-            <option>Diagnostic call</option>
-            <option>Submission review return</option>
-            <option>Project planning session</option>
-            <option>Deadline check-in</option>
-          </select>
+          <select id="schedule-need-select" name="need"></select>
         </label>
         <label>
           Preferred window
-          <input name="window" value="Weekday evening Japan time" required />
+          <input id="requested-window" name="window" value="Weekday evening Japan time" required />
         </label>
         <label>
           Timezone
-          <input name="timezone" value="Asia/Tokyo" required />
+          <input id="timezone" name="timezone" value="Asia/Tokyo" required />
         </label>
         <button type="submit">Add Schedule Request</button>
       </form>
@@ -63,10 +58,26 @@
 
     <section class="panel">
       <div class="section-title">
+        <p class="eyebrow">Requests</p>
+        <h2>Schedule Status</h2>
+      </div>
+      <div id="customer-status-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
         <p class="eyebrow">Availability</p>
         <h2>Next Open Windows</h2>
       </div>
       <div id="portal-availability" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Provider Status</p>
+        <h2>External Calendar Connection</h2>
+      </div>
+      <div id="portal-provider-status" class="item-stack compact-list"></div>
     </section>
 
     <section class="panel">
@@ -77,6 +88,7 @@
       <ul class="boundary-list">
         <li>Accepts schedule and deadline requests.</li>
         <li>Shows customer-safe timing updates.</li>
+        <li>Shows provider status without enabling live provider calls.</li>
         <li>Does not sell packages or run delivery work.</li>
         <li>Does not expose raw admin or MONITOR controls.</li>
       </ul>

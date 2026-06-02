@@ -18,8 +18,16 @@ const styles = read("../web/shared/styles.css");
 const boundary = read("../docs/product-boundary.md");
 const runtime = read("../docs/runtime-and-packaging.md");
 const monitor = read("../docs/monitor-parity-health-controls.md");
+const providerGate = read("../docs/calendar-provider-go-live-readiness-gate.md");
 const header = read("../native/epoch_core.h");
 const source = read("../native/epoch_core.c");
+const {
+  createScheduleEntryForRequest,
+  createScheduleRequestRecord,
+  initialEpochLedger,
+  providerGateBlocksLiveCalls,
+  providerGateReadyForToggle
+} = await import("../web/shared/epoch-data.js");
 
 for (const phrase of ["EPOCH App", "EPOCH Webportal", "EPOCH MONITOR"]) {
   if (!root.includes(phrase)) fail(`root missing surface phrase ${phrase}`);
@@ -43,6 +51,9 @@ for (const phrase of [
   "Calendar Board",
   "Open Windows",
   "Schedule-Bound Work",
+  "Local Schedule Ledger",
+  "Calendar Provider Readiness",
+  "No-Live Provider Proof",
   "Revised Calendar Preview",
   "Native C Core"
 ]) {
@@ -54,6 +65,9 @@ for (const phrase of [
   "Ask For A Time",
   "Customer-Safe Timeline",
   "Next Open Windows",
+  "Provider Status",
+  "External Calendar Connection",
+  "Shows provider status without enabling live provider calls",
   "Does not expose raw admin or MONITOR controls"
 ]) {
   if (!portal.includes(phrase)) fail(`EPOCH webportal missing ${phrase}`);
@@ -69,7 +83,36 @@ for (const path of [
 
 for (const phrase of ["epochSchedule", "availabilityWindows", "deadlineItems", "revisedMonths", "portalTimeline"]) {
   if (!data.includes(phrase)) fail(`EPOCH data missing ${phrase}`);
-  if (!script.includes(phrase)) fail(`EPOCH renderer missing ${phrase}`);
+}
+
+for (const phrase of [
+  "EPOCH_LEDGER_KEY",
+  "initialEpochLedger",
+  "scheduleEntries",
+  "scheduleRequests",
+  "reminderRules",
+  "providerReadinessGates",
+  "providerStatusEvents",
+  "createScheduleRequestRecord",
+  "createScheduleEntryForRequest",
+  "providerGateReadyForToggle",
+  "providerGateBlocksLiveCalls"
+]) {
+  if (!data.includes(phrase)) fail(`EPOCH data missing ledger phrase ${phrase}`);
+}
+
+for (const phrase of [
+  "localStorage",
+  "EPOCH_LEDGER_KEY",
+  "schedule-request-form",
+  "schedule-need-select",
+  "customer-status-list",
+  "provider-readiness-list",
+  "portal-provider-status",
+  "provider-check-list",
+  "reset-schedule-ledger"
+]) {
+  if (!script.includes(phrase) && !app.includes(phrase) && !portal.includes(phrase)) fail(`EPOCH workflow missing ${phrase}`);
 }
 
 for (const status of [
@@ -92,10 +135,33 @@ for (const phrase of [
   "WORKSHOP owns revenue streams",
   "Native C is the default implementation language",
   "Avalonia is the desktop application shell",
-  "Compatibility aliases may redirect"
+  "Compatibility aliases may redirect",
+  "This issue does not approve live provider integrations"
 ]) {
-  const combined = `${boundary}\n${runtime}\n${monitor}`;
+  const combined = `${boundary}\n${runtime}\n${monitor}\n${providerGate}`;
   if (!combined.includes(phrase)) fail(`docs missing ${phrase}`);
+}
+
+for (const type of [
+  "EpochScheduleRequest",
+  "EpochAvailabilityWindow",
+  "EpochReminderRule",
+  "EpochCalendarProviderReadinessGate",
+  "EpochProviderKind"
+]) {
+  if (!header.includes(type)) fail(`native header missing contract ${type}`);
+}
+
+for (const fn of [
+  "epoch_provider_kind_label",
+  "epoch_schedule_request_is_customer_safe",
+  "epoch_availability_window_has_capacity",
+  "epoch_reminder_rule_is_sandbox_safe",
+  "epoch_calendar_provider_gate_ready_for_live_toggle",
+  "epoch_calendar_provider_gate_blocks_live_calls"
+]) {
+  if (!header.includes(fn)) fail(`native header missing function ${fn}`);
+  if (!source.includes(fn)) fail(`native source missing function ${fn}`);
 }
 
 for (const forbidden of [
@@ -114,8 +180,31 @@ for (const forbidden of [
   if (combinedWeb.includes(forbidden)) fail(`EPOCH web surface still contains WORKSHOP-only phrase ${forbidden}`);
 }
 
-for (const selector of [".directory-layout", ".workspace-grid", ".portal-grid", ".calendar-board", ".month-grid"]) {
+for (const selector of [".directory-layout", ".workspace-grid", ".portal-grid", ".calendar-board", ".month-grid", ".wide-panel", ".secondary-button"]) {
   if (!styles.includes(selector)) fail(`styles missing ${selector}`);
 }
+
+const fakeForm = new Map([
+  ["requester", "  "],
+  ["need", "submission-review-return"],
+  ["window", "Weekday evening Japan time"],
+  ["timezone", "Asia/Tokyo"]
+]);
+const request = createScheduleRequestRecord(fakeForm);
+const entry = createScheduleEntryForRequest(request);
+const gate = {
+  ...initialEpochLedger.providerReadinessGates[0],
+  revisedCalendarMappingVerified: true,
+  operatorApprovalRecorded: true,
+  liveProviderCallsEnabled: false
+};
+
+if (request.requester !== "Schedule requester") fail("schedule request factory did not default blank requester");
+if (request.providerGoLiveRequested !== false || request.sandboxOnly !== true) fail("schedule request factory is not sandbox-only");
+if (!entry.title.includes("Submission review return")) fail("schedule entry factory did not map need label");
+if (!providerGateReadyForToggle(gate)) fail("provider gate should be ready for live toggle after all checks");
+if (!providerGateBlocksLiveCalls(gate)) fail("provider gate should still block live calls before toggle");
+gate.liveProviderCallsEnabled = true;
+if (providerGateBlocksLiveCalls(gate)) fail("provider gate should allow live calls after explicit toggle and checks");
 
 console.log("EPOCH surface boundary verification passed");

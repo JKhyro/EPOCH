@@ -50,6 +50,13 @@ typedef enum EpochOperatingType {
     EPOCH_TYPE_RECEIPT
 } EpochOperatingType;
 
+typedef enum EpochProviderKind {
+    EPOCH_PROVIDER_CALENDAR = 0,
+    EPOCH_PROVIDER_AVAILABILITY,
+    EPOCH_PROVIDER_REMINDER,
+    EPOCH_PROVIDER_STATUS
+} EpochProviderKind;
+
 typedef struct EpochScheduleEntry {
     const char *id;
     const char *title;
@@ -59,6 +66,52 @@ typedef struct EpochScheduleEntry {
     const char *timezone;
     EpochOperatingStatus status;
 } EpochScheduleEntry;
+
+typedef struct EpochScheduleRequest {
+    const char *id;
+    const char *requester;
+    const char *requested_window;
+    const char *timezone;
+    const char *customer_safe_status;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int sandbox_only;
+    int provider_go_live_requested;
+} EpochScheduleRequest;
+
+typedef struct EpochAvailabilityWindow {
+    const char *id;
+    const char *label;
+    const char *start_iso;
+    const char *end_iso;
+    const char *timezone;
+    int capacity;
+    int holds;
+    EpochOperatingStatus status;
+} EpochAvailabilityWindow;
+
+typedef struct EpochReminderRule {
+    const char *id;
+    const char *schedule_entry_id;
+    const char *rrule;
+    const char *customer_safe_label;
+    EpochOperatingStatus status;
+    int sandbox_only;
+    int customer_visible;
+} EpochReminderRule;
+
+typedef struct EpochCalendarProviderReadinessGate {
+    const char *id;
+    EpochProviderKind provider_kind;
+    EpochOperatingStatus status;
+    int sandbox_prototype_passed;
+    int local_records_verified;
+    int customer_safe_status_verified;
+    int revised_calendar_mapping_verified;
+    int operator_approval_recorded;
+    int live_provider_calls_enabled;
+    const char *blocker;
+} EpochCalendarProviderReadinessGate;
 
 typedef struct EpochOperatingEntry {
     const char *id;
@@ -75,6 +128,12 @@ const char *epoch_status_label(EpochOperatingStatus status);
 int epoch_status_from_label(const char *label, EpochOperatingStatus *out_status);
 int epoch_status_is_terminal(EpochOperatingStatus status);
 int epoch_operating_entry_needs_attention(const EpochOperatingEntry *entry);
+const char *epoch_provider_kind_label(EpochProviderKind kind);
+int epoch_schedule_request_is_customer_safe(const EpochScheduleRequest *request);
+int epoch_availability_window_has_capacity(const EpochAvailabilityWindow *window);
+int epoch_reminder_rule_is_sandbox_safe(const EpochReminderRule *rule);
+int epoch_calendar_provider_gate_ready_for_live_toggle(const EpochCalendarProviderReadinessGate *gate);
+int epoch_calendar_provider_gate_blocks_live_calls(const EpochCalendarProviderReadinessGate *gate);
 
 #ifdef __cplusplus
 }

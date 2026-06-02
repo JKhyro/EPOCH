@@ -14,6 +14,8 @@ EPOCH owns:
 - customer-safe schedule status
 - submission/review deadlines when another product needs timing state
 - EPOCH MONITOR operational health, receipts, timeline, and control status
+- calendar-provider readiness gates that remain sandbox-only until explicit
+  later approval
 
 EPOCH does not own service packages, pricing, revenue operations, offer funnels,
 education delivery, consulting/support pipelines, CRM, or income-stream
@@ -37,10 +39,12 @@ the operational control and verification surface.
   schedule/operating primitives.
 - `native/epoch_core_smoke.c`: native smoke test for the core contract.
 - `web/shared/epoch-data.js`: schedule-focused demo data for app and webportal
-  rendering.
+  rendering plus the local EPOCH operating ledger.
 - `web/shared/surface.js`: shared app/webportal renderer and local request
   interaction.
 - `web/shared/styles.css`: EPOCH-specific surface styling.
+- `docs/calendar-provider-go-live-readiness-gate.md`: calendar-only provider
+  readiness gate contract for issue #78.
 - `tools/verify-commercial-slice.mjs`: repository verifier for EPOCH product
   boundary and surface placement.
 
