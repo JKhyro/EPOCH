@@ -39,6 +39,12 @@ exposure is part of this integration checkpoint.
   for that App export. It loads only customer-safe, Webportal-ready,
   provider-off status records and keeps native execution/operator details out
   of the customer portal.
+- `codex/local-epoch-avalonia-schedule-lifecycle-actions` adds App/Webportal
+  schedule lifecycle actions so reschedule/cancel/confirm/change-window
+  requests are queued as customer-safe product state, linked to local native
+  scheduling command evidence, and exported back through
+  `schedule-lifecycle-status.json` without provider calls or MONITOR workflow
+  exposure.
 
 ## Boundary Status
 

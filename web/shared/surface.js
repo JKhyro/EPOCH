@@ -18,6 +18,7 @@ import {
   createReminderDeadlineReceiptForEscalation,
   createReminderExecutionForRule,
   createScheduleEntryForRequest,
+  createScheduleLifecycleActionRecord,
   createScheduleRequestRecord,
   createScheduleRequestAcceptanceForRequest,
   createScheduleStatusEventForConflict,
@@ -36,6 +37,7 @@ import {
   revisedRulepackReady,
   revisedMonths,
   rankAvailabilityWindowsForRequest,
+  scheduleLifecycleActionOptions,
   scheduleNeedLabel,
   scheduleNeedOptions,
   selectFullAvailabilityWindow,
@@ -121,6 +123,7 @@ const mergeLedger = (stored) => {
     "calendarSearchQueries",
     "calendarSearchResults",
     "scheduleTemplates",
+    "scheduleLifecycleActions",
     "portalTimeline",
     "receipts"
   ]) {
@@ -205,12 +208,69 @@ const saveCustomerScheduleStatusExports = (records) => {
   if (storage) storage.setItem(EPOCH_CUSTOMER_SCHEDULE_STATUS_EXPORT_KEY, JSON.stringify(records));
 };
 
+const EPOCH_SCHEDULE_LIFECYCLE_STATUS_EXPORT_KEY = "epoch.webportal.scheduleLifecycleStatusExports.v1";
+
+const normalizeScheduleLifecycleStatusExport = (item) => {
+  if (!item || typeof item !== "object") return null;
+  const customerSafe =
+    item.customerSafe === true &&
+    item.webportalExportReady === true &&
+    item.providerCallsEnabled !== true &&
+    item.monitorWorkflowExposed !== true;
+  if (!customerSafe) return null;
+
+  return {
+    statusId: String(item.statusId || item.id || "local-lifecycle-status"),
+    actionId: String(item.actionId || "schedule lifecycle action"),
+    requestId: String(item.requestId || "schedule request"),
+    actionKind: String(item.actionKind || "lifecycle-action"),
+    requestedWindow: String(item.requestedWindow || "Window to be confirmed"),
+    status: String(item.status || "local-schedule-lifecycle-ready"),
+    customerSafeMessage: String(item.customerSafeMessage || "Your schedule change request is ready for review."),
+    nextAction: String(item.nextAction || "Review the customer-safe schedule lifecycle status."),
+    createdAtUtc: String(item.createdAtUtc || ""),
+    sourceSurface: String(item.sourceSurface || "EPOCH.App.ScheduleLifecycleStatusExport")
+  };
+};
+
+const normalizeScheduleLifecycleStatusPayload = (payload) => {
+  const records = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.statuses)
+      ? payload.statuses
+      : payload?.statusId
+        ? [payload]
+        : [];
+  return records
+    .map(normalizeScheduleLifecycleStatusExport)
+    .filter(Boolean);
+};
+
+const loadScheduleLifecycleStatusExports = () => {
+  const storage = getStorage();
+  if (!storage) return [];
+  try {
+    return normalizeScheduleLifecycleStatusPayload(JSON.parse(storage.getItem(EPOCH_SCHEDULE_LIFECYCLE_STATUS_EXPORT_KEY) || "[]"));
+  } catch {
+    return [];
+  }
+};
+
+const saveScheduleLifecycleStatusExports = (records) => {
+  const storage = getStorage();
+  if (storage) storage.setItem(EPOCH_SCHEDULE_LIFECYCLE_STATUS_EXPORT_KEY, JSON.stringify(records));
+};
+
 const state = {
   ledger: loadLedger()
 };
 
 const customerScheduleStatusExportState = {
   records: loadCustomerScheduleStatusExports()
+};
+
+const scheduleLifecycleStatusExportState = {
+  records: loadScheduleLifecycleStatusExports()
 };
 
 const byId = (id) => document.getElementById(id);
@@ -234,6 +294,14 @@ const renderNeedOptions = () => {
   const target = byId("schedule-need-select");
   if (!target) return;
   target.innerHTML = scheduleNeedOptions.map((option) => `
+    <option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>
+  `).join("");
+};
+
+const renderLifecycleActionOptions = () => {
+  const target = byId("schedule-lifecycle-action-select");
+  if (!target) return;
+  target.innerHTML = scheduleLifecycleActionOptions.map((option) => `
     <option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>
   `).join("");
 };
@@ -996,6 +1064,45 @@ function renderCustomerScheduleStatusExports() {
   );
 }
 
+function renderScheduleLifecycleActions() {
+  renderStack(
+    "portal-schedule-lifecycle-actions",
+    (state.ledger.scheduleLifecycleActions || []).filter((item) => item.customerVisible),
+    (item) => `
+      <article class="mini-row">
+        <strong>${escapeHtml(item.actionKind)}</strong>
+        <span>${escapeHtml(item.status)} - ${escapeHtml(item.requestId)}</span>
+        <small>${escapeHtml(item.customerSafeStatus)}</small>
+        <small>${escapeHtml(item.requestedWindow)}</small>
+      </article>
+    `,
+    "No customer-safe schedule lifecycle actions yet."
+  );
+}
+
+function renderScheduleLifecycleStatusExports() {
+  setText(
+    "schedule-lifecycle-status-export-summary",
+    scheduleLifecycleStatusExportState.records.length
+      ? `${scheduleLifecycleStatusExportState.records.length} App-exported lifecycle status record(s) loaded.`
+      : "No App-exported schedule lifecycle status records loaded."
+  );
+
+  renderStack(
+    "portal-schedule-lifecycle-status-export",
+    scheduleLifecycleStatusExportState.records,
+    (item) => `
+      <article class="mini-row">
+        <strong>${escapeHtml(item.status)}</strong>
+        <span>${escapeHtml(item.actionKind)} / ${escapeHtml(item.requestId)}</span>
+        <small>${escapeHtml(item.customerSafeMessage)}</small>
+        <small>${escapeHtml(item.nextAction)}</small>
+      </article>
+    `,
+    "No customer-safe App lifecycle status exports loaded."
+  );
+}
+
 function renderReceipts() {
   renderStack("receipt-list", state.ledger.receipts, (item) => `
     <article class="mini-row">
@@ -1182,6 +1289,7 @@ function handleRunReminderDeadlinePass() {
 
 function renderAll() {
   renderNeedOptions();
+  renderLifecycleActionOptions();
   renderStats();
   renderScheduleQueue();
   renderCalendarBoard();
@@ -1194,6 +1302,8 @@ function renderAll() {
   renderProviderReadiness();
   renderPortalTimeline();
   renderCustomerScheduleStatusExports();
+  renderScheduleLifecycleActions();
+  renderScheduleLifecycleStatusExports();
   renderReceipts();
 }
 
@@ -1229,6 +1339,59 @@ function handleClearCustomerScheduleStatusExports() {
   saveCustomerScheduleStatusExports(customerScheduleStatusExportState.records);
   const fileInput = byId("customer-schedule-status-file");
   if (fileInput) fileInput.value = "";
+  renderAll();
+}
+
+async function handleScheduleLifecycleStatusImport(event) {
+  event.preventDefault();
+  const fileInput = byId("schedule-lifecycle-status-file");
+  const confirmation = byId("schedule-lifecycle-status-export-summary");
+  const file = fileInput?.files?.[0];
+  if (!file) {
+    if (confirmation) confirmation.textContent = "Choose schedule-lifecycle-status.json first.";
+    return;
+  }
+
+  try {
+    const imported = normalizeScheduleLifecycleStatusPayload(JSON.parse(await file.text()));
+    if (!imported.length) {
+      if (confirmation) confirmation.textContent = "No customer-safe Webportal-ready schedule lifecycle status records found.";
+      return;
+    }
+
+    const byStatusId = new Map(scheduleLifecycleStatusExportState.records.map((item) => [item.statusId, item]));
+    for (const item of imported) byStatusId.set(item.statusId, item);
+    scheduleLifecycleStatusExportState.records = Array.from(byStatusId.values());
+    saveScheduleLifecycleStatusExports(scheduleLifecycleStatusExportState.records);
+    renderAll();
+  } catch {
+    if (confirmation) confirmation.textContent = "Lifecycle status export could not be read.";
+  }
+}
+
+function handleClearScheduleLifecycleStatusExports() {
+  scheduleLifecycleStatusExportState.records = [];
+  saveScheduleLifecycleStatusExports(scheduleLifecycleStatusExportState.records);
+  const fileInput = byId("schedule-lifecycle-status-file");
+  if (fileInput) fileInput.value = "";
+  renderAll();
+}
+
+function handleScheduleLifecycleAction(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = new FormData(form);
+  const action = createScheduleLifecycleActionRecord(data);
+
+  state.ledger.scheduleLifecycleActions ||= [];
+  state.ledger.scheduleLifecycleActions.unshift(action);
+  addTimeline("Schedule lifecycle action requested", action.customerSafeStatus, action.status);
+  appendReceipt(`${action.actionKind} action queued locally for ${action.requestId}; provider calls remain disabled.`, action.status);
+  saveLedger(state.ledger);
+
+  const confirmation = byId("schedule-lifecycle-confirmation");
+  if (confirmation) confirmation.textContent = action.customerSafeStatus;
+  form.reset();
   renderAll();
 }
 
@@ -1324,11 +1487,20 @@ function bindControls() {
   const requestForm = byId("schedule-request-form");
   if (requestForm) requestForm.addEventListener("submit", handleScheduleRequest);
 
+  const lifecycleActionForm = byId("schedule-lifecycle-action-form");
+  if (lifecycleActionForm) lifecycleActionForm.addEventListener("submit", handleScheduleLifecycleAction);
+
   const statusImportForm = byId("customer-schedule-status-import-form");
   if (statusImportForm) statusImportForm.addEventListener("submit", handleCustomerScheduleStatusImport);
 
   const clearStatusExportButton = byId("clear-customer-schedule-status-export");
   if (clearStatusExportButton) clearStatusExportButton.addEventListener("click", handleClearCustomerScheduleStatusExports);
+
+  const lifecycleStatusImportForm = byId("schedule-lifecycle-status-import-form");
+  if (lifecycleStatusImportForm) lifecycleStatusImportForm.addEventListener("submit", handleScheduleLifecycleStatusImport);
+
+  const clearLifecycleStatusExportButton = byId("clear-schedule-lifecycle-status-export");
+  if (clearLifecycleStatusExportButton) clearLifecycleStatusExportButton.addEventListener("click", handleClearScheduleLifecycleStatusExports);
 
   const resetButton = byId("reset-schedule-ledger");
   if (resetButton) {

@@ -204,3 +204,20 @@ only where the host, UI framework, or platform integration makes it necessary.
 - The Webportal displays the customer-safe schedule status message, next action,
   request label, and status only. Native execution ids, operator controls,
   provider controls, and MONITOR controls stay outside the customer portal.
+
+## Local schedule lifecycle action slice
+
+- The EPOCH Webportal can queue customer-safe schedule lifecycle actions such
+  as reschedule, cancel, confirm, or preferred-window change requests without
+  activating live provider calls.
+- `EpochScheduleLifecycleActionStore` persists App-owned lifecycle intent in
+  `schedule-lifecycle-actions.json`, separate from MONITOR development logs.
+- `EpochScheduleLifecycleReceiptStore` links a lifecycle action to the local
+  request-to-native-command receipt and native execution history in
+  `schedule-lifecycle-receipts.json`.
+- `EpochScheduleLifecycleStatusStore` exports customer-safe lifecycle status in
+  `schedule-lifecycle-status.json` for the Webportal reader.
+- The Webportal lifecycle status reader accepts only App-exported records that
+  are customer-safe, Webportal-ready, provider-off, and MONITOR-off. It renders
+  schedule change status only and does not expose operator controls, native
+  execution internals, or MONITOR workflow state.

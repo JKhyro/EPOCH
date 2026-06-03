@@ -47,6 +47,34 @@
       <p id="request-confirmation" class="confirmation" role="status"></p>
     </section>
 
+    <section class="panel request-panel">
+      <div class="section-title">
+        <p class="eyebrow">Lifecycle</p>
+        <h2>Schedule Lifecycle Request</h2>
+      </div>
+      <form id="schedule-lifecycle-action-form" class="surface-form">
+        <label>
+          Schedule request id
+          <input id="schedule-lifecycle-request-id" name="requestId" value="EPOCH-REQ-001" required />
+        </label>
+        <label>
+          Action
+          <select id="schedule-lifecycle-action-select" name="actionKind"></select>
+        </label>
+        <label>
+          New or confirmed window
+          <input id="schedule-lifecycle-window" name="lifecycleWindow" placeholder="New preferred time, cancellation context, or confirmation note" required />
+        </label>
+        <label>
+          Customer-safe reason
+          <input id="schedule-lifecycle-reason" name="reason" placeholder="Short reason for the schedule change" required />
+        </label>
+        <button type="submit">Queue Lifecycle Action</button>
+      </form>
+      <p id="schedule-lifecycle-confirmation" class="confirmation" role="status"></p>
+      <div id="portal-schedule-lifecycle-actions" class="item-stack compact-list"></div>
+    </section>
+
     <section class="panel">
       <div class="section-title">
         <p class="eyebrow">Status</p>
@@ -72,6 +100,25 @@
       </form>
       <p id="customer-schedule-status-export-summary" class="confirmation" role="status"></p>
       <div id="portal-customer-schedule-status-export" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">App Export</p>
+        <h2>Schedule Lifecycle Status Export</h2>
+      </div>
+      <form id="schedule-lifecycle-status-import-form" class="surface-form compact-form">
+        <label>
+          Lifecycle status file
+          <input id="schedule-lifecycle-status-file" name="lifecycleStatusExport" type="file" accept="application/json,.json" />
+        </label>
+        <div class="inline-actions">
+          <button type="submit">Load Lifecycle Status</button>
+          <button id="clear-schedule-lifecycle-status-export" type="button">Clear</button>
+        </div>
+      </form>
+      <p id="schedule-lifecycle-status-export-summary" class="confirmation" role="status"></p>
+      <div id="portal-schedule-lifecycle-status-export" class="item-stack compact-list"></div>
     </section>
 
     <section class="panel">
@@ -329,6 +376,6 @@
     </section>
   </main>
 
-  <script type="module" src="../shared/surface.js?v=epoch-webportal-status-reader"></script>
+  <script type="module" src="../shared/surface.js?v=epoch-schedule-lifecycle-actions"></script>
 </body>
 </html>

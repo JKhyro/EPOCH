@@ -8,6 +8,13 @@ export const scheduleNeedOptions = [
   { value: "reminder-only", label: "Reminder only", entryType: "reminder" }
 ];
 
+export const scheduleLifecycleActionOptions = [
+  { value: "reschedule", label: "Request a new time", status: "reschedule-requested" },
+  { value: "cancel", label: "Cancel a scheduled time", status: "cancel-requested" },
+  { value: "confirm", label: "Confirm the current time", status: "confirmation-requested" },
+  { value: "change-window", label: "Change preferred window", status: "window-change-requested" }
+];
+
 export const initialEpochLedger = {
   version: 5,
   generatedAt: "2026-06-04T02:20:00+09:00",
@@ -921,6 +928,22 @@ export const initialEpochLedger = {
     { id: "EPOCH-PROVIDER-STATUS-002", label: "Customer-safe status check", state: "passed", detail: "Portal text does not expose internal provider controls." },
     { id: "EPOCH-PROVIDER-STATUS-003", label: "Operator approval", state: "waiting", detail: "No live provider toggle until an explicit later approval." }
   ],
+  scheduleLifecycleActions: [
+    {
+      id: "EPOCH-LIFECYCLE-ACTION-001",
+      requestId: "EPOCH-REQ-001",
+      actionKind: "reschedule",
+      requestedWindow: "Next weekday evening JST",
+      reason: "Customer needs a later review window.",
+      status: "reschedule-requested",
+      customerVisible: true,
+      providerCallsEnabled: false,
+      monitorWorkflowExposed: false,
+      appOwnedLifecycleState: true,
+      customerSafeStatus: "Reschedule request is queued for EPOCH App review; external calendar provider calls remain disabled.",
+      createdAt: "2026-06-03T11:20:00+09:00"
+    }
+  ],
   portalTimeline: [
     { label: "Request received", detail: "Timing request is accepted into EPOCH scheduling.", state: "complete" },
     { label: "Availability check", detail: "Operator reviews matching windows and waitlist priority.", state: "in-progress" },
@@ -962,6 +985,7 @@ export const reminderExecutions = initialEpochLedger.reminderExecutions;
 export const deadlineExecutions = initialEpochLedger.deadlineExecutions;
 export const deadlineEscalations = initialEpochLedger.deadlineEscalations;
 export const reminderDeadlineReceipts = initialEpochLedger.reminderDeadlineReceipts;
+export const scheduleLifecycleActions = initialEpochLedger.scheduleLifecycleActions;
 export const portalTimeline = initialEpochLedger.portalTimeline;
 
 export function makeId(prefix) {
@@ -971,6 +995,10 @@ export function makeId(prefix) {
 
 export function scheduleNeedLabel(value) {
   return scheduleNeedOptions.find((need) => need.value === value)?.label || value;
+}
+
+export function scheduleLifecycleActionLabel(value) {
+  return scheduleLifecycleActionOptions.find((action) => action.value === value)?.label || value;
 }
 
 function providerGatePrerequisitesPassed(gate) {
@@ -1037,6 +1065,29 @@ export function createScheduleRequestRecord(form) {
     sandboxOnly: true,
     providerGoLiveRequested: false,
     customerSafeStatus: "Schedule request received; availability is being checked.",
+    createdAt
+  };
+}
+
+export function createScheduleLifecycleActionRecord(form) {
+  const requestId = String(form.get("requestId") || "").trim() || "EPOCH-REQ-001";
+  const actionKind = String(form.get("actionKind") || "reschedule");
+  const requestedWindow = String(form.get("lifecycleWindow") || "").trim() || "Window to be confirmed by EPOCH";
+  const reason = String(form.get("reason") || "").trim() || "Customer requested a schedule lifecycle change.";
+  const createdAt = new Date().toISOString();
+  const status = scheduleLifecycleActionOptions.find((action) => action.value === actionKind)?.status || "lifecycle-action-requested";
+  return {
+    id: makeId("EPOCH-LIFECYCLE-ACTION"),
+    requestId,
+    actionKind,
+    requestedWindow,
+    reason,
+    status,
+    customerVisible: true,
+    providerCallsEnabled: false,
+    monitorWorkflowExposed: false,
+    appOwnedLifecycleState: true,
+    customerSafeStatus: `${scheduleLifecycleActionLabel(actionKind)} is queued for EPOCH App review. External calendar provider calls remain disabled.`,
     createdAt
   };
 }

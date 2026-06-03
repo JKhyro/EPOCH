@@ -21,7 +21,16 @@ public sealed class MainWindowViewModel
         EpochScheduleOperationsBoardSnapshot operationsBoard,
         EpochCustomerScheduleStatusRecord? statusFeedback,
         IReadOnlyList<EpochCustomerScheduleStatusRecord> statusFeedbackRecords,
-        string statusFeedbackPath)
+        string statusFeedbackPath,
+        EpochScheduleLifecycleAction? lifecycleAction,
+        IReadOnlyList<EpochScheduleLifecycleAction> lifecycleActions,
+        string lifecycleActionPath,
+        EpochScheduleLifecycleReceipt? lifecycleReceipt,
+        IReadOnlyList<EpochScheduleLifecycleReceipt> lifecycleReceipts,
+        string lifecycleReceiptPath,
+        EpochScheduleLifecycleStatusRecord? lifecycleStatus,
+        IReadOnlyList<EpochScheduleLifecycleStatusRecord> lifecycleStatuses,
+        string lifecycleStatusPath)
     {
         ProductName = snapshot.ProductName;
         CoreStatus = snapshot.CoreStatus;
@@ -93,6 +102,27 @@ public sealed class MainWindowViewModel
         CustomerStatusFeedbackMessage = statusFeedback is not null
             ? statusFeedback.CustomerSafeMessage
             : "The customer-safe Webportal status loop is waiting for a linked request and native execution.";
+        ScheduleLifecycleActionCount = lifecycleActions.Count;
+        ScheduleLifecycleActionSummary = $"{lifecycleActions.Count} customer-safe schedule lifecycle action(s) in the EPOCH App queue.";
+        ScheduleLifecycleActionLocation = lifecycleActionPath;
+        ScheduleLifecycleActionStatus = lifecycleAction is not null
+            ? $"Latest lifecycle action {lifecycleAction.ActionId}: {lifecycleAction.ActionKind} for {lifecycleAction.RequestId}; provider calls enabled: {lifecycleAction.ProviderCallsEnabled.ToString().ToLowerInvariant()}."
+            : "No Webportal schedule lifecycle action was imported into the local EPOCH App queue.";
+        ScheduleLifecycleReceiptCount = lifecycleReceipts.Count;
+        ScheduleLifecycleReceiptSummary = $"{lifecycleReceipts.Count} schedule lifecycle receipt(s) linked to native command evidence.";
+        ScheduleLifecycleReceiptLocation = lifecycleReceiptPath;
+        ScheduleLifecycleReceiptStatus = lifecycleReceipt is not null
+            ? $"Latest lifecycle receipt {lifecycleReceipt.ReceiptId}: {lifecycleReceipt.ActionKind} -> {lifecycleReceipt.Status}; native ready: {lifecycleReceipt.NativeExecutionReady.ToString().ToLowerInvariant()}."
+            : "No schedule lifecycle action has been linked to a native scheduling command receipt in this shell load.";
+        ScheduleLifecycleStatusCount = lifecycleStatuses.Count;
+        ScheduleLifecycleStatusSummary = $"{lifecycleStatuses.Count} customer-safe schedule lifecycle status export(s) in the EPOCH App ledger.";
+        ScheduleLifecycleStatusLocation = lifecycleStatusPath;
+        ScheduleLifecycleStatusStatus = lifecycleStatus is not null
+            ? $"Latest lifecycle status {lifecycleStatus.StatusId}: {lifecycleStatus.Status}; Webportal export ready: {lifecycleStatus.WebportalExportReady.ToString().ToLowerInvariant()}."
+            : "No customer-safe schedule lifecycle status feedback was exported in this shell load.";
+        ScheduleLifecycleStatusMessage = lifecycleStatus is not null
+            ? lifecycleStatus.CustomerSafeMessage
+            : "The schedule lifecycle Webportal status loop is waiting for a linked lifecycle action and native execution.";
     }
 
     public string ProductName { get; }
@@ -138,12 +168,28 @@ public sealed class MainWindowViewModel
     public string CustomerStatusFeedbackLocation { get; }
     public string CustomerStatusFeedbackStatus { get; }
     public string CustomerStatusFeedbackMessage { get; }
+    public int ScheduleLifecycleActionCount { get; }
+    public string ScheduleLifecycleActionSummary { get; }
+    public string ScheduleLifecycleActionLocation { get; }
+    public string ScheduleLifecycleActionStatus { get; }
+    public int ScheduleLifecycleReceiptCount { get; }
+    public string ScheduleLifecycleReceiptSummary { get; }
+    public string ScheduleLifecycleReceiptLocation { get; }
+    public string ScheduleLifecycleReceiptStatus { get; }
+    public int ScheduleLifecycleStatusCount { get; }
+    public string ScheduleLifecycleStatusSummary { get; }
+    public string ScheduleLifecycleStatusLocation { get; }
+    public string ScheduleLifecycleStatusStatus { get; }
+    public string ScheduleLifecycleStatusMessage { get; }
 
     public static MainWindowViewModel Load()
     {
         EpochWebportalScheduleRequest? inboxRequest = null;
         EpochScheduleRequestInboxStore.TryEnsureDefaultWebportalRequest(out inboxRequest);
         IReadOnlyList<EpochWebportalScheduleRequest> requestInbox = EpochScheduleRequestInboxStore.Load();
+        EpochScheduleLifecycleAction? lifecycleAction = null;
+        EpochScheduleLifecycleActionStore.TryEnsureDefaultLifecycleAction(out lifecycleAction);
+        IReadOnlyList<EpochScheduleLifecycleAction> lifecycleActions = EpochScheduleLifecycleActionStore.Load();
 
         EpochScheduleExecutionReceipt execution = ExecuteNativeOrFallback("confirm-local-booking");
         EpochScheduleExecutionHistoryEntry? historyEntry = null;
@@ -172,6 +218,20 @@ public sealed class MainWindowViewModel
 
         IReadOnlyList<EpochRequestScheduleCommandReceipt> requestCommandReceipts =
             EpochRequestScheduleCommandReceiptStore.Load();
+        EpochScheduleLifecycleReceipt? lifecycleReceipt = null;
+        if (lifecycleAction is not null &&
+            requestCommandReceipt is not null &&
+            historyEntry is not null)
+        {
+            EpochScheduleLifecycleReceiptStore.TryAppend(
+                lifecycleAction,
+                requestCommandReceipt,
+                historyEntry,
+                out lifecycleReceipt);
+        }
+
+        IReadOnlyList<EpochScheduleLifecycleReceipt> lifecycleReceipts =
+            EpochScheduleLifecycleReceiptStore.Load();
         EpochScheduleOperationsBoardSnapshot operationsBoard =
             EpochScheduleOperationsBoardSnapshot.FromLedgers(
                 requestInbox,
@@ -195,6 +255,17 @@ public sealed class MainWindowViewModel
 
         IReadOnlyList<EpochCustomerScheduleStatusRecord> statusFeedbackRecords =
             EpochCustomerScheduleStatusStore.Load();
+        EpochScheduleLifecycleStatusRecord? lifecycleStatus = null;
+        if (lifecycleAction is not null && lifecycleReceipt is not null)
+        {
+            EpochScheduleLifecycleStatusStore.TryAppend(
+                lifecycleAction,
+                lifecycleReceipt,
+                out lifecycleStatus);
+        }
+
+        IReadOnlyList<EpochScheduleLifecycleStatusRecord> lifecycleStatuses =
+            EpochScheduleLifecycleStatusStore.Load();
 
         return new MainWindowViewModel(
             EpochNative.LoadSnapshotOrFallback(),
@@ -212,7 +283,16 @@ public sealed class MainWindowViewModel
             operationsBoard,
             statusFeedback,
             statusFeedbackRecords,
-            EpochCustomerScheduleStatusStore.StatusPath);
+            EpochCustomerScheduleStatusStore.StatusPath,
+            lifecycleAction,
+            lifecycleActions,
+            EpochScheduleLifecycleActionStore.ActionPath,
+            lifecycleReceipt,
+            lifecycleReceipts,
+            EpochScheduleLifecycleReceiptStore.ReceiptPath,
+            lifecycleStatus,
+            lifecycleStatuses,
+            EpochScheduleLifecycleStatusStore.StatusPath);
     }
 
     private static EpochScheduleExecutionReceipt ExecuteNativeOrFallback(string intentKind)

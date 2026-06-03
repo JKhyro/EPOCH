@@ -41,6 +41,21 @@
                 <TextBlock Text="{Binding CustomerStatusFeedbackMessage}" TextWrapping="Wrap" Foreground="#526071" />
               </StackPanel>
             </Border>
+            <Border Padding="14" CornerRadius="8" Background="#fffaf2" BorderBrush="#ead8b4" BorderThickness="1">
+              <StackPanel Spacing="6">
+                <TextBlock Text="Schedule Lifecycle Actions" FontWeight="SemiBold" Foreground="#172033" />
+                <TextBlock Text="{Binding ScheduleLifecycleActionSummary}" TextWrapping="Wrap" Foreground="#526071" />
+                <TextBlock Text="{Binding ScheduleLifecycleActionStatus}" TextWrapping="Wrap" Foreground="#526071" />
+                <TextBlock Text="{Binding ScheduleLifecycleActionLocation}" TextWrapping="Wrap" FontSize="11" Foreground="#687588" />
+                <TextBlock Text="{Binding ScheduleLifecycleReceiptSummary}" TextWrapping="Wrap" Foreground="#526071" />
+                <TextBlock Text="{Binding ScheduleLifecycleReceiptStatus}" TextWrapping="Wrap" Foreground="#526071" />
+                <TextBlock Text="{Binding ScheduleLifecycleReceiptLocation}" TextWrapping="Wrap" FontSize="11" Foreground="#687588" />
+                <TextBlock Text="{Binding ScheduleLifecycleStatusSummary}" TextWrapping="Wrap" Foreground="#526071" />
+                <TextBlock Text="{Binding ScheduleLifecycleStatusStatus}" TextWrapping="Wrap" Foreground="#526071" />
+                <TextBlock Text="{Binding ScheduleLifecycleStatusMessage}" TextWrapping="Wrap" Foreground="#526071" />
+                <TextBlock Text="{Binding ScheduleLifecycleStatusLocation}" TextWrapping="Wrap" FontSize="11" Foreground="#687588" />
+              </StackPanel>
+            </Border>
             <Grid ColumnDefinitions="*,*,*" ColumnSpacing="14">
               <StackPanel Spacing="6">
                 <TextBlock Text="Queue State" FontWeight="SemiBold" Foreground="#172033" />

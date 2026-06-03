@@ -45,6 +45,18 @@ internal static class EpochShellSmoke
                 EpochCustomerScheduleStatusStore.Append(inboxRequest, requestCommandReceipt, historyEntry);
             IReadOnlyList<EpochCustomerScheduleStatusRecord> customerStatuses =
                 EpochCustomerScheduleStatusStore.Load();
+            EpochScheduleLifecycleAction lifecycleAction =
+                EpochScheduleLifecycleActionStore.EnsureDefaultLifecycleAction();
+            IReadOnlyList<EpochScheduleLifecycleAction> lifecycleActions =
+                EpochScheduleLifecycleActionStore.Load();
+            EpochScheduleLifecycleReceipt lifecycleReceipt =
+                EpochScheduleLifecycleReceiptStore.Append(lifecycleAction, requestCommandReceipt, historyEntry);
+            IReadOnlyList<EpochScheduleLifecycleReceipt> lifecycleReceipts =
+                EpochScheduleLifecycleReceiptStore.Load();
+            EpochScheduleLifecycleStatusRecord lifecycleStatus =
+                EpochScheduleLifecycleStatusStore.Append(lifecycleAction, lifecycleReceipt);
+            IReadOnlyList<EpochScheduleLifecycleStatusRecord> lifecycleStatuses =
+                EpochScheduleLifecycleStatusStore.Load();
 
             if (snapshot.ProductName != "EPOCH" ||
                 snapshot.CoreStatus != "native-core-ready" ||
@@ -101,7 +113,32 @@ internal static class EpochShellSmoke
                 customerStatuses[0].ProviderCallsEnabled ||
                 customerStatuses[0].MonitorWorkflowExposed ||
                 !customerStatuses[0].CustomerSafeMessage.Contains("External calendar provider calls remain disabled", StringComparison.Ordinal) ||
-                !File.Exists(EpochCustomerScheduleStatusStore.StatusPath))
+                !File.Exists(EpochCustomerScheduleStatusStore.StatusPath) ||
+                lifecycleActions.Count != 1 ||
+                lifecycleActions[0].ActionId != lifecycleAction.ActionId ||
+                !lifecycleActions[0].CustomerSafe ||
+                lifecycleActions[0].ProviderCallsEnabled ||
+                lifecycleActions[0].MonitorWorkflowExposed ||
+                !lifecycleActions[0].AppOwnedLifecycleState ||
+                !File.Exists(EpochScheduleLifecycleActionStore.ActionPath) ||
+                lifecycleReceipts.Count != 1 ||
+                lifecycleReceipts[0].ReceiptId != lifecycleReceipt.ReceiptId ||
+                lifecycleReceipts[0].ActionId != lifecycleAction.ActionId ||
+                lifecycleReceipts[0].RequestCommandReceiptId != requestCommandReceipt.ReceiptId ||
+                !lifecycleReceipts[0].CustomerSafe ||
+                lifecycleReceipts[0].ProviderCallsEnabled ||
+                lifecycleReceipts[0].MonitorWorkflowExposed ||
+                !lifecycleReceipts[0].NativeExecutionReady ||
+                !File.Exists(EpochScheduleLifecycleReceiptStore.ReceiptPath) ||
+                lifecycleStatuses.Count != 1 ||
+                lifecycleStatuses[0].StatusId != lifecycleStatus.StatusId ||
+                lifecycleStatuses[0].ActionId != lifecycleAction.ActionId ||
+                !lifecycleStatuses[0].CustomerSafe ||
+                !lifecycleStatuses[0].WebportalExportReady ||
+                lifecycleStatuses[0].ProviderCallsEnabled ||
+                lifecycleStatuses[0].MonitorWorkflowExposed ||
+                !lifecycleStatuses[0].CustomerSafeMessage.Contains("External calendar provider calls remain disabled", StringComparison.Ordinal) ||
+                !File.Exists(EpochScheduleLifecycleStatusStore.StatusPath))
             {
                 return 2;
             }

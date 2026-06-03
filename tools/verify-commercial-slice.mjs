@@ -41,6 +41,12 @@ const appRequestCommandStore = read("../src/Epoch.App/Services/EpochRequestSched
 const appOperationsBoard = read("../src/Epoch.App/Models/EpochScheduleOperationsBoardSnapshot.cs");
 const appCustomerStatus = read("../src/Epoch.App/Models/EpochCustomerScheduleStatusRecord.cs");
 const appCustomerStatusStore = read("../src/Epoch.App/Services/EpochCustomerScheduleStatusStore.cs");
+const appLifecycleAction = read("../src/Epoch.App/Models/EpochScheduleLifecycleAction.cs");
+const appLifecycleReceipt = read("../src/Epoch.App/Models/EpochScheduleLifecycleReceipt.cs");
+const appLifecycleStatus = read("../src/Epoch.App/Models/EpochScheduleLifecycleStatusRecord.cs");
+const appLifecycleActionStore = read("../src/Epoch.App/Services/EpochScheduleLifecycleActionStore.cs");
+const appLifecycleReceiptStore = read("../src/Epoch.App/Services/EpochScheduleLifecycleReceiptStore.cs");
+const appLifecycleStatusStore = read("../src/Epoch.App/Services/EpochScheduleLifecycleStatusStore.cs");
 const {
   createAvailabilityConflictDecisionForHandoff,
   createAvailabilityCapacityReceiptForPromotion,
@@ -61,6 +67,7 @@ const {
   createReminderExecutionForRule,
   createScheduleEntryForRequest,
   createScheduleRequestRecord,
+  createScheduleLifecycleActionRecord,
   createScheduleRequestAcceptanceForRequest,
   createScheduleStatusEventForConflict,
   createScheduleStatusEventForBooking,
@@ -72,6 +79,7 @@ const {
   createTimingReturnPayloadForDecision,
   createTimingReturnReceiptForPayload,
   initialEpochLedger,
+  scheduleLifecycleActionLabel,
   providerGateBlocksLiveCalls,
   providerGateReadyForToggle,
   revisedRulepackBlocksConversion,
@@ -154,11 +162,19 @@ for (const phrase of [
 for (const phrase of [
   "Schedule Request And Status Portal",
   "Ask For A Time",
+  "Schedule Lifecycle Request",
   "Customer-Safe Timeline",
   "Schedule Status Export",
+  "Schedule Lifecycle Status Export",
   "customer-schedule-status-import-form",
   "customer-schedule-status-file",
   "portal-customer-schedule-status-export",
+  "schedule-lifecycle-action-form",
+  "schedule-lifecycle-action-select",
+  "portal-schedule-lifecycle-actions",
+  "schedule-lifecycle-status-import-form",
+  "schedule-lifecycle-status-file",
+  "portal-schedule-lifecycle-status-export",
   "Next Open Windows",
   "Request Acceptance Status",
   "Timing Handoff Status",
@@ -208,7 +224,7 @@ for (const path of [
   if (!root.includes(path)) fail(`root directory missing route ${path}`);
 }
 
-for (const phrase of ["epochSchedule", "availabilityWindows", "availabilityCapacitySnapshots", "availabilityWaitlistEntries", "availabilityHoldReleases", "availabilityPromotionCandidates", "availabilityCapacityReceipts", "bookingOptimizationRuns", "bookingRecommendationCandidates", "bookingOverloadWarnings", "bookingRecommendationReceipts", "deadlineItems", "reminderExecutions", "deadlineExecutions", "deadlineEscalations", "reminderDeadlineReceipts", "calendarDisplayModes", "scheduleAuditRecords", "scheduleReceipts", "schedulerLogEntries", "calendarSearchQueries", "calendarSearchResults", "scheduleTemplates", "avaloniaShellReadiness", "revisedMonths", "portalTimeline"]) {
+for (const phrase of ["epochSchedule", "availabilityWindows", "availabilityCapacitySnapshots", "availabilityWaitlistEntries", "availabilityHoldReleases", "availabilityPromotionCandidates", "availabilityCapacityReceipts", "bookingOptimizationRuns", "bookingRecommendationCandidates", "bookingOverloadWarnings", "bookingRecommendationReceipts", "deadlineItems", "reminderExecutions", "deadlineExecutions", "deadlineEscalations", "reminderDeadlineReceipts", "calendarDisplayModes", "scheduleAuditRecords", "scheduleReceipts", "schedulerLogEntries", "calendarSearchQueries", "calendarSearchResults", "scheduleTemplates", "scheduleLifecycleActions", "avaloniaShellReadiness", "revisedMonths", "portalTimeline"]) {
   if (!data.includes(phrase)) fail(`EPOCH data missing ${phrase}`);
 }
 
@@ -262,7 +278,11 @@ for (const phrase of [
   "avaloniaShellReadiness",
   "providerReadinessGates",
   "providerStatusEvents",
+  "scheduleLifecycleActions",
+  "scheduleLifecycleActionOptions",
   "createScheduleRequestRecord",
+  "createScheduleLifecycleActionRecord",
+  "scheduleLifecycleActionLabel",
   "createScheduleEntryForRequest",
   "createTimingHandoffForRequest",
   "createAvailabilityConflictDecisionForHandoff",
@@ -379,6 +399,23 @@ for (const phrase of [
   "portal-customer-schedule-status-export",
   "handleCustomerScheduleStatusImport",
   "handleClearCustomerScheduleStatusExports",
+  "EPOCH_SCHEDULE_LIFECYCLE_STATUS_EXPORT_KEY",
+  "normalizeScheduleLifecycleStatusExport",
+  "normalizeScheduleLifecycleStatusPayload",
+  "loadScheduleLifecycleStatusExports",
+  "saveScheduleLifecycleStatusExports",
+  "scheduleLifecycleStatusExportState",
+  "schedule-lifecycle-status.json",
+  "schedule-lifecycle-action-form",
+  "schedule-lifecycle-action-select",
+  "portal-schedule-lifecycle-actions",
+  "schedule-lifecycle-status-import-form",
+  "schedule-lifecycle-status-file",
+  "schedule-lifecycle-status-export-summary",
+  "portal-schedule-lifecycle-status-export",
+  "handleScheduleLifecycleAction",
+  "handleScheduleLifecycleStatusImport",
+  "handleClearScheduleLifecycleStatusExports",
   "providerCallsEnabled !== true",
   "monitorWorkflowExposed !== true",
   "revised-rulepack-status",
@@ -564,6 +601,7 @@ for (const phrase of [
   "Execution History",
   "Schedule Operations Board",
   "Customer-Safe Status Feedback",
+  "Schedule Lifecycle Actions",
   "Queue State",
   "Command Link",
   "Safety And Ledgers",
@@ -582,6 +620,16 @@ for (const phrase of [
   "CustomerStatusFeedbackStatus",
   "CustomerStatusFeedbackMessage",
   "CustomerStatusFeedbackLocation",
+  "ScheduleLifecycleActionSummary",
+  "ScheduleLifecycleActionStatus",
+  "ScheduleLifecycleActionLocation",
+  "ScheduleLifecycleReceiptSummary",
+  "ScheduleLifecycleReceiptStatus",
+  "ScheduleLifecycleReceiptLocation",
+  "ScheduleLifecycleStatusSummary",
+  "ScheduleLifecycleStatusStatus",
+  "ScheduleLifecycleStatusMessage",
+  "ScheduleLifecycleStatusLocation",
   "CommandReadiness",
   "CommandReceiptStatus",
   "ExecutionSafetyStatus",
@@ -627,13 +675,26 @@ for (const phrase of [
   "EpochScheduleOperationsBoardSnapshot.FromLedgers",
   "EpochCustomerScheduleStatusStore.TryAppend",
   "EpochCustomerScheduleStatusStore.Load",
+  "EpochScheduleLifecycleActionStore.TryEnsureDefaultLifecycleAction",
+  "EpochScheduleLifecycleActionStore.Load",
+  "EpochScheduleLifecycleReceiptStore.TryAppend",
+  "EpochScheduleLifecycleReceiptStore.Load",
+  "EpochScheduleLifecycleStatusStore.TryAppend",
+  "EpochScheduleLifecycleStatusStore.Load",
   "OperationsBoardStatus",
   "OperationsBoardNextAction",
   "OperationsBoardQueueSummary",
   "OperationsBoardReadyForOperatorReview",
   "CustomerStatusFeedbackSummary",
   "CustomerStatusFeedbackStatus",
+  "ScheduleLifecycleActionSummary",
+  "ScheduleLifecycleReceiptSummary",
+  "ScheduleLifecycleStatusSummary",
+  "ScheduleLifecycleStatusLocation",
   "customer-safe schedule status export(s)",
+  "customer-safe schedule lifecycle action(s)",
+  "schedule lifecycle receipt(s)",
+  "customer-safe schedule lifecycle status export(s)",
   "Webportal export ready",
   "native scheduling command ready",
   "native execution receipt ready",
@@ -678,6 +739,48 @@ for (const phrase of [
   "Review the returned timing status"
 ]) {
   if (!appCustomerStatus.includes(phrase)) fail(`Avalonia customer status record missing ${phrase}`);
+}
+
+for (const phrase of [
+  "EpochScheduleLifecycleAction",
+  "FromLocalWebportalIntent",
+  "EPOCH.Webportal.ScheduleLifecycleAdapter",
+  "queued-for-app-review",
+  "CustomerSafe",
+  "ProviderCallsEnabled",
+  "MonitorWorkflowExposed",
+  "AppOwnedLifecycleState"
+]) {
+  if (!appLifecycleAction.includes(phrase)) fail(`Avalonia lifecycle action record missing ${phrase}`);
+}
+
+for (const phrase of [
+  "EpochScheduleLifecycleReceipt",
+  "FromLifecycleAndCommand",
+  "RequestCommandReceiptId",
+  "ExecutionHistoryId",
+  "TimingReturnId",
+  "schedule-lifecycle-receipt-linked",
+  "CustomerSafe",
+  "ProviderCallsEnabled",
+  "MonitorWorkflowExposed",
+  "NativeExecutionReady"
+]) {
+  if (!appLifecycleReceipt.includes(phrase)) fail(`Avalonia lifecycle receipt record missing ${phrase}`);
+}
+
+for (const phrase of [
+  "EpochScheduleLifecycleStatusRecord",
+  "FromLifecycleChain",
+  "EPOCH.App.ScheduleLifecycleStatusExport",
+  "local-schedule-lifecycle-ready",
+  "WebportalExportReady",
+  "ProviderCallsEnabled",
+  "MonitorWorkflowExposed",
+  "External calendar provider calls remain disabled",
+  "Review the customer-safe lifecycle update"
+]) {
+  if (!appLifecycleStatus.includes(phrase)) fail(`Avalonia lifecycle status record missing ${phrase}`);
 }
 
 for (const phrase of [
@@ -782,6 +885,51 @@ for (const phrase of [
 }
 
 for (const phrase of [
+  "schedule-lifecycle-actions.json",
+  "ActionPath",
+  "EnsureDefaultLifecycleAction",
+  "TryEnsureDefaultLifecycleAction",
+  "ArchiveInvalidActions",
+  "StateDirectoryEnvironmentVariable",
+  "Environment.SpecialFolder.LocalApplicationData",
+  "KHYRON",
+  "EPOCH",
+  "App"
+]) {
+  if (!appLifecycleActionStore.includes(phrase)) fail(`Avalonia lifecycle action store missing ${phrase}`);
+}
+
+for (const phrase of [
+  "schedule-lifecycle-receipts.json",
+  "ReceiptPath",
+  "Append",
+  "TryAppend",
+  "ArchiveInvalidReceipts",
+  "StateDirectoryEnvironmentVariable",
+  "Environment.SpecialFolder.LocalApplicationData",
+  "KHYRON",
+  "EPOCH",
+  "App"
+]) {
+  if (!appLifecycleReceiptStore.includes(phrase)) fail(`Avalonia lifecycle receipt store missing ${phrase}`);
+}
+
+for (const phrase of [
+  "schedule-lifecycle-status.json",
+  "StatusPath",
+  "Append",
+  "TryAppend",
+  "ArchiveInvalidStatuses",
+  "StateDirectoryEnvironmentVariable",
+  "Environment.SpecialFolder.LocalApplicationData",
+  "KHYRON",
+  "EPOCH",
+  "App"
+]) {
+  if (!appLifecycleStatusStore.includes(phrase)) fail(`Avalonia lifecycle status store missing ${phrase}`);
+}
+
+for (const phrase of [
   "StateDirectoryEnvironmentVariable",
   "EpochScheduleExecutionHistoryStore.Append",
   "EpochScheduleExecutionHistoryStore.Load",
@@ -802,6 +950,21 @@ for (const phrase of [
   "customerStatuses[0].WebportalExportReady",
   "External calendar provider calls remain disabled",
   "File.Exists(EpochCustomerScheduleStatusStore.StatusPath)",
+  "EpochScheduleLifecycleActionStore.EnsureDefaultLifecycleAction",
+  "EpochScheduleLifecycleActionStore.Load",
+  "EpochScheduleLifecycleReceiptStore.Append",
+  "EpochScheduleLifecycleReceiptStore.Load",
+  "EpochScheduleLifecycleStatusStore.Append",
+  "EpochScheduleLifecycleStatusStore.Load",
+  "lifecycleActions.Count != 1",
+  "lifecycleActions[0].AppOwnedLifecycleState",
+  "lifecycleReceipts.Count != 1",
+  "lifecycleReceipts[0].RequestCommandReceiptId",
+  "lifecycleStatuses.Count != 1",
+  "lifecycleStatuses[0].WebportalExportReady",
+  "File.Exists(EpochScheduleLifecycleActionStore.ActionPath)",
+  "File.Exists(EpochScheduleLifecycleReceiptStore.ReceiptPath)",
+  "File.Exists(EpochScheduleLifecycleStatusStore.StatusPath)",
   "File.Exists(EpochScheduleExecutionHistoryStore.HistoryPath)",
   "File.Exists(EpochScheduleRequestInboxStore.InboxPath)",
   "File.Exists(EpochRequestScheduleCommandReceiptStore.ReceiptPath)",
@@ -839,7 +1002,16 @@ for (const phrase of [
   "EpochCustomerScheduleStatusStore",
   "customer-schedule-status.json",
   "EpochCustomerScheduleStatusRecord",
-  "Customer-Safe Status Feedback"
+  "Customer-Safe Status Feedback",
+  "Local schedule lifecycle action slice",
+  "EpochScheduleLifecycleActionStore",
+  "schedule-lifecycle-actions.json",
+  "EpochScheduleLifecycleReceiptStore",
+  "schedule-lifecycle-receipts.json",
+  "EpochScheduleLifecycleStatusStore",
+  "schedule-lifecycle-status.json",
+  "Webportal lifecycle status reader",
+  "provider-off, and MONITOR-off"
 ]) {
   if (!runtime.includes(phrase)) fail(`runtime docs missing scheduling command phrase ${phrase}`);
 }
@@ -976,7 +1148,14 @@ const fakeForm = new Map([
   ["window", "Weekday evening Japan time"],
   ["timezone", "Asia/Tokyo"]
 ]);
+const fakeLifecycleForm = new Map([
+  ["requestId", "EPOCH-REQ-999"],
+  ["actionKind", "cancel"],
+  ["lifecycleWindow", "Customer no longer needs the appointment"],
+  ["reason", "Customer has a deadline conflict"]
+]);
 const request = createScheduleRequestRecord(fakeForm);
+const lifecycleAction = createScheduleLifecycleActionRecord(fakeLifecycleForm);
 const entry = createScheduleEntryForRequest(request);
 const openWindow = selectOpenAvailabilityWindow(initialEpochLedger.availabilityWindows);
 const handoff = createTimingHandoffForRequest(request, "WORKSHOP");
@@ -1054,6 +1233,19 @@ const gate = {
 
 if (request.requester !== "Schedule requester") fail("schedule request factory did not default blank requester");
 if (request.providerGoLiveRequested !== false || request.sandboxOnly !== true) fail("schedule request factory is not sandbox-only");
+if (lifecycleAction.requestId !== "EPOCH-REQ-999" ||
+    lifecycleAction.actionKind !== "cancel" ||
+    lifecycleAction.status !== "cancel-requested" ||
+    !lifecycleAction.customerVisible ||
+    lifecycleAction.providerCallsEnabled ||
+    lifecycleAction.monitorWorkflowExposed ||
+    !lifecycleAction.appOwnedLifecycleState ||
+    !lifecycleAction.customerSafeStatus.includes("External calendar provider calls remain disabled")) {
+  fail("schedule lifecycle action factory did not create safe App-owned lifecycle action");
+}
+if (scheduleLifecycleActionLabel("cancel") !== "Cancel a scheduled time") {
+  fail("schedule lifecycle label lookup did not expose the customer-safe action label");
+}
 if (!entry.title.includes("Submission review return")) fail("schedule entry factory did not map need label");
 if (!openWindow || openWindow.id !== "EPOCH-WIN-001") fail("open availability selector did not choose the first open window");
 if (handoff.sourceProduct !== "WORKSHOP" || handoff.providerGoLiveRequested || !handoff.customerSafeStatus.includes("availability is being resolved")) fail("timing handoff factory did not create safe local handoff");
@@ -1101,6 +1293,8 @@ if (!revisedRulepackBlocksConversion(rulepack)) fail("draft revised rulepack mus
 if (rulepack.monthCount !== 13 || rulepack.daysPerMonth !== 28 || !rulepack.yearOpeningDayOutsideMonths || !rulepack.leapDayOutsideMonthsAtYearEnd) fail("revised rulepack does not represent 13x28 owner structure");
 if (rulepack.springAnchorMethod !== "measured-average-first-spring-day" || !rulepack.springAnchorSource) fail("revised rulepack does not preserve physical spring-anchor method");
 if (!initialEpochLedger.scheduleAuditRecords.length || !initialEpochLedger.scheduleReceipts.length || !initialEpochLedger.schedulerLogEntries.length || !initialEpochLedger.calendarSearchResults.length || !initialEpochLedger.scheduleTemplates.length) fail("EPOCH product module records are not seeded in App/Webportal ledger");
+if (!initialEpochLedger.scheduleLifecycleActions.length) fail("EPOCH lifecycle action records are not seeded in App/Webportal ledger");
+if (initialEpochLedger.scheduleLifecycleActions.some((record) => record.providerCallsEnabled || record.monitorWorkflowExposed || !record.appOwnedLifecycleState || !record.customerVisible)) fail("schedule lifecycle action records must stay App-owned, customer-visible, provider-off, and MONITOR-off");
 if (initialEpochLedger.scheduleAuditRecords.some((record) => record.providerGoLiveRequested)) fail("schedule audit records must stay local-only");
 if (initialEpochLedger.schedulerLogEntries.some((entry) => entry.monitorRunnerLog)) fail("scheduler log product module must not be MONITOR runner log data");
 const customerVisibleMonitorCopy = Object.values(initialEpochLedger)
