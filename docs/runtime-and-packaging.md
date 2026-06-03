@@ -89,3 +89,17 @@ only where the host, UI framework, or platform integration makes it necessary.
   and service-delivery portals belong to WORKSHOP.
 - If logic must land in C# for host reasons, document the exception instead of
   letting it silently become the new default.
+
+## Current Avalonia shell proof
+
+- `native/epoch_app_bridge.h` exposes the first coarse C ABI for the desktop
+  host.
+- `native/epoch_app_bridge.c` returns a scheduling snapshot from Native C
+  validation, not from a parallel C# schedule model.
+- `src/Epoch.App` is the first Avalonia host. It renders Calendar Board,
+  Schedule Queue, Revised Calendar Lab, and Boundary Contract panels from the
+  native bridge snapshot.
+- `dotnet run --project src/Epoch.App/Epoch.App.csproj -- --smoke` is the
+  managed smoke check after the native bridge has been built into `build`.
+- Product modules stay in EPOCH App/Webportal. MONITOR may report readiness for
+  those modules, but it does not host the scheduling workflows.

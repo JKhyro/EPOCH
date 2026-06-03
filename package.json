@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "verify": "node tools/verify-commercial-slice.mjs"
+    "verify": "node tools/verify-commercial-slice.mjs",
+    "verify:app": "dotnet build src/Epoch.App/Epoch.App.csproj"
   }
 }

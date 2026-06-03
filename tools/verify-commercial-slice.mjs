@@ -21,6 +21,16 @@ const monitor = read("../docs/monitor-parity-health-controls.md");
 const providerGate = read("../docs/calendar-provider-go-live-readiness-gate.md");
 const header = read("../native/epoch_core.h");
 const source = read("../native/epoch_core.c");
+const appBridgeHeader = read("../native/epoch_app_bridge.h");
+const appBridgeSource = read("../native/epoch_app_bridge.c");
+const appBridgeSmoke = read("../native/epoch_app_bridge_smoke.c");
+const cmake = read("../CMakeLists.txt");
+const packageJson = read("../package.json");
+const appProject = read("../src/Epoch.App/Epoch.App.csproj");
+const appProgram = read("../src/Epoch.App/Program.cs");
+const appXaml = read("../src/Epoch.App/MainWindow.axaml");
+const appNative = read("../src/Epoch.App/Native/EpochNative.cs");
+const appViewModel = read("../src/Epoch.App/ViewModels/MainWindowViewModel.cs");
 const {
   createAvailabilityConflictDecisionForHandoff,
   createAvailabilityCapacityReceiptForPromotion,
@@ -392,11 +402,112 @@ for (const phrase of [
   "WORKSHOP owns revenue streams",
   "Native C is the default implementation language",
   "Avalonia is the desktop application shell",
+  "Current Avalonia shell proof",
+  "native/epoch_app_bridge.h",
+  "src/Epoch.App",
   "Compatibility aliases may redirect",
   "This issue does not approve live provider integrations"
 ]) {
   const combined = `${boundary}\n${runtime}\n${monitor}\n${providerGate}`;
   if (!combined.includes(phrase)) fail(`docs missing ${phrase}`);
+}
+
+for (const phrase of [
+  "add_library(epoch_app_bridge SHARED",
+  "native/epoch_app_bridge.c",
+  "epoch_app_bridge_smoke",
+  "add_test(NAME epoch_app_bridge_smoke"
+]) {
+  if (!cmake.includes(phrase)) fail(`CMake missing native app bridge phrase ${phrase}`);
+}
+
+for (const phrase of [
+  "EpochAppBridgeSnapshot",
+  "epoch_app_bridge_get_snapshot",
+  "epoch_app_bridge_core_ready",
+  "epoch_app_bridge_revised_conversion_ready",
+  "epoch_app_bridge_monitor_boundary_enforced"
+]) {
+  if (!appBridgeHeader.includes(phrase)) fail(`app bridge header missing ${phrase}`);
+  if (!appBridgeSource.includes(phrase)) fail(`app bridge source missing ${phrase}`);
+}
+
+for (const phrase of [
+  "EpochRevisedCalendarRulepack",
+  "epoch_revised_calendar_rulepack_represents_owner_structure",
+  "epoch_schedule_request_is_customer_safe",
+  "epoch_schedule_template_is_ready",
+  "epoch_scheduler_log_entry_is_product_log",
+  "codex/local-epoch-avalonia-shell-boundary",
+  "structure-ready-conversion-gated",
+  "MONITOR remains development/control only"
+]) {
+  if (!appBridgeSource.includes(phrase)) fail(`app bridge source missing native boundary phrase ${phrase}`);
+}
+
+for (const phrase of [
+  "epoch_app_bridge_get_snapshot(&snapshot) == 1",
+  "snapshot.revised_month_count == 13",
+  "snapshot.revised_days_per_month == 28",
+  "snapshot.revised_conversion_ready == 0",
+  "snapshot.monitor_boundary_enforced == 1"
+]) {
+  if (!appBridgeSmoke.includes(phrase)) fail(`app bridge smoke missing ${phrase}`);
+}
+
+for (const phrase of [
+  "Avalonia",
+  "Avalonia.Desktop",
+  "Avalonia.Themes.Fluent",
+  "Avalonia.Fonts.Inter",
+  "net8.0"
+]) {
+  if (!appProject.includes(phrase)) fail(`Avalonia project missing ${phrase}`);
+}
+
+for (const phrase of [
+  "\"verify:app\": \"dotnet build src/Epoch.App/Epoch.App.csproj\"",
+  "node tools/verify-commercial-slice.mjs"
+]) {
+  if (!packageJson.includes(phrase)) fail(`package script missing ${phrase}`);
+}
+
+for (const phrase of [
+  "--smoke",
+  "BuildAvaloniaApp",
+  "StartWithClassicDesktopLifetime"
+]) {
+  if (!appProgram.includes(phrase)) fail(`Avalonia program missing ${phrase}`);
+}
+
+for (const phrase of [
+  "Calendar Board",
+  "Schedule Queue",
+  "Revised Calendar Lab",
+  "Boundary Contract",
+  "MONITOR owns development/control status",
+  "WORKSHOP may request timing"
+]) {
+  if (!appXaml.includes(phrase)) fail(`Avalonia shell missing ${phrase}`);
+}
+
+for (const phrase of [
+  "NativeLibrary.SetDllImportResolver",
+  "DllImport",
+  "epoch_app_bridge_get_snapshot",
+  "epoch_app_bridge.dll",
+  "LoadSnapshotOrFallback",
+  "structure-ready-conversion-gated"
+]) {
+  if (!appNative.includes(phrase)) fail(`Avalonia native interop missing ${phrase}`);
+}
+
+for (const phrase of [
+  "EpochNative.LoadSnapshotOrFallback",
+  "audit, receipts, log, search, and templates",
+  "monitor boundary enforced"
+]) {
+  if (!appViewModel.includes(phrase)) fail(`Avalonia view model missing ${phrase}`);
 }
 
 for (const type of [

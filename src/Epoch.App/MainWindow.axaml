@@ -1,0 +1,59 @@
+<Window
+    x:Class="Epoch.App.MainWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="EPOCH App"
+    Width="1120"
+    Height="720"
+    MinWidth="860"
+    MinHeight="560"
+    Background="#f7f8fb">
+  <Grid RowDefinitions="Auto,*" Margin="28">
+    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,22">
+      <StackPanel Spacing="6">
+        <TextBlock Text="EPOCH App" FontSize="30" FontWeight="SemiBold" Foreground="#172033" />
+        <TextBlock Text="{Binding CustomerSafeStatus}" FontSize="14" Foreground="#4a5568" TextWrapping="Wrap" MaxWidth="760" />
+      </StackPanel>
+      <Border Grid.Column="1" Padding="14,8" CornerRadius="8" Background="#e8f7ef" BorderBrush="#98d8b7" BorderThickness="1">
+        <TextBlock Text="{Binding CoreStatus}" FontWeight="SemiBold" Foreground="#0f6844" />
+      </Border>
+    </Grid>
+
+    <Grid Grid.Row="1" ColumnDefinitions="1.1*,1.4*" RowDefinitions="*,*" ColumnSpacing="18" RowSpacing="18">
+      <Border Padding="20" CornerRadius="8" Background="White" BorderBrush="#dde3ed" BorderThickness="1">
+        <StackPanel Spacing="12">
+          <TextBlock Text="Calendar Board" FontSize="20" FontWeight="SemiBold" Foreground="#172033" />
+          <TextBlock Text="Native-backed schedule and availability status for the internal operator shell." TextWrapping="Wrap" Foreground="#526071" />
+          <TextBlock Text="{Binding CalendarSystem}" FontSize="26" FontWeight="SemiBold" Foreground="#294a80" />
+          <TextBlock Text="Gregorian, revised 13-month, and side-by-side modes belong here in the App. MONITOR reports readiness only." TextWrapping="Wrap" Foreground="#526071" />
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Column="1" Padding="20" CornerRadius="8" Background="White" BorderBrush="#dde3ed" BorderThickness="1">
+        <StackPanel Spacing="12">
+          <TextBlock Text="Schedule Queue" FontSize="20" FontWeight="SemiBold" Foreground="#172033" />
+          <TextBlock Text="{Binding ScheduleQueueStatus}" FontSize="26" FontWeight="SemiBold" Foreground="#7a4b12" />
+          <TextBlock Text="Requests, holds, booking confirmations, receipts, and customer-safe timing returns are read through the Native C bridge." TextWrapping="Wrap" Foreground="#526071" />
+          <TextBlock Text="{Binding ModuleSummary}" TextWrapping="Wrap" Foreground="#526071" />
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="1" Padding="20" CornerRadius="8" Background="White" BorderBrush="#dde3ed" BorderThickness="1">
+        <StackPanel Spacing="12">
+          <TextBlock Text="Revised Calendar Lab" FontSize="20" FontWeight="SemiBold" Foreground="#172033" />
+          <TextBlock Text="{Binding RevisedRulepackStatus}" FontSize="20" FontWeight="SemiBold" Foreground="#294a80" />
+          <TextBlock Text="{Binding RevisedCalendarShape}" TextWrapping="Wrap" Foreground="#526071" />
+          <TextBlock Text="Conversion remains gated until the owner-approved physical spring anchor and display rulepack are complete." TextWrapping="Wrap" Foreground="#526071" />
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="1" Grid.Column="1" Padding="20" CornerRadius="8" Background="White" BorderBrush="#dde3ed" BorderThickness="1">
+        <StackPanel Spacing="12">
+          <TextBlock Text="Boundary Contract" FontSize="20" FontWeight="SemiBold" Foreground="#172033" />
+          <TextBlock Text="{Binding BoundaryStatus}" FontSize="20" FontWeight="SemiBold" Foreground="#0f6844" />
+          <TextBlock Text="EPOCH App owns scheduling and calendar product workflows. EPOCH MONITOR owns development/control status. WORKSHOP may request timing, but it does not own calendar state." TextWrapping="Wrap" Foreground="#526071" />
+        </StackPanel>
+      </Border>
+    </Grid>
+  </Grid>
+</Window>

@@ -2,6 +2,8 @@ build/
 out/
 dist/
 node_modules/
+**/bin/
+**/obj/
 *.user
 *.suo
 *.vcxproj*
