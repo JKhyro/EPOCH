@@ -62,6 +62,15 @@ internal static class EpochShellSmoke
                 snapshot.CoreStatus != "native-core-ready" ||
                 snapshot.RevisedMonthCount != 13 ||
                 snapshot.RevisedDaysPerMonth != 28 ||
+                snapshot.RevisedCommonIntercalaryDays != 1 ||
+                snapshot.RevisedLeapIntercalaryDays != 2 ||
+                !snapshot.RevisedConstraintsCustomerSafe ||
+                snapshot.RevisedAnchorMethod != "measured-average-first-spring-day" ||
+                snapshot.RevisedAnchorSource != "owner-physical-measurement-required" ||
+                !snapshot.RevisedYearOpeningPolicy.Contains("outside the 13 months", StringComparison.Ordinal) ||
+                !snapshot.RevisedLeapDayPolicy.Contains("end of year", StringComparison.Ordinal) ||
+                !snapshot.RevisedIntercalaryPolicy.Contains("leap years have 2 days outside months", StringComparison.Ordinal) ||
+                !snapshot.RevisedConversionGateReason.Contains("owner-approved physical spring anchor", StringComparison.Ordinal) ||
                 snapshot.RevisedConversionReady ||
                 !snapshot.MonitorBoundaryEnforced ||
                 !command.NativeCommandReady ||

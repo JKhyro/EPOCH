@@ -39,7 +39,11 @@ public sealed class MainWindowViewModel
         ScheduleQueueStatus = snapshot.ScheduleQueueStatus;
         CustomerSafeStatus = snapshot.CustomerSafeStatus;
         ModuleSummary = $"{snapshot.ScheduleModuleCount} scheduling product modules are native-bridge visible: audit, receipts, log, search, and templates.";
-        RevisedCalendarShape = $"{snapshot.RevisedMonthCount} months x {snapshot.RevisedDaysPerMonth} days, with conversion ready: {snapshot.RevisedConversionReady.ToString().ToLowerInvariant()}.";
+        RevisedCalendarShape = $"{snapshot.RevisedMonthCount} months x {snapshot.RevisedDaysPerMonth} days, with {snapshot.RevisedCommonIntercalaryDays} common-year day and {snapshot.RevisedLeapIntercalaryDays} leap-year days outside the months.";
+        RevisedCalendarAnchor = $"{snapshot.RevisedAnchorMethod}; source: {snapshot.RevisedAnchorSource}.";
+        RevisedCalendarIntercalaryPolicy = snapshot.RevisedIntercalaryPolicy;
+        RevisedCalendarGateReason = $"{snapshot.RevisedConversionGateReason}; conversion ready: {snapshot.RevisedConversionReady.ToString().ToLowerInvariant()}; customer-safe constraints: {snapshot.RevisedConstraintsCustomerSafe.ToString().ToLowerInvariant()}.";
+        RevisedCalendarBoundaryPolicies = $"{snapshot.RevisedYearOpeningPolicy}; {snapshot.RevisedLeapDayPolicy}.";
         BoundaryStatus = snapshot.MonitorBoundaryEnforced ? "monitor boundary enforced" : "monitor boundary blocked";
         CommandSummary = $"{command.RequestId} -> {command.BookingConfirmationId} via {command.AvailabilityWindowId}";
         CommandReceiptStatus = $"Receipt {command.ReceiptId}; timing return status: {command.TimingReturnStatus}.";
@@ -133,6 +137,10 @@ public sealed class MainWindowViewModel
     public string CustomerSafeStatus { get; }
     public string ModuleSummary { get; }
     public string RevisedCalendarShape { get; }
+    public string RevisedCalendarAnchor { get; }
+    public string RevisedCalendarIntercalaryPolicy { get; }
+    public string RevisedCalendarGateReason { get; }
+    public string RevisedCalendarBoundaryPolicies { get; }
     public string BoundaryStatus { get; }
     public string CommandSummary { get; }
     public string CommandReceiptStatus { get; }

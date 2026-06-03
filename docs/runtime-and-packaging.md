@@ -104,6 +104,21 @@ only where the host, UI framework, or platform integration makes it necessary.
 - Product modules stay in EPOCH App/Webportal. MONITOR may report readiness for
   those modules, but it does not host the scheduling workflows.
 
+## Native-backed revised calendar constraint slice
+
+- `EpochRevisedCalendarConstraintProjection` is now produced by the Native C
+  core from the draft rulepack and passed through `EpochAppBridgeSnapshot`.
+- The projection exposes the executable structural constraints: 13 months,
+  28 days per month, the year-opening day outside the months, the leap-year
+  extra day outside the months at year end, 1 common-year intercalary day,
+  2 leap-year intercalary days, and the measured-average first-spring-day
+  anchor method/source.
+- The Avalonia Revised Calendar Lab renders the constraint projection and the
+  conversion gate reason. Conversion remains blocked until the owner-approved
+  physical spring anchor and display rulepack are complete.
+- The Webportal renders only customer-safe constraint status; it does not expose
+  MONITOR controls, live provider toggles, or independent conversion rules.
+
 ## Native-backed scheduling command slice
 
 - `epoch_app_bridge_preview_schedule_command` previews a validated native

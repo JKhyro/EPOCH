@@ -508,6 +508,25 @@ typedef struct EpochRevisedCalendarConversionResult {
     const char *customer_safe_status;
 } EpochRevisedCalendarConversionResult;
 
+typedef struct EpochRevisedCalendarConstraintProjection {
+    const char *id;
+    const char *rulepack_id;
+    const char *calendar_system;
+    const char *anchor_method;
+    const char *anchor_source;
+    const char *year_opening_day_policy;
+    const char *leap_day_policy;
+    const char *intercalary_policy;
+    const char *conversion_gate_reason;
+    int month_count;
+    int days_per_month;
+    int common_intercalary_day_count;
+    int leap_intercalary_day_count;
+    int structure_ready;
+    int conversion_ready;
+    int customer_safe;
+} EpochRevisedCalendarConstraintProjection;
+
 typedef struct EpochScheduleAuditRecord {
     const char *id;
     const char *schedule_entry_id;
@@ -654,6 +673,9 @@ int epoch_revised_calendar_rulepack_conversion_ready(const EpochRevisedCalendarR
 int epoch_revised_calendar_rulepack_blocks_conversion(const EpochRevisedCalendarRulepack *rulepack);
 int epoch_revised_calendar_rulepack_represents_owner_structure(const EpochRevisedCalendarRulepack *rulepack);
 int epoch_revised_calendar_conversion_result_is_gated(const EpochRevisedCalendarConversionResult *result);
+int epoch_revised_calendar_rulepack_project_constraints(
+    const EpochRevisedCalendarRulepack *rulepack,
+    EpochRevisedCalendarConstraintProjection *out_projection);
 int epoch_schedule_audit_record_is_customer_safe(const EpochScheduleAuditRecord *record);
 int epoch_schedule_receipt_is_customer_safe(const EpochScheduleReceipt *receipt);
 int epoch_scheduler_log_entry_is_product_log(const EpochSchedulerLogEntry *entry);

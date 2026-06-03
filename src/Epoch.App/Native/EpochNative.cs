@@ -24,11 +24,20 @@ internal static class EpochNative
             ReadString(snapshot.CoreStatus),
             ReadString(snapshot.CalendarSystem),
             ReadString(snapshot.RevisedRulepackStatus),
+            ReadString(snapshot.RevisedAnchorMethod),
+            ReadString(snapshot.RevisedAnchorSource),
+            ReadString(snapshot.RevisedYearOpeningPolicy),
+            ReadString(snapshot.RevisedLeapDayPolicy),
+            ReadString(snapshot.RevisedIntercalaryPolicy),
+            ReadString(snapshot.RevisedConversionGateReason),
             ReadString(snapshot.ScheduleQueueStatus),
             ReadString(snapshot.CustomerSafeStatus),
             snapshot.ScheduleModuleCount,
             snapshot.RevisedMonthCount,
             snapshot.RevisedDaysPerMonth,
+            snapshot.RevisedCommonIntercalaryDays,
+            snapshot.RevisedLeapIntercalaryDays,
+            snapshot.RevisedConstraintsCustomerSafe != 0,
             snapshot.RevisedConversionReady != 0,
             snapshot.MonitorBoundaryEnforced != 0);
     }
@@ -46,11 +55,20 @@ internal static class EpochNative
                 "native-bridge-pending",
                 "revised-13-month",
                 "structure-ready-conversion-gated",
+                "measured-average-first-spring-day",
+                "owner-physical-measurement-required",
+                "year-opening day outside the 13 months",
+                "leap day outside the 13 months at end of year",
+                "common years have 1 day outside months; leap years have 2 days outside months",
+                "owner-approved physical spring anchor and display rulepack required before conversion",
                 "queued",
                 $"Native C bridge is pending for this shell run: {ex.GetType().Name}",
                 5,
                 13,
                 28,
+                1,
+                2,
+                true,
                 false,
                 true);
         }
@@ -220,11 +238,20 @@ internal static class EpochNative
         public readonly IntPtr CoreStatus;
         public readonly IntPtr CalendarSystem;
         public readonly IntPtr RevisedRulepackStatus;
+        public readonly IntPtr RevisedAnchorMethod;
+        public readonly IntPtr RevisedAnchorSource;
+        public readonly IntPtr RevisedYearOpeningPolicy;
+        public readonly IntPtr RevisedLeapDayPolicy;
+        public readonly IntPtr RevisedIntercalaryPolicy;
+        public readonly IntPtr RevisedConversionGateReason;
         public readonly IntPtr ScheduleQueueStatus;
         public readonly IntPtr CustomerSafeStatus;
         public readonly int ScheduleModuleCount;
         public readonly int RevisedMonthCount;
         public readonly int RevisedDaysPerMonth;
+        public readonly int RevisedCommonIntercalaryDays;
+        public readonly int RevisedLeapIntercalaryDays;
+        public readonly int RevisedConstraintsCustomerSafe;
         public readonly int RevisedConversionReady;
         public readonly int MonitorBoundaryEnforced;
     }

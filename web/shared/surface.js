@@ -33,6 +33,7 @@ import {
   initialEpochLedger,
   providerGateBlocksLiveCalls,
   providerGateReadyForToggle,
+  projectRevisedRulepackConstraints,
   revisedRulepackBlocksConversion,
   revisedRulepackReady,
   revisedMonths,
@@ -42,7 +43,7 @@ import {
   scheduleNeedOptions,
   selectFullAvailabilityWindow,
   selectOpenAvailabilityWindow
-} from "./epoch-data.js?v=epoch-availability-optimization-recommendations";
+} from "./epoch-data.js?v=epoch-revised-calendar-constraints";
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
@@ -927,6 +928,7 @@ function renderRevisedCalendar() {
   }
 
   const rulepack = state.ledger.revisedCalendarRulepack || {};
+  const projection = projectRevisedRulepackConstraints(rulepack);
   const blocked = revisedRulepackBlocksConversion(rulepack);
   const missing = Array.isArray(rulepack.missingApprovals) ? rulepack.missingApprovals : [];
   renderStack("revised-rulepack-status", [rulepack], (item) => `
@@ -943,11 +945,34 @@ function renderRevisedCalendar() {
     </article>
   `);
 
+  renderStack("revised-constraint-projection", [projection], (item) => `
+    <article class="item-card">
+      <div>
+        <strong>${escapeHtml(item.calendarSystem)}</strong>
+        <p>${escapeHtml(item.yearOpeningDayPolicy)} ${escapeHtml(item.leapDayPolicy)}</p>
+        <small>${escapeHtml(item.anchorMethod)}; source: ${escapeHtml(item.anchorSource)}</small>
+        <small>${escapeHtml(item.intercalaryPolicy)}</small>
+      </div>
+      <div class="item-meta">
+        ${chip(item.customerSafe ? "customer-safe constraints" : "constraints blocked")}
+        <span>${escapeHtml(item.conversionGateReason)}</span>
+      </div>
+    </article>
+  `);
+
   renderStack("portal-revised-status", [rulepack], (item) => `
     <article class="mini-row">
       <strong>${escapeHtml(item.calendarSystem || "revised calendar")}</strong>
       <span>${blocked ? "conversion inactive" : "conversion ready"}</span>
       <small>${escapeHtml(item.customerSafeStatus || "")}</small>
+    </article>
+  `);
+
+  renderStack("portal-revised-constraints", [projection], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.monthCount)} x ${escapeHtml(item.daysPerMonth)}</strong>
+      <span>${escapeHtml(item.commonIntercalaryDayCount)} common / ${escapeHtml(item.leapIntercalaryDayCount)} leap day(s) outside months</span>
+      <small>${escapeHtml(item.conversionGateReason)}</small>
     </article>
   `);
 }

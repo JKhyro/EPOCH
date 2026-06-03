@@ -1049,6 +1049,42 @@ export function revisedRulepackBlocksConversion(rulepack) {
   return !revisedRulepackReady(rulepack);
 }
 
+export function projectRevisedRulepackConstraints(rulepack) {
+  const conversionReady = revisedRulepackReady(rulepack);
+  const structureReady = Boolean(
+    rulepack?.monthCount === 13 &&
+    rulepack?.daysPerMonth === 28 &&
+    rulepack?.yearOpeningDayOutsideMonths &&
+    rulepack?.leapDayOutsideMonthsAtYearEnd &&
+    rulepack?.springAnchorMethod &&
+    rulepack?.springAnchorSource
+  );
+  return {
+    id: "EPOCH-REVISED-CONSTRAINT-PROJECTION",
+    rulepackId: rulepack?.id || "rulepack-pending",
+    calendarSystem: rulepack?.calendarSystem || "revised-13-month",
+    anchorMethod: rulepack?.springAnchorMethod || "measured-average-first-spring-day",
+    anchorSource: rulepack?.springAnchorSource || "owner-physical-measurement-required",
+    yearOpeningDayPolicy: rulepack?.yearOpeningDayOutsideMonths
+      ? "Year-opening day sits outside the 13 months."
+      : "Year-opening day policy is not ready.",
+    leapDayPolicy: rulepack?.leapDayOutsideMonthsAtYearEnd
+      ? "Leap-year extra day sits outside the 13 months at the end of the year."
+      : "Leap-day policy is not ready.",
+    intercalaryPolicy: "Common years use 1 day outside months; leap years use 2 days outside months.",
+    commonIntercalaryDayCount: rulepack?.yearOpeningDayOutsideMonths ? 1 : 0,
+    leapIntercalaryDayCount: rulepack?.yearOpeningDayOutsideMonths && rulepack?.leapDayOutsideMonthsAtYearEnd ? 2 : 0,
+    monthCount: rulepack?.monthCount || 0,
+    daysPerMonth: rulepack?.daysPerMonth || 0,
+    structureReady,
+    conversionReady,
+    customerSafe: structureReady,
+    conversionGateReason: conversionReady
+      ? "Owner-approved rulepack allows conversion."
+      : "Owner-approved physical spring anchor and display rulepack are required before conversion."
+  };
+}
+
 export function createScheduleRequestRecord(form) {
   const requester = String(form.get("requester") || "").trim() || "Schedule requester";
   const need = String(form.get("need") || "diagnostic-call");

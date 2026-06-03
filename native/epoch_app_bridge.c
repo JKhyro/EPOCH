@@ -114,9 +114,11 @@ const char *epoch_app_bridge_core_status(void) {
 
 int epoch_app_bridge_core_ready(void) {
     EpochRevisedCalendarRulepack rulepack = epoch_app_bridge_draft_rulepack();
+    EpochRevisedCalendarConstraintProjection projection;
 
     return epoch_app_bridge_schedule_surface_ready() &&
            epoch_revised_calendar_rulepack_represents_owner_structure(&rulepack) &&
+           epoch_revised_calendar_rulepack_project_constraints(&rulepack, &projection) &&
            epoch_revised_calendar_rulepack_blocks_conversion(&rulepack) &&
            epoch_app_bridge_monitor_boundary_enforced();
 }
@@ -133,8 +135,13 @@ int epoch_app_bridge_monitor_boundary_enforced(void) {
 
 int epoch_app_bridge_get_snapshot(EpochAppBridgeSnapshot *out_snapshot) {
     EpochRevisedCalendarRulepack rulepack = epoch_app_bridge_draft_rulepack();
+    EpochRevisedCalendarConstraintProjection projection;
 
     if (out_snapshot == 0) {
+        return 0;
+    }
+
+    if (!epoch_revised_calendar_rulepack_project_constraints(&rulepack, &projection)) {
         return 0;
     }
 
@@ -145,11 +152,20 @@ int epoch_app_bridge_get_snapshot(EpochAppBridgeSnapshot *out_snapshot) {
     out_snapshot->revised_rulepack_status = epoch_revised_calendar_rulepack_blocks_conversion(&rulepack)
                                                 ? "structure-ready-conversion-gated"
                                                 : "conversion-ready";
+    out_snapshot->revised_anchor_method = projection.anchor_method;
+    out_snapshot->revised_anchor_source = projection.anchor_source;
+    out_snapshot->revised_year_opening_policy = projection.year_opening_day_policy;
+    out_snapshot->revised_leap_day_policy = projection.leap_day_policy;
+    out_snapshot->revised_intercalary_policy = projection.intercalary_policy;
+    out_snapshot->revised_conversion_gate_reason = projection.conversion_gate_reason;
     out_snapshot->schedule_queue_status = epoch_status_label(EPOCH_STATUS_QUEUED);
     out_snapshot->customer_safe_status = "EPOCH App shell is reading native scheduling status; MONITOR remains development/control only.";
     out_snapshot->schedule_module_count = 5;
     out_snapshot->revised_month_count = rulepack.month_count;
     out_snapshot->revised_days_per_month = rulepack.days_per_month;
+    out_snapshot->revised_common_intercalary_days = projection.common_intercalary_day_count;
+    out_snapshot->revised_leap_intercalary_days = projection.leap_intercalary_day_count;
+    out_snapshot->revised_constraints_customer_safe = projection.customer_safe;
     out_snapshot->revised_conversion_ready = epoch_app_bridge_revised_conversion_ready();
     out_snapshot->monitor_boundary_enforced = epoch_app_bridge_monitor_boundary_enforced();
 

@@ -817,6 +817,50 @@ int epoch_revised_calendar_conversion_result_is_gated(const EpochRevisedCalendar
             result->status == EPOCH_STATUS_PLANNED);
 }
 
+int epoch_revised_calendar_rulepack_project_constraints(
+    const EpochRevisedCalendarRulepack *rulepack,
+    EpochRevisedCalendarConstraintProjection *out_projection) {
+    int structure_ready;
+    int conversion_ready;
+
+    if (rulepack == 0 || out_projection == 0) {
+        return 0;
+    }
+
+    memset(out_projection, 0, sizeof(*out_projection));
+    structure_ready = epoch_revised_calendar_rulepack_represents_owner_structure(rulepack);
+    conversion_ready = epoch_revised_calendar_rulepack_conversion_ready(rulepack);
+
+    out_projection->id = "epoch-revised-constraint-projection";
+    out_projection->rulepack_id = rulepack->id;
+    out_projection->calendar_system = epoch_calendar_system_label(EPOCH_CALENDAR_REVISED_13_MONTH);
+    out_projection->anchor_method = rulepack->spring_anchor_method;
+    out_projection->anchor_source = rulepack->spring_anchor_source;
+    out_projection->year_opening_day_policy = rulepack->year_opening_day_outside_months
+                                                  ? "year-opening day outside the 13 months"
+                                                  : "year-opening day policy missing";
+    out_projection->leap_day_policy = rulepack->leap_day_outside_months_at_year_end
+                                          ? "leap day outside the 13 months at end of year"
+                                          : "leap day policy missing";
+    out_projection->intercalary_policy = "common years have 1 day outside months; leap years have 2 days outside months";
+    out_projection->conversion_gate_reason = conversion_ready
+                                                 ? "owner-approved rulepack allows conversion"
+                                                 : "owner-approved physical spring anchor and display rulepack required before conversion";
+    out_projection->month_count = rulepack->month_count;
+    out_projection->days_per_month = rulepack->days_per_month;
+    out_projection->common_intercalary_day_count = rulepack->year_opening_day_outside_months ? 1 : 0;
+    out_projection->leap_intercalary_day_count =
+        rulepack->year_opening_day_outside_months && rulepack->leap_day_outside_months_at_year_end ? 2 : 0;
+    out_projection->structure_ready = structure_ready;
+    out_projection->conversion_ready = conversion_ready;
+    out_projection->customer_safe = structure_ready &&
+                                    epoch_text_present(out_projection->anchor_method) &&
+                                    epoch_text_present(out_projection->anchor_source) &&
+                                    epoch_text_present(out_projection->conversion_gate_reason);
+
+    return out_projection->customer_safe;
+}
+
 int epoch_schedule_audit_record_is_customer_safe(const EpochScheduleAuditRecord *record) {
     if (record == 0) {
         return 0;

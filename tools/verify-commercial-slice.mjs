@@ -32,6 +32,7 @@ const appShellSmoke = read("../src/Epoch.App/EpochShellSmoke.cs");
 const appXaml = read("../src/Epoch.App/MainWindow.axaml");
 const appNative = read("../src/Epoch.App/Native/EpochNative.cs");
 const appViewModel = read("../src/Epoch.App/ViewModels/MainWindowViewModel.cs");
+const appSnapshot = read("../src/Epoch.App/Models/EpochShellSnapshot.cs");
 const appHistoryEntry = read("../src/Epoch.App/Models/EpochScheduleExecutionHistoryEntry.cs");
 const appHistoryStore = read("../src/Epoch.App/Services/EpochScheduleExecutionHistoryStore.cs");
 const appRequestInboxEntry = read("../src/Epoch.App/Models/EpochWebportalScheduleRequest.cs");
@@ -82,6 +83,7 @@ const {
   scheduleLifecycleActionLabel,
   providerGateBlocksLiveCalls,
   providerGateReadyForToggle,
+  projectRevisedRulepackConstraints,
   revisedRulepackBlocksConversion,
   revisedRulepackReady,
   rankAvailabilityWindowsForRequest,
@@ -154,6 +156,7 @@ for (const phrase of [
   "Recurring Series Receipts",
   "Revised Calendar Preview",
   "Revised Rulepack Boundary",
+  "Revised Calendar Constraints",
   "Native C Core"
 ]) {
   if (!app.includes(phrase)) fail(`EPOCH app missing ${phrase}`);
@@ -199,6 +202,8 @@ for (const phrase of [
   "Recurring Exception Status",
   "Provider Status",
   "Revised Calendar Status",
+  "Revised Calendar Constraints",
+  "portal-revised-constraints",
   "External Calendar Connection",
   "Shows provider status without enabling live provider calls",
   "Keeps operational controls outside this customer portal"
@@ -224,7 +229,7 @@ for (const path of [
   if (!root.includes(path)) fail(`root directory missing route ${path}`);
 }
 
-for (const phrase of ["epochSchedule", "availabilityWindows", "availabilityCapacitySnapshots", "availabilityWaitlistEntries", "availabilityHoldReleases", "availabilityPromotionCandidates", "availabilityCapacityReceipts", "bookingOptimizationRuns", "bookingRecommendationCandidates", "bookingOverloadWarnings", "bookingRecommendationReceipts", "deadlineItems", "reminderExecutions", "deadlineExecutions", "deadlineEscalations", "reminderDeadlineReceipts", "calendarDisplayModes", "scheduleAuditRecords", "scheduleReceipts", "schedulerLogEntries", "calendarSearchQueries", "calendarSearchResults", "scheduleTemplates", "scheduleLifecycleActions", "avaloniaShellReadiness", "revisedMonths", "portalTimeline"]) {
+for (const phrase of ["epochSchedule", "availabilityWindows", "availabilityCapacitySnapshots", "availabilityWaitlistEntries", "availabilityHoldReleases", "availabilityPromotionCandidates", "availabilityCapacityReceipts", "bookingOptimizationRuns", "bookingRecommendationCandidates", "bookingOverloadWarnings", "bookingRecommendationReceipts", "deadlineItems", "reminderExecutions", "deadlineExecutions", "deadlineEscalations", "reminderDeadlineReceipts", "calendarDisplayModes", "scheduleAuditRecords", "scheduleReceipts", "schedulerLogEntries", "calendarSearchQueries", "calendarSearchResults", "scheduleTemplates", "scheduleLifecycleActions", "avaloniaShellReadiness", "revisedMonths", "projectRevisedRulepackConstraints", "portalTimeline"]) {
   if (!data.includes(phrase)) fail(`EPOCH data missing ${phrase}`);
 }
 
@@ -316,6 +321,7 @@ for (const phrase of [
   "selectFullAvailabilityWindow",
   "providerGateReadyForToggle",
   "providerGateBlocksLiveCalls",
+  "projectRevisedRulepackConstraints",
   "revisedRulepackReady",
   "revisedRulepackBlocksConversion"
 ]) {
@@ -419,7 +425,9 @@ for (const phrase of [
   "providerCallsEnabled !== true",
   "monitorWorkflowExposed !== true",
   "revised-rulepack-status",
+  "revised-constraint-projection",
   "portal-revised-status",
+  "portal-revised-constraints",
   "reset-schedule-ledger"
 ]) {
   if (!script.includes(phrase) && !app.includes(phrase) && !portal.includes(phrase)) fail(`EPOCH workflow missing ${phrase}`);
@@ -480,6 +488,8 @@ for (const phrase of [
   "Current Avalonia shell proof",
   "native/epoch_app_bridge.h",
   "src/Epoch.App",
+  "Native-backed revised calendar constraint slice",
+  "EpochRevisedCalendarConstraintProjection",
   "Compatibility aliases may redirect",
   "This issue does not approve live provider integrations"
 ]) {
@@ -500,6 +510,9 @@ for (const phrase of [
   "EpochAppBridgeSnapshot",
   "EpochAppBridgeScheduleCommandResult",
   "EpochAppBridgeScheduleExecutionReceipt",
+  "revised_anchor_method",
+  "revised_intercalary_policy",
+  "revised_conversion_gate_reason",
   "epoch_app_bridge_get_snapshot",
   "epoch_app_bridge_preview_schedule_command",
   "epoch_app_bridge_execute_schedule_command",
@@ -519,7 +532,9 @@ for (const phrase of [
   "EpochBookingReceipt",
   "EpochTimingReturnPayload",
   "EpochAppBridgeScheduleExecutionReceipt",
+  "EpochRevisedCalendarConstraintProjection",
   "epoch_revised_calendar_rulepack_represents_owner_structure",
+  "epoch_revised_calendar_rulepack_project_constraints",
   "epoch_schedule_request_is_customer_safe",
   "epoch_schedule_request_acceptance_is_ready",
   "epoch_availability_hold_is_ready",
@@ -536,10 +551,18 @@ for (const phrase of [
   if (!appBridgeSource.includes(phrase)) fail(`app bridge source missing native boundary phrase ${phrase}`);
 }
 
+if (!source.includes("owner-approved physical spring anchor")) {
+  fail("native core missing revised-calendar conversion gate reason");
+}
+
 for (const phrase of [
   "epoch_app_bridge_get_snapshot(&snapshot) == 1",
   "snapshot.revised_month_count == 13",
   "snapshot.revised_days_per_month == 28",
+  "snapshot.revised_common_intercalary_days == 1",
+  "snapshot.revised_leap_intercalary_days == 2",
+  "snapshot.revised_constraints_customer_safe == 1",
+  "snapshot.revised_anchor_method",
   "snapshot.revised_conversion_ready == 0",
   "snapshot.monitor_boundary_enforced == 1"
 ]) {
@@ -630,6 +653,10 @@ for (const phrase of [
   "ScheduleLifecycleStatusStatus",
   "ScheduleLifecycleStatusMessage",
   "ScheduleLifecycleStatusLocation",
+  "RevisedCalendarBoundaryPolicies",
+  "RevisedCalendarAnchor",
+  "RevisedCalendarIntercalaryPolicy",
+  "RevisedCalendarGateReason",
   "CommandReadiness",
   "CommandReceiptStatus",
   "ExecutionSafetyStatus",
@@ -656,9 +683,26 @@ for (const phrase of [
   "LoadSnapshotOrFallback",
   "LoadScheduleCommandOrFallback",
   "ExecuteScheduleCommandOrFallback",
+  "RevisedAnchorMethod",
+  "RevisedIntercalaryPolicy",
+  "RevisedConversionGateReason",
   "structure-ready-conversion-gated"
 ]) {
   if (!appNative.includes(phrase)) fail(`Avalonia native interop missing ${phrase}`);
+}
+
+for (const phrase of [
+  "RevisedAnchorMethod",
+  "RevisedAnchorSource",
+  "RevisedYearOpeningPolicy",
+  "RevisedLeapDayPolicy",
+  "RevisedIntercalaryPolicy",
+  "RevisedConversionGateReason",
+  "RevisedCommonIntercalaryDays",
+  "RevisedLeapIntercalaryDays",
+  "RevisedConstraintsCustomerSafe"
+]) {
+  if (!appSnapshot.includes(phrase)) fail(`Avalonia snapshot model missing ${phrase}`);
 }
 
 for (const phrase of [
@@ -705,6 +749,9 @@ for (const phrase of [
   "No Webportal request was imported",
   "No Webportal request has been linked",
   "audit, receipts, log, search, and templates",
+  "RevisedCalendarAnchor",
+  "RevisedCalendarIntercalaryPolicy",
+  "RevisedCalendarGateReason",
   "monitor boundary enforced"
 ]) {
   if (!appViewModel.includes(phrase)) fail(`Avalonia view model missing ${phrase}`);
@@ -1051,6 +1098,7 @@ for (const type of [
   "EpochRevisedCalendarRulepack",
   "EpochRevisedCalendarDate",
   "EpochRevisedCalendarConversionResult",
+  "EpochRevisedCalendarConstraintProjection",
   "EpochScheduleAuditRecord",
   "EpochScheduleReceipt",
   "EpochSchedulerLogEntry",
@@ -1107,6 +1155,7 @@ for (const fn of [
   "epoch_revised_calendar_rulepack_blocks_conversion",
   "epoch_revised_calendar_rulepack_represents_owner_structure",
   "epoch_revised_calendar_conversion_result_is_gated",
+  "epoch_revised_calendar_rulepack_project_constraints",
   "epoch_schedule_audit_record_is_customer_safe",
   "epoch_schedule_receipt_is_customer_safe",
   "epoch_scheduler_log_entry_is_product_log",
@@ -1292,6 +1341,16 @@ if (revisedRulepackReady(rulepack)) fail("draft revised rulepack must not be con
 if (!revisedRulepackBlocksConversion(rulepack)) fail("draft revised rulepack must block conversion");
 if (rulepack.monthCount !== 13 || rulepack.daysPerMonth !== 28 || !rulepack.yearOpeningDayOutsideMonths || !rulepack.leapDayOutsideMonthsAtYearEnd) fail("revised rulepack does not represent 13x28 owner structure");
 if (rulepack.springAnchorMethod !== "measured-average-first-spring-day" || !rulepack.springAnchorSource) fail("revised rulepack does not preserve physical spring-anchor method");
+const projection = projectRevisedRulepackConstraints(rulepack);
+if (!projection.customerSafe ||
+    projection.monthCount !== 13 ||
+    projection.daysPerMonth !== 28 ||
+    projection.commonIntercalaryDayCount !== 1 ||
+    projection.leapIntercalaryDayCount !== 2 ||
+    projection.anchorMethod !== "measured-average-first-spring-day" ||
+    !projection.conversionGateReason.toLowerCase().includes("owner-approved physical spring anchor")) {
+  fail("revised rulepack constraint projection did not preserve owner calendar constraints");
+}
 if (!initialEpochLedger.scheduleAuditRecords.length || !initialEpochLedger.scheduleReceipts.length || !initialEpochLedger.schedulerLogEntries.length || !initialEpochLedger.calendarSearchResults.length || !initialEpochLedger.scheduleTemplates.length) fail("EPOCH product module records are not seeded in App/Webportal ledger");
 if (!initialEpochLedger.scheduleLifecycleActions.length) fail("EPOCH lifecycle action records are not seeded in App/Webportal ledger");
 if (initialEpochLedger.scheduleLifecycleActions.some((record) => record.providerCallsEnabled || record.monitorWorkflowExposed || !record.appOwnedLifecycleState || !record.customerVisible)) fail("schedule lifecycle action records must stay App-owned, customer-visible, provider-off, and MONITOR-off");

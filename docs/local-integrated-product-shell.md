@@ -45,6 +45,11 @@ exposure is part of this integration checkpoint.
   scheduling command evidence, and exported back through
   `schedule-lifecycle-status.json` without provider calls or MONITOR workflow
   exposure.
+- `codex/local-epoch-avalonia-revised-calendar-constraints` adds the Native
+  C/Avalonia/Webportal revised-calendar constraint projection so the known
+  13-month structure, intercalary-day policy, measured spring anchor method,
+  and conversion gate reason are executable product state while authoritative
+  conversion stays blocked.
 
 ## Boundary Status
 
