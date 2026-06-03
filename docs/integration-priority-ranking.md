@@ -324,4 +324,4 @@ are durable enough to present as a suite surface.
 ## Acceptance For Issue 2
 
 Issue 2 is complete when this ranking is committed, linked from the README, and
-written back to GitHub with the next implementation target selected.
+recorded in Local Git and MONITOR receipts with the next implementation target selected.

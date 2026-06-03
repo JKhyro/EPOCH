@@ -51,9 +51,16 @@ the operational control and verification surface.
   interaction.
 - `web/shared/styles.css`: EPOCH-specific surface styling.
 - `docs/calendar-provider-go-live-readiness-gate.md`: calendar-only provider
-  readiness gate contract for issue #78.
+  readiness gate contract for the local provider-readiness milestone.
 - `tools/verify-commercial-slice.mjs`: repository verifier for EPOCH product
   boundary and surface placement.
+
+## Local Git Workflow
+
+EPOCH uses Local Git as the execution truth. Work should move through local
+branches or local worktrees, local verification, local commits, and MONITOR
+receipts. Do not route EPOCH work through GitHub, pull requests, issues, or
+remote project writeback unless the owner explicitly changes this authority.
 
 ## Verification
 

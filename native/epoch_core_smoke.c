@@ -413,6 +413,11 @@ int main(void) {
         "rulepack-draft",
         "owner-approved-rulepack-required",
         13,
+        28,
+        1,
+        1,
+        "measured-average-first-spring-day",
+        "owner-physical-measurement-required",
         0,
         0,
         0,
@@ -432,6 +437,11 @@ int main(void) {
         "rulepack-approved",
         "owner-approved-rulepack-v1",
         13,
+        28,
+        1,
+        1,
+        "measured-average-first-spring-day",
+        "owner-approved-physical-average",
         1,
         1,
         1,
@@ -446,6 +456,101 @@ int main(void) {
         1,
         1,
         1,
+    };
+    EpochRevisedCalendarConversionResult gated_conversion = {
+        "conversion-held-001",
+        "2026-03-20T00:00:00+09:00",
+        {
+            "revised-date-held-001",
+            2026,
+            0,
+            0,
+            1,
+            0,
+            "Year-opening day outside the 13 months",
+            "owner-approved-rulepack-required",
+        },
+        EPOCH_STATUS_BLOCKED,
+        0,
+        0,
+        "Revised-calendar conversion is held until the owner-approved physical spring anchor and display rules are complete.",
+    };
+    EpochScheduleAuditRecord schedule_audit = {
+        "schedule-audit-001",
+        "sch-001",
+        "EPOCH operator",
+        "booking-confirmed",
+        "Schedule Audit product module recorded a local booking confirmation.",
+        EPOCH_STATUS_CONFIRMED,
+        1,
+        0,
+    };
+    EpochScheduleReceipt schedule_receipt = {
+        "schedule-receipt-001",
+        "schedule-receipt",
+        "sch-001",
+        "Schedule Receipts product module recorded local schedule evidence.",
+        EPOCH_STATUS_COMPLETE,
+        1,
+        0,
+    };
+    EpochSchedulerLogEntry scheduler_log = {
+        "scheduler-log-001",
+        "booking-confirmed",
+        "sch-001",
+        "Scheduler Log product module recorded a local scheduling event.",
+        "2026-06-04T18:00:00+09:00",
+        EPOCH_STATUS_CONFIRMED,
+        1,
+        0,
+    };
+    EpochCalendarSearchQuery owner_query = {
+        "calendar-search-001",
+        "review",
+        "owner",
+        1,
+        0,
+    };
+    EpochCalendarSearchQuery customer_query = {
+        "calendar-search-002",
+        "review",
+        "customer",
+        0,
+        1,
+    };
+    EpochCalendarSearchResult search_result = {
+        "calendar-result-001",
+        "calendar-search-002",
+        "sch-001",
+        "schedule-entry",
+        "Submission review return window",
+        1,
+    };
+    EpochScheduleTemplate schedule_template = {
+        "schedule-template-001",
+        "submission-review-return",
+        "Submission Review Return",
+        "48-hour async return block",
+        "Asia/Tokyo",
+        1,
+        0,
+    };
+    EpochPersonaLaneStatus integrator_lane = {
+        "epoch-lane-integrator",
+        "EPOCH INTEGRATOR",
+        "Codex",
+        "thread-pending",
+        "C:\\KHYRON\\apps\\_worktrees\\EPOCH\\integrator",
+        "local/epoch-integrator",
+        EPOCH_STATUS_WAITING,
+    };
+    EpochLocalWorktreeStatus local_worktree = {
+        "epoch-worktree-integrator",
+        "C:\\KHYRON\\apps\\_worktrees\\EPOCH\\integrator",
+        "local/epoch-integrator",
+        "local-head-pending",
+        0,
+        0,
     };
     EpochCalendarProviderReadinessGate gate = {
         "gate-001",
@@ -602,13 +707,25 @@ int main(void) {
     assert(epoch_reminder_deadline_receipt_is_customer_safe(&reminder_deadline_receipt) == 0);
     reminder_deadline_receipt.kind = "reminder-deadline-execution";
     assert(epoch_revised_calendar_rulepack_has_required_approvals(&draft_rulepack) == 0);
+    assert(epoch_revised_calendar_rulepack_represents_owner_structure(&draft_rulepack) == 1);
     assert(epoch_revised_calendar_rulepack_conversion_ready(&draft_rulepack) == 0);
     assert(epoch_revised_calendar_rulepack_blocks_conversion(&draft_rulepack) == 1);
     assert(epoch_revised_calendar_rulepack_has_required_approvals(&approved_rulepack) == 1);
+    assert(epoch_revised_calendar_rulepack_represents_owner_structure(&approved_rulepack) == 1);
     assert(epoch_revised_calendar_rulepack_conversion_ready(&approved_rulepack) == 1);
     assert(epoch_revised_calendar_rulepack_blocks_conversion(&approved_rulepack) == 0);
     approved_rulepack.conversion_logic_enabled = 0;
     assert(epoch_revised_calendar_rulepack_conversion_ready(&approved_rulepack) == 0);
+    assert(epoch_revised_calendar_conversion_result_is_gated(&gated_conversion) == 1);
+    assert(epoch_schedule_audit_record_is_customer_safe(&schedule_audit) == 1);
+    assert(epoch_schedule_receipt_is_customer_safe(&schedule_receipt) == 1);
+    assert(epoch_scheduler_log_entry_is_product_log(&scheduler_log) == 1);
+    assert(epoch_calendar_search_query_respects_role(&owner_query) == 1);
+    assert(epoch_calendar_search_query_respects_role(&customer_query) == 1);
+    assert(epoch_calendar_search_result_is_customer_safe(&search_result) == 1);
+    assert(epoch_schedule_template_is_ready(&schedule_template) == 1);
+    assert(epoch_persona_lane_status_is_local(&integrator_lane) == 1);
+    assert(epoch_local_worktree_status_is_local_only(&local_worktree) == 1);
     assert(epoch_calendar_provider_gate_ready_for_live_toggle(&gate) == 1);
     assert(epoch_calendar_provider_gate_blocks_live_calls(&gate) == 1);
     gate.live_provider_calls_enabled = 1;

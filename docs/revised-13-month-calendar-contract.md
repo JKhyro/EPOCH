@@ -2,14 +2,19 @@
 
 ## Status
 
-Draft-only. Do not implement conversion logic until Jack approves the exact
-calendar contract.
+Draft-only for authoritative conversion. EPOCH may represent the approved
+structural direction, but must not enable public conversion logic until Jack
+approves the exact calendar contract.
 
 ## Purpose
 
 EPOCH must support both the standard Gregorian calendar and Jack's revised
-13-month calendar. The revised calendar is a first-class EPOCH concern, but the
-rules are not safe to infer.
+13-month calendar. The revised calendar is a first-class EPOCH concern. The
+current structural direction is known: the year opens with a day outside the
+13 months, each of the 13 months has 28 days, the first day of the year
+coincides with the average first day of spring based on physical measurement
+rather than a hard-coded Gregorian approximation, and the leap-year extra day is
+also outside the months at the end of the year.
 
 ## Required owner decisions
 
@@ -17,8 +22,8 @@ The 13-month calendar implementation is blocked until these rules are provided
 or approved:
 
 - month names and display order
-- number of days in each month
-- treatment of extra/intercalary days
+- final public names for the year-opening day and leap-year extra day
+- measurement source and method for the average first day of spring
 - leap-year or leap-cycle behavior
 - epoch anchor between Gregorian and revised-calendar dates
 - day-of-week mapping
@@ -41,6 +46,9 @@ allowed. The first implementation uses:
   schedule-owned and customer-safe.
 - `EpochRevisedCalendarRulepack` to hold every owner-approved decision required
   before revised-date conversion can run.
+- `EpochRevisedCalendarDate` and `EpochRevisedCalendarConversionResult` to
+  represent draft-safe revised-calendar projections while conversion remains
+  gated.
 - `epoch_revised_calendar_rulepack_blocks_conversion` as the guard for draft,
   partial, or disabled rulepacks.
 

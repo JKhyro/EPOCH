@@ -466,6 +466,11 @@ typedef struct EpochRevisedCalendarRulepack {
     const char *id;
     const char *version_id;
     int month_count;
+    int days_per_month;
+    int year_opening_day_outside_months;
+    int leap_day_outside_months_at_year_end;
+    const char *spring_anchor_method;
+    const char *spring_anchor_source;
     int month_names_approved;
     int day_distribution_approved;
     int intercalary_days_approved;
@@ -481,6 +486,105 @@ typedef struct EpochRevisedCalendarRulepack {
     int owner_approved;
     int conversion_logic_enabled;
 } EpochRevisedCalendarRulepack;
+
+typedef struct EpochRevisedCalendarDate {
+    const char *id;
+    int revised_year;
+    int month_index;
+    int day_index;
+    int intercalary_day;
+    int leap_day;
+    const char *display_label;
+    const char *rulepack_version_id;
+} EpochRevisedCalendarDate;
+
+typedef struct EpochRevisedCalendarConversionResult {
+    const char *id;
+    const char *gregorian_iso;
+    EpochRevisedCalendarDate revised_date;
+    EpochOperatingStatus status;
+    int conversion_ready;
+    int public_display_ready;
+    const char *customer_safe_status;
+} EpochRevisedCalendarConversionResult;
+
+typedef struct EpochScheduleAuditRecord {
+    const char *id;
+    const char *schedule_entry_id;
+    const char *actor;
+    const char *action;
+    const char *summary;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int provider_go_live_requested;
+} EpochScheduleAuditRecord;
+
+typedef struct EpochScheduleReceipt {
+    const char *id;
+    const char *kind;
+    const char *linked_record_id;
+    const char *summary;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int provider_go_live_requested;
+} EpochScheduleReceipt;
+
+typedef struct EpochSchedulerLogEntry {
+    const char *id;
+    const char *event_kind;
+    const char *linked_record_id;
+    const char *summary;
+    const char *recorded_at_iso;
+    EpochOperatingStatus status;
+    int product_log;
+    int monitor_runner_log;
+} EpochSchedulerLogEntry;
+
+typedef struct EpochCalendarSearchQuery {
+    const char *id;
+    const char *query;
+    const char *role;
+    int include_private_records;
+    int customer_safe_only;
+} EpochCalendarSearchQuery;
+
+typedef struct EpochCalendarSearchResult {
+    const char *id;
+    const char *query_id;
+    const char *record_id;
+    const char *record_kind;
+    const char *display_label;
+    int customer_visible;
+} EpochCalendarSearchResult;
+
+typedef struct EpochScheduleTemplate {
+    const char *id;
+    const char *template_kind;
+    const char *title;
+    const char *default_duration_label;
+    const char *timezone;
+    int customer_visible;
+    int provider_go_live_requested;
+} EpochScheduleTemplate;
+
+typedef struct EpochPersonaLaneStatus {
+    const char *id;
+    const char *role;
+    const char *runner_kind;
+    const char *thread_id;
+    const char *worktree_path;
+    const char *local_branch;
+    EpochOperatingStatus status;
+} EpochPersonaLaneStatus;
+
+typedef struct EpochLocalWorktreeStatus {
+    const char *id;
+    const char *path;
+    const char *local_branch;
+    const char *head;
+    int dirty;
+    int external_sync_enabled;
+} EpochLocalWorktreeStatus;
 
 typedef struct EpochCalendarProviderReadinessGate {
     const char *id;
@@ -548,6 +652,16 @@ int epoch_reminder_deadline_receipt_is_customer_safe(const EpochReminderDeadline
 int epoch_revised_calendar_rulepack_has_required_approvals(const EpochRevisedCalendarRulepack *rulepack);
 int epoch_revised_calendar_rulepack_conversion_ready(const EpochRevisedCalendarRulepack *rulepack);
 int epoch_revised_calendar_rulepack_blocks_conversion(const EpochRevisedCalendarRulepack *rulepack);
+int epoch_revised_calendar_rulepack_represents_owner_structure(const EpochRevisedCalendarRulepack *rulepack);
+int epoch_revised_calendar_conversion_result_is_gated(const EpochRevisedCalendarConversionResult *result);
+int epoch_schedule_audit_record_is_customer_safe(const EpochScheduleAuditRecord *record);
+int epoch_schedule_receipt_is_customer_safe(const EpochScheduleReceipt *receipt);
+int epoch_scheduler_log_entry_is_product_log(const EpochSchedulerLogEntry *entry);
+int epoch_calendar_search_query_respects_role(const EpochCalendarSearchQuery *query);
+int epoch_calendar_search_result_is_customer_safe(const EpochCalendarSearchResult *result);
+int epoch_schedule_template_is_ready(const EpochScheduleTemplate *template_record);
+int epoch_persona_lane_status_is_local(const EpochPersonaLaneStatus *lane);
+int epoch_local_worktree_status_is_local_only(const EpochLocalWorktreeStatus *worktree);
 int epoch_calendar_provider_gate_ready_for_live_toggle(const EpochCalendarProviderReadinessGate *gate);
 int epoch_calendar_provider_gate_blocks_live_calls(const EpochCalendarProviderReadinessGate *gate);
 

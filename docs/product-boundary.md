@@ -26,7 +26,8 @@ client acquisition, and ARA income-production workflows.
 - Internal administration for work that is fundamentally calendar-bound.
 - External request, submission, tracking, and notification timing when those
   flows depend on schedule state.
-- EPOCH MONITOR: a HERMES MONITOR structural clone using EPOCH data only.
+- EPOCH MONITOR: a HERMES MONITOR structural clone using EPOCH development
+  and control data only.
 - EPOCH App: `web/app/index.html`, the internal scheduling command surface.
 - EPOCH Webportal: `web/webportal/index.html`, the customer-safe scheduling
   request and status surface.
@@ -63,22 +64,24 @@ That integration is provider-client integration. It does not merge the products.
 
 ## MONITOR parity
 
-EPOCH MONITOR must clone the HERMES MONITOR structure:
+EPOCH MONITOR must clone the HERMES MONITOR structure as a development/control
+surface:
 
 - monitor, dashboard, completion, scorecard, timeline, audit, receipts,
   runner-status, search, template, persona, and team route roles
-- EPOCH-specific visible route names such as Schedule Completion, Schedule
-  Scorecard, Schedule Timeline, Schedule Audit, Schedule Receipts, Scheduler
-  Log, Calendar Search, and Schedule Template
+- EPOCH-specific development route names for completion, scorecard, timeline,
+  implementation audit, development receipts, runner log, monitor search, and
+  work template
 - CITADEL left-side tree integration
 - Summary, Scope, Memory, Queue, Timeline, Risks, Receipts, and Controls
 - local-first generated status data
 - safe no-op controls until EPOCH-specific runners are wired
 
 The clone must not copy HERMES project data. Empty/build-ready EPOCH data is
-correct until EPOCH-specific queues, records, and runners exist. The clone must
-not preserve generic HERMES labels when those labels make EPOCH look like the
-same workbench as WORKSHOP.
+correct until EPOCH-specific queues, records, and runners exist. Schedule Audit,
+Schedule Receipts, Scheduler Log, Calendar Search, and Schedule Template are
+EPOCH App/Webportal product modules; MONITOR may report only their development
+readiness, implementation receipts, and lane status.
 
 ## Native C directive
 
@@ -111,5 +114,8 @@ EPOCH App/Webportal and not EPOCH MONITOR.
 - The revised 13-month calendar remains draft-only until the exact owner
   contract is approved.
 - EPOCH MONITOR has HERMES structural parity without HERMES data.
+- Local Git is the active execution truth; GitHub, pull requests, and remote
+  issue/project writeback are out of scope unless the owner explicitly changes
+  this.
 - Existing revenue-facing prototype assets are treated as extraction candidates,
   not as durable EPOCH ownership.

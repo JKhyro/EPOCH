@@ -97,6 +97,13 @@ const mergeLedger = (stored) => {
     "reminderRules",
     "providerReadinessGates",
     "providerStatusEvents",
+    "calendarDisplayModes",
+    "scheduleAuditRecords",
+    "scheduleReceipts",
+    "schedulerLogEntries",
+    "calendarSearchQueries",
+    "calendarSearchResults",
+    "scheduleTemplates",
     "portalTimeline",
     "receipts"
   ]) {
@@ -107,6 +114,9 @@ const mergeLedger = (stored) => {
   }
   if (stored.revisedCalendarRulepack && typeof stored.revisedCalendarRulepack === "object") {
     base.revisedCalendarRulepack = stored.revisedCalendarRulepack;
+  }
+  if (stored.avaloniaShellReadiness && typeof stored.avaloniaShellReadiness === "object") {
+    base.avaloniaShellReadiness = stored.avaloniaShellReadiness;
   }
   base.version = stored.version || base.version;
   base.generatedAt = stored.generatedAt || base.generatedAt;
@@ -192,6 +202,11 @@ function renderStats() {
   setText("stat-deadline-executions", String((state.ledger.deadlineExecutions || []).length));
   setText("stat-deadline-escalations", String((state.ledger.deadlineEscalations || []).length));
   setText("stat-reminder-deadline-receipts", String((state.ledger.reminderDeadlineReceipts || []).length));
+  setText("stat-schedule-audits", String((state.ledger.scheduleAuditRecords || []).length));
+  setText("stat-schedule-module-receipts", String((state.ledger.scheduleReceipts || []).length));
+  setText("stat-scheduler-log", String((state.ledger.schedulerLogEntries || []).length));
+  setText("stat-calendar-search", String((state.ledger.calendarSearchResults || []).length));
+  setText("stat-schedule-templates", String((state.ledger.scheduleTemplates || []).length));
 }
 
 function renderScheduleQueue() {
@@ -220,6 +235,112 @@ function renderCalendarBoard() {
       <small>${escapeHtml(item.status)}</small>
     </article>
   `).join("");
+}
+
+function renderProductModules() {
+  renderStack("calendar-display-mode-list", state.ledger.calendarDisplayModes || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.label)}</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("schedule-audit-list", state.ledger.scheduleAuditRecords || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.action)}</strong>
+      <span>${escapeHtml(item.status)} - ${escapeHtml(item.scheduleEntryId)}</span>
+      <small>${escapeHtml(item.summary)}</small>
+    </article>
+  `);
+
+  renderStack("schedule-receipts-list", state.ledger.scheduleReceipts || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.kind)}</strong>
+      <span>${escapeHtml(item.status)} - ${escapeHtml(item.linkedRecordId)}</span>
+      <small>${escapeHtml(item.summary)}</small>
+    </article>
+  `);
+
+  renderStack("scheduler-log-list", state.ledger.schedulerLogEntries || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.eventKind)}</strong>
+      <span>${escapeHtml(item.status)} - ${escapeHtml(item.recordedAt)}</span>
+      <small>${escapeHtml(item.summary)}</small>
+    </article>
+  `);
+
+  renderStack("calendar-search-list", state.ledger.calendarSearchResults || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.displayLabel)}</strong>
+      <span>${escapeHtml(item.recordKind)} - ${escapeHtml(item.recordId)}</span>
+      <small>Customer-safe result: ${escapeHtml(item.customerVisible ? "yes" : "no")}</small>
+    </article>
+  `);
+
+  renderStack("calendar-search-query-list", state.ledger.calendarSearchQueries || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.query)}</strong>
+      <span>${escapeHtml(item.role)} - ${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.customerSafeOnly ? "customer-safe only" : "owner/admin search")}</small>
+    </article>
+  `);
+
+  renderStack("schedule-template-list", state.ledger.scheduleTemplates || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.title)}</strong>
+      <span>${escapeHtml(item.templateKind)} - ${escapeHtml(item.defaultDurationLabel)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("portal-schedule-audit", (state.ledger.scheduleAuditRecords || []).filter((item) => item.customerVisible), (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.action)}</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.summary)}</small>
+    </article>
+  `);
+
+  renderStack("portal-schedule-receipts", (state.ledger.scheduleReceipts || []).filter((item) => item.customerVisible), (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.kind)}</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.summary)}</small>
+    </article>
+  `);
+
+  renderStack("portal-scheduler-log", (state.ledger.schedulerLogEntries || []).filter((item) => item.productLog && !item.monitorRunnerLog), (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.eventKind)}</strong>
+      <span>${escapeHtml(item.recordedAt)}</span>
+      <small>${escapeHtml(item.summary)}</small>
+    </article>
+  `);
+
+  renderStack("portal-calendar-search", (state.ledger.calendarSearchResults || []).filter((item) => item.customerVisible), (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.displayLabel)}</strong>
+      <span>${escapeHtml(item.recordKind)}</span>
+      <small>Limited to customer-safe calendar results.</small>
+    </article>
+  `);
+
+  renderStack("portal-schedule-template", (state.ledger.scheduleTemplates || []).filter((item) => item.customerVisible), (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.title)}</strong>
+      <span>${escapeHtml(item.defaultDurationLabel)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("avalonia-shell-readiness", state.ledger.avaloniaShellReadiness ? [state.ledger.avaloniaShellReadiness] : [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.host)} App Host</strong>
+      <span>${escapeHtml(item.status)} - ${escapeHtml(item.nativeCore)}</span>
+      <small>${escapeHtml(item.nextAction)}</small>
+    </article>
+  `);
 }
 
 function renderAvailability() {
@@ -970,6 +1091,7 @@ function renderAll() {
   renderStats();
   renderScheduleQueue();
   renderCalendarBoard();
+  renderProductModules();
   renderAvailability();
   renderBookingWorkflow();
   renderDeadlinesAndReminders();

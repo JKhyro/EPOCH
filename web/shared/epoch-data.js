@@ -40,6 +40,11 @@ export const initialEpochLedger = {
     versionId: "owner-approved-rulepack-required",
     calendarSystem: "revised-13-month",
     monthCount: 13,
+    daysPerMonth: 28,
+    yearOpeningDayOutsideMonths: true,
+    leapDayOutsideMonthsAtYearEnd: true,
+    springAnchorMethod: "measured-average-first-spring-day",
+    springAnchorSource: "owner-physical-measurement-required",
     status: "draft-only",
     ownerApproved: false,
     monthNamesApproved: false,
@@ -57,8 +62,8 @@ export const initialEpochLedger = {
     conversionLogicEnabled: false,
     missingApprovals: [
       "month names and display order",
-      "number of days in each month",
-      "extra or intercalary day treatment",
+      "public names for the year-opening and leap-year extra days",
+      "measurement source for the average first day of spring",
       "leap rule",
       "Gregorian anchor",
       "day-of-week mapping",
@@ -69,6 +74,148 @@ export const initialEpochLedger = {
       "storage representation"
     ],
     customerSafeStatus: "Revised calendar display is draft-only; schedule conversion waits for the owner-approved rulepack."
+  },
+  calendarDisplayModes: [
+    {
+      id: "EPOCH-CALENDAR-MODE-GREGORIAN",
+      label: "Gregorian",
+      status: "available",
+      customerSafeStatus: "Standard Gregorian schedule display is available."
+    },
+    {
+      id: "EPOCH-CALENDAR-MODE-REVISED",
+      label: "Revised 13-Month",
+      status: "draft-only",
+      customerSafeStatus: "Revised 13-month display is available only as a gated preview until the rulepack is owner-approved."
+    },
+    {
+      id: "EPOCH-CALENDAR-MODE-SIDE-BY-SIDE",
+      label: "Side-by-side",
+      status: "draft-only",
+      customerSafeStatus: "Side-by-side display is held behind the revised-calendar rulepack gate."
+    }
+  ],
+  scheduleAuditRecords: [
+    {
+      id: "EPOCH-SCHEDULE-AUDIT-001",
+      scheduleEntryId: "EPOCH-SCH-001",
+      actor: "EPOCH App",
+      action: "booking-confirmed",
+      status: "confirmed",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      summary: "Schedule Audit product module records the local booking confirmation and timing return without using MONITOR as the product UI."
+    },
+    {
+      id: "EPOCH-SCHEDULE-AUDIT-002",
+      scheduleEntryId: "EPOCH-SCH-003",
+      actor: "EPOCH App",
+      action: "revised-rulepack-held",
+      status: "blocked",
+      customerVisible: false,
+      providerGoLiveRequested: false,
+      summary: "Revised calendar conversion stays gated until the owner-approved physical spring anchor and display rules are complete."
+    }
+  ],
+  scheduleReceipts: [
+    {
+      id: "EPOCH-SCHEDULE-RECEIPT-001",
+      kind: "schedule-receipt",
+      linkedRecordId: "EPOCH-BOOK-001",
+      status: "complete",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      summary: "Schedule Receipts product module shows customer-safe local schedule proof without exposing MONITOR controls."
+    },
+    {
+      id: "EPOCH-SCHEDULE-RECEIPT-002",
+      kind: "rulepack-gate",
+      linkedRecordId: "EPOCH-RULEPACK-DRAFT-001",
+      status: "blocked",
+      customerVisible: false,
+      providerGoLiveRequested: false,
+      summary: "Revised 13-month conversion remains blocked while the draft rulepack awaits owner approval."
+    }
+  ],
+  schedulerLogEntries: [
+    {
+      id: "EPOCH-SCHEDULER-LOG-001",
+      eventKind: "request-accepted",
+      linkedRecordId: "EPOCH-REQ-001",
+      status: "accepted",
+      productLog: true,
+      monitorRunnerLog: false,
+      recordedAt: "2026-06-03T10:05:00+09:00",
+      summary: "Scheduler Log product module recorded an EPOCH schedule request acceptance."
+    },
+    {
+      id: "EPOCH-SCHEDULER-LOG-002",
+      eventKind: "timing-returned",
+      linkedRecordId: "EPOCH-TIME-RETURN-001",
+      status: "returned",
+      productLog: true,
+      monitorRunnerLog: false,
+      recordedAt: "2026-06-03T10:12:00+09:00",
+      summary: "Scheduler Log product module recorded an EPOCH timing return to a consuming workflow."
+    }
+  ],
+  calendarSearchQueries: [
+    {
+      id: "EPOCH-CALENDAR-SEARCH-001",
+      query: "review",
+      role: "owner",
+      includePrivateRecords: true,
+      customerSafeOnly: false,
+      status: "available"
+    },
+    {
+      id: "EPOCH-CALENDAR-SEARCH-002",
+      query: "confirmed",
+      role: "customer",
+      includePrivateRecords: false,
+      customerSafeOnly: true,
+      status: "available"
+    }
+  ],
+  calendarSearchResults: [
+    {
+      id: "EPOCH-CALENDAR-RESULT-001",
+      queryId: "EPOCH-CALENDAR-SEARCH-002",
+      recordId: "EPOCH-SCH-001",
+      recordKind: "schedule-entry",
+      displayLabel: "Submission review return window",
+      customerVisible: true
+    }
+  ],
+  scheduleTemplates: [
+    {
+      id: "EPOCH-SCHEDULE-TEMPLATE-001",
+      templateKind: "submission-review-return",
+      title: "Submission Review Return",
+      defaultDurationLabel: "48-hour async return block",
+      timezone: "Asia/Tokyo",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Schedule Template product module can prepare reusable timing patterns while EPOCH remains the schedule owner."
+    },
+    {
+      id: "EPOCH-SCHEDULE-TEMPLATE-002",
+      templateKind: "cohort-window",
+      title: "Recurring Cohort Window",
+      defaultDurationLabel: "weekly 60-minute local hold",
+      timezone: "Asia/Tokyo",
+      customerVisible: false,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Recurring cohort timing template is internal until EPOCH confirms availability."
+    }
+  ],
+  avaloniaShellReadiness: {
+    id: "EPOCH-AVALONIA-SHELL-001",
+    host: "Avalonia",
+    nativeCore: "epoch_core",
+    status: "planned",
+    nextAction: "Create the native EPOCH App shell and bind it to the Native C scheduling core through a stable interop layer.",
+    customerSafeStatus: "Native app shell is planned; web surfaces remain client previews over local state."
   },
   scheduleEntries: [
     {

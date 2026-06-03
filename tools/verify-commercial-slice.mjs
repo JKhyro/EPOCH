@@ -112,6 +112,13 @@ for (const phrase of [
   "Timing Return Payloads",
   "Timing Return Receipts",
   "Native Scheduling Core",
+  "Calendar Mode Switch",
+  "Schedule Audit",
+  "Schedule Receipts",
+  "Scheduler Log",
+  "Calendar Search",
+  "Schedule Template",
+  "Avalonia Shell Readiness",
   "Recurrence Candidates",
   "Recurring Booking Series",
   "Recurring Booking Instances",
@@ -159,6 +166,16 @@ for (const phrase of [
   if (!portal.includes(phrase)) fail(`EPOCH webportal missing ${phrase}`);
 }
 
+for (const phrase of [
+  "Schedule Audit",
+  "Schedule Receipts",
+  "Scheduler Log",
+  "Calendar Search",
+  "Schedule Template"
+]) {
+  if (!portal.includes(phrase)) fail(`EPOCH webportal missing product module ${phrase}`);
+}
+
 for (const path of [
   "./app/index.html",
   "./webportal/index.html",
@@ -167,7 +184,7 @@ for (const path of [
   if (!root.includes(path)) fail(`root directory missing route ${path}`);
 }
 
-for (const phrase of ["epochSchedule", "availabilityWindows", "availabilityCapacitySnapshots", "availabilityWaitlistEntries", "availabilityHoldReleases", "availabilityPromotionCandidates", "availabilityCapacityReceipts", "bookingOptimizationRuns", "bookingRecommendationCandidates", "bookingOverloadWarnings", "bookingRecommendationReceipts", "deadlineItems", "reminderExecutions", "deadlineExecutions", "deadlineEscalations", "reminderDeadlineReceipts", "revisedMonths", "portalTimeline"]) {
+for (const phrase of ["epochSchedule", "availabilityWindows", "availabilityCapacitySnapshots", "availabilityWaitlistEntries", "availabilityHoldReleases", "availabilityPromotionCandidates", "availabilityCapacityReceipts", "bookingOptimizationRuns", "bookingRecommendationCandidates", "bookingOverloadWarnings", "bookingRecommendationReceipts", "deadlineItems", "reminderExecutions", "deadlineExecutions", "deadlineEscalations", "reminderDeadlineReceipts", "calendarDisplayModes", "scheduleAuditRecords", "scheduleReceipts", "schedulerLogEntries", "calendarSearchQueries", "calendarSearchResults", "scheduleTemplates", "avaloniaShellReadiness", "revisedMonths", "portalTimeline"]) {
   if (!data.includes(phrase)) fail(`EPOCH data missing ${phrase}`);
 }
 
@@ -206,6 +223,19 @@ for (const phrase of [
   "recurrenceConflictExceptions",
   "recurringSeriesReceipts",
   "revisedCalendarRulepack",
+  "daysPerMonth",
+  "yearOpeningDayOutsideMonths",
+  "leapDayOutsideMonthsAtYearEnd",
+  "springAnchorMethod",
+  "springAnchorSource",
+  "calendarDisplayModes",
+  "scheduleAuditRecords",
+  "scheduleReceipts",
+  "schedulerLogEntries",
+  "calendarSearchQueries",
+  "calendarSearchResults",
+  "scheduleTemplates",
+  "avaloniaShellReadiness",
   "providerReadinessGates",
   "providerStatusEvents",
   "createScheduleRequestRecord",
@@ -317,6 +347,23 @@ for (const phrase of [
   if (!script.includes(phrase) && !app.includes(phrase) && !portal.includes(phrase)) fail(`EPOCH workflow missing ${phrase}`);
 }
 
+for (const phrase of [
+  "schedule-audit-list",
+  "schedule-receipts-list",
+  "scheduler-log-list",
+  "calendar-search-list",
+  "schedule-template-list",
+  "portal-schedule-audit",
+  "portal-schedule-receipts",
+  "portal-scheduler-log",
+  "portal-calendar-search",
+  "portal-schedule-template",
+  "calendar-display-mode-list",
+  "avalonia-shell-readiness"
+]) {
+  if (!script.includes(phrase) && !app.includes(phrase) && !portal.includes(phrase)) fail(`EPOCH product module workflow missing ${phrase}`);
+}
+
 for (const status of [
   "EPOCH_STATUS_PLANNED",
   "EPOCH_STATUS_AVAILABLE",
@@ -385,6 +432,16 @@ for (const type of [
   "EpochDeadlineEscalation",
   "EpochReminderDeadlineReceipt",
   "EpochRevisedCalendarRulepack",
+  "EpochRevisedCalendarDate",
+  "EpochRevisedCalendarConversionResult",
+  "EpochScheduleAuditRecord",
+  "EpochScheduleReceipt",
+  "EpochSchedulerLogEntry",
+  "EpochCalendarSearchQuery",
+  "EpochCalendarSearchResult",
+  "EpochScheduleTemplate",
+  "EpochPersonaLaneStatus",
+  "EpochLocalWorktreeStatus",
   "EpochCalendarSystem",
   "EpochDeadlineHealth",
   "EpochCalendarProviderReadinessGate",
@@ -431,6 +488,16 @@ for (const fn of [
   "epoch_reminder_deadline_receipt_is_customer_safe",
   "epoch_revised_calendar_rulepack_conversion_ready",
   "epoch_revised_calendar_rulepack_blocks_conversion",
+  "epoch_revised_calendar_rulepack_represents_owner_structure",
+  "epoch_revised_calendar_conversion_result_is_gated",
+  "epoch_schedule_audit_record_is_customer_safe",
+  "epoch_schedule_receipt_is_customer_safe",
+  "epoch_scheduler_log_entry_is_product_log",
+  "epoch_calendar_search_query_respects_role",
+  "epoch_calendar_search_result_is_customer_safe",
+  "epoch_schedule_template_is_ready",
+  "epoch_persona_lane_status_is_local",
+  "epoch_local_worktree_status_is_local_only",
   "epoch_calendar_provider_gate_ready_for_live_toggle",
   "epoch_calendar_provider_gate_blocks_live_calls"
 ]) {
@@ -586,6 +653,11 @@ gate.liveProviderCallsEnabled = true;
 if (providerGateBlocksLiveCalls(gate)) fail("provider gate should allow live calls after explicit toggle and checks");
 if (revisedRulepackReady(rulepack)) fail("draft revised rulepack must not be conversion-ready");
 if (!revisedRulepackBlocksConversion(rulepack)) fail("draft revised rulepack must block conversion");
+if (rulepack.monthCount !== 13 || rulepack.daysPerMonth !== 28 || !rulepack.yearOpeningDayOutsideMonths || !rulepack.leapDayOutsideMonthsAtYearEnd) fail("revised rulepack does not represent 13x28 owner structure");
+if (rulepack.springAnchorMethod !== "measured-average-first-spring-day" || !rulepack.springAnchorSource) fail("revised rulepack does not preserve physical spring-anchor method");
+if (!initialEpochLedger.scheduleAuditRecords.length || !initialEpochLedger.scheduleReceipts.length || !initialEpochLedger.schedulerLogEntries.length || !initialEpochLedger.calendarSearchResults.length || !initialEpochLedger.scheduleTemplates.length) fail("EPOCH product module records are not seeded in App/Webportal ledger");
+if (initialEpochLedger.scheduleAuditRecords.some((record) => record.providerGoLiveRequested)) fail("schedule audit records must stay local-only");
+if (initialEpochLedger.schedulerLogEntries.some((entry) => entry.monitorRunnerLog)) fail("scheduler log product module must not be MONITOR runner log data");
 if (!revisedRulepackReady(approvedRulepack)) fail("approved revised rulepack should be conversion-ready");
 approvedRulepack.conversionLogicEnabled = false;
 if (revisedRulepackReady(approvedRulepack)) fail("disabled conversion logic should keep approved rulepack held");

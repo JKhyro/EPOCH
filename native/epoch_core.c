@@ -757,6 +757,11 @@ int epoch_revised_calendar_rulepack_has_required_approvals(const EpochRevisedCal
     return epoch_text_present(rulepack->id) &&
            epoch_text_present(rulepack->version_id) &&
            rulepack->month_count == 13 &&
+           rulepack->days_per_month == 28 &&
+           rulepack->year_opening_day_outside_months &&
+           rulepack->leap_day_outside_months_at_year_end &&
+           epoch_text_present(rulepack->spring_anchor_method) &&
+           epoch_text_present(rulepack->spring_anchor_source) &&
            rulepack->month_names_approved &&
            rulepack->day_distribution_approved &&
            rulepack->intercalary_days_approved &&
@@ -779,6 +784,152 @@ int epoch_revised_calendar_rulepack_conversion_ready(const EpochRevisedCalendarR
 
 int epoch_revised_calendar_rulepack_blocks_conversion(const EpochRevisedCalendarRulepack *rulepack) {
     return !epoch_revised_calendar_rulepack_conversion_ready(rulepack);
+}
+
+int epoch_revised_calendar_rulepack_represents_owner_structure(const EpochRevisedCalendarRulepack *rulepack) {
+    if (rulepack == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(rulepack->id) &&
+           epoch_text_present(rulepack->version_id) &&
+           rulepack->month_count == 13 &&
+           rulepack->days_per_month == 28 &&
+           rulepack->year_opening_day_outside_months &&
+           rulepack->leap_day_outside_months_at_year_end &&
+           epoch_text_present(rulepack->spring_anchor_method) &&
+           epoch_text_present(rulepack->spring_anchor_source);
+}
+
+int epoch_revised_calendar_conversion_result_is_gated(const EpochRevisedCalendarConversionResult *result) {
+    if (result == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(result->id) &&
+           epoch_text_present(result->gregorian_iso) &&
+           epoch_text_present(result->customer_safe_status) &&
+           epoch_text_present(result->revised_date.rulepack_version_id) &&
+           !result->conversion_ready &&
+           !result->public_display_ready &&
+           (result->status == EPOCH_STATUS_BLOCKED ||
+            result->status == EPOCH_STATUS_REVIEWING ||
+            result->status == EPOCH_STATUS_PLANNED);
+}
+
+int epoch_schedule_audit_record_is_customer_safe(const EpochScheduleAuditRecord *record) {
+    if (record == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(record->id) &&
+           epoch_text_present(record->schedule_entry_id) &&
+           epoch_text_present(record->actor) &&
+           epoch_text_present(record->action) &&
+           epoch_text_present(record->summary) &&
+           record->customer_visible &&
+           !record->provider_go_live_requested &&
+           record->status != EPOCH_STATUS_FAILED &&
+           record->status != EPOCH_STATUS_BLOCKED;
+}
+
+int epoch_schedule_receipt_is_customer_safe(const EpochScheduleReceipt *receipt) {
+    if (receipt == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(receipt->id) &&
+           epoch_text_present(receipt->kind) &&
+           epoch_text_present(receipt->linked_record_id) &&
+           epoch_text_present(receipt->summary) &&
+           receipt->customer_visible &&
+           !receipt->provider_go_live_requested &&
+           (receipt->status == EPOCH_STATUS_COMPLETE ||
+            receipt->status == EPOCH_STATUS_CONFIRMED ||
+            receipt->status == EPOCH_STATUS_ACKNOWLEDGED);
+}
+
+int epoch_scheduler_log_entry_is_product_log(const EpochSchedulerLogEntry *entry) {
+    if (entry == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(entry->id) &&
+           epoch_text_present(entry->event_kind) &&
+           epoch_text_present(entry->linked_record_id) &&
+           epoch_text_present(entry->summary) &&
+           epoch_text_present(entry->recorded_at_iso) &&
+           entry->product_log &&
+           !entry->monitor_runner_log;
+}
+
+int epoch_calendar_search_query_respects_role(const EpochCalendarSearchQuery *query) {
+    if (query == 0) {
+        return 0;
+    }
+
+    if (!epoch_text_present(query->id) || !epoch_text_present(query->query) || !epoch_text_present(query->role)) {
+        return 0;
+    }
+
+    if (query->customer_safe_only) {
+        return !query->include_private_records;
+    }
+
+    return strcmp(query->role, "owner") == 0 || strcmp(query->role, "admin") == 0;
+}
+
+int epoch_calendar_search_result_is_customer_safe(const EpochCalendarSearchResult *result) {
+    if (result == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(result->id) &&
+           epoch_text_present(result->query_id) &&
+           epoch_text_present(result->record_id) &&
+           epoch_text_present(result->record_kind) &&
+           epoch_text_present(result->display_label) &&
+           result->customer_visible;
+}
+
+int epoch_schedule_template_is_ready(const EpochScheduleTemplate *template_record) {
+    if (template_record == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(template_record->id) &&
+           epoch_text_present(template_record->template_kind) &&
+           epoch_text_present(template_record->title) &&
+           epoch_text_present(template_record->default_duration_label) &&
+           epoch_text_present(template_record->timezone) &&
+           !template_record->provider_go_live_requested;
+}
+
+int epoch_persona_lane_status_is_local(const EpochPersonaLaneStatus *lane) {
+    if (lane == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(lane->id) &&
+           epoch_text_present(lane->role) &&
+           epoch_text_present(lane->runner_kind) &&
+           epoch_text_present(lane->worktree_path) &&
+           epoch_text_present(lane->local_branch) &&
+           (strcmp(lane->role, "EPOCH INTEGRATOR") == 0 ||
+            strcmp(lane->role, "EPOCH ORCHESTRATOR") == 0 ||
+            strcmp(lane->role, "EPOCH CONTRIBUTOR") == 0);
+}
+
+int epoch_local_worktree_status_is_local_only(const EpochLocalWorktreeStatus *worktree) {
+    if (worktree == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(worktree->id) &&
+           epoch_text_present(worktree->path) &&
+           epoch_text_present(worktree->local_branch) &&
+           epoch_text_present(worktree->head) &&
+           !worktree->external_sync_enabled;
 }
 
 static int epoch_calendar_provider_gate_prerequisites_passed(const EpochCalendarProviderReadinessGate *gate) {

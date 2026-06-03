@@ -3,15 +3,16 @@
 ## Purpose
 
 EPOCH MONITOR clones the HERMES monitor structure for EPOCH calendar and
-scheduling operations without copying HERMES project data or WORKSHOP service
+scheduling development without copying HERMES project data or WORKSHOP service
 bench scope.
 
 MONITOR is not the EPOCH App and not the EPOCH Webportal. It is the local
-operational status/control surface for EPOCH work.
+operational development/status/control surface for EPOCH work by the EPOCH
+INTEGRATOR, EPOCH ORCHESTRATOR, and EPOCH CONTRIBUTORS.
 
 ## Required Monitor Sections
 
-EPOCH MONITOR should expose local operator sections for:
+EPOCH MONITOR should expose local development/control sections for:
 
 - Summary
 - Scope
@@ -38,6 +39,10 @@ EPOCH MONITOR should expose local operator sections for:
 These are schedule/calendar sections. Payment, pricing, offer packaging,
 education delivery, consulting/support delivery, CRM, marketing, and revenue
 pipeline sections belong to WORKSHOP App/Webportal or WORKSHOP MONITOR.
+Schedule Audit, Schedule Receipts, Scheduler Log, Calendar Search, and Schedule
+Template are EPOCH App/Webportal product modules. MONITOR may show readiness,
+counts, links, lane ownership, receipts, and blockers for those modules, but it
+must not host the product workflows.
 
 ## Required HERMES-Structure Routes
 
@@ -66,7 +71,8 @@ EPOCH has three distinct local surfaces:
 - EPOCH MONITOR: `/epoch-monitor.html`
 
 Product UI belongs in the app and webportal. MONITOR belongs to operational
-status, control, receipts, route health, timeline, and build-readiness evidence.
+development status, control, receipts, route health, timeline, lane ownership,
+completion evidence, and build-readiness evidence.
 MONITOR must not become the customer portal, app dashboard, package catalog,
 delivery console, offer bench, pricing surface, marketing console, payment
 console, or CRM.
@@ -86,14 +92,14 @@ Until EPOCH-specific runners and persistent records are wired, MONITOR controls
 should stay safe and local:
 
 - route and status refresh
-- schedule audit review
-- scheduler log inspection
+- Schedule Audit module readiness review
+- Scheduler Log module readiness inspection
 - safe access confirmation
 - calendar provider readiness proof
 - reminder/recurrence readiness proof
 - revised-calendar contract readiness proof
 
-Controls may create local receipts, but must not create customer-visible
+Controls may create development receipts, but must not create customer-visible
 messages, external calendar writes, provider calls, public monitor exposure, or
 WORKSHOP service records.
 

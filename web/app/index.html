@@ -58,6 +58,11 @@
         <div><dt>Deadline Runs</dt><dd id="stat-deadline-executions">0</dd></div>
         <div><dt>Escalations</dt><dd id="stat-deadline-escalations">0</dd></div>
         <div><dt>Run Receipts</dt><dd id="stat-reminder-deadline-receipts">0</dd></div>
+        <div><dt>Schedule Audits</dt><dd id="stat-schedule-audits">0</dd></div>
+        <div><dt>Schedule Receipts</dt><dd id="stat-schedule-module-receipts">0</dd></div>
+        <div><dt>Scheduler Log</dt><dd id="stat-scheduler-log">0</dd></div>
+        <div><dt>Calendar Search</dt><dd id="stat-calendar-search">0</dd></div>
+        <div><dt>Templates</dt><dd id="stat-schedule-templates">0</dd></div>
       </dl>
       <button id="reset-schedule-ledger" class="secondary-button" type="button">Reset Local Ledger</button>
     </section>
@@ -76,6 +81,55 @@
         <h2>Calendar Board</h2>
       </div>
       <div id="calendar-board" class="calendar-board"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Calendar Modes</p>
+        <h2>Calendar Mode Switch</h2>
+      </div>
+      <div id="calendar-display-mode-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Product Module</p>
+        <h2>Schedule Audit</h2>
+      </div>
+      <div id="schedule-audit-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Product Module</p>
+        <h2>Schedule Receipts</h2>
+      </div>
+      <div id="schedule-receipts-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Product Module</p>
+        <h2>Scheduler Log</h2>
+      </div>
+      <div id="scheduler-log-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Product Module</p>
+        <h2>Calendar Search</h2>
+      </div>
+      <div id="calendar-search-query-list" class="item-stack compact-list"></div>
+      <div id="calendar-search-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Product Module</p>
+        <h2>Schedule Template</h2>
+      </div>
+      <div id="schedule-template-list" class="item-stack compact-list"></div>
     </section>
 
     <section class="panel">
@@ -385,6 +439,14 @@
         <div><dt>Web Role</dt><dd>Client surface</dd></div>
         <div><dt>MONITOR Role</dt><dd>Status/control only</dd></div>
       </dl>
+    </section>
+
+    <section class="panel status-panel">
+      <div class="section-title">
+        <p class="eyebrow">Native App</p>
+        <h2>Avalonia Shell Readiness</h2>
+      </div>
+      <div id="avalonia-shell-readiness" class="item-stack compact-list"></div>
     </section>
   </main>
 
