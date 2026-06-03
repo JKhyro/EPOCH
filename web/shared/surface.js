@@ -59,9 +59,26 @@ const getStorage = () => {
   }
 };
 
+const sanitizeCustomerPortalText = (value) => typeof value === "string"
+  ? value.replaceAll("MONITOR", "internal controls")
+  : value;
+
+const sanitizeCustomerVisiblePortalCopy = (ledger) => {
+  for (const value of Object.values(ledger)) {
+    if (!Array.isArray(value)) continue;
+    for (const item of value) {
+      if (!item || typeof item !== "object" || !item.customerVisible) continue;
+      for (const key of ["summary", "customerSafeStatus", "detail"]) {
+        item[key] = sanitizeCustomerPortalText(item[key]);
+      }
+    }
+  }
+  return ledger;
+};
+
 const mergeLedger = (stored) => {
   const base = clone(initialEpochLedger);
-  if (!stored || typeof stored !== "object") return base;
+  if (!stored || typeof stored !== "object") return sanitizeCustomerVisiblePortalCopy(base);
   for (const key of [
     "scheduleEntries",
     "scheduleRequests",
@@ -120,7 +137,7 @@ const mergeLedger = (stored) => {
   }
   base.version = stored.version || base.version;
   base.generatedAt = stored.generatedAt || base.generatedAt;
-  return base;
+  return sanitizeCustomerVisiblePortalCopy(base);
 };
 
 const loadLedger = () => {
@@ -138,8 +155,62 @@ const saveLedger = (nextLedger) => {
   if (storage) storage.setItem(EPOCH_LEDGER_KEY, JSON.stringify(nextLedger));
 };
 
+const EPOCH_CUSTOMER_SCHEDULE_STATUS_EXPORT_KEY = "epoch.webportal.customerScheduleStatusExports.v1";
+
+const normalizeCustomerScheduleStatusExport = (item) => {
+  if (!item || typeof item !== "object") return null;
+  const customerSafe =
+    item.customerSafe === true &&
+    item.webportalExportReady === true &&
+    item.providerCallsEnabled !== true &&
+    item.monitorWorkflowExposed !== true;
+  if (!customerSafe) return null;
+
+  return {
+    statusId: String(item.statusId || item.id || "local-schedule-status"),
+    requestId: String(item.requestId || "schedule request"),
+    status: String(item.status || "local-schedule-status-ready"),
+    customerSafeMessage: String(item.customerSafeMessage || "Your schedule status is ready."),
+    nextAction: String(item.nextAction || "Review the returned timing status."),
+    createdAtUtc: String(item.createdAtUtc || ""),
+    sourceSurface: String(item.sourceSurface || "EPOCH.App.CustomerSafeStatusExport")
+  };
+};
+
+const normalizeCustomerScheduleStatusPayload = (payload) => {
+  const records = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.statuses)
+      ? payload.statuses
+      : payload?.statusId
+        ? [payload]
+        : [];
+  return records
+    .map(normalizeCustomerScheduleStatusExport)
+    .filter(Boolean);
+};
+
+const loadCustomerScheduleStatusExports = () => {
+  const storage = getStorage();
+  if (!storage) return [];
+  try {
+    return normalizeCustomerScheduleStatusPayload(JSON.parse(storage.getItem(EPOCH_CUSTOMER_SCHEDULE_STATUS_EXPORT_KEY) || "[]"));
+  } catch {
+    return [];
+  }
+};
+
+const saveCustomerScheduleStatusExports = (records) => {
+  const storage = getStorage();
+  if (storage) storage.setItem(EPOCH_CUSTOMER_SCHEDULE_STATUS_EXPORT_KEY, JSON.stringify(records));
+};
+
 const state = {
   ledger: loadLedger()
+};
+
+const customerScheduleStatusExportState = {
+  records: loadCustomerScheduleStatusExports()
 };
 
 const byId = (id) => document.getElementById(id);
@@ -902,6 +973,29 @@ function renderPortalTimeline() {
   `);
 }
 
+function renderCustomerScheduleStatusExports() {
+  setText(
+    "customer-schedule-status-export-summary",
+    customerScheduleStatusExportState.records.length
+      ? `${customerScheduleStatusExportState.records.length} App-exported schedule status record(s) loaded.`
+      : "No App-exported schedule status records loaded."
+  );
+
+  renderStack(
+    "portal-customer-schedule-status-export",
+    customerScheduleStatusExportState.records,
+    (item) => `
+      <article class="mini-row">
+        <strong>${escapeHtml(item.status)}</strong>
+        <span>${escapeHtml(item.requestId)}</span>
+        <small>${escapeHtml(item.customerSafeMessage)}</small>
+        <small>${escapeHtml(item.nextAction)}</small>
+      </article>
+    `,
+    "No customer-safe App status exports loaded."
+  );
+}
+
 function renderReceipts() {
   renderStack("receipt-list", state.ledger.receipts, (item) => `
     <article class="mini-row">
@@ -1099,7 +1193,43 @@ function renderAll() {
   renderRevisedCalendar();
   renderProviderReadiness();
   renderPortalTimeline();
+  renderCustomerScheduleStatusExports();
   renderReceipts();
+}
+
+async function handleCustomerScheduleStatusImport(event) {
+  event.preventDefault();
+  const fileInput = byId("customer-schedule-status-file");
+  const confirmation = byId("customer-schedule-status-export-summary");
+  const file = fileInput?.files?.[0];
+  if (!file) {
+    if (confirmation) confirmation.textContent = "Choose customer-schedule-status.json first.";
+    return;
+  }
+
+  try {
+    const imported = normalizeCustomerScheduleStatusPayload(JSON.parse(await file.text()));
+    if (!imported.length) {
+      if (confirmation) confirmation.textContent = "No customer-safe Webportal-ready schedule status records found.";
+      return;
+    }
+
+    const byStatusId = new Map(customerScheduleStatusExportState.records.map((item) => [item.statusId, item]));
+    for (const item of imported) byStatusId.set(item.statusId, item);
+    customerScheduleStatusExportState.records = Array.from(byStatusId.values());
+    saveCustomerScheduleStatusExports(customerScheduleStatusExportState.records);
+    renderAll();
+  } catch {
+    if (confirmation) confirmation.textContent = "Status export could not be read.";
+  }
+}
+
+function handleClearCustomerScheduleStatusExports() {
+  customerScheduleStatusExportState.records = [];
+  saveCustomerScheduleStatusExports(customerScheduleStatusExportState.records);
+  const fileInput = byId("customer-schedule-status-file");
+  if (fileInput) fileInput.value = "";
+  renderAll();
 }
 
 function handleScheduleRequest(event) {
@@ -1193,6 +1323,12 @@ function handleScheduleRequest(event) {
 function bindControls() {
   const requestForm = byId("schedule-request-form");
   if (requestForm) requestForm.addEventListener("submit", handleScheduleRequest);
+
+  const statusImportForm = byId("customer-schedule-status-import-form");
+  if (statusImportForm) statusImportForm.addEventListener("submit", handleCustomerScheduleStatusImport);
+
+  const clearStatusExportButton = byId("clear-customer-schedule-status-export");
+  if (clearStatusExportButton) clearStatusExportButton.addEventListener("click", handleClearCustomerScheduleStatusExports);
 
   const resetButton = byId("reset-schedule-ledger");
   if (resetButton) {

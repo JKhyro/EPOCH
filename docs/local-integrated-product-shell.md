@@ -35,6 +35,10 @@ exposure is part of this integration checkpoint.
   `customer-schedule-status.json` export ledger so linked schedule requests and
   native execution history can become customer-safe Webportal status records
   without exposing MONITOR or live provider behavior.
+- `codex/local-epoch-webportal-status-reader` adds the Webportal-side reader
+  for that App export. It loads only customer-safe, Webportal-ready,
+  provider-off status records and keeps native execution/operator details out
+  of the customer portal.
 
 ## Boundary Status
 

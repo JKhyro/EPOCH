@@ -57,6 +57,25 @@
 
     <section class="panel">
       <div class="section-title">
+        <p class="eyebrow">App Export</p>
+        <h2>Schedule Status Export</h2>
+      </div>
+      <form id="customer-schedule-status-import-form" class="surface-form compact-form">
+        <label>
+          Status export file
+          <input id="customer-schedule-status-file" name="statusExport" type="file" accept="application/json,.json" />
+        </label>
+        <div class="inline-actions">
+          <button type="submit">Load Status Export</button>
+          <button id="clear-customer-schedule-status-export" type="button">Clear</button>
+        </div>
+      </form>
+      <p id="customer-schedule-status-export-summary" class="confirmation" role="status"></p>
+      <div id="portal-customer-schedule-status-export" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
         <p class="eyebrow">Audit</p>
         <h2>Schedule Audit</h2>
       </div>
@@ -310,6 +329,6 @@
     </section>
   </main>
 
-  <script type="module" src="../shared/surface.js?v=epoch-availability-optimization-recommendations"></script>
+  <script type="module" src="../shared/surface.js?v=epoch-webportal-status-reader"></script>
 </body>
 </html>

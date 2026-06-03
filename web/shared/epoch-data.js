@@ -104,7 +104,7 @@ export const initialEpochLedger = {
       status: "confirmed",
       customerVisible: true,
       providerGoLiveRequested: false,
-      summary: "Schedule Audit product module records the local booking confirmation and timing return without using MONITOR as the product UI."
+      summary: "Schedule Audit product module records the local booking confirmation and timing return without exposing internal controls."
     },
     {
       id: "EPOCH-SCHEDULE-AUDIT-002",
@@ -125,7 +125,7 @@ export const initialEpochLedger = {
       status: "complete",
       customerVisible: true,
       providerGoLiveRequested: false,
-      summary: "Schedule Receipts product module shows customer-safe local schedule proof without exposing MONITOR controls."
+      summary: "Schedule Receipts product module shows customer-safe local schedule proof without exposing internal controls."
     },
     {
       id: "EPOCH-SCHEDULE-RECEIPT-002",

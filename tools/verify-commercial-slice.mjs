@@ -155,6 +155,10 @@ for (const phrase of [
   "Schedule Request And Status Portal",
   "Ask For A Time",
   "Customer-Safe Timeline",
+  "Schedule Status Export",
+  "customer-schedule-status-import-form",
+  "customer-schedule-status-file",
+  "portal-customer-schedule-status-export",
   "Next Open Windows",
   "Request Acceptance Status",
   "Timing Handoff Status",
@@ -303,6 +307,8 @@ for (const phrase of [
   "EPOCH_LEDGER_KEY",
   "schedule-request-form",
   "schedule-need-select",
+  "sanitizeCustomerPortalText",
+  "sanitizeCustomerVisiblePortalCopy",
   "customer-status-list",
   "provider-readiness-list",
   "timing-handoff-list",
@@ -360,11 +366,33 @@ for (const phrase of [
   "generate-booking-recommendations",
   "promote-waitlist",
   "run-reminder-deadline-pass",
+  "EPOCH_CUSTOMER_SCHEDULE_STATUS_EXPORT_KEY",
+  "normalizeCustomerScheduleStatusExport",
+  "normalizeCustomerScheduleStatusPayload",
+  "loadCustomerScheduleStatusExports",
+  "saveCustomerScheduleStatusExports",
+  "customerScheduleStatusExportState",
+  "customer-schedule-status.json",
+  "customer-schedule-status-import-form",
+  "customer-schedule-status-file",
+  "customer-schedule-status-export-summary",
+  "portal-customer-schedule-status-export",
+  "handleCustomerScheduleStatusImport",
+  "handleClearCustomerScheduleStatusExports",
+  "providerCallsEnabled !== true",
+  "monitorWorkflowExposed !== true",
   "revised-rulepack-status",
   "portal-revised-status",
   "reset-schedule-ledger"
 ]) {
   if (!script.includes(phrase) && !app.includes(phrase) && !portal.includes(phrase)) fail(`EPOCH workflow missing ${phrase}`);
+}
+
+for (const phrase of [
+  "compact-form",
+  "inline-actions"
+]) {
+  if (!styles.includes(phrase)) fail(`EPOCH styles missing ${phrase}`);
 }
 
 for (const phrase of [
@@ -1075,6 +1103,15 @@ if (rulepack.springAnchorMethod !== "measured-average-first-spring-day" || !rule
 if (!initialEpochLedger.scheduleAuditRecords.length || !initialEpochLedger.scheduleReceipts.length || !initialEpochLedger.schedulerLogEntries.length || !initialEpochLedger.calendarSearchResults.length || !initialEpochLedger.scheduleTemplates.length) fail("EPOCH product module records are not seeded in App/Webportal ledger");
 if (initialEpochLedger.scheduleAuditRecords.some((record) => record.providerGoLiveRequested)) fail("schedule audit records must stay local-only");
 if (initialEpochLedger.schedulerLogEntries.some((entry) => entry.monitorRunnerLog)) fail("scheduler log product module must not be MONITOR runner log data");
+const customerVisibleMonitorCopy = Object.values(initialEpochLedger)
+  .flatMap((value) => Array.isArray(value) ? value : [])
+  .filter((item) => item && typeof item === "object" && item.customerVisible)
+  .some((item) => JSON.stringify({
+    summary: item.summary,
+    customerSafeStatus: item.customerSafeStatus,
+    detail: item.detail
+  }).includes("MONITOR"));
+if (customerVisibleMonitorCopy) fail("customer-visible EPOCH Webportal records must not render MONITOR copy");
 if (!revisedRulepackReady(approvedRulepack)) fail("approved revised rulepack should be conversion-ready");
 approvedRulepack.conversionLogicEnabled = false;
 if (revisedRulepackReady(approvedRulepack)) fail("disabled conversion logic should keep approved rulepack held");

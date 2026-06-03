@@ -194,3 +194,13 @@ only where the host, UI framework, or platform integration makes it necessary.
 - The Avalonia shell renders Customer-Safe Status Feedback so the operator can
   see what the Webportal may safely show without exposing MONITOR controls or
   live calendar provider behavior.
+
+## Local Webportal schedule status reader slice
+
+- The EPOCH Webportal can load an App-exported
+  `customer-schedule-status.json` file into a browser-local status reader.
+- The reader accepts only records marked customer-safe, Webportal-ready,
+  provider-off, and MONITOR-off before rendering them.
+- The Webportal displays the customer-safe schedule status message, next action,
+  request label, and status only. Native execution ids, operator controls,
+  provider controls, and MONITOR controls stay outside the customer portal.
