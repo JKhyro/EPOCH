@@ -38,6 +38,9 @@
           <TextBlock Text="Webportal Request Inbox" FontSize="16" FontWeight="SemiBold" Foreground="#172033" Margin="0,8,0,0" />
           <TextBlock Text="{Binding RequestInboxSummary}" TextWrapping="Wrap" Foreground="#526071" />
           <TextBlock Text="{Binding RequestInboxStatus}" TextWrapping="Wrap" Foreground="#526071" />
+          <TextBlock Text="Request To Native Command" FontSize="16" FontWeight="SemiBold" Foreground="#172033" Margin="0,8,0,0" />
+          <TextBlock Text="{Binding RequestCommandReceiptSummary}" TextWrapping="Wrap" Foreground="#526071" />
+          <TextBlock Text="{Binding RequestCommandReceiptStatus}" TextWrapping="Wrap" Foreground="#526071" />
         </StackPanel>
       </Border>
 

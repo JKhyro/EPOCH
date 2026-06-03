@@ -14,7 +14,10 @@ public sealed class MainWindowViewModel
         string historyPath,
         EpochWebportalScheduleRequest? inboxRequest,
         IReadOnlyList<EpochWebportalScheduleRequest> requestInbox,
-        string requestInboxPath)
+        string requestInboxPath,
+        EpochRequestScheduleCommandReceipt? requestCommandReceipt,
+        IReadOnlyList<EpochRequestScheduleCommandReceipt> requestCommandReceipts,
+        string requestCommandReceiptPath)
     {
         ProductName = snapshot.ProductName;
         CoreStatus = snapshot.CoreStatus;
@@ -60,6 +63,12 @@ public sealed class MainWindowViewModel
         RequestInboxStatus = inboxRequest is not null
             ? $"Latest request {inboxRequest.RequestId}: {inboxRequest.NeedKind} is {inboxRequest.Status}; provider calls enabled: {inboxRequest.ProviderCallsEnabled.ToString().ToLowerInvariant()}."
             : "No Webportal request was imported into the local EPOCH App inbox.";
+        RequestCommandReceiptCount = requestCommandReceipts.Count;
+        RequestCommandReceiptSummary = $"{requestCommandReceipts.Count} Webportal request-to-native command receipt(s) in the EPOCH App ledger.";
+        RequestCommandReceiptLocation = requestCommandReceiptPath;
+        RequestCommandReceiptStatus = requestCommandReceipt is not null
+            ? $"Latest request command {requestCommandReceipt.RequestId} -> {requestCommandReceipt.BookingReceiptId}; native ready: {requestCommandReceipt.NativeExecutionReady.ToString().ToLowerInvariant()}."
+            : "No Webportal request has been linked to a native scheduling command receipt in this shell load.";
     }
 
     public string ProductName { get; }
@@ -87,12 +96,20 @@ public sealed class MainWindowViewModel
     public string RequestInboxSummary { get; }
     public string RequestInboxLocation { get; }
     public string RequestInboxStatus { get; }
+    public int RequestCommandReceiptCount { get; }
+    public string RequestCommandReceiptSummary { get; }
+    public string RequestCommandReceiptLocation { get; }
+    public string RequestCommandReceiptStatus { get; }
 
     public static MainWindowViewModel Load()
     {
+        EpochWebportalScheduleRequest? inboxRequest = null;
+        EpochScheduleRequestInboxStore.TryEnsureDefaultWebportalRequest(out inboxRequest);
+        IReadOnlyList<EpochWebportalScheduleRequest> requestInbox = EpochScheduleRequestInboxStore.Load();
+
         EpochScheduleExecutionReceipt execution = ExecuteNativeOrFallback("confirm-local-booking");
         EpochScheduleExecutionHistoryEntry? historyEntry = null;
-        EpochWebportalScheduleRequest? inboxRequest = null;
+        EpochRequestScheduleCommandReceipt? requestCommandReceipt = null;
 
         if (execution.NativeExecutionReady &&
             execution.ExecutedLocally &&
@@ -106,8 +123,17 @@ public sealed class MainWindowViewModel
         }
 
         IReadOnlyList<EpochScheduleExecutionHistoryEntry> history = EpochScheduleExecutionHistoryStore.Load();
-        EpochScheduleRequestInboxStore.TryEnsureDefaultWebportalRequest(out inboxRequest);
-        IReadOnlyList<EpochWebportalScheduleRequest> requestInbox = EpochScheduleRequestInboxStore.Load();
+        if (inboxRequest is not null && historyEntry is not null)
+        {
+            EpochRequestScheduleCommandReceiptStore.TryAppend(
+                inboxRequest,
+                historyEntry,
+                execution,
+                out requestCommandReceipt);
+        }
+
+        IReadOnlyList<EpochRequestScheduleCommandReceipt> requestCommandReceipts =
+            EpochRequestScheduleCommandReceiptStore.Load();
 
         return new MainWindowViewModel(
             EpochNative.LoadSnapshotOrFallback(),
@@ -118,7 +144,10 @@ public sealed class MainWindowViewModel
             EpochScheduleExecutionHistoryStore.HistoryPath,
             inboxRequest,
             requestInbox,
-            EpochScheduleRequestInboxStore.InboxPath);
+            EpochScheduleRequestInboxStore.InboxPath,
+            requestCommandReceipt,
+            requestCommandReceipts,
+            EpochRequestScheduleCommandReceiptStore.ReceiptPath);
     }
 
     private static EpochScheduleExecutionReceipt ExecuteNativeOrFallback(string intentKind)

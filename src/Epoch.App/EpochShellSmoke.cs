@@ -29,6 +29,10 @@ internal static class EpochShellSmoke
             IReadOnlyList<EpochScheduleExecutionHistoryEntry> history = EpochScheduleExecutionHistoryStore.Load();
             EpochWebportalScheduleRequest inboxRequest = EpochScheduleRequestInboxStore.EnsureDefaultWebportalRequest();
             IReadOnlyList<EpochWebportalScheduleRequest> requestInbox = EpochScheduleRequestInboxStore.Load();
+            EpochRequestScheduleCommandReceipt requestCommandReceipt =
+                EpochRequestScheduleCommandReceiptStore.Append(inboxRequest, historyEntry, execution);
+            IReadOnlyList<EpochRequestScheduleCommandReceipt> requestCommandReceipts =
+                EpochRequestScheduleCommandReceiptStore.Load();
 
             if (snapshot.ProductName != "EPOCH" ||
                 snapshot.CoreStatus != "native-core-ready" ||
@@ -58,7 +62,16 @@ internal static class EpochShellSmoke
                 requestInbox[0].ProviderCallsEnabled ||
                 requestInbox[0].MonitorWorkflowExposed ||
                 !requestInbox[0].AppOwnedInboxState ||
-                !File.Exists(EpochScheduleRequestInboxStore.InboxPath))
+                !File.Exists(EpochScheduleRequestInboxStore.InboxPath) ||
+                requestCommandReceipts.Count != 1 ||
+                requestCommandReceipts[0].ReceiptId != requestCommandReceipt.ReceiptId ||
+                requestCommandReceipts[0].RequestId != inboxRequest.RequestId ||
+                requestCommandReceipts[0].ExecutionHistoryId != historyEntry.HistoryId ||
+                !requestCommandReceipts[0].CustomerSafe ||
+                requestCommandReceipts[0].ProviderCallsEnabled ||
+                requestCommandReceipts[0].MonitorWorkflowExposed ||
+                !requestCommandReceipts[0].NativeExecutionReady ||
+                !File.Exists(EpochRequestScheduleCommandReceiptStore.ReceiptPath))
             {
                 return 2;
             }

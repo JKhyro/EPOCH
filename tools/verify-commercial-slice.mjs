@@ -36,6 +36,8 @@ const appHistoryEntry = read("../src/Epoch.App/Models/EpochScheduleExecutionHist
 const appHistoryStore = read("../src/Epoch.App/Services/EpochScheduleExecutionHistoryStore.cs");
 const appRequestInboxEntry = read("../src/Epoch.App/Models/EpochWebportalScheduleRequest.cs");
 const appRequestInboxStore = read("../src/Epoch.App/Services/EpochScheduleRequestInboxStore.cs");
+const appRequestCommandReceipt = read("../src/Epoch.App/Models/EpochRequestScheduleCommandReceipt.cs");
+const appRequestCommandStore = read("../src/Epoch.App/Services/EpochRequestScheduleCommandReceiptStore.cs");
 const {
   createAvailabilityConflictDecisionForHandoff,
   createAvailabilityCapacityReceiptForPromotion,
@@ -530,6 +532,7 @@ for (const phrase of [
   "Native Execution Receipt",
   "Execution History",
   "Webportal Request Inbox",
+  "Request To Native Command",
   "CommandReadiness",
   "CommandReceiptStatus",
   "ExecutionSafetyStatus",
@@ -538,6 +541,8 @@ for (const phrase of [
   "LastExecutionHistoryStatus",
   "RequestInboxSummary",
   "RequestInboxStatus",
+  "RequestCommandReceiptSummary",
+  "RequestCommandReceiptStatus",
   "MONITOR owns development/control status",
   "WORKSHOP may request timing"
 ]) {
@@ -568,12 +573,16 @@ for (const phrase of [
   "EpochScheduleExecutionHistoryStore.Load",
   "EpochScheduleRequestInboxStore.TryEnsureDefaultWebportalRequest",
   "EpochScheduleRequestInboxStore.Load",
+  "EpochRequestScheduleCommandReceiptStore.TryAppend",
+  "EpochRequestScheduleCommandReceiptStore.Load",
   "native scheduling command ready",
   "native execution receipt ready",
   "local scheduling execution receipt(s) persisted in the EPOCH App ledger",
   "customer-safe Webportal schedule request(s)",
+  "Webportal request-to-native command receipt(s)",
   "No new native execution history was persisted",
   "No Webportal request was imported",
+  "No Webportal request has been linked",
   "audit, receipts, log, search, and templates",
   "monitor boundary enforced"
 ]) {
@@ -639,15 +648,47 @@ for (const phrase of [
 }
 
 for (const phrase of [
+  "EpochRequestScheduleCommandReceipt",
+  "FromRequestAndExecution",
+  "ExecutionHistoryId",
+  "BookingReceiptId",
+  "TimingReturnId",
+  "CustomerSafe",
+  "ProviderCallsEnabled",
+  "MonitorWorkflowExposed",
+  "NativeExecutionReady"
+]) {
+  if (!appRequestCommandReceipt.includes(phrase)) fail(`Avalonia request command receipt missing ${phrase}`);
+}
+
+for (const phrase of [
+  "request-to-schedule-command.json",
+  "ReceiptPath",
+  "TryAppend",
+  "ArchiveInvalidReceipts",
+  "StateDirectoryEnvironmentVariable",
+  "Environment.SpecialFolder.LocalApplicationData",
+  "KHYRON",
+  "EPOCH",
+  "App"
+]) {
+  if (!appRequestCommandStore.includes(phrase)) fail(`Avalonia request command store missing ${phrase}`);
+}
+
+for (const phrase of [
   "StateDirectoryEnvironmentVariable",
   "EpochScheduleExecutionHistoryStore.Append",
   "EpochScheduleExecutionHistoryStore.Load",
   "EpochScheduleRequestInboxStore.EnsureDefaultWebportalRequest",
   "EpochScheduleRequestInboxStore.Load",
+  "EpochRequestScheduleCommandReceiptStore.Append",
+  "EpochRequestScheduleCommandReceiptStore.Load",
   "history.Count != 1",
   "requestInbox.Count != 1",
+  "requestCommandReceipts.Count != 1",
   "File.Exists(EpochScheduleExecutionHistoryStore.HistoryPath)",
   "File.Exists(EpochScheduleRequestInboxStore.InboxPath)",
+  "File.Exists(EpochRequestScheduleCommandReceiptStore.ReceiptPath)",
   "Directory.Delete(smokeStateDirectory, true)"
 ]) {
   if (!appShellSmoke.includes(phrase)) fail(`Avalonia smoke missing history proof ${phrase}`);
@@ -670,7 +711,11 @@ for (const phrase of [
   "EpochScheduleRequestInboxStore",
   "schedule-request-inbox.json",
   "Webportal Request Inbox",
-  "App/Webportal product"
+  "App/Webportal product",
+  "Local request-to-scheduling-command slice",
+  "EpochRequestScheduleCommandReceiptStore",
+  "request-to-schedule-command.json",
+  "Request To Native Command"
 ]) {
   if (!runtime.includes(phrase)) fail(`runtime docs missing scheduling command phrase ${phrase}`);
 }

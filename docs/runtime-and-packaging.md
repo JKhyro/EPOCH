@@ -152,3 +152,16 @@ only where the host, UI framework, or platform integration makes it necessary.
   state; MONITOR may report readiness/evidence only.
 - Request inbox entries are local-only, provider-off, customer-safe, and marked
   as App-owned inbox state before a Native C scheduling command consumes them.
+
+## Local request-to-scheduling-command slice
+
+- `EpochRequestScheduleCommandReceiptStore` persists the App-owned link between
+  a Webportal schedule request inbox entry and a native scheduling execution
+  receipt in `request-to-schedule-command.json`.
+- The link is written only after a customer-safe inbox request and direct native
+  execution history receipt both exist.
+- The Avalonia Schedule Queue panel renders Request To Native Command status so
+  the operator can see that Webportal request intent has been consumed by local
+  EPOCH scheduling execution.
+- The receipt remains local-only, provider-off, MONITOR-off, and native-ready;
+  MONITOR may report implementation evidence but does not run the request flow.
