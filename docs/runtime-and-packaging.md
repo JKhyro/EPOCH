@@ -256,6 +256,28 @@ only where the host, UI framework, or platform integration makes it necessary.
   status, and export path so the operator can see the bridge artifact without
   moving the workflow into MONITOR.
 
+## Local revised-calendar availability exception slice
+
+- `EpochRevisedAvailabilityExceptionStore` persists App-owned recurring
+  revised-calendar availability exception records in
+  `revised-availability-exceptions.json` after the App has a customer-safe
+  revised timing export and a native scheduling command preview.
+- `EpochRevisedAvailabilityExceptionReceiptStore` writes customer-safe
+  Webportal import receipts in
+  `revised-availability-exception-receipts.json`.
+- The recurring revised-calendar availability exception chain links revised
+  timing context, the native schedule request id, the EPOCH-owned availability
+  window id, the recurring series id, the recurring instance id, and the local
+  conflict exception id without creating a live provider write.
+- Provider calls remain disabled, notification sends remain disabled, WORKSHOP
+  calendar ownership remains false, MONITOR workflow exposure remains false,
+  and revised-calendar conversion remains owner-gated across the whole chain.
+- The EPOCH Webportal can load the App-exported
+  `revised-availability-exception-receipts.json` file into a browser-local
+  reader. The reader accepts only customer-safe, Webportal-ready,
+  notification-off, provider-off, WORKSHOP-calendar-off, MONITOR-off, and
+  conversion-held records before rendering status.
+
 ## Local revised-calendar reminder/deadline execution slice
 
 - `EpochRevisedReminderExecutionStore` persists App-owned revised-calendar

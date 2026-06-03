@@ -44,6 +44,8 @@
         <div><dt>Series</dt><dd id="stat-recurring-series">0</dd></div>
         <div><dt>Instances</dt><dd id="stat-series-instances">0</dd></div>
         <div><dt>Exceptions</dt><dd id="stat-series-exceptions">0</dd></div>
+        <div><dt>Revised Exceptions</dt><dd id="stat-revised-availability-exceptions">0</dd></div>
+        <div><dt>Revised Receipts</dt><dd id="stat-revised-availability-receipts">0</dd></div>
         <div><dt>Series Receipts</dt><dd id="stat-series-receipts">0</dd></div>
         <div><dt>Capacity Rows</dt><dd id="stat-capacity-snapshots">0</dd></div>
         <div><dt>Waitlist</dt><dd id="stat-waitlist">0</dd></div>
@@ -382,6 +384,23 @@
 
     <section class="panel">
       <div class="section-title">
+        <p class="eyebrow">Revised Timing</p>
+        <h2>Revised Availability Exceptions</h2>
+      </div>
+      <div id="revised-availability-exception-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">App Export</p>
+        <h2>Revised Availability Exception Receipts</h2>
+      </div>
+      <div id="revised-availability-exception-receipt-list" class="item-stack compact-list"></div>
+      <div id="app-revised-availability-exception-receipt-export" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
         <p class="eyebrow">Series Proof</p>
         <h2>Recurring Series Receipts</h2>
       </div>
@@ -466,6 +485,6 @@
     </section>
   </main>
 
-  <script type="module" src="../shared/surface.js?v=epoch-revised-reminder-deadline-execution"></script>
+  <script type="module" src="../shared/surface.js?v=epoch-revised-availability-exceptions"></script>
 </body>
 </html>

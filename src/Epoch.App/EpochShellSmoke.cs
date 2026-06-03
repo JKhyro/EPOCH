@@ -61,6 +61,14 @@ internal static class EpochShellSmoke
                 EpochRevisedCalendarTimingExportStore.EnsureDefaultExport(snapshot);
             IReadOnlyList<EpochRevisedCalendarTimingExport> revisedTimingExports =
                 EpochRevisedCalendarTimingExportStore.Load();
+            EpochRevisedAvailabilityException revisedAvailabilityException =
+                EpochRevisedAvailabilityExceptionStore.Append(revisedTimingExport, command);
+            IReadOnlyList<EpochRevisedAvailabilityException> revisedAvailabilityExceptions =
+                EpochRevisedAvailabilityExceptionStore.Load();
+            EpochRevisedAvailabilityExceptionReceipt revisedAvailabilityExceptionReceipt =
+                EpochRevisedAvailabilityExceptionReceiptStore.Append(revisedAvailabilityException);
+            IReadOnlyList<EpochRevisedAvailabilityExceptionReceipt> revisedAvailabilityExceptionReceipts =
+                EpochRevisedAvailabilityExceptionReceiptStore.Load();
             EpochRevisedReminderExecution revisedReminderExecution =
                 EpochRevisedReminderExecutionStore.Append(revisedTimingExport);
             IReadOnlyList<EpochRevisedReminderExecution> revisedReminderExecutions =
@@ -181,6 +189,35 @@ internal static class EpochShellSmoke
                 !revisedTimingExports[0].CustomerSafe ||
                 !revisedTimingExports[0].ConversionGateReason.Contains("owner-approved physical spring anchor", StringComparison.Ordinal) ||
                 !File.Exists(EpochRevisedCalendarTimingExportStore.ExportPath) ||
+                revisedAvailabilityExceptions.Count != 1 ||
+                revisedAvailabilityExceptions[0].ExceptionId != revisedAvailabilityException.ExceptionId ||
+                revisedAvailabilityExceptions[0].RevisedTimingPayloadId != revisedTimingExport.PayloadId ||
+                revisedAvailabilityExceptions[0].AvailabilityWindowId != command.AvailabilityWindowId ||
+                revisedAvailabilityExceptions[0].NativeScheduleRequestId != command.RequestId ||
+                revisedAvailabilityExceptions[0].ProviderCallsEnabled ||
+                revisedAvailabilityExceptions[0].NotificationSendEnabled ||
+                revisedAvailabilityExceptions[0].MonitorWorkflowExposed ||
+                revisedAvailabilityExceptions[0].WorkshopCalendarOwnership ||
+                revisedAvailabilityExceptions[0].RevisedConversionReady ||
+                !revisedAvailabilityExceptions[0].CustomerSafe ||
+                !revisedAvailabilityExceptions[0].WebportalExportReady ||
+                !revisedAvailabilityExceptions[0].RecurringExceptionReady ||
+                !revisedAvailabilityExceptions[0].AvailabilityExceptionReady ||
+                !File.Exists(EpochRevisedAvailabilityExceptionStore.ExceptionPath) ||
+                revisedAvailabilityExceptionReceipts.Count != 1 ||
+                revisedAvailabilityExceptionReceipts[0].ReceiptId != revisedAvailabilityExceptionReceipt.ReceiptId ||
+                revisedAvailabilityExceptionReceipts[0].ExceptionId != revisedAvailabilityException.ExceptionId ||
+                revisedAvailabilityExceptionReceipts[0].Kind != "revised-availability-exception" ||
+                revisedAvailabilityExceptionReceipts[0].Status != "customer-safe-revised-availability-exception-ready" ||
+                revisedAvailabilityExceptionReceipts[0].ProviderCallsEnabled ||
+                revisedAvailabilityExceptionReceipts[0].NotificationSendEnabled ||
+                revisedAvailabilityExceptionReceipts[0].MonitorWorkflowExposed ||
+                revisedAvailabilityExceptionReceipts[0].WorkshopCalendarOwnership ||
+                revisedAvailabilityExceptionReceipts[0].RevisedConversionReady ||
+                !revisedAvailabilityExceptionReceipts[0].CustomerSafe ||
+                !revisedAvailabilityExceptionReceipts[0].WebportalExportReady ||
+                !revisedAvailabilityExceptionReceipts[0].CustomerSafeMessage.Contains("owner-gated", StringComparison.Ordinal) ||
+                !File.Exists(EpochRevisedAvailabilityExceptionReceiptStore.ReceiptPath) ||
                 revisedReminderExecutions.Count != 1 ||
                 revisedReminderExecutions[0].ExecutionId != revisedReminderExecution.ExecutionId ||
                 revisedReminderExecutions[0].RevisedTimingPayloadId != revisedTimingExport.PayloadId ||

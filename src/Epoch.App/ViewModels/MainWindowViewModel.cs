@@ -34,6 +34,12 @@ public sealed class MainWindowViewModel
         EpochRevisedCalendarTimingExport? revisedTimingExport,
         IReadOnlyList<EpochRevisedCalendarTimingExport> revisedTimingExports,
         string revisedTimingExportPath,
+        EpochRevisedAvailabilityException? revisedAvailabilityException,
+        IReadOnlyList<EpochRevisedAvailabilityException> revisedAvailabilityExceptions,
+        string revisedAvailabilityExceptionPath,
+        EpochRevisedAvailabilityExceptionReceipt? revisedAvailabilityExceptionReceipt,
+        IReadOnlyList<EpochRevisedAvailabilityExceptionReceipt> revisedAvailabilityExceptionReceipts,
+        string revisedAvailabilityExceptionReceiptPath,
         EpochRevisedReminderExecution? revisedReminderExecution,
         IReadOnlyList<EpochRevisedReminderExecution> revisedReminderExecutions,
         string revisedReminderExecutionPath,
@@ -148,6 +154,21 @@ public sealed class MainWindowViewModel
         RevisedTimingExportStatus = revisedTimingExport is not null
             ? $"Latest export {revisedTimingExport.PayloadId}: {revisedTimingExport.CalendarSystemLabel}; customer-safe: {revisedTimingExport.CustomerSafe.ToString().ToLowerInvariant()}; WORKSHOP calendar ownership: {revisedTimingExport.WorkshopCalendarOwnership.ToString().ToLowerInvariant()}."
             : "No EPOCH revised timing export was written in this shell load.";
+        RevisedAvailabilityExceptionCount = revisedAvailabilityExceptions.Count;
+        RevisedAvailabilityExceptionSummary = $"{revisedAvailabilityExceptions.Count} recurring revised-calendar availability exception(s) in the EPOCH App ledger.";
+        RevisedAvailabilityExceptionLocation = revisedAvailabilityExceptionPath;
+        RevisedAvailabilityExceptionStatus = revisedAvailabilityException is not null
+            ? $"Latest availability exception {revisedAvailabilityException.ExceptionId}: {revisedAvailabilityException.Status}; revised conversion ready: {revisedAvailabilityException.RevisedConversionReady.ToString().ToLowerInvariant()}."
+            : "No recurring revised-calendar availability exception was prepared from EPOCH revised timing context.";
+        RevisedAvailabilityExceptionReceiptCount = revisedAvailabilityExceptionReceipts.Count;
+        RevisedAvailabilityExceptionReceiptSummary = $"{revisedAvailabilityExceptionReceipts.Count} revised availability exception receipt(s) ready for customer-safe Webportal import.";
+        RevisedAvailabilityExceptionReceiptLocation = revisedAvailabilityExceptionReceiptPath;
+        RevisedAvailabilityExceptionReceiptStatus = revisedAvailabilityExceptionReceipt is not null
+            ? $"Latest availability exception receipt {revisedAvailabilityExceptionReceipt.ReceiptId}: {revisedAvailabilityExceptionReceipt.Status}; Webportal export ready: {revisedAvailabilityExceptionReceipt.WebportalExportReady.ToString().ToLowerInvariant()}."
+            : "No customer-safe revised availability exception receipt was prepared in this shell load.";
+        RevisedAvailabilityExceptionReceiptMessage = revisedAvailabilityExceptionReceipt is not null
+            ? revisedAvailabilityExceptionReceipt.CustomerSafeMessage
+            : "The revised availability exception Webportal status loop is waiting for customer-safe revised timing context.";
         RevisedReminderExecutionCount = revisedReminderExecutions.Count;
         RevisedReminderExecutionSummary = $"{revisedReminderExecutions.Count} revised-calendar reminder execution(s) in the EPOCH App ledger.";
         RevisedReminderExecutionLocation = revisedReminderExecutionPath;
@@ -238,6 +259,15 @@ public sealed class MainWindowViewModel
     public string RevisedTimingExportSummary { get; }
     public string RevisedTimingExportLocation { get; }
     public string RevisedTimingExportStatus { get; }
+    public int RevisedAvailabilityExceptionCount { get; }
+    public string RevisedAvailabilityExceptionSummary { get; }
+    public string RevisedAvailabilityExceptionLocation { get; }
+    public string RevisedAvailabilityExceptionStatus { get; }
+    public int RevisedAvailabilityExceptionReceiptCount { get; }
+    public string RevisedAvailabilityExceptionReceiptSummary { get; }
+    public string RevisedAvailabilityExceptionReceiptLocation { get; }
+    public string RevisedAvailabilityExceptionReceiptStatus { get; }
+    public string RevisedAvailabilityExceptionReceiptMessage { get; }
     public int RevisedReminderExecutionCount { get; }
     public string RevisedReminderExecutionSummary { get; }
     public string RevisedReminderExecutionLocation { get; }
@@ -264,6 +294,7 @@ public sealed class MainWindowViewModel
         EpochScheduleLifecycleActionStore.TryEnsureDefaultLifecycleAction(out lifecycleAction);
         IReadOnlyList<EpochScheduleLifecycleAction> lifecycleActions = EpochScheduleLifecycleActionStore.Load();
 
+        EpochScheduleCommandResult commandPreview = EpochNative.LoadScheduleCommandOrFallback();
         EpochScheduleExecutionReceipt execution = ExecuteNativeOrFallback("confirm-local-booking");
         EpochScheduleExecutionHistoryEntry? historyEntry = null;
         EpochRequestScheduleCommandReceipt? requestCommandReceipt = null;
@@ -347,18 +378,31 @@ public sealed class MainWindowViewModel
             out revisedTimingExport);
         IReadOnlyList<EpochRevisedCalendarTimingExport> revisedTimingExports =
             EpochRevisedCalendarTimingExportStore.Load();
+        EpochRevisedAvailabilityException? revisedAvailabilityException = null;
+        EpochRevisedAvailabilityExceptionReceipt? revisedAvailabilityExceptionReceipt = null;
         EpochRevisedReminderExecution? revisedReminderExecution = null;
         EpochRevisedDeadlineExecution? revisedDeadlineExecution = null;
         EpochRevisedDeadlineEscalation? revisedDeadlineEscalation = null;
         EpochRevisedReminderDeadlineReceipt? revisedReminderDeadlineReceipt = null;
         if (revisedTimingExport is not null && revisedTimingExport.CustomerSafe)
         {
+            EpochRevisedAvailabilityExceptionStore.TryAppend(
+                revisedTimingExport,
+                commandPreview,
+                out revisedAvailabilityException);
             EpochRevisedReminderExecutionStore.TryAppend(
                 revisedTimingExport,
                 out revisedReminderExecution);
             EpochRevisedDeadlineExecutionStore.TryAppend(
                 revisedTimingExport,
                 out revisedDeadlineExecution);
+        }
+
+        if (revisedAvailabilityException is not null)
+        {
+            EpochRevisedAvailabilityExceptionReceiptStore.TryAppend(
+                revisedAvailabilityException,
+                out revisedAvailabilityExceptionReceipt);
         }
 
         if (revisedReminderExecution is not null && revisedDeadlineExecution is not null)
@@ -382,6 +426,10 @@ public sealed class MainWindowViewModel
 
         IReadOnlyList<EpochRevisedReminderExecution> revisedReminderExecutions =
             EpochRevisedReminderExecutionStore.Load();
+        IReadOnlyList<EpochRevisedAvailabilityException> revisedAvailabilityExceptions =
+            EpochRevisedAvailabilityExceptionStore.Load();
+        IReadOnlyList<EpochRevisedAvailabilityExceptionReceipt> revisedAvailabilityExceptionReceipts =
+            EpochRevisedAvailabilityExceptionReceiptStore.Load();
         IReadOnlyList<EpochRevisedDeadlineExecution> revisedDeadlineExecutions =
             EpochRevisedDeadlineExecutionStore.Load();
         IReadOnlyList<EpochRevisedDeadlineEscalation> revisedDeadlineEscalations =
@@ -391,7 +439,7 @@ public sealed class MainWindowViewModel
 
         return new MainWindowViewModel(
             snapshot,
-            EpochNative.LoadScheduleCommandOrFallback(),
+            commandPreview,
             execution,
             historyEntry,
             history,
@@ -418,6 +466,12 @@ public sealed class MainWindowViewModel
             revisedTimingExport,
             revisedTimingExports,
             EpochRevisedCalendarTimingExportStore.ExportPath,
+            revisedAvailabilityException,
+            revisedAvailabilityExceptions,
+            EpochRevisedAvailabilityExceptionStore.ExceptionPath,
+            revisedAvailabilityExceptionReceipt,
+            revisedAvailabilityExceptionReceipts,
+            EpochRevisedAvailabilityExceptionReceiptStore.ReceiptPath,
             revisedReminderExecution,
             revisedReminderExecutions,
             EpochRevisedReminderExecutionStore.ExecutionPath,

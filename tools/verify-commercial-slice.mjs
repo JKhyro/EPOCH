@@ -54,10 +54,14 @@ const appRevisedReminderExecution = read("../src/Epoch.App/Models/EpochRevisedRe
 const appRevisedDeadlineExecution = read("../src/Epoch.App/Models/EpochRevisedDeadlineExecution.cs");
 const appRevisedDeadlineEscalation = read("../src/Epoch.App/Models/EpochRevisedDeadlineEscalation.cs");
 const appRevisedReminderDeadlineReceipt = read("../src/Epoch.App/Models/EpochRevisedReminderDeadlineReceipt.cs");
+const appRevisedAvailabilityException = read("../src/Epoch.App/Models/EpochRevisedAvailabilityException.cs");
+const appRevisedAvailabilityExceptionReceipt = read("../src/Epoch.App/Models/EpochRevisedAvailabilityExceptionReceipt.cs");
 const appRevisedReminderExecutionStore = read("../src/Epoch.App/Services/EpochRevisedReminderExecutionStore.cs");
 const appRevisedDeadlineExecutionStore = read("../src/Epoch.App/Services/EpochRevisedDeadlineExecutionStore.cs");
 const appRevisedDeadlineEscalationStore = read("../src/Epoch.App/Services/EpochRevisedDeadlineEscalationStore.cs");
 const appRevisedReminderDeadlineReceiptStore = read("../src/Epoch.App/Services/EpochRevisedReminderDeadlineReceiptStore.cs");
+const appRevisedAvailabilityExceptionStore = read("../src/Epoch.App/Services/EpochRevisedAvailabilityExceptionStore.cs");
+const appRevisedAvailabilityExceptionReceiptStore = read("../src/Epoch.App/Services/EpochRevisedAvailabilityExceptionReceiptStore.cs");
 const {
   createAvailabilityConflictDecisionForHandoff,
   createAvailabilityCapacityReceiptForPromotion,
@@ -76,6 +80,8 @@ const {
   createDeadlineExecutionForItem,
   createReminderDeadlineReceiptForEscalation,
   createReminderExecutionForRule,
+  createRevisedAvailabilityExceptionForTiming,
+  createRevisedAvailabilityExceptionReceiptForException,
   createScheduleEntryForRequest,
   createScheduleRequestRecord,
   createScheduleLifecycleActionRecord,
@@ -164,6 +170,8 @@ for (const phrase of [
   "Recurring Booking Instances",
   "Recurrence Conflict Exceptions",
   "Recurring Series Receipts",
+  "Revised Availability Exceptions",
+  "Revised Availability Exception Receipts",
   "Revised Calendar Preview",
   "Revised Rulepack Boundary",
   "Revised Calendar Constraints",
@@ -181,6 +189,8 @@ for (const phrase of [
   "Schedule Status Export",
   "Schedule Lifecycle Status Export",
   "Revised Reminder Deadline Status",
+  "Revised Availability Exception Status",
+  "Revised Availability Exception Receipt",
   "customer-schedule-status-import-form",
   "customer-schedule-status-file",
   "portal-customer-schedule-status-export",
@@ -193,6 +203,11 @@ for (const phrase of [
   "revised-reminder-deadline-receipt-import-form",
   "revised-reminder-deadline-receipt-file",
   "portal-revised-reminder-deadline-receipts",
+  "revised-availability-exception-receipt-import-form",
+  "revised-availability-exception-receipt-file",
+  "portal-revised-availability-exception-receipt-export",
+  "portal-revised-availability-exceptions",
+  "portal-revised-availability-exception-receipts",
   "Next Open Windows",
   "Request Acceptance Status",
   "Timing Handoff Status",
@@ -244,7 +259,7 @@ for (const path of [
   if (!root.includes(path)) fail(`root directory missing route ${path}`);
 }
 
-for (const phrase of ["epochSchedule", "availabilityWindows", "availabilityCapacitySnapshots", "availabilityWaitlistEntries", "availabilityHoldReleases", "availabilityPromotionCandidates", "availabilityCapacityReceipts", "bookingOptimizationRuns", "bookingRecommendationCandidates", "bookingOverloadWarnings", "bookingRecommendationReceipts", "deadlineItems", "reminderExecutions", "deadlineExecutions", "deadlineEscalations", "reminderDeadlineReceipts", "calendarDisplayModes", "scheduleAuditRecords", "scheduleReceipts", "schedulerLogEntries", "calendarSearchQueries", "calendarSearchResults", "scheduleTemplates", "scheduleLifecycleActions", "avaloniaShellReadiness", "revisedMonths", "projectRevisedRulepackConstraints", "portalTimeline"]) {
+for (const phrase of ["epochSchedule", "availabilityWindows", "availabilityCapacitySnapshots", "availabilityWaitlistEntries", "availabilityHoldReleases", "availabilityPromotionCandidates", "availabilityCapacityReceipts", "bookingOptimizationRuns", "bookingRecommendationCandidates", "bookingOverloadWarnings", "bookingRecommendationReceipts", "deadlineItems", "reminderExecutions", "deadlineExecutions", "deadlineEscalations", "reminderDeadlineReceipts", "revisedAvailabilityExceptions", "revisedAvailabilityExceptionReceipts", "calendarDisplayModes", "scheduleAuditRecords", "scheduleReceipts", "schedulerLogEntries", "calendarSearchQueries", "calendarSearchResults", "scheduleTemplates", "scheduleLifecycleActions", "avaloniaShellReadiness", "revisedMonths", "projectRevisedRulepackConstraints", "portalTimeline"]) {
   if (!data.includes(phrase)) fail(`EPOCH data missing ${phrase}`);
 }
 
@@ -281,6 +296,8 @@ for (const phrase of [
   "recurringBookingSeries",
   "recurringBookingInstances",
   "recurrenceConflictExceptions",
+  "revisedAvailabilityExceptions",
+  "revisedAvailabilityExceptionReceipts",
   "recurringSeriesReceipts",
   "revisedCalendarRulepack",
   "daysPerMonth",
@@ -332,6 +349,8 @@ for (const phrase of [
   "createRecurringBookingInstanceForSeries",
   "createRecurrenceConflictExceptionForInstance",
   "createRecurringSeriesReceiptForSeries",
+  "createRevisedAvailabilityExceptionForTiming",
+  "createRevisedAvailabilityExceptionReceiptForException",
   "selectOpenAvailabilityWindow",
   "selectFullAvailabilityWindow",
   "providerGateReadyForToggle",
@@ -399,10 +418,15 @@ for (const phrase of [
   "recurring-series-list",
   "recurring-instance-list",
   "recurrence-exception-list",
+  "revised-availability-exception-list",
+  "revised-availability-exception-receipt-list",
+  "app-revised-availability-exception-receipt-export",
   "recurring-series-receipt-list",
   "portal-recurring-series-status",
   "portal-recurring-instance-status",
   "portal-recurring-exceptions",
+  "portal-revised-availability-exceptions",
+  "portal-revised-availability-exception-receipts",
   "generate-recurring-series",
   "generate-booking-recommendations",
   "promote-waitlist",
@@ -450,6 +474,21 @@ for (const phrase of [
   "portal-revised-reminder-deadline-receipts",
   "handleRevisedReminderDeadlineReceiptImport",
   "handleClearRevisedReminderDeadlineReceiptExports",
+  "EPOCH_REVISED_AVAILABILITY_EXCEPTION_RECEIPT_EXPORT_KEY",
+  "normalizeRevisedAvailabilityExceptionReceiptExport",
+  "normalizeRevisedAvailabilityExceptionReceiptPayload",
+  "loadRevisedAvailabilityExceptionReceiptExports",
+  "saveRevisedAvailabilityExceptionReceiptExports",
+  "revisedAvailabilityExceptionReceiptExportState",
+  "revised-availability-exception-receipts.json",
+  "revised-availability-exception-receipt-import-form",
+  "revised-availability-exception-receipt-file",
+  "revised-availability-exception-receipt-summary",
+  "portal-revised-availability-exception-receipt-export",
+  "handleRevisedAvailabilityExceptionReceiptImport",
+  "handleClearRevisedAvailabilityExceptionReceiptExports",
+  "workshopCalendarOwnership !== true",
+  "revisedConversionReady !== true",
   "notificationSendEnabled !== true",
   "providerCallsEnabled !== true",
   "monitorWorkflowExposed !== true",
@@ -686,6 +725,11 @@ for (const phrase of [
   "RevisedTimingExportSummary",
   "RevisedTimingExportStatus",
   "RevisedTimingExportLocation",
+  "Recurring Revised Availability Exceptions",
+  "RevisedAvailabilityExceptionSummary",
+  "RevisedAvailabilityExceptionStatus",
+  "RevisedAvailabilityExceptionReceiptSummary",
+  "RevisedAvailabilityExceptionReceiptMessage",
   "RevisedCalendarBoundaryPolicies",
   "RevisedCalendarAnchor",
   "RevisedCalendarIntercalaryPolicy",
@@ -794,6 +838,31 @@ for (const [label, file, required] of [
     "ProviderCallsEnabled",
     "MonitorWorkflowExposed",
     "WorkshopCalendarOwnership"
+  ]],
+  ["revised availability exception", appRevisedAvailabilityException, [
+    "EpochRevisedAvailabilityException",
+    "FromRevisedTimingExport",
+    "EPOCH.App.RevisedAvailabilityException",
+    "revised-availability-exception-ready",
+    "RecurringExceptionReady",
+    "AvailabilityExceptionReady",
+    "RevisedConversionReady",
+    "ProviderCallsEnabled",
+    "NotificationSendEnabled",
+    "MonitorWorkflowExposed",
+    "WorkshopCalendarOwnership"
+  ]],
+  ["revised availability exception receipt", appRevisedAvailabilityExceptionReceipt, [
+    "EpochRevisedAvailabilityExceptionReceipt",
+    "FromException",
+    "revised-availability-exception",
+    "customer-safe-revised-availability-exception-ready",
+    "EPOCH.App.RevisedAvailabilityExceptionReceipt",
+    "WebportalExportReady",
+    "NotificationSendEnabled",
+    "ProviderCallsEnabled",
+    "MonitorWorkflowExposed",
+    "WorkshopCalendarOwnership"
   ]]
 ]) {
   for (const phrase of required) {
@@ -829,6 +898,20 @@ for (const [label, file, required] of [
     "TryAppend",
     "ArchiveInvalidReceipts",
     "EpochScheduleExecutionHistoryStore.StateDirectoryEnvironmentVariable"
+  ]],
+  ["revised availability exception store", appRevisedAvailabilityExceptionStore, [
+    "revised-availability-exceptions.json",
+    "EpochRevisedAvailabilityExceptionStore",
+    "TryAppend",
+    "ArchiveInvalidExceptions",
+    "EpochScheduleExecutionHistoryStore.StateDirectoryEnvironmentVariable"
+  ]],
+  ["revised availability exception receipt store", appRevisedAvailabilityExceptionReceiptStore, [
+    "revised-availability-exception-receipts.json",
+    "EpochRevisedAvailabilityExceptionReceiptStore",
+    "TryAppend",
+    "ArchiveInvalidReceipts",
+    "EpochScheduleExecutionHistoryStore.StateDirectoryEnvironmentVariable"
   ]]
 ]) {
   for (const phrase of required) {
@@ -858,6 +941,10 @@ for (const phrase of [
   "EpochScheduleLifecycleStatusStore.Load",
   "EpochRevisedCalendarTimingExportStore.TryEnsureDefaultExport",
   "EpochRevisedCalendarTimingExportStore.Load",
+  "EpochRevisedAvailabilityExceptionStore.TryAppend",
+  "EpochRevisedAvailabilityExceptionStore.Load",
+  "EpochRevisedAvailabilityExceptionReceiptStore.TryAppend",
+  "EpochRevisedAvailabilityExceptionReceiptStore.Load",
   "OperationsBoardStatus",
   "OperationsBoardNextAction",
   "OperationsBoardQueueSummary",
@@ -871,6 +958,11 @@ for (const phrase of [
   "RevisedTimingExportSummary",
   "RevisedTimingExportStatus",
   "RevisedTimingExportLocation",
+  "RevisedAvailabilityExceptionSummary",
+  "RevisedAvailabilityExceptionStatus",
+  "RevisedAvailabilityExceptionReceiptSummary",
+  "RevisedAvailabilityExceptionReceiptLocation",
+  "RevisedAvailabilityExceptionReceiptMessage",
   "RevisedReminderExecutionSummary",
   "RevisedDeadlineExecutionSummary",
   "RevisedDeadlineEscalationSummary",
@@ -881,6 +973,8 @@ for (const phrase of [
   "schedule lifecycle receipt(s)",
   "customer-safe schedule lifecycle status export(s)",
   "EPOCH revised timing export payload(s)",
+  "recurring revised-calendar availability exception(s)",
+  "revised availability exception receipt(s)",
   "revised-calendar reminder execution(s)",
   "revised-calendar deadline execution(s)",
   "revised-calendar deadline escalation(s)",
@@ -1167,6 +1261,10 @@ for (const phrase of [
   "EpochScheduleLifecycleStatusStore.Load",
   "EpochRevisedCalendarTimingExportStore.EnsureDefaultExport",
   "EpochRevisedCalendarTimingExportStore.Load",
+  "EpochRevisedAvailabilityExceptionStore.Append",
+  "EpochRevisedAvailabilityExceptionStore.Load",
+  "EpochRevisedAvailabilityExceptionReceiptStore.Append",
+  "EpochRevisedAvailabilityExceptionReceiptStore.Load",
   "EpochRevisedReminderExecutionStore.Append",
   "EpochRevisedReminderExecutionStore.Load",
   "EpochRevisedDeadlineExecutionStore.Append",
@@ -1184,10 +1282,18 @@ for (const phrase of [
   "revisedTimingExports.Count != 1",
   "revisedTimingExports[0].CalendarSystemLabel != \"revised-13-month\"",
   "revisedTimingExports[0].WorkshopCalendarOwnership",
+  "revisedAvailabilityExceptions.Count != 1",
+  "revisedAvailabilityExceptions[0].AvailabilityWindowId",
+  "revisedAvailabilityExceptions[0].RevisedConversionReady",
+  "revisedAvailabilityExceptionReceipts.Count != 1",
+  "revisedAvailabilityExceptionReceipts[0].Kind != \"revised-availability-exception\"",
+  "revisedAvailabilityExceptionReceipts[0].Status != \"customer-safe-revised-availability-exception-ready\"",
   "File.Exists(EpochScheduleLifecycleActionStore.ActionPath)",
   "File.Exists(EpochScheduleLifecycleReceiptStore.ReceiptPath)",
   "File.Exists(EpochScheduleLifecycleStatusStore.StatusPath)",
   "File.Exists(EpochRevisedCalendarTimingExportStore.ExportPath)",
+  "File.Exists(EpochRevisedAvailabilityExceptionStore.ExceptionPath)",
+  "File.Exists(EpochRevisedAvailabilityExceptionReceiptStore.ReceiptPath)",
   "File.Exists(EpochRevisedReminderExecutionStore.ExecutionPath)",
   "File.Exists(EpochRevisedDeadlineExecutionStore.ExecutionPath)",
   "File.Exists(EpochRevisedDeadlineEscalationStore.EscalationPath)",
@@ -1247,6 +1353,12 @@ for (const phrase of [
   "WORKSHOP calendar ownership remains false",
   "MONITOR workflow exposure remains false",
   "Local revised-calendar reminder/deadline execution slice",
+  "Local revised-calendar availability exception slice",
+  "EpochRevisedAvailabilityExceptionStore",
+  "revised-availability-exceptions.json",
+  "EpochRevisedAvailabilityExceptionReceiptStore",
+  "revised-availability-exception-receipts.json",
+  "recurring revised-calendar availability exception",
   "EpochRevisedReminderExecutionStore",
   "revised-reminder-executions.json",
   "EpochRevisedDeadlineExecutionStore",
@@ -1452,6 +1564,8 @@ const recurringException = createRecurrenceConflictExceptionForInstance(recurrin
 recurringConflictInstance.conflictExceptionId = recurringException.id;
 const recurringReceipt = createRecurringSeriesReceiptForSeries(recurringSeries, [recurringInstance, recurringConflictInstance], [recurringException]);
 const rulepack = initialEpochLedger.revisedCalendarRulepack;
+const revisedAvailabilityException = createRevisedAvailabilityExceptionForTiming(rulepack, recurringSeries, recurringConflictInstance, recurringException, openWindow);
+const revisedAvailabilityExceptionReceipt = createRevisedAvailabilityExceptionReceiptForException(revisedAvailabilityException);
 const approvedRulepack = {
   ...rulepack,
   versionId: "owner-approved-rulepack-v1",
@@ -1530,6 +1644,32 @@ if (recurringInstance.status !== "confirmed" || recurringInstance.providerGoLive
 if (recurringConflictInstance.status !== "needs-reschedule" || !recurringConflictInstance.customerSafeStatus.includes("new window")) fail("recurring instance factory did not create conflict instance");
 if (recurringException.status !== "needs-reschedule" || recurringException.providerGoLiveRequested || !recurringException.customerSafeStatus.includes("new window")) fail("recurrence exception factory did not preserve customer-safe conflict");
 if (recurringReceipt.status !== "needs-reschedule" || !recurringReceipt.summary.includes("conflict exceptions")) fail("recurring series receipt did not summarize exceptions");
+if (revisedAvailabilityException.status !== "revised-availability-exception-ready" ||
+    revisedAvailabilityException.providerCallsEnabled ||
+    revisedAvailabilityException.notificationSendEnabled ||
+    revisedAvailabilityException.providerGoLiveRequested ||
+    revisedAvailabilityException.workshopCalendarOwnership ||
+    revisedAvailabilityException.monitorWorkflowExposed ||
+    revisedAvailabilityException.revisedConversionReady ||
+    !revisedAvailabilityException.customerSafe ||
+    !revisedAvailabilityException.webportalExportReady ||
+    !revisedAvailabilityException.recurringExceptionReady ||
+    !revisedAvailabilityException.availabilityExceptionReady ||
+    revisedAvailabilityException.availabilityWindowId !== openWindow.id) {
+  fail("revised availability exception factory did not preserve EPOCH-owned local-only availability proof");
+}
+if (revisedAvailabilityExceptionReceipt.kind !== "revised-availability-exception" ||
+    revisedAvailabilityExceptionReceipt.status !== "customer-safe-revised-availability-exception-ready" ||
+    revisedAvailabilityExceptionReceipt.providerCallsEnabled ||
+    revisedAvailabilityExceptionReceipt.notificationSendEnabled ||
+    revisedAvailabilityExceptionReceipt.workshopCalendarOwnership ||
+    revisedAvailabilityExceptionReceipt.monitorWorkflowExposed ||
+    revisedAvailabilityExceptionReceipt.revisedConversionReady ||
+    !revisedAvailabilityExceptionReceipt.customerSafe ||
+    !revisedAvailabilityExceptionReceipt.webportalExportReady ||
+    !revisedAvailabilityExceptionReceipt.customerSafeMessage.includes("owner-gated")) {
+  fail("revised availability exception receipt did not preserve customer-safe local-only proof");
+}
 if (!providerGateReadyForToggle(gate)) fail("provider gate should be ready for live toggle after all checks");
 if (!providerGateBlocksLiveCalls(gate)) fail("provider gate should still block live calls before toggle");
 gate.liveProviderCallsEnabled = true;

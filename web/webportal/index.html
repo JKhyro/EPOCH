@@ -262,6 +262,25 @@
 
     <section class="panel">
       <div class="section-title">
+        <p class="eyebrow">App Export</p>
+        <h2>Revised Availability Exception Receipt</h2>
+      </div>
+      <form id="revised-availability-exception-receipt-import-form" class="surface-form compact-form">
+        <label>
+          Load revised-availability-exception-receipts.json
+          <input id="revised-availability-exception-receipt-file" name="revisedAvailabilityExceptionReceiptExport" type="file" accept="application/json,.json" />
+        </label>
+        <div class="form-actions">
+          <button type="submit">Load Status</button>
+          <button id="clear-revised-availability-exception-receipts" type="button">Clear</button>
+        </div>
+      </form>
+      <p id="revised-availability-exception-receipt-summary" class="confirmation" role="status"></p>
+      <div id="portal-revised-availability-exception-receipt-export" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
         <p class="eyebrow">Receipts</p>
         <h2>Booking Receipts</h2>
       </div>
@@ -306,6 +325,15 @@
         <h2>Recurring Exception Status</h2>
       </div>
       <div id="portal-recurring-exceptions" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Revised Timing</p>
+        <h2>Revised Availability Exception Status</h2>
+      </div>
+      <div id="portal-revised-availability-exceptions" class="item-stack compact-list"></div>
+      <div id="portal-revised-availability-exception-receipts" class="item-stack compact-list"></div>
     </section>
 
     <section class="panel">
@@ -403,6 +431,6 @@
     </section>
   </main>
 
-  <script type="module" src="../shared/surface.js?v=epoch-revised-reminder-deadline-execution"></script>
+  <script type="module" src="../shared/surface.js?v=epoch-revised-availability-exceptions"></script>
 </body>
 </html>

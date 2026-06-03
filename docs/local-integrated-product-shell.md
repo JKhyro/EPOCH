@@ -59,6 +59,12 @@ exposure is part of this integration checkpoint.
   App-owned revised-calendar reminder/deadline execution ledgers and a
   customer-safe Webportal receipt reader. Notification sends, provider calls,
   WORKSHOP calendar ownership, and MONITOR workflow exposure stay disabled.
+- `codex/local-epoch-recurring-revised-availability-refinements` adds
+  App-owned recurring revised-calendar availability exception ledgers and a
+  customer-safe Webportal receipt reader. The slice links revised timing
+  context to EPOCH-owned availability and recurrence exception status while
+  revised conversion, live provider calls, notification sends, WORKSHOP calendar
+  ownership, and MONITOR workflow exposure remain blocked.
 
 ## Boundary Status
 

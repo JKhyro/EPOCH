@@ -1,4 +1,4 @@
-export const EPOCH_LEDGER_KEY = "epoch.operatingLedger.v5";
+export const EPOCH_LEDGER_KEY = "epoch.operatingLedger.v6";
 
 export const scheduleNeedOptions = [
   { value: "diagnostic-call", label: "Diagnostic call", entryType: "request" },
@@ -16,8 +16,8 @@ export const scheduleLifecycleActionOptions = [
 ];
 
 export const initialEpochLedger = {
-  version: 5,
-  generatedAt: "2026-06-04T02:20:00+09:00",
+  version: 6,
+  generatedAt: "2026-06-04T05:35:00+09:00",
   schedulingCoreReadiness: {
     id: "EPOCH-CORE-SCHEDULING-001",
     nativeContract: "epoch_core",
@@ -38,6 +38,8 @@ export const initialEpochLedger = {
     escalationValidation: "ready",
     recurrenceSandboxValidation: "ready",
     recurrenceSeriesValidation: "ready",
+    revisedAvailabilityExceptionValidation: "ready",
+    revisedAvailabilityExceptionReceiptValidation: "ready",
     customerSafeStatusValidation: "ready",
     revisedRulepackGate: "conversion-held",
     liveProviderPosture: "blocked"
@@ -872,6 +874,67 @@ export const initialEpochLedger = {
       customerSafeStatus: "One recurring booking instance needs a new window; no external calendar write was made."
     }
   ],
+  revisedAvailabilityExceptions: [
+    {
+      id: "EPOCH-REV-AVAIL-EXC-001",
+      kind: "revised-availability-exception",
+      revisedTimingPayloadId: "epoch-revised-timing-export-001",
+      requestId: "req-cohort-001",
+      nativeScheduleRequestId: "epoch-command-request-001",
+      calendarSystem: "revised-13-month",
+      timingDisplayLabel: "13 x 28 projection, conversion held",
+      availabilityWindowId: "EPOCH-WIN-001",
+      recurringSeriesId: "EPOCH-SERIES-001",
+      recurringInstanceId: "EPOCH-SERIES-INST-003",
+      conflictExceptionId: "EPOCH-SERIES-EXCEPTION-001",
+      status: "revised-availability-exception-ready",
+      conversionGateReason: "Owner-approved physical spring anchor and display rules are required before revised-date conversion can run.",
+      customerVisible: true,
+      customerSafe: true,
+      webportalExportReady: true,
+      providerCallsEnabled: false,
+      notificationSendEnabled: false,
+      providerGoLiveRequested: false,
+      workshopCalendarOwnership: false,
+      monitorWorkflowExposed: false,
+      revisedConversionReady: false,
+      recurringExceptionReady: true,
+      availabilityExceptionReady: true,
+      customerSafeStatus: "EPOCH recorded a recurring revised-calendar availability exception locally; no external calendar write was made.",
+      operatorNextAction: "Review the customer-safe recurring availability exception before approving revised-calendar recurrence conversion."
+    }
+  ],
+  revisedAvailabilityExceptionReceipts: [
+    {
+      id: "EPOCH-REV-AVAIL-EXC-RECEIPT-001",
+      receiptId: "EPOCH-REV-AVAIL-EXC-RECEIPT-001",
+      exceptionId: "EPOCH-REV-AVAIL-EXC-001",
+      revisedTimingPayloadId: "epoch-revised-timing-export-001",
+      requestId: "req-cohort-001",
+      nativeScheduleRequestId: "epoch-command-request-001",
+      availabilityWindowId: "EPOCH-WIN-001",
+      recurringSeriesId: "EPOCH-SERIES-001",
+      recurringInstanceId: "EPOCH-SERIES-INST-003",
+      conflictExceptionId: "EPOCH-SERIES-EXCEPTION-001",
+      kind: "revised-availability-exception",
+      status: "customer-safe-revised-availability-exception-ready",
+      summary: "EPOCH recorded a recurring revised-calendar availability exception without provider calls, notification sends, WORKSHOP calendar ownership, or internal workflow exposure.",
+      customerSafeMessage: "Your recurring availability status is ready for review. Revised-calendar conversion is still owner-gated.",
+      nextAction: "Review the customer-safe revised availability exception before any provider or revised-calendar conversion approval.",
+      customerVisible: true,
+      customerSafe: true,
+      webportalExportReady: true,
+      providerCallsEnabled: false,
+      notificationSendEnabled: false,
+      providerGoLiveRequested: false,
+      workshopCalendarOwnership: false,
+      monitorWorkflowExposed: false,
+      revisedConversionReady: false,
+      recurringExceptionReady: true,
+      availabilityExceptionReady: true,
+      generatedAt: "2026-06-04T05:35:00+09:00"
+    }
+  ],
   recurringSeriesReceipts: [
     {
       id: "EPOCH-SERIES-RECEIPT-001",
@@ -995,6 +1058,8 @@ export const reminderExecutions = initialEpochLedger.reminderExecutions;
 export const deadlineExecutions = initialEpochLedger.deadlineExecutions;
 export const deadlineEscalations = initialEpochLedger.deadlineEscalations;
 export const reminderDeadlineReceipts = initialEpochLedger.reminderDeadlineReceipts;
+export const revisedAvailabilityExceptions = initialEpochLedger.revisedAvailabilityExceptions;
+export const revisedAvailabilityExceptionReceipts = initialEpochLedger.revisedAvailabilityExceptionReceipts;
 export const scheduleLifecycleActions = initialEpochLedger.scheduleLifecycleActions;
 export const portalTimeline = initialEpochLedger.portalTimeline;
 
@@ -1682,6 +1747,79 @@ export function createRecurringSeriesReceiptForSeries(series, instances = [], ex
     seriesId: series?.id || "",
     status: exceptions.length ? "needs-reschedule" : "ready",
     summary: `${instances.length} recurring booking instances generated locally; ${exceptions.length} customer-safe conflict exceptions propagated without live provider calls.`,
+    generatedAt: new Date().toISOString()
+  };
+}
+
+export function createRevisedAvailabilityExceptionForTiming(
+  rulepack,
+  series,
+  instance,
+  conflictException,
+  availabilityWindow = null
+) {
+  const projection = projectRevisedRulepackConstraints(rulepack || initialEpochLedger.revisedCalendarRulepack);
+  const conversionHeld = revisedRulepackBlocksConversion(rulepack || initialEpochLedger.revisedCalendarRulepack);
+  const availabilityWindowId = availabilityWindow?.id || instance?.availabilityWindowId || "EPOCH-WIN-001";
+  return {
+    id: makeId("EPOCH-REV-AVAIL-EXC"),
+    kind: "revised-availability-exception",
+    revisedTimingPayloadId: "epoch-revised-timing-export-001",
+    requestId: "req-cohort-001",
+    nativeScheduleRequestId: "epoch-command-request-001",
+    calendarSystem: projection.calendarSystem || "revised-13-month",
+    timingDisplayLabel: `${projection.monthCount || 13} x ${projection.daysPerMonth || 28} projection, conversion held`,
+    availabilityWindowId,
+    recurringSeriesId: series?.id || instance?.seriesId || "",
+    recurringInstanceId: instance?.id || "",
+    conflictExceptionId: conflictException?.id || instance?.conflictExceptionId || "",
+    status: "revised-availability-exception-ready",
+    conversionGateReason: projection.conversionGateReason || "Owner-approved physical spring anchor is required before revised conversion.",
+    customerVisible: true,
+    customerSafe: true,
+    webportalExportReady: true,
+    providerCallsEnabled: false,
+    notificationSendEnabled: false,
+    providerGoLiveRequested: false,
+    workshopCalendarOwnership: false,
+    monitorWorkflowExposed: false,
+    revisedConversionReady: !conversionHeld,
+    recurringExceptionReady: Boolean(conflictException?.id || instance?.conflictExceptionId),
+    availabilityExceptionReady: Boolean(availabilityWindowId),
+    customerSafeStatus: "EPOCH recorded a recurring revised-calendar availability exception locally; no external calendar write was made.",
+    operatorNextAction: "Review the customer-safe recurring availability exception before approving revised-calendar recurrence conversion."
+  };
+}
+
+export function createRevisedAvailabilityExceptionReceiptForException(availabilityException) {
+  const receiptId = makeId("EPOCH-REV-AVAIL-EXC-RECEIPT");
+  return {
+    id: receiptId,
+    receiptId,
+    exceptionId: availabilityException?.id || availabilityException?.exceptionId || "",
+    revisedTimingPayloadId: availabilityException?.revisedTimingPayloadId || "",
+    requestId: availabilityException?.requestId || "",
+    nativeScheduleRequestId: availabilityException?.nativeScheduleRequestId || "",
+    availabilityWindowId: availabilityException?.availabilityWindowId || "",
+    recurringSeriesId: availabilityException?.recurringSeriesId || "",
+    recurringInstanceId: availabilityException?.recurringInstanceId || "",
+    conflictExceptionId: availabilityException?.conflictExceptionId || "",
+    kind: "revised-availability-exception",
+    status: "customer-safe-revised-availability-exception-ready",
+    summary: "EPOCH recorded a recurring revised-calendar availability exception without provider calls, notification sends, WORKSHOP calendar ownership, or internal workflow exposure.",
+    customerSafeMessage: "Your recurring availability status is ready for review. Revised-calendar conversion is still owner-gated.",
+    nextAction: "Review the customer-safe revised availability exception before any provider or revised-calendar conversion approval.",
+    customerVisible: true,
+    customerSafe: availabilityException?.customerSafe === true && availabilityException?.revisedConversionReady !== true,
+    webportalExportReady: availabilityException?.webportalExportReady === true && availabilityException?.revisedConversionReady !== true,
+    providerCallsEnabled: false,
+    notificationSendEnabled: false,
+    providerGoLiveRequested: false,
+    workshopCalendarOwnership: false,
+    monitorWorkflowExposed: false,
+    revisedConversionReady: availabilityException?.revisedConversionReady === true,
+    recurringExceptionReady: availabilityException?.recurringExceptionReady === true,
+    availabilityExceptionReady: availabilityException?.availabilityExceptionReady === true,
     generatedAt: new Date().toISOString()
   };
 }

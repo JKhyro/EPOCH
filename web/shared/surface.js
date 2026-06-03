@@ -17,6 +17,8 @@ import {
   createDeadlineExecutionForItem,
   createReminderDeadlineReceiptForEscalation,
   createReminderExecutionForRule,
+  createRevisedAvailabilityExceptionForTiming,
+  createRevisedAvailabilityExceptionReceiptForException,
   createScheduleEntryForRequest,
   createScheduleLifecycleActionRecord,
   createScheduleRequestRecord,
@@ -43,7 +45,7 @@ import {
   scheduleNeedOptions,
   selectFullAvailabilityWindow,
   selectOpenAvailabilityWindow
-} from "./epoch-data.js?v=epoch-revised-calendar-constraints";
+} from "./epoch-data.js?v=epoch-revised-availability-exceptions";
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
@@ -113,6 +115,8 @@ const mergeLedger = (stored) => {
     "recurringBookingSeries",
     "recurringBookingInstances",
     "recurrenceConflictExceptions",
+    "revisedAvailabilityExceptions",
+    "revisedAvailabilityExceptionReceipts",
     "recurringSeriesReceipts",
     "reminderRules",
     "providerReadinessGates",
@@ -316,6 +320,66 @@ const saveRevisedReminderDeadlineReceiptExports = (records) => {
   if (storage) storage.setItem(EPOCH_REVISED_REMINDER_DEADLINE_RECEIPT_EXPORT_KEY, JSON.stringify(records));
 };
 
+const EPOCH_REVISED_AVAILABILITY_EXCEPTION_RECEIPT_EXPORT_KEY = "epoch.webportal.revisedAvailabilityExceptionReceipts.v1";
+
+const normalizeRevisedAvailabilityExceptionReceiptExport = (item) => {
+  if (!item || typeof item !== "object") return null;
+  const customerSafe =
+    item.customerSafe === true &&
+    item.webportalExportReady === true &&
+    item.notificationSendEnabled !== true &&
+    item.providerCallsEnabled !== true &&
+    item.providerGoLiveRequested !== true &&
+    item.monitorWorkflowExposed !== true &&
+    item.workshopCalendarOwnership !== true &&
+    item.revisedConversionReady !== true;
+  if (!customerSafe) return null;
+
+  return {
+    receiptId: String(item.receiptId || item.id || "revised-availability-exception-receipt"),
+    exceptionId: String(item.exceptionId || "revised availability exception"),
+    requestId: String(item.requestId || "schedule request"),
+    revisedTimingPayloadId: String(item.revisedTimingPayloadId || "revised timing payload"),
+    availabilityWindowId: String(item.availabilityWindowId || "availability window"),
+    recurringSeriesId: String(item.recurringSeriesId || "recurring series"),
+    recurringInstanceId: String(item.recurringInstanceId || "recurring instance"),
+    kind: String(item.kind || "revised-availability-exception"),
+    status: String(item.status || "customer-safe-revised-availability-exception-ready"),
+    customerSafeMessage: String(item.customerSafeMessage || "Your recurring availability status is ready."),
+    nextAction: String(item.nextAction || "Review the customer-safe revised availability exception."),
+    createdAtUtc: String(item.createdAtUtc || item.generatedAt || ""),
+    sourceSurface: String(item.sourceSurface || "EPOCH.App.RevisedAvailabilityExceptionReceipt")
+  };
+};
+
+const normalizeRevisedAvailabilityExceptionReceiptPayload = (payload) => {
+  const records = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.receipts)
+      ? payload.receipts
+      : payload?.receiptId || payload?.id
+        ? [payload]
+        : [];
+  return records
+    .map(normalizeRevisedAvailabilityExceptionReceiptExport)
+    .filter(Boolean);
+};
+
+const loadRevisedAvailabilityExceptionReceiptExports = () => {
+  const storage = getStorage();
+  if (!storage) return [];
+  try {
+    return normalizeRevisedAvailabilityExceptionReceiptPayload(JSON.parse(storage.getItem(EPOCH_REVISED_AVAILABILITY_EXCEPTION_RECEIPT_EXPORT_KEY) || "[]"));
+  } catch {
+    return [];
+  }
+};
+
+const saveRevisedAvailabilityExceptionReceiptExports = (records) => {
+  const storage = getStorage();
+  if (storage) storage.setItem(EPOCH_REVISED_AVAILABILITY_EXCEPTION_RECEIPT_EXPORT_KEY, JSON.stringify(records));
+};
+
 const state = {
   ledger: loadLedger()
 };
@@ -330,6 +394,10 @@ const scheduleLifecycleStatusExportState = {
 
 const revisedReminderDeadlineReceiptExportState = {
   records: loadRevisedReminderDeadlineReceiptExports()
+};
+
+const revisedAvailabilityExceptionReceiptExportState = {
+  records: loadRevisedAvailabilityExceptionReceiptExports()
 };
 
 const byId = (id) => document.getElementById(id);
@@ -386,6 +454,8 @@ function renderStats() {
   setText("stat-recurring-series", String((state.ledger.recurringBookingSeries || []).length));
   setText("stat-series-instances", String((state.ledger.recurringBookingInstances || []).length));
   setText("stat-series-exceptions", String((state.ledger.recurrenceConflictExceptions || []).length));
+  setText("stat-revised-availability-exceptions", String((state.ledger.revisedAvailabilityExceptions || []).length));
+  setText("stat-revised-availability-receipts", String((state.ledger.revisedAvailabilityExceptionReceipts || []).length));
   setText("stat-series-receipts", String((state.ledger.recurringSeriesReceipts || []).length));
   setText("stat-capacity-snapshots", String((state.ledger.availabilityCapacitySnapshots || []).length));
   setText("stat-waitlist", String((state.ledger.availabilityWaitlistEntries || []).filter((entry) => entry.status === "waitlisted").length));
@@ -910,6 +980,22 @@ function renderDeadlinesAndReminders() {
     </article>
   `);
 
+  renderStack("revised-availability-exception-list", state.ledger.revisedAvailabilityExceptions || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.status)}</strong>
+      <span>${escapeHtml(item.recurringSeriesId)} / ${escapeHtml(item.availabilityWindowId || "window pending")}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("revised-availability-exception-receipt-list", state.ledger.revisedAvailabilityExceptionReceipts || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.status)}</strong>
+      <span>${escapeHtml(item.requestId)} / ${escapeHtml(item.kind)}</span>
+      <small>${escapeHtml(item.customerSafeMessage || item.summary)}</small>
+    </article>
+  `);
+
   renderStack("recurring-series-receipt-list", state.ledger.recurringSeriesReceipts || [], (item) => `
     <article class="mini-row">
       <strong>${escapeHtml(item.id)}</strong>
@@ -939,6 +1025,22 @@ function renderDeadlinesAndReminders() {
       <strong>New window needed</strong>
       <span>${escapeHtml(item.conflictType)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("portal-revised-availability-exceptions", (state.ledger.revisedAvailabilityExceptions || []).filter((item) => item.customerVisible), (item) => `
+    <article class="mini-row">
+      <strong>Revised availability review</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("portal-revised-availability-exception-receipts", (state.ledger.revisedAvailabilityExceptionReceipts || []).filter((item) => item.customerVisible), (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.status)}</strong>
+      <span>${escapeHtml(item.requestId)} / ${escapeHtml(item.availabilityWindowId || "window pending")}</span>
+      <small>${escapeHtml(item.customerSafeMessage || item.summary)}</small>
     </article>
   `);
 
@@ -1054,6 +1156,8 @@ function renderCoreReadiness() {
     ["Deadline Execution", core.deadlineExecutionValidation],
     ["Escalation", core.escalationValidation],
     ["Recurrence", core.recurrenceSandboxValidation],
+    ["Revised Availability Exception", core.revisedAvailabilityExceptionValidation],
+    ["Revised Availability Receipt", core.revisedAvailabilityExceptionReceiptValidation],
     ["Customer Status", core.customerSafeStatusValidation],
     ["Rulepack Gate", core.revisedRulepackGate],
     ["Live Provider", core.liveProviderPosture]
@@ -1221,6 +1325,41 @@ function renderRevisedReminderDeadlineReceiptExports() {
   );
 }
 
+function renderRevisedAvailabilityExceptionReceiptExports() {
+  setText(
+    "revised-availability-exception-receipt-summary",
+    revisedAvailabilityExceptionReceiptExportState.records.length
+      ? `${revisedAvailabilityExceptionReceiptExportState.records.length} App-exported revised availability exception receipt(s) loaded.`
+      : "No App-exported revised availability exception receipts loaded."
+  );
+
+  renderStack(
+    "portal-revised-availability-exception-receipt-export",
+    revisedAvailabilityExceptionReceiptExportState.records,
+    (item) => `
+      <article class="mini-row">
+        <strong>${escapeHtml(item.status)}</strong>
+        <span>${escapeHtml(item.recurringSeriesId)} / ${escapeHtml(item.availabilityWindowId)}</span>
+        <small>${escapeHtml(item.customerSafeMessage)}</small>
+        <small>${escapeHtml(item.nextAction)}</small>
+      </article>
+    `,
+    "No customer-safe revised availability exception receipt exports loaded."
+  );
+  renderStack(
+    "app-revised-availability-exception-receipt-export",
+    revisedAvailabilityExceptionReceiptExportState.records,
+    (item) => `
+      <article class="mini-row">
+        <strong>${escapeHtml(item.status)}</strong>
+        <span>${escapeHtml(item.requestId)} / ${escapeHtml(item.revisedTimingPayloadId)}</span>
+        <small>${escapeHtml(item.customerSafeMessage)}</small>
+      </article>
+    `,
+    "No App-exported revised availability exception receipt records loaded."
+  );
+}
+
 function renderReceipts() {
   renderStack("receipt-list", state.ledger.receipts, (item) => `
     <article class="mini-row">
@@ -1278,11 +1417,27 @@ function handleGenerateRecurringSeries() {
     ? "Recurring booking series is generated locally; one instance needs a new window."
     : "Recurring booking series is generated locally with all instances confirmed.";
   const receipt = createRecurringSeriesReceiptForSeries(series, instances, exceptions);
+  const revisedAvailabilityExceptions = exceptions.map((exception) => {
+    const instance = instances.find((item) => item.id === exception.instanceId) || null;
+    const fallbackWindow = openWindows[0] || null;
+    return createRevisedAvailabilityExceptionForTiming(
+      state.ledger.revisedCalendarRulepack,
+      series,
+      instance,
+      exception,
+      fallbackWindow
+    );
+  });
+  const revisedAvailabilityReceipts = revisedAvailabilityExceptions.map(createRevisedAvailabilityExceptionReceiptForException);
 
   state.ledger.recurringBookingSeries.unshift(series);
   state.ledger.recurringBookingInstances.unshift(...instances);
   state.ledger.recurrenceConflictExceptions.unshift(...exceptions);
   state.ledger.recurringSeriesReceipts.unshift(receipt);
+  state.ledger.revisedAvailabilityExceptions ||= [];
+  state.ledger.revisedAvailabilityExceptionReceipts ||= [];
+  state.ledger.revisedAvailabilityExceptions.unshift(...revisedAvailabilityExceptions);
+  state.ledger.revisedAvailabilityExceptionReceipts.unshift(...revisedAvailabilityReceipts);
   addTimeline("Recurring series generated", series.customerSafeStatus, series.status);
   appendReceipt(receipt.summary, receipt.status);
   saveLedger(state.ledger);
@@ -1423,6 +1578,7 @@ function renderAll() {
   renderScheduleLifecycleActions();
   renderScheduleLifecycleStatusExports();
   renderRevisedReminderDeadlineReceiptExports();
+  renderRevisedAvailabilityExceptionReceiptExports();
   renderReceipts();
 }
 
@@ -1527,6 +1683,41 @@ function handleClearRevisedReminderDeadlineReceiptExports() {
   revisedReminderDeadlineReceiptExportState.records = [];
   saveRevisedReminderDeadlineReceiptExports(revisedReminderDeadlineReceiptExportState.records);
   const fileInput = byId("revised-reminder-deadline-receipt-file");
+  if (fileInput) fileInput.value = "";
+  renderAll();
+}
+
+async function handleRevisedAvailabilityExceptionReceiptImport(event) {
+  event.preventDefault();
+  const fileInput = byId("revised-availability-exception-receipt-file");
+  const confirmation = byId("revised-availability-exception-receipt-summary");
+  const file = fileInput?.files?.[0];
+  if (!file) {
+    if (confirmation) confirmation.textContent = "Choose revised-availability-exception-receipts.json first.";
+    return;
+  }
+
+  try {
+    const imported = normalizeRevisedAvailabilityExceptionReceiptPayload(JSON.parse(await file.text()));
+    if (!imported.length) {
+      if (confirmation) confirmation.textContent = "No customer-safe revised availability exception receipt records found.";
+      return;
+    }
+
+    const byReceiptId = new Map(revisedAvailabilityExceptionReceiptExportState.records.map((item) => [item.receiptId, item]));
+    for (const item of imported) byReceiptId.set(item.receiptId, item);
+    revisedAvailabilityExceptionReceiptExportState.records = Array.from(byReceiptId.values());
+    saveRevisedAvailabilityExceptionReceiptExports(revisedAvailabilityExceptionReceiptExportState.records);
+    renderAll();
+  } catch {
+    if (confirmation) confirmation.textContent = "Revised availability exception receipt export could not be read.";
+  }
+}
+
+function handleClearRevisedAvailabilityExceptionReceiptExports() {
+  revisedAvailabilityExceptionReceiptExportState.records = [];
+  saveRevisedAvailabilityExceptionReceiptExports(revisedAvailabilityExceptionReceiptExportState.records);
+  const fileInput = byId("revised-availability-exception-receipt-file");
   if (fileInput) fileInput.value = "";
   renderAll();
 }
@@ -1661,6 +1852,12 @@ function bindControls() {
 
   const clearRevisedReminderDeadlineReceiptsButton = byId("clear-revised-reminder-deadline-receipts");
   if (clearRevisedReminderDeadlineReceiptsButton) clearRevisedReminderDeadlineReceiptsButton.addEventListener("click", handleClearRevisedReminderDeadlineReceiptExports);
+
+  const revisedAvailabilityExceptionReceiptImportForm = byId("revised-availability-exception-receipt-import-form");
+  if (revisedAvailabilityExceptionReceiptImportForm) revisedAvailabilityExceptionReceiptImportForm.addEventListener("submit", handleRevisedAvailabilityExceptionReceiptImport);
+
+  const clearRevisedAvailabilityExceptionReceiptsButton = byId("clear-revised-availability-exception-receipts");
+  if (clearRevisedAvailabilityExceptionReceiptsButton) clearRevisedAvailabilityExceptionReceiptsButton.addEventListener("click", handleClearRevisedAvailabilityExceptionReceiptExports);
 
   const resetButton = byId("reset-schedule-ledger");
   if (resetButton) {

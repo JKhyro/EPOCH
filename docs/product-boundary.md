@@ -97,9 +97,10 @@ they do not become the permanent source of scheduling truth.
 EPOCH has three separate surface classes:
 
 - App: internal product operations for calendar, availability, deadlines,
-  reminders, recurrence, and schedule-bound administration.
+  reminders, recurrence, recurring revised-calendar availability exceptions,
+  and schedule-bound administration.
 - Webportal: customer-safe schedule request, availability, deadline, and
-  status views.
+  status views, including customer-safe revised availability exception receipts.
 - MONITOR: operational status/control only, following the HERMES structure with
   EPOCH data.
 

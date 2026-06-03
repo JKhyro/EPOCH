@@ -119,6 +119,18 @@
                   <TextBlock Text="{Binding RevisedTimingExportLocation}" TextWrapping="Wrap" FontSize="11" Foreground="#687588" />
                 </StackPanel>
               </Border>
+              <Border Padding="12" CornerRadius="8" Background="#f8f6ff" BorderBrush="#d6ceef" BorderThickness="1">
+                <StackPanel Spacing="5">
+                  <TextBlock Text="Recurring Revised Availability Exceptions" FontWeight="SemiBold" Foreground="#172033" />
+                  <TextBlock Text="{Binding RevisedAvailabilityExceptionSummary}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedAvailabilityExceptionStatus}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedAvailabilityExceptionLocation}" TextWrapping="Wrap" FontSize="11" Foreground="#687588" />
+                  <TextBlock Text="{Binding RevisedAvailabilityExceptionReceiptSummary}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedAvailabilityExceptionReceiptStatus}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedAvailabilityExceptionReceiptMessage}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedAvailabilityExceptionReceiptLocation}" TextWrapping="Wrap" FontSize="11" Foreground="#687588" />
+                </StackPanel>
+              </Border>
               <Border Padding="12" CornerRadius="8" Background="#f7fff9" BorderBrush="#c9e7d1" BorderThickness="1">
                 <StackPanel Spacing="5">
                   <TextBlock Text="Revised Reminder And Deadline Execution" FontWeight="SemiBold" Foreground="#172033" />
