@@ -139,3 +139,16 @@ only where the host, UI framework, or platform integration makes it necessary.
 - Invalid JSON history is archived aside instead of blocking the desktop shell,
   keeping local recovery inside the App layer and away from public/provider
   integrations.
+
+## Local Webportal request inbox slice
+
+- `EpochScheduleRequestInboxStore` persists customer-safe Webportal scheduling
+  request intent in an EPOCH App-owned JSON ledger named
+  `schedule-request-inbox.json`.
+- The request inbox uses the same local application-data directory and
+  `EPOCH_APP_STATE_DIR` override as the execution history ledger.
+- The Avalonia Schedule Queue panel renders the local Webportal Request Inbox
+  count and latest customer-safe request status. This is App/Webportal product
+  state; MONITOR may report readiness/evidence only.
+- Request inbox entries are local-only, provider-off, customer-safe, and marked
+  as App-owned inbox state before a Native C scheduling command consumes them.

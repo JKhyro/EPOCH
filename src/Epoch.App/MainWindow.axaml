@@ -35,6 +35,9 @@
           <TextBlock Text="{Binding ScheduleQueueStatus}" FontSize="26" FontWeight="SemiBold" Foreground="#7a4b12" />
           <TextBlock Text="Requests, holds, booking confirmations, receipts, and customer-safe timing returns are read through the Native C bridge." TextWrapping="Wrap" Foreground="#526071" />
           <TextBlock Text="{Binding ModuleSummary}" TextWrapping="Wrap" Foreground="#526071" />
+          <TextBlock Text="Webportal Request Inbox" FontSize="16" FontWeight="SemiBold" Foreground="#172033" Margin="0,8,0,0" />
+          <TextBlock Text="{Binding RequestInboxSummary}" TextWrapping="Wrap" Foreground="#526071" />
+          <TextBlock Text="{Binding RequestInboxStatus}" TextWrapping="Wrap" Foreground="#526071" />
         </StackPanel>
       </Border>
 

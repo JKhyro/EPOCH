@@ -11,7 +11,10 @@ public sealed class MainWindowViewModel
         EpochScheduleExecutionReceipt execution,
         EpochScheduleExecutionHistoryEntry? historyEntry,
         IReadOnlyList<EpochScheduleExecutionHistoryEntry> history,
-        string historyPath)
+        string historyPath,
+        EpochWebportalScheduleRequest? inboxRequest,
+        IReadOnlyList<EpochWebportalScheduleRequest> requestInbox,
+        string requestInboxPath)
     {
         ProductName = snapshot.ProductName;
         CoreStatus = snapshot.CoreStatus;
@@ -51,6 +54,12 @@ public sealed class MainWindowViewModel
         LastExecutionHistoryStatus = historyEntry is not null
             ? $"Last history {historyEntry.HistoryId}: {historyEntry.IntentKind} -> {historyEntry.ExecutionStatus}; provider calls enabled: {historyEntry.ProviderCallsEnabled.ToString().ToLowerInvariant()}."
             : "No new native execution history was persisted in this shell load.";
+        RequestInboxCount = requestInbox.Count;
+        RequestInboxSummary = $"{requestInbox.Count} customer-safe Webportal schedule request(s) in the EPOCH App inbox.";
+        RequestInboxLocation = requestInboxPath;
+        RequestInboxStatus = inboxRequest is not null
+            ? $"Latest request {inboxRequest.RequestId}: {inboxRequest.NeedKind} is {inboxRequest.Status}; provider calls enabled: {inboxRequest.ProviderCallsEnabled.ToString().ToLowerInvariant()}."
+            : "No Webportal request was imported into the local EPOCH App inbox.";
     }
 
     public string ProductName { get; }
@@ -74,11 +83,17 @@ public sealed class MainWindowViewModel
     public string ExecutionHistorySummary { get; }
     public string ExecutionHistoryLocation { get; }
     public string LastExecutionHistoryStatus { get; }
+    public int RequestInboxCount { get; }
+    public string RequestInboxSummary { get; }
+    public string RequestInboxLocation { get; }
+    public string RequestInboxStatus { get; }
 
     public static MainWindowViewModel Load()
     {
         EpochScheduleExecutionReceipt execution = ExecuteNativeOrFallback("confirm-local-booking");
         EpochScheduleExecutionHistoryEntry? historyEntry = null;
+        EpochWebportalScheduleRequest? inboxRequest = null;
+
         if (execution.NativeExecutionReady &&
             execution.ExecutedLocally &&
             !execution.ProviderCallsEnabled &&
@@ -91,6 +106,8 @@ public sealed class MainWindowViewModel
         }
 
         IReadOnlyList<EpochScheduleExecutionHistoryEntry> history = EpochScheduleExecutionHistoryStore.Load();
+        EpochScheduleRequestInboxStore.TryEnsureDefaultWebportalRequest(out inboxRequest);
+        IReadOnlyList<EpochWebportalScheduleRequest> requestInbox = EpochScheduleRequestInboxStore.Load();
 
         return new MainWindowViewModel(
             EpochNative.LoadSnapshotOrFallback(),
@@ -98,7 +115,10 @@ public sealed class MainWindowViewModel
             execution,
             historyEntry,
             history,
-            EpochScheduleExecutionHistoryStore.HistoryPath);
+            EpochScheduleExecutionHistoryStore.HistoryPath,
+            inboxRequest,
+            requestInbox,
+            EpochScheduleRequestInboxStore.InboxPath);
     }
 
     private static EpochScheduleExecutionReceipt ExecuteNativeOrFallback(string intentKind)

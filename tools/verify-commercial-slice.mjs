@@ -34,6 +34,8 @@ const appNative = read("../src/Epoch.App/Native/EpochNative.cs");
 const appViewModel = read("../src/Epoch.App/ViewModels/MainWindowViewModel.cs");
 const appHistoryEntry = read("../src/Epoch.App/Models/EpochScheduleExecutionHistoryEntry.cs");
 const appHistoryStore = read("../src/Epoch.App/Services/EpochScheduleExecutionHistoryStore.cs");
+const appRequestInboxEntry = read("../src/Epoch.App/Models/EpochWebportalScheduleRequest.cs");
+const appRequestInboxStore = read("../src/Epoch.App/Services/EpochScheduleRequestInboxStore.cs");
 const {
   createAvailabilityConflictDecisionForHandoff,
   createAvailabilityCapacityReceiptForPromotion,
@@ -527,12 +529,15 @@ for (const phrase of [
   "Native Scheduling Command",
   "Native Execution Receipt",
   "Execution History",
+  "Webportal Request Inbox",
   "CommandReadiness",
   "CommandReceiptStatus",
   "ExecutionSafetyStatus",
   "ExecutionReceiptEvidence",
   "ExecutionHistorySummary",
   "LastExecutionHistoryStatus",
+  "RequestInboxSummary",
+  "RequestInboxStatus",
   "MONITOR owns development/control status",
   "WORKSHOP may request timing"
 ]) {
@@ -561,10 +566,14 @@ for (const phrase of [
   "EpochNative.ExecuteScheduleCommand",
   "EpochScheduleExecutionHistoryStore.TryAppend",
   "EpochScheduleExecutionHistoryStore.Load",
+  "EpochScheduleRequestInboxStore.TryEnsureDefaultWebportalRequest",
+  "EpochScheduleRequestInboxStore.Load",
   "native scheduling command ready",
   "native execution receipt ready",
   "local scheduling execution receipt(s) persisted in the EPOCH App ledger",
+  "customer-safe Webportal schedule request(s)",
   "No new native execution history was persisted",
+  "No Webportal request was imported",
   "audit, receipts, log, search, and templates",
   "monitor boundary enforced"
 ]) {
@@ -602,11 +611,43 @@ for (const phrase of [
 }
 
 for (const phrase of [
+  "EpochWebportalScheduleRequest",
+  "FromLocalWebportalIntent",
+  "EPOCH.Webportal.LocalAdapter",
+  "queued-for-app-review",
+  "CustomerSafe",
+  "ProviderCallsEnabled",
+  "MonitorWorkflowExposed",
+  "AppOwnedInboxState"
+]) {
+  if (!appRequestInboxEntry.includes(phrase)) fail(`Avalonia request inbox entry missing ${phrase}`);
+}
+
+for (const phrase of [
+  "schedule-request-inbox.json",
+  "InboxPath",
+  "EnsureDefaultWebportalRequest",
+  "TryEnsureDefaultWebportalRequest",
+  "ArchiveInvalidInbox",
+  "StateDirectoryEnvironmentVariable",
+  "Environment.SpecialFolder.LocalApplicationData",
+  "KHYRON",
+  "EPOCH",
+  "App"
+]) {
+  if (!appRequestInboxStore.includes(phrase)) fail(`Avalonia request inbox store missing ${phrase}`);
+}
+
+for (const phrase of [
   "StateDirectoryEnvironmentVariable",
   "EpochScheduleExecutionHistoryStore.Append",
   "EpochScheduleExecutionHistoryStore.Load",
+  "EpochScheduleRequestInboxStore.EnsureDefaultWebportalRequest",
+  "EpochScheduleRequestInboxStore.Load",
   "history.Count != 1",
+  "requestInbox.Count != 1",
   "File.Exists(EpochScheduleExecutionHistoryStore.HistoryPath)",
+  "File.Exists(EpochScheduleRequestInboxStore.InboxPath)",
   "Directory.Delete(smokeStateDirectory, true)"
 ]) {
   if (!appShellSmoke.includes(phrase)) fail(`Avalonia smoke missing history proof ${phrase}`);
@@ -624,7 +665,12 @@ for (const phrase of [
   "EpochScheduleExecutionHistoryStore",
   "schedule-execution-history.json",
   "EPOCH_APP_STATE_DIR",
-  "MONITOR remains a development/control"
+  "MONITOR remains a development/control",
+  "Local Webportal request inbox slice",
+  "EpochScheduleRequestInboxStore",
+  "schedule-request-inbox.json",
+  "Webportal Request Inbox",
+  "App/Webportal product"
 ]) {
   if (!runtime.includes(phrase)) fail(`runtime docs missing scheduling command phrase ${phrase}`);
 }

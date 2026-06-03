@@ -27,6 +27,8 @@ internal static class EpochShellSmoke
                 execution,
                 "Epoch.App.Smoke");
             IReadOnlyList<EpochScheduleExecutionHistoryEntry> history = EpochScheduleExecutionHistoryStore.Load();
+            EpochWebportalScheduleRequest inboxRequest = EpochScheduleRequestInboxStore.EnsureDefaultWebportalRequest();
+            IReadOnlyList<EpochWebportalScheduleRequest> requestInbox = EpochScheduleRequestInboxStore.Load();
 
             if (snapshot.ProductName != "EPOCH" ||
                 snapshot.CoreStatus != "native-core-ready" ||
@@ -49,7 +51,14 @@ internal static class EpochShellSmoke
                 history[0].BookingReceiptId != "epoch-exec-receipt-001" ||
                 history[0].ProviderCallsEnabled ||
                 history[0].MonitorWorkflowExposed ||
-                !File.Exists(EpochScheduleExecutionHistoryStore.HistoryPath))
+                !File.Exists(EpochScheduleExecutionHistoryStore.HistoryPath) ||
+                requestInbox.Count != 1 ||
+                requestInbox[0].RequestId != inboxRequest.RequestId ||
+                !requestInbox[0].CustomerSafe ||
+                requestInbox[0].ProviderCallsEnabled ||
+                requestInbox[0].MonitorWorkflowExposed ||
+                !requestInbox[0].AppOwnedInboxState ||
+                !File.Exists(EpochScheduleRequestInboxStore.InboxPath))
             {
                 return 2;
             }
