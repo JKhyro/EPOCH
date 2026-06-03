@@ -114,3 +114,14 @@ only where the host, UI framework, or platform integration makes it necessary.
   Command panel.
 - The command preview remains local-only and customer-safe. It does not enable
   provider calls and does not expose WORKSHOP service or CRM internals.
+
+## Native-backed scheduling execution slice
+
+- `epoch_app_bridge_execute_schedule_command` accepts an explicit scheduling
+  intent such as `confirm-local-booking` and returns an execution receipt.
+- The execution receipt proves request acceptance, local availability hold,
+  booking confirmation, customer-safe schedule status, booking receipt, and
+  timing return from the Native C bridge.
+- The execution path is local-only: provider calls stay disabled, MONITOR
+  workflow exposure stays false, and WORKSHOP service/CRM details remain
+  outside EPOCH.

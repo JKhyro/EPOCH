@@ -4,7 +4,10 @@ namespace Epoch.App.ViewModels;
 
 public sealed class MainWindowViewModel
 {
-    private MainWindowViewModel(EpochShellSnapshot snapshot, EpochScheduleCommandResult command)
+    private MainWindowViewModel(
+        EpochShellSnapshot snapshot,
+        EpochScheduleCommandResult command,
+        EpochScheduleExecutionReceipt execution)
     {
         ProductName = snapshot.ProductName;
         CoreStatus = snapshot.CoreStatus;
@@ -28,6 +31,16 @@ public sealed class MainWindowViewModel
             command.TimingReturnCustomerSafe
                 ? "native scheduling command ready"
                 : "native scheduling command blocked";
+        ExecutionReceiptSummary = $"{execution.IntentKind}: {execution.RequestId} -> {execution.HoldId} -> {execution.BookingConfirmationId}";
+        ExecutionReceiptEvidence = $"Receipt {execution.BookingReceiptId}; timing return {execution.TimingReturnId}; status {execution.ExecutionStatus}.";
+        ExecutionSafetyStatus = execution.NativeExecutionReady &&
+            execution.ExecutedLocally &&
+            !execution.ProviderCallsEnabled &&
+            !execution.MonitorWorkflowExposed &&
+            execution.ScheduleStatusCustomerSafe
+                ? "native execution receipt ready"
+                : "native execution receipt blocked";
+        ExecutionCustomerSafeStatus = execution.CustomerSafeStatus;
     }
 
     public string ProductName { get; }
@@ -43,11 +56,16 @@ public sealed class MainWindowViewModel
     public string CommandReceiptStatus { get; }
     public string CommandCustomerSafeStatus { get; }
     public string CommandReadiness { get; }
+    public string ExecutionReceiptSummary { get; }
+    public string ExecutionReceiptEvidence { get; }
+    public string ExecutionSafetyStatus { get; }
+    public string ExecutionCustomerSafeStatus { get; }
 
     public static MainWindowViewModel Load()
     {
         return new MainWindowViewModel(
             EpochNative.LoadSnapshotOrFallback(),
-            EpochNative.LoadScheduleCommandOrFallback());
+            EpochNative.LoadScheduleCommandOrFallback(),
+            EpochNative.ExecuteScheduleCommandOrFallback("confirm-local-booking"));
     }
 }

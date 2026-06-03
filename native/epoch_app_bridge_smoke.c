@@ -6,6 +6,7 @@
 int main(void) {
     EpochAppBridgeSnapshot snapshot;
     EpochAppBridgeScheduleCommandResult command;
+    EpochAppBridgeScheduleExecutionReceipt execution;
 
     assert(epoch_app_bridge_get_snapshot(&snapshot) == 1);
     assert(strcmp(epoch_app_bridge_product_name(), "EPOCH") == 0);
@@ -34,6 +35,24 @@ int main(void) {
     assert(command.timing_return_customer_safe == 1);
     assert(command.native_command_ready == 1);
     assert(epoch_app_bridge_preview_schedule_command(0) == 0);
+    assert(epoch_app_bridge_execute_schedule_command("confirm-local-booking", &execution) == 1);
+    assert(strcmp(execution.execution_id, "epoch-exec-001") == 0);
+    assert(strcmp(execution.intent_kind, "confirm-local-booking") == 0);
+    assert(strcmp(execution.execution_status, "complete") == 0);
+    assert(strcmp(execution.request_id, "epoch-exec-request-001") == 0);
+    assert(strcmp(execution.acceptance_id, "epoch-exec-acceptance-001") == 0);
+    assert(strcmp(execution.hold_id, "epoch-exec-hold-001") == 0);
+    assert(strcmp(execution.booking_confirmation_id, "epoch-exec-booking-001") == 0);
+    assert(strcmp(execution.booking_receipt_id, "epoch-exec-receipt-001") == 0);
+    assert(strcmp(execution.timing_return_id, "epoch-exec-return-001") == 0);
+    assert(execution.executed_locally == 1);
+    assert(execution.provider_calls_enabled == 0);
+    assert(execution.monitor_workflow_exposed == 0);
+    assert(execution.schedule_status_customer_safe == 1);
+    assert(execution.native_execution_ready == 1);
+    assert(epoch_app_bridge_execute_schedule_command("unsupported", &execution) == 0);
+    assert(strcmp(execution.execution_status, "blocked") == 0);
+    assert(epoch_app_bridge_execute_schedule_command("confirm-local-booking", 0) == 0);
     assert(epoch_app_bridge_get_snapshot(0) == 0);
 
     return 0;

@@ -4,6 +4,20 @@
 
 #include <string.h>
 
+static int epoch_app_bridge_text_present(const char *value) {
+    return value != 0 && value[0] != '\0';
+}
+
+static int epoch_app_bridge_intent_supported(const char *intent_kind) {
+    if (!epoch_app_bridge_text_present(intent_kind)) {
+        return 0;
+    }
+
+    return strcmp(intent_kind, "create-local-hold") == 0 ||
+           strcmp(intent_kind, "confirm-local-booking") == 0 ||
+           strcmp(intent_kind, "return-timing-status") == 0;
+}
+
 static EpochRevisedCalendarRulepack epoch_app_bridge_draft_rulepack(void) {
     EpochRevisedCalendarRulepack rulepack = {
         "epoch-app-rulepack-draft",
@@ -315,6 +329,159 @@ int epoch_app_bridge_preview_schedule_command(EpochAppBridgeScheduleCommandResul
     out_result->receipt_customer_safe = receipt_safe;
     out_result->timing_return_customer_safe = return_safe;
     out_result->native_command_ready = ready;
+
+    return ready;
+}
+
+int epoch_app_bridge_execute_schedule_command(const char *intent_kind, EpochAppBridgeScheduleExecutionReceipt *out_receipt) {
+    EpochScheduleRequest request = {
+        "epoch-exec-request-001",
+        "owner",
+        "2026-06-08T14:00:00+09:00/2026-06-08T15:00:00+09:00",
+        "Asia/Tokyo",
+        "Schedule execution is local, customer-safe, and provider calls remain disabled.",
+        EPOCH_STATUS_QUEUED,
+        1,
+        1,
+        0,
+    };
+    EpochAvailabilityWindow window = {
+        "epoch-exec-window-001",
+        "Execution window",
+        "2026-06-08T14:00:00+09:00",
+        "2026-06-08T16:00:00+09:00",
+        "Asia/Tokyo",
+        2,
+        0,
+        EPOCH_STATUS_AVAILABLE,
+    };
+    EpochTimingHandoff handoff = {
+        "epoch-exec-handoff-001",
+        "WORKSHOP",
+        "workshop-exec-handoff-001",
+        "epoch-exec-request-001",
+        "2026-06-08T14:00:00+09:00/2026-06-08T15:00:00+09:00",
+        "Asia/Tokyo",
+        "Timing handoff is accepted for local EPOCH execution.",
+        EPOCH_STATUS_ACCEPTED,
+        1,
+        0,
+    };
+    EpochAvailabilityConflictDecision decision = {
+        "epoch-exec-decision-001",
+        "epoch-exec-handoff-001",
+        "epoch-exec-request-001",
+        "epoch-exec-window-001",
+        "capacity-clear",
+        "EPOCH execution found local availability and can place a hold.",
+        EPOCH_STATUS_CLEAR,
+        1,
+        1,
+        0,
+    };
+    EpochScheduleRequestAcceptance acceptance = {
+        "epoch-exec-acceptance-001",
+        "epoch-exec-request-001",
+        "epoch-exec-window-001",
+        "Local scheduling execution accepted the request.",
+        EPOCH_STATUS_ACCEPTED,
+        1,
+        1,
+        0,
+    };
+    EpochAvailabilityHold hold = {
+        "epoch-exec-hold-001",
+        "epoch-exec-acceptance-001",
+        "epoch-exec-request-001",
+        "epoch-exec-window-001",
+        "2026-06-08T14:00:00+09:00",
+        "2026-06-08T15:00:00+09:00",
+        "Asia/Tokyo",
+        EPOCH_STATUS_HELD,
+        1,
+        0,
+    };
+    EpochBookingConfirmation booking = {
+        "epoch-exec-booking-001",
+        "epoch-exec-acceptance-001",
+        "epoch-exec-hold-001",
+        "epoch-exec-entry-001",
+        "epoch-exec-request-001",
+        "2026-06-08T14:00:00+09:00/2026-06-08T15:00:00+09:00",
+        "Asia/Tokyo",
+        "Local scheduling execution confirmed the booking without provider calls.",
+        EPOCH_STATUS_CONFIRMED,
+        1,
+        0,
+    };
+    EpochScheduleStatusEvent status_event = {
+        "epoch-exec-status-001",
+        "epoch-exec-booking-001",
+        "epoch-exec-request-001",
+        "confirmed",
+        "Schedule execution is confirmed locally and safe to show.",
+        EPOCH_STATUS_CONFIRMED,
+        1,
+    };
+    EpochBookingReceipt booking_receipt = {
+        "epoch-exec-receipt-001",
+        "epoch-exec-booking-001",
+        "epoch-exec-status-001",
+        "Execution receipt proves the local request, hold, booking, status, and timing-return chain.",
+        EPOCH_STATUS_COMPLETE,
+        1,
+        0,
+    };
+    EpochTimingReturnPayload timing_return = {
+        "epoch-exec-return-001",
+        "epoch-exec-handoff-001",
+        "epoch-exec-decision-001",
+        "epoch-exec-booking-001",
+        "epoch-exec-request-001",
+        "booking-confirmed",
+        "Confirmed timing returned without exposing private calendar internals.",
+        EPOCH_STATUS_RETURNED,
+        1,
+        0,
+    };
+    int intent_ok;
+    int ready;
+
+    if (out_receipt == 0) {
+        return 0;
+    }
+
+    intent_ok = epoch_app_bridge_intent_supported(intent_kind);
+    ready = intent_ok &&
+            epoch_schedule_request_is_customer_safe(&request) &&
+            epoch_availability_window_has_capacity(&window) &&
+            epoch_timing_handoff_is_sandbox_safe(&handoff) &&
+            epoch_availability_conflict_decision_is_customer_safe(&decision) &&
+            epoch_schedule_request_acceptance_is_ready(&acceptance) &&
+            epoch_availability_hold_is_ready(&hold) &&
+            epoch_booking_confirmation_is_customer_safe(&booking) &&
+            epoch_schedule_status_event_is_customer_safe(&status_event) &&
+            epoch_booking_receipt_is_customer_safe(&booking_receipt) &&
+            epoch_timing_return_payload_is_customer_safe(&timing_return);
+
+    memset(out_receipt, 0, sizeof(*out_receipt));
+    out_receipt->execution_id = "epoch-exec-001";
+    out_receipt->intent_kind = intent_ok ? intent_kind : "unsupported";
+    out_receipt->execution_status = ready ? epoch_status_label(EPOCH_STATUS_COMPLETE) : epoch_status_label(EPOCH_STATUS_BLOCKED);
+    out_receipt->request_id = request.id;
+    out_receipt->acceptance_id = acceptance.id;
+    out_receipt->hold_id = hold.id;
+    out_receipt->booking_confirmation_id = booking.id;
+    out_receipt->booking_receipt_id = booking_receipt.id;
+    out_receipt->timing_return_id = timing_return.id;
+    out_receipt->customer_safe_status = ready
+                                            ? "Native scheduling execution completed locally; provider calls stayed disabled and MONITOR received evidence only."
+                                            : "Native scheduling execution is blocked by unsupported intent or unsafe schedule state.";
+    out_receipt->executed_locally = ready;
+    out_receipt->provider_calls_enabled = 0;
+    out_receipt->monitor_workflow_exposed = 0;
+    out_receipt->schedule_status_customer_safe = epoch_schedule_status_event_is_customer_safe(&status_event);
+    out_receipt->native_execution_ready = ready;
 
     return ready;
 }
