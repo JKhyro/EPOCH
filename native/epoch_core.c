@@ -42,6 +42,9 @@ static const EpochStatusName EPOCH_STATUS_NAMES[] = {
     {EPOCH_STATUS_ACKNOWLEDGED, "acknowledged"},
     {EPOCH_STATUS_ACCEPTED, "accepted"},
     {EPOCH_STATUS_HELD, "held"},
+    {EPOCH_STATUS_RELEASED, "released"},
+    {EPOCH_STATUS_WAITLISTED, "waitlisted"},
+    {EPOCH_STATUS_PROMOTED, "promoted"},
     {EPOCH_STATUS_CONFIRMED, "confirmed"},
     {EPOCH_STATUS_NEEDS_RESCHEDULE, "needs-reschedule"},
     {EPOCH_STATUS_IN_PROGRESS, "in-progress"},
@@ -134,6 +137,7 @@ int epoch_operating_entry_needs_attention(const EpochOperatingEntry *entry) {
            entry->status == EPOCH_STATUS_PRESENTED ||
            entry->status == EPOCH_STATUS_UNAVAILABLE ||
            entry->status == EPOCH_STATUS_QUEUED ||
+           entry->status == EPOCH_STATUS_WAITLISTED ||
            entry->status == EPOCH_STATUS_DISPATCHED ||
            entry->status == EPOCH_STATUS_FAILED ||
            entry->status == EPOCH_STATUS_SNOOZED ||
@@ -292,6 +296,92 @@ int epoch_availability_hold_is_ready(const EpochAvailabilityHold *hold) {
            hold->sandbox_only &&
            !hold->provider_go_live_requested &&
            hold->status == EPOCH_STATUS_HELD;
+}
+
+int epoch_availability_capacity_snapshot_is_customer_safe(const EpochAvailabilityCapacitySnapshot *snapshot) {
+    if (snapshot == 0 || snapshot->capacity <= 0 || snapshot->holds < 0 || snapshot->waitlist_count < 0 ||
+        snapshot->released_hold_count < 0 || snapshot->promotion_candidate_count < 0) {
+        return 0;
+    }
+
+    if (snapshot->holds > snapshot->capacity) {
+        return 0;
+    }
+
+    return epoch_text_present(snapshot->id) &&
+           epoch_text_present(snapshot->availability_window_id) &&
+           epoch_text_present(snapshot->customer_safe_status) &&
+           snapshot->customer_visible &&
+           !snapshot->provider_go_live_requested &&
+           (snapshot->status == EPOCH_STATUS_AVAILABLE ||
+            snapshot->status == EPOCH_STATUS_UNAVAILABLE ||
+            snapshot->status == EPOCH_STATUS_HELD ||
+            snapshot->status == EPOCH_STATUS_WAITLISTED);
+}
+
+int epoch_availability_waitlist_entry_is_customer_safe(const EpochAvailabilityWaitlistEntry *entry) {
+    if (entry == 0 || entry->priority <= 0) {
+        return 0;
+    }
+
+    return epoch_text_present(entry->id) &&
+           epoch_text_present(entry->schedule_request_id) &&
+           epoch_text_present(entry->requested_window) &&
+           epoch_text_present(entry->timezone) &&
+           epoch_text_present(entry->customer_safe_status) &&
+           entry->customer_visible &&
+           !entry->provider_go_live_requested &&
+           (entry->status == EPOCH_STATUS_WAITLISTED ||
+            entry->status == EPOCH_STATUS_PROMOTED ||
+            entry->status == EPOCH_STATUS_NEEDS_RESCHEDULE);
+}
+
+int epoch_availability_hold_release_is_ready(const EpochAvailabilityHoldRelease *release) {
+    if (release == 0 || release->released_capacity <= 0) {
+        return 0;
+    }
+
+    return epoch_text_present(release->id) &&
+           epoch_text_present(release->availability_hold_id) &&
+           epoch_text_present(release->availability_window_id) &&
+           epoch_text_present(release->released_at_iso) &&
+           epoch_text_present(release->customer_safe_status) &&
+           release->customer_visible &&
+           !release->provider_go_live_requested &&
+           release->status == EPOCH_STATUS_RELEASED;
+}
+
+int epoch_availability_promotion_candidate_is_ready(const EpochAvailabilityPromotionCandidate *candidate) {
+    if (candidate == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(candidate->id) &&
+           epoch_text_present(candidate->waitlist_entry_id) &&
+           epoch_text_present(candidate->availability_window_id) &&
+           epoch_text_present(candidate->promoted_hold_id) &&
+           epoch_text_present(candidate->customer_safe_status) &&
+           candidate->customer_visible &&
+           !candidate->provider_go_live_requested &&
+           (candidate->status == EPOCH_STATUS_PROMOTED ||
+            candidate->status == EPOCH_STATUS_HELD);
+}
+
+int epoch_availability_capacity_receipt_is_customer_safe(const EpochAvailabilityCapacityReceipt *receipt) {
+    if (receipt == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(receipt->id) &&
+           epoch_text_present(receipt->kind) &&
+           epoch_text_present(receipt->summary) &&
+           receipt->customer_visible &&
+           !receipt->provider_go_live_requested &&
+           strcmp(receipt->kind, "availability-capacity") == 0 &&
+           (receipt->status == EPOCH_STATUS_COMPLETE ||
+            receipt->status == EPOCH_STATUS_PROMOTED ||
+            receipt->status == EPOCH_STATUS_WAITLISTED ||
+            receipt->status == EPOCH_STATUS_NEEDS_RESCHEDULE);
 }
 
 int epoch_booking_confirmation_is_customer_safe(const EpochBookingConfirmation *confirmation) {

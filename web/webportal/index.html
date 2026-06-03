@@ -11,12 +11,11 @@
     <div>
       <p class="eyebrow">EPOCH Webportal</p>
       <h1>Schedule Request And Status Portal</h1>
-      <p class="lede">Customer-safe timing, availability, deadline, and reminder surface. Internal MONITOR controls are not exposed here.</p>
+      <p class="lede">Customer-safe timing, availability, deadline, and reminder surface for schedule requests and status updates.</p>
     </div>
     <nav class="header-actions" aria-label="EPOCH webportal routes">
       <a href="../index.html">Directory</a>
       <a href="../app/index.html">App</a>
-      <a href="http://127.0.0.1:8765/epoch-monitor.html">MONITOR</a>
     </nav>
   </header>
 
@@ -170,6 +169,30 @@
 
     <section class="panel">
       <div class="section-title">
+        <p class="eyebrow">Capacity</p>
+        <h2>Capacity Status</h2>
+      </div>
+      <div id="portal-capacity-status" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Waitlist</p>
+        <h2>Waitlist Status</h2>
+      </div>
+      <div id="portal-waitlist-status" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Promotion</p>
+        <h2>Promotion Status</h2>
+      </div>
+      <div id="portal-promotion-status" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
         <p class="eyebrow">Provider Status</p>
         <h2>External Calendar Connection</h2>
       </div>
@@ -194,11 +217,11 @@
         <li>Shows customer-safe timing updates.</li>
         <li>Shows provider status without enabling live provider calls.</li>
         <li>Keeps business operations outside this portal.</li>
-        <li>Does not expose raw admin or MONITOR controls.</li>
+        <li>Keeps operational controls outside this customer portal.</li>
       </ul>
     </section>
   </main>
 
-  <script type="module" src="../shared/surface.js?v=epoch-recurring-series-context"></script>
+  <script type="module" src="../shared/surface.js?v=epoch-capacity-waitlist-context"></script>
 </body>
 </html>

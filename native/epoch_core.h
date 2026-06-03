@@ -27,6 +27,9 @@ typedef enum EpochOperatingStatus {
     EPOCH_STATUS_ACKNOWLEDGED,
     EPOCH_STATUS_ACCEPTED,
     EPOCH_STATUS_HELD,
+    EPOCH_STATUS_RELEASED,
+    EPOCH_STATUS_WAITLISTED,
+    EPOCH_STATUS_PROMOTED,
     EPOCH_STATUS_CONFIRMED,
     EPOCH_STATUS_NEEDS_RESCHEDULE,
     EPOCH_STATUS_IN_PROGRESS,
@@ -156,6 +159,64 @@ typedef struct EpochAvailabilityHold {
     int sandbox_only;
     int provider_go_live_requested;
 } EpochAvailabilityHold;
+
+typedef struct EpochAvailabilityCapacitySnapshot {
+    const char *id;
+    const char *availability_window_id;
+    const char *customer_safe_status;
+    int capacity;
+    int holds;
+    int waitlist_count;
+    int released_hold_count;
+    int promotion_candidate_count;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int provider_go_live_requested;
+} EpochAvailabilityCapacitySnapshot;
+
+typedef struct EpochAvailabilityWaitlistEntry {
+    const char *id;
+    const char *schedule_request_id;
+    const char *requested_window;
+    const char *timezone;
+    const char *customer_safe_status;
+    int priority;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int provider_go_live_requested;
+} EpochAvailabilityWaitlistEntry;
+
+typedef struct EpochAvailabilityHoldRelease {
+    const char *id;
+    const char *availability_hold_id;
+    const char *availability_window_id;
+    const char *released_at_iso;
+    const char *customer_safe_status;
+    int released_capacity;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int provider_go_live_requested;
+} EpochAvailabilityHoldRelease;
+
+typedef struct EpochAvailabilityPromotionCandidate {
+    const char *id;
+    const char *waitlist_entry_id;
+    const char *availability_window_id;
+    const char *promoted_hold_id;
+    const char *customer_safe_status;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int provider_go_live_requested;
+} EpochAvailabilityPromotionCandidate;
+
+typedef struct EpochAvailabilityCapacityReceipt {
+    const char *id;
+    const char *kind;
+    const char *summary;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int provider_go_live_requested;
+} EpochAvailabilityCapacityReceipt;
 
 typedef struct EpochBookingConfirmation {
     const char *id;
@@ -361,6 +422,11 @@ int epoch_timing_handoff_is_sandbox_safe(const EpochTimingHandoff *handoff);
 int epoch_availability_conflict_decision_is_customer_safe(const EpochAvailabilityConflictDecision *decision);
 int epoch_schedule_request_acceptance_is_ready(const EpochScheduleRequestAcceptance *acceptance);
 int epoch_availability_hold_is_ready(const EpochAvailabilityHold *hold);
+int epoch_availability_capacity_snapshot_is_customer_safe(const EpochAvailabilityCapacitySnapshot *snapshot);
+int epoch_availability_waitlist_entry_is_customer_safe(const EpochAvailabilityWaitlistEntry *entry);
+int epoch_availability_hold_release_is_ready(const EpochAvailabilityHoldRelease *release);
+int epoch_availability_promotion_candidate_is_ready(const EpochAvailabilityPromotionCandidate *candidate);
+int epoch_availability_capacity_receipt_is_customer_safe(const EpochAvailabilityCapacityReceipt *receipt);
 int epoch_booking_confirmation_is_customer_safe(const EpochBookingConfirmation *confirmation);
 int epoch_schedule_status_event_is_customer_safe(const EpochScheduleStatusEvent *event);
 int epoch_booking_receipt_is_customer_safe(const EpochBookingReceipt *receipt);

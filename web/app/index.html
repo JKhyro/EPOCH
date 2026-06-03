@@ -45,6 +45,11 @@
         <div><dt>Instances</dt><dd id="stat-series-instances">0</dd></div>
         <div><dt>Exceptions</dt><dd id="stat-series-exceptions">0</dd></div>
         <div><dt>Series Receipts</dt><dd id="stat-series-receipts">0</dd></div>
+        <div><dt>Capacity Rows</dt><dd id="stat-capacity-snapshots">0</dd></div>
+        <div><dt>Waitlist</dt><dd id="stat-waitlist">0</dd></div>
+        <div><dt>Hold Releases</dt><dd id="stat-hold-releases">0</dd></div>
+        <div><dt>Promotions</dt><dd id="stat-promotions">0</dd></div>
+        <div><dt>Capacity Receipts</dt><dd id="stat-capacity-receipts">0</dd></div>
       </dl>
       <button id="reset-schedule-ledger" class="secondary-button" type="button">Reset Local Ledger</button>
     </section>
@@ -71,6 +76,48 @@
         <h2>Open Windows</h2>
       </div>
       <div id="availability-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Capacity</p>
+        <h2>Capacity Snapshots</h2>
+      </div>
+      <div id="capacity-snapshot-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Waitlist</p>
+        <h2>Availability Waitlist</h2>
+      </div>
+      <div id="waitlist-list" class="item-stack compact-list"></div>
+      <button id="promote-waitlist" class="secondary-button" type="button">Promote Next Waitlist Entry</button>
+      <p id="waitlist-promotion-confirmation" class="confirmation" role="status"></p>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Release</p>
+        <h2>Hold Releases</h2>
+      </div>
+      <div id="hold-release-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Promotion</p>
+        <h2>Promotion Candidates</h2>
+      </div>
+      <div id="promotion-candidate-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Capacity Proof</p>
+        <h2>Capacity Receipts</h2>
+      </div>
+      <div id="capacity-receipt-list" class="item-stack compact-list"></div>
     </section>
 
     <section class="panel">
@@ -265,6 +312,6 @@
     </section>
   </main>
 
-  <script type="module" src="../shared/surface.js?v=epoch-recurring-series-context"></script>
+  <script type="module" src="../shared/surface.js?v=epoch-capacity-waitlist-context"></script>
 </body>
 </html>

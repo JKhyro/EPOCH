@@ -1,4 +1,4 @@
-export const EPOCH_LEDGER_KEY = "epoch.operatingLedger.v2";
+export const EPOCH_LEDGER_KEY = "epoch.operatingLedger.v3";
 
 export const scheduleNeedOptions = [
   { value: "diagnostic-call", label: "Diagnostic call", entryType: "request" },
@@ -9,14 +9,18 @@ export const scheduleNeedOptions = [
 ];
 
 export const initialEpochLedger = {
-  version: 2,
-  generatedAt: "2026-06-03T22:40:00+09:00",
+  version: 3,
+  generatedAt: "2026-06-03T23:35:00+09:00",
   schedulingCoreReadiness: {
     id: "EPOCH-CORE-SCHEDULING-001",
     nativeContract: "epoch_core",
     scheduleEntryValidation: "ready",
     scheduleRequestValidation: "ready",
     availabilityValidation: "ready",
+    capacityValidation: "ready",
+    waitlistValidation: "ready",
+    holdReleaseValidation: "ready",
+    waitlistPromotionValidation: "ready",
     deadlineHealthValidation: "ready",
     recurrenceSandboxValidation: "ready",
     recurrenceSeriesValidation: "ready",
@@ -109,6 +113,18 @@ export const initialEpochLedger = {
       providerGoLiveRequested: false,
       customerSafeStatus: "Timing request received; availability is being checked.",
       createdAt: "2026-06-03T10:00:00+09:00"
+    },
+    {
+      id: "EPOCH-REQ-WAITLIST-001",
+      requester: "Overflow scheduling request",
+      need: "project-planning-session",
+      requestedWindow: "2026-06-06 evening JST",
+      timezone: "Asia/Tokyo",
+      status: "waitlisted",
+      sandboxOnly: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Preferred timing is full; EPOCH has placed the request on the local waitlist.",
+      createdAt: "2026-06-03T10:20:00+09:00"
     }
   ],
   timingHandoffs: [
@@ -191,6 +207,20 @@ export const initialEpochLedger = {
       sandboxOnly: true,
       providerGoLiveRequested: false,
       customerSafeStatus: "Availability is held locally while the booking confirmation is prepared."
+    },
+    {
+      id: "EPOCH-HOLD-EXPIRED-001",
+      acceptanceId: "EPOCH-ACCEPT-EXPIRED-001",
+      scheduleRequestId: "EPOCH-REQ-EXPIRED-001",
+      availabilityWindowId: "EPOCH-WIN-004",
+      startIso: "2026-06-06T18:00:00+09:00",
+      endIso: "2026-06-06T19:00:00+09:00",
+      timezone: "Asia/Tokyo",
+      status: "released",
+      expiresAt: "2026-06-03T10:25:00+09:00",
+      sandboxOnly: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Expired local hold was released; no external calendar write was made."
     }
   ],
   bookingConfirmations: [
@@ -312,6 +342,84 @@ export const initialEpochLedger = {
       capacity: 3,
       holds: 2,
       status: "available"
+    },
+    {
+      id: "EPOCH-WIN-004",
+      label: "Overflow cohort window",
+      time: "Sat 18:00-19:00 JST",
+      startIso: "2026-06-06T18:00:00+09:00",
+      endIso: "2026-06-06T19:00:00+09:00",
+      timezone: "Asia/Tokyo",
+      capacity: 1,
+      holds: 1,
+      status: "unavailable"
+    }
+  ],
+  availabilityCapacitySnapshots: [
+    {
+      id: "EPOCH-CAPACITY-001",
+      availabilityWindowId: "EPOCH-WIN-004",
+      capacity: 1,
+      holds: 1,
+      waitlistCount: 1,
+      releasedHoldCount: 1,
+      promotionCandidateCount: 1,
+      status: "waitlisted",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "The preferred window is full; one released local hold makes the first waitlisted request eligible for promotion.",
+      recordedAt: "2026-06-03T10:26:00+09:00"
+    }
+  ],
+  availabilityWaitlistEntries: [
+    {
+      id: "EPOCH-WAITLIST-001",
+      scheduleRequestId: "EPOCH-REQ-WAITLIST-001",
+      requestedWindow: "2026-06-06 evening JST",
+      timezone: "Asia/Tokyo",
+      priority: 1,
+      status: "waitlisted",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Preferred timing is full; the request is first on the local waitlist.",
+      createdAt: "2026-06-03T10:21:00+09:00"
+    }
+  ],
+  availabilityHoldReleases: [
+    {
+      id: "EPOCH-HOLD-RELEASE-001",
+      availabilityHoldId: "EPOCH-HOLD-EXPIRED-001",
+      availabilityWindowId: "EPOCH-WIN-004",
+      releasedCapacity: 1,
+      status: "released",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "A local hold was released and the next waitlisted request can be promoted.",
+      releasedAt: "2026-06-03T10:26:00+09:00"
+    }
+  ],
+  availabilityPromotionCandidates: [
+    {
+      id: "EPOCH-PROMOTION-001",
+      waitlistEntryId: "EPOCH-WAITLIST-001",
+      availabilityWindowId: "EPOCH-WIN-004",
+      promotedHoldId: "EPOCH-HOLD-PROMOTED-001",
+      status: "promoted",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "The waitlisted request can be promoted into a local availability hold.",
+      promotedAt: "2026-06-03T10:27:00+09:00"
+    }
+  ],
+  availabilityCapacityReceipts: [
+    {
+      id: "EPOCH-CAPACITY-RECEIPT-001",
+      kind: "availability-capacity",
+      status: "promoted",
+      summary: "EPOCH released one local hold and promoted the first waitlisted request without live provider calls.",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      generatedAt: "2026-06-03T10:27:00+09:00"
     }
   ],
   deadlineItems: [
@@ -516,13 +624,15 @@ export const initialEpochLedger = {
   ],
   portalTimeline: [
     { label: "Request received", detail: "Timing request is accepted into EPOCH scheduling.", state: "complete" },
-    { label: "Availability check", detail: "Operator reviews matching windows.", state: "in-progress" },
+    { label: "Availability check", detail: "Operator reviews matching windows and waitlist priority.", state: "in-progress" },
+    { label: "Waitlist status", detail: "Full windows can create local waitlist entries and customer-safe promotion updates.", state: "waitlisted" },
     { label: "Provider status", detail: "External calendar connection remains inactive.", state: "sandbox-only" },
     { label: "Confirmation pending", detail: "Customer-safe confirmation will be sent after approval.", state: "queued" }
   ],
   receipts: [
     { id: "EPOCH-RECEIPT-GATE-001", status: "ready", summary: "Provider readiness gate blocks live calendar calls until sandbox, local records, customer-safe status, revised mapping, and operator approval are satisfied." },
-    { id: "EPOCH-RECEIPT-LEDGER-001", status: "ready", summary: "Local ledger contains schedule entries, requests, availability windows, reminder rules, and provider-readiness gates." }
+    { id: "EPOCH-RECEIPT-LEDGER-001", status: "ready", summary: "Local ledger contains schedule entries, requests, availability windows, waitlists, reminder rules, and provider-readiness gates." },
+    { id: "EPOCH-CAPACITY-RECEIPT-001", status: "promoted", summary: "Availability capacity workflow released one local hold and promoted a waitlisted request without live provider calls." }
   ]
 };
 
@@ -538,6 +648,11 @@ export const availabilityWindows = initialEpochLedger.availabilityWindows.map((w
   ...window,
   capacity: `${window.capacity - window.holds} open of ${window.capacity}`
 }));
+export const availabilityCapacitySnapshots = initialEpochLedger.availabilityCapacitySnapshots;
+export const availabilityWaitlistEntries = initialEpochLedger.availabilityWaitlistEntries;
+export const availabilityHoldReleases = initialEpochLedger.availabilityHoldReleases;
+export const availabilityPromotionCandidates = initialEpochLedger.availabilityPromotionCandidates;
+export const availabilityCapacityReceipts = initialEpochLedger.availabilityCapacityReceipts;
 export const deadlineItems = initialEpochLedger.deadlineItems;
 export const portalTimeline = initialEpochLedger.portalTimeline;
 
@@ -637,6 +752,10 @@ export function selectOpenAvailabilityWindow(windows = initialEpochLedger.availa
   return windows.find((window) => Number(window.holds || 0) < Number(window.capacity || 0)) || null;
 }
 
+export function selectFullAvailabilityWindow(windows = initialEpochLedger.availabilityWindows) {
+  return windows.find((window) => Number(window.holds || 0) >= Number(window.capacity || 0)) || null;
+}
+
 export function createTimingHandoffForRequest(request, sourceProduct = "EPOCH") {
   return {
     id: makeId("EPOCH-TIME-HANDOFF"),
@@ -701,6 +820,90 @@ export function createAvailabilityHoldForAcceptance(acceptance, availabilityWind
     customerSafeStatus: availabilityWindow
       ? "Availability is held locally while the booking confirmation is prepared."
       : "Availability hold is pending an operator-selected window."
+  };
+}
+
+export function createAvailabilityCapacitySnapshotForWindow(window, waitlistEntries = [], holdReleases = [], promotionCandidates = []) {
+  const windowWaitlist = waitlistEntries.filter((entry) => entry.status === "waitlisted");
+  const windowReleases = holdReleases.filter((release) => release.availabilityWindowId === window?.id);
+  const windowPromotions = promotionCandidates.filter((candidate) => candidate.availabilityWindowId === window?.id);
+  const full = Number(window?.holds || 0) >= Number(window?.capacity || 0);
+  return {
+    id: makeId("EPOCH-CAPACITY"),
+    availabilityWindowId: window?.id || "",
+    capacity: Number(window?.capacity || 0),
+    holds: Number(window?.holds || 0),
+    waitlistCount: windowWaitlist.length,
+    releasedHoldCount: windowReleases.length,
+    promotionCandidateCount: windowPromotions.length,
+    status: full && windowWaitlist.length ? "waitlisted" : (full ? "unavailable" : "available"),
+    customerVisible: true,
+    providerGoLiveRequested: false,
+    customerSafeStatus: full
+      ? "The preferred window is full; EPOCH is tracking local waitlist and promotion status."
+      : "Availability is open for local schedule requests.",
+    recordedAt: new Date().toISOString()
+  };
+}
+
+export function createAvailabilityWaitlistEntryForRequest(request, decision, priority = 1) {
+  return {
+    id: makeId("EPOCH-WAITLIST"),
+    scheduleRequestId: request.id,
+    requestedWindow: request.requestedWindow,
+    timezone: request.timezone,
+    priority: Number(priority || 1),
+    status: "waitlisted",
+    customerVisible: true,
+    providerGoLiveRequested: false,
+    customerSafeStatus: decision?.customerSafeStatus || "Preferred timing is full; the request is on the local waitlist.",
+    createdAt: new Date().toISOString()
+  };
+}
+
+export function createAvailabilityHoldReleaseForHold(hold, availabilityWindow) {
+  return {
+    id: makeId("EPOCH-HOLD-RELEASE"),
+    availabilityHoldId: hold?.id || "",
+    availabilityWindowId: availabilityWindow?.id || hold?.availabilityWindowId || "",
+    releasedCapacity: 1,
+    status: "released",
+    customerVisible: true,
+    providerGoLiveRequested: false,
+    customerSafeStatus: "A local hold was released and the next waitlisted request can be promoted.",
+    releasedAt: new Date().toISOString()
+  };
+}
+
+export function createAvailabilityPromotionCandidateForWaitlist(entry, availabilityWindow, release) {
+  return {
+    id: makeId("EPOCH-PROMOTION"),
+    waitlistEntryId: entry?.id || "",
+    availabilityWindowId: availabilityWindow?.id || release?.availabilityWindowId || "",
+    promotedHoldId: makeId("EPOCH-HOLD-PROMOTED"),
+    status: "promoted",
+    customerVisible: true,
+    providerGoLiveRequested: false,
+    customerSafeStatus: "The waitlisted request can be promoted into a local availability hold.",
+    promotedAt: new Date().toISOString()
+  };
+}
+
+export function createAvailabilityCapacityReceiptForPromotion(candidate, release, entry) {
+  const promoted = candidate?.status === "promoted";
+  return {
+    id: makeId("EPOCH-CAPACITY-RECEIPT"),
+    kind: "availability-capacity",
+    status: promoted ? "promoted" : "waitlisted",
+    summary: promoted
+      ? "EPOCH released one local hold and promoted the first waitlisted request without live provider calls."
+      : "EPOCH recorded local availability capacity and waitlist status without live provider calls.",
+    waitlistEntryId: entry?.id || candidate?.waitlistEntryId || "",
+    holdReleaseId: release?.id || "",
+    promotionCandidateId: candidate?.id || "",
+    customerVisible: true,
+    providerGoLiveRequested: false,
+    generatedAt: new Date().toISOString()
   };
 }
 
