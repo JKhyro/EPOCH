@@ -61,6 +61,25 @@ internal static class EpochShellSmoke
                 EpochRevisedCalendarTimingExportStore.EnsureDefaultExport(snapshot);
             IReadOnlyList<EpochRevisedCalendarTimingExport> revisedTimingExports =
                 EpochRevisedCalendarTimingExportStore.Load();
+            EpochRevisedReminderExecution revisedReminderExecution =
+                EpochRevisedReminderExecutionStore.Append(revisedTimingExport);
+            IReadOnlyList<EpochRevisedReminderExecution> revisedReminderExecutions =
+                EpochRevisedReminderExecutionStore.Load();
+            EpochRevisedDeadlineExecution revisedDeadlineExecution =
+                EpochRevisedDeadlineExecutionStore.Append(revisedTimingExport);
+            IReadOnlyList<EpochRevisedDeadlineExecution> revisedDeadlineExecutions =
+                EpochRevisedDeadlineExecutionStore.Load();
+            EpochRevisedDeadlineEscalation revisedDeadlineEscalation =
+                EpochRevisedDeadlineEscalationStore.Append(revisedReminderExecution, revisedDeadlineExecution);
+            IReadOnlyList<EpochRevisedDeadlineEscalation> revisedDeadlineEscalations =
+                EpochRevisedDeadlineEscalationStore.Load();
+            EpochRevisedReminderDeadlineReceipt revisedReminderDeadlineReceipt =
+                EpochRevisedReminderDeadlineReceiptStore.Append(
+                    revisedReminderExecution,
+                    revisedDeadlineExecution,
+                    revisedDeadlineEscalation);
+            IReadOnlyList<EpochRevisedReminderDeadlineReceipt> revisedReminderDeadlineReceipts =
+                EpochRevisedReminderDeadlineReceiptStore.Load();
 
             if (snapshot.ProductName != "EPOCH" ||
                 snapshot.CoreStatus != "native-core-ready" ||
@@ -161,7 +180,50 @@ internal static class EpochShellSmoke
                 revisedTimingExports[0].MonitorWorkflowExposed ||
                 !revisedTimingExports[0].CustomerSafe ||
                 !revisedTimingExports[0].ConversionGateReason.Contains("owner-approved physical spring anchor", StringComparison.Ordinal) ||
-                !File.Exists(EpochRevisedCalendarTimingExportStore.ExportPath))
+                !File.Exists(EpochRevisedCalendarTimingExportStore.ExportPath) ||
+                revisedReminderExecutions.Count != 1 ||
+                revisedReminderExecutions[0].ExecutionId != revisedReminderExecution.ExecutionId ||
+                revisedReminderExecutions[0].RevisedTimingPayloadId != revisedTimingExport.PayloadId ||
+                revisedReminderExecutions[0].NotificationSendEnabled ||
+                revisedReminderExecutions[0].ProviderCallsEnabled ||
+                revisedReminderExecutions[0].MonitorWorkflowExposed ||
+                revisedReminderExecutions[0].WorkshopCalendarOwnership ||
+                !revisedReminderExecutions[0].CustomerSafe ||
+                !revisedReminderExecutions[0].WebportalExportReady ||
+                !File.Exists(EpochRevisedReminderExecutionStore.ExecutionPath) ||
+                revisedDeadlineExecutions.Count != 1 ||
+                revisedDeadlineExecutions[0].ExecutionId != revisedDeadlineExecution.ExecutionId ||
+                revisedDeadlineExecutions[0].Health != "conversion-held-watch" ||
+                revisedDeadlineExecutions[0].NotificationSendEnabled ||
+                revisedDeadlineExecutions[0].ProviderCallsEnabled ||
+                revisedDeadlineExecutions[0].MonitorWorkflowExposed ||
+                revisedDeadlineExecutions[0].WorkshopCalendarOwnership ||
+                !revisedDeadlineExecutions[0].CustomerSafe ||
+                !revisedDeadlineExecutions[0].WebportalExportReady ||
+                !File.Exists(EpochRevisedDeadlineExecutionStore.ExecutionPath) ||
+                revisedDeadlineEscalations.Count != 1 ||
+                revisedDeadlineEscalations[0].EscalationId != revisedDeadlineEscalation.EscalationId ||
+                revisedDeadlineEscalations[0].ReminderExecutionId != revisedReminderExecution.ExecutionId ||
+                revisedDeadlineEscalations[0].DeadlineExecutionId != revisedDeadlineExecution.ExecutionId ||
+                revisedDeadlineEscalations[0].NotificationSendEnabled ||
+                revisedDeadlineEscalations[0].ProviderCallsEnabled ||
+                revisedDeadlineEscalations[0].MonitorWorkflowExposed ||
+                revisedDeadlineEscalations[0].WorkshopCalendarOwnership ||
+                !revisedDeadlineEscalations[0].CustomerSafe ||
+                !revisedDeadlineEscalations[0].WebportalExportReady ||
+                !File.Exists(EpochRevisedDeadlineEscalationStore.EscalationPath) ||
+                revisedReminderDeadlineReceipts.Count != 1 ||
+                revisedReminderDeadlineReceipts[0].ReceiptId != revisedReminderDeadlineReceipt.ReceiptId ||
+                revisedReminderDeadlineReceipts[0].Kind != "revised-reminder-deadline-execution" ||
+                revisedReminderDeadlineReceipts[0].Status != "customer-safe-revised-deadline-status-ready" ||
+                revisedReminderDeadlineReceipts[0].NotificationSendEnabled ||
+                revisedReminderDeadlineReceipts[0].ProviderCallsEnabled ||
+                revisedReminderDeadlineReceipts[0].MonitorWorkflowExposed ||
+                revisedReminderDeadlineReceipts[0].WorkshopCalendarOwnership ||
+                !revisedReminderDeadlineReceipts[0].CustomerSafe ||
+                !revisedReminderDeadlineReceipts[0].WebportalExportReady ||
+                !revisedReminderDeadlineReceipts[0].CustomerSafeMessage.Contains("No notification was sent", StringComparison.Ordinal) ||
+                !File.Exists(EpochRevisedReminderDeadlineReceiptStore.ReceiptPath))
             {
                 return 2;
             }

@@ -55,6 +55,10 @@ exposure is part of this integration checkpoint.
   customer-safe revised timing context while EPOCH retains calendar authority,
   provider go-live stays disabled, and MONITOR remains development evidence
   only.
+- `codex/local-epoch-revised-calendar-reminder-deadline-execution` adds
+  App-owned revised-calendar reminder/deadline execution ledgers and a
+  customer-safe Webportal receipt reader. Notification sends, provider calls,
+  WORKSHOP calendar ownership, and MONITOR workflow exposure stay disabled.
 
 ## Boundary Status
 

@@ -50,6 +50,14 @@ const appLifecycleStatus = read("../src/Epoch.App/Models/EpochScheduleLifecycleS
 const appLifecycleActionStore = read("../src/Epoch.App/Services/EpochScheduleLifecycleActionStore.cs");
 const appLifecycleReceiptStore = read("../src/Epoch.App/Services/EpochScheduleLifecycleReceiptStore.cs");
 const appLifecycleStatusStore = read("../src/Epoch.App/Services/EpochScheduleLifecycleStatusStore.cs");
+const appRevisedReminderExecution = read("../src/Epoch.App/Models/EpochRevisedReminderExecution.cs");
+const appRevisedDeadlineExecution = read("../src/Epoch.App/Models/EpochRevisedDeadlineExecution.cs");
+const appRevisedDeadlineEscalation = read("../src/Epoch.App/Models/EpochRevisedDeadlineEscalation.cs");
+const appRevisedReminderDeadlineReceipt = read("../src/Epoch.App/Models/EpochRevisedReminderDeadlineReceipt.cs");
+const appRevisedReminderExecutionStore = read("../src/Epoch.App/Services/EpochRevisedReminderExecutionStore.cs");
+const appRevisedDeadlineExecutionStore = read("../src/Epoch.App/Services/EpochRevisedDeadlineExecutionStore.cs");
+const appRevisedDeadlineEscalationStore = read("../src/Epoch.App/Services/EpochRevisedDeadlineEscalationStore.cs");
+const appRevisedReminderDeadlineReceiptStore = read("../src/Epoch.App/Services/EpochRevisedReminderDeadlineReceiptStore.cs");
 const {
   createAvailabilityConflictDecisionForHandoff,
   createAvailabilityCapacityReceiptForPromotion,
@@ -159,6 +167,7 @@ for (const phrase of [
   "Revised Calendar Preview",
   "Revised Rulepack Boundary",
   "Revised Calendar Constraints",
+  "Revised Reminder And Deadline Execution",
   "Native C Core"
 ]) {
   if (!app.includes(phrase)) fail(`EPOCH app missing ${phrase}`);
@@ -171,6 +180,7 @@ for (const phrase of [
   "Customer-Safe Timeline",
   "Schedule Status Export",
   "Schedule Lifecycle Status Export",
+  "Revised Reminder Deadline Status",
   "customer-schedule-status-import-form",
   "customer-schedule-status-file",
   "portal-customer-schedule-status-export",
@@ -180,6 +190,9 @@ for (const phrase of [
   "schedule-lifecycle-status-import-form",
   "schedule-lifecycle-status-file",
   "portal-schedule-lifecycle-status-export",
+  "revised-reminder-deadline-receipt-import-form",
+  "revised-reminder-deadline-receipt-file",
+  "portal-revised-reminder-deadline-receipts",
   "Next Open Windows",
   "Request Acceptance Status",
   "Timing Handoff Status",
@@ -424,6 +437,20 @@ for (const phrase of [
   "handleScheduleLifecycleAction",
   "handleScheduleLifecycleStatusImport",
   "handleClearScheduleLifecycleStatusExports",
+  "EPOCH_REVISED_REMINDER_DEADLINE_RECEIPT_EXPORT_KEY",
+  "normalizeRevisedReminderDeadlineReceiptExport",
+  "normalizeRevisedReminderDeadlineReceiptPayload",
+  "loadRevisedReminderDeadlineReceiptExports",
+  "saveRevisedReminderDeadlineReceiptExports",
+  "revisedReminderDeadlineReceiptExportState",
+  "revised-reminder-deadline-receipts.json",
+  "revised-reminder-deadline-receipt-import-form",
+  "revised-reminder-deadline-receipt-file",
+  "revised-reminder-deadline-receipt-summary",
+  "portal-revised-reminder-deadline-receipts",
+  "handleRevisedReminderDeadlineReceiptImport",
+  "handleClearRevisedReminderDeadlineReceiptExports",
+  "notificationSendEnabled !== true",
   "providerCallsEnabled !== true",
   "monitorWorkflowExposed !== true",
   "revised-rulepack-status",
@@ -724,6 +751,91 @@ for (const phrase of [
   if (!appRevisedTimingExport.includes(phrase)) fail(`Avalonia revised timing export missing ${phrase}`);
 }
 
+for (const [label, file, required] of [
+  ["revised reminder execution", appRevisedReminderExecution, [
+    "EpochRevisedReminderExecution",
+    "FromRevisedTimingExport",
+    "EPOCH.App.RevisedReminderExecution",
+    "NotificationSendEnabled",
+    "ProviderCallsEnabled",
+    "MonitorWorkflowExposed",
+    "WorkshopCalendarOwnership",
+    "no notification was sent"
+  ]],
+  ["revised deadline execution", appRevisedDeadlineExecution, [
+    "EpochRevisedDeadlineExecution",
+    "FromRevisedTimingExport",
+    "conversion-held-watch",
+    "EPOCH.App.RevisedDeadlineExecution",
+    "NotificationSendEnabled",
+    "ProviderCallsEnabled",
+    "MonitorWorkflowExposed",
+    "WorkshopCalendarOwnership"
+  ]],
+  ["revised deadline escalation", appRevisedDeadlineEscalation, [
+    "EpochRevisedDeadlineEscalation",
+    "FromExecutions",
+    "revised-calendar-deadline-follow-up",
+    "local-escalation-held",
+    "EPOCH.App.RevisedDeadlineEscalation",
+    "NotificationSendEnabled",
+    "ProviderCallsEnabled",
+    "MonitorWorkflowExposed",
+    "WorkshopCalendarOwnership"
+  ]],
+  ["revised reminder deadline receipt", appRevisedReminderDeadlineReceipt, [
+    "EpochRevisedReminderDeadlineReceipt",
+    "FromExecutionChain",
+    "revised-reminder-deadline-execution",
+    "customer-safe-revised-deadline-status-ready",
+    "EPOCH.App.RevisedReminderDeadlineReceipt",
+    "WebportalExportReady",
+    "NotificationSendEnabled",
+    "ProviderCallsEnabled",
+    "MonitorWorkflowExposed",
+    "WorkshopCalendarOwnership"
+  ]]
+]) {
+  for (const phrase of required) {
+    if (!file.includes(phrase)) fail(`Avalonia ${label} missing ${phrase}`);
+  }
+}
+
+for (const [label, file, required] of [
+  ["revised reminder execution store", appRevisedReminderExecutionStore, [
+    "revised-reminder-executions.json",
+    "EpochRevisedReminderExecutionStore",
+    "TryAppend",
+    "ArchiveInvalidExecutions",
+    "EpochScheduleExecutionHistoryStore.StateDirectoryEnvironmentVariable"
+  ]],
+  ["revised deadline execution store", appRevisedDeadlineExecutionStore, [
+    "revised-deadline-executions.json",
+    "EpochRevisedDeadlineExecutionStore",
+    "TryAppend",
+    "ArchiveInvalidExecutions",
+    "EpochScheduleExecutionHistoryStore.StateDirectoryEnvironmentVariable"
+  ]],
+  ["revised deadline escalation store", appRevisedDeadlineEscalationStore, [
+    "revised-deadline-escalations.json",
+    "EpochRevisedDeadlineEscalationStore",
+    "TryAppend",
+    "ArchiveInvalidEscalations",
+    "EpochScheduleExecutionHistoryStore.StateDirectoryEnvironmentVariable"
+  ]],
+  ["revised reminder deadline receipt store", appRevisedReminderDeadlineReceiptStore, [
+    "revised-reminder-deadline-receipts.json",
+    "EpochRevisedReminderDeadlineReceiptStore",
+    "TryAppend",
+    "ArchiveInvalidReceipts",
+    "EpochScheduleExecutionHistoryStore.StateDirectoryEnvironmentVariable"
+  ]]
+]) {
+  for (const phrase of required) {
+    if (!file.includes(phrase)) fail(`Avalonia ${label} missing ${phrase}`);
+  }
+}
+
 for (const phrase of [
   "EpochNative.LoadSnapshotOrFallback",
   "EpochNative.LoadScheduleCommandOrFallback",
@@ -759,11 +871,20 @@ for (const phrase of [
   "RevisedTimingExportSummary",
   "RevisedTimingExportStatus",
   "RevisedTimingExportLocation",
+  "RevisedReminderExecutionSummary",
+  "RevisedDeadlineExecutionSummary",
+  "RevisedDeadlineEscalationSummary",
+  "RevisedReminderDeadlineReceiptSummary",
+  "RevisedReminderDeadlineReceiptLocation",
   "customer-safe schedule status export(s)",
   "customer-safe schedule lifecycle action(s)",
   "schedule lifecycle receipt(s)",
   "customer-safe schedule lifecycle status export(s)",
   "EPOCH revised timing export payload(s)",
+  "revised-calendar reminder execution(s)",
+  "revised-calendar deadline execution(s)",
+  "revised-calendar deadline escalation(s)",
+  "revised reminder/deadline receipt(s)",
   "WORKSHOP calendar ownership",
   "Webportal export ready",
   "native scheduling command ready",
@@ -1046,6 +1167,14 @@ for (const phrase of [
   "EpochScheduleLifecycleStatusStore.Load",
   "EpochRevisedCalendarTimingExportStore.EnsureDefaultExport",
   "EpochRevisedCalendarTimingExportStore.Load",
+  "EpochRevisedReminderExecutionStore.Append",
+  "EpochRevisedReminderExecutionStore.Load",
+  "EpochRevisedDeadlineExecutionStore.Append",
+  "EpochRevisedDeadlineExecutionStore.Load",
+  "EpochRevisedDeadlineEscalationStore.Append",
+  "EpochRevisedDeadlineEscalationStore.Load",
+  "EpochRevisedReminderDeadlineReceiptStore.Append",
+  "EpochRevisedReminderDeadlineReceiptStore.Load",
   "lifecycleActions.Count != 1",
   "lifecycleActions[0].AppOwnedLifecycleState",
   "lifecycleReceipts.Count != 1",
@@ -1059,6 +1188,10 @@ for (const phrase of [
   "File.Exists(EpochScheduleLifecycleReceiptStore.ReceiptPath)",
   "File.Exists(EpochScheduleLifecycleStatusStore.StatusPath)",
   "File.Exists(EpochRevisedCalendarTimingExportStore.ExportPath)",
+  "File.Exists(EpochRevisedReminderExecutionStore.ExecutionPath)",
+  "File.Exists(EpochRevisedDeadlineExecutionStore.ExecutionPath)",
+  "File.Exists(EpochRevisedDeadlineEscalationStore.EscalationPath)",
+  "File.Exists(EpochRevisedReminderDeadlineReceiptStore.ReceiptPath)",
   "File.Exists(EpochScheduleExecutionHistoryStore.HistoryPath)",
   "File.Exists(EpochScheduleRequestInboxStore.InboxPath)",
   "File.Exists(EpochRequestScheduleCommandReceiptStore.ReceiptPath)",
@@ -1112,7 +1245,17 @@ for (const phrase of [
   "WORKSHOP timing-provider consumption",
   "Provider go-live remains false",
   "WORKSHOP calendar ownership remains false",
-  "MONITOR workflow exposure remains false"
+  "MONITOR workflow exposure remains false",
+  "Local revised-calendar reminder/deadline execution slice",
+  "EpochRevisedReminderExecutionStore",
+  "revised-reminder-executions.json",
+  "EpochRevisedDeadlineExecutionStore",
+  "revised-deadline-executions.json",
+  "EpochRevisedDeadlineEscalationStore",
+  "revised-deadline-escalations.json",
+  "EpochRevisedReminderDeadlineReceiptStore",
+  "revised-reminder-deadline-receipts.json",
+  "notification-off"
 ]) {
   if (!runtime.includes(phrase)) fail(`runtime docs missing scheduling command phrase ${phrase}`);
 }

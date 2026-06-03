@@ -243,6 +243,25 @@
 
     <section class="panel">
       <div class="section-title">
+        <p class="eyebrow">App Export</p>
+        <h2>Revised Reminder Deadline Status</h2>
+      </div>
+      <form id="revised-reminder-deadline-receipt-import-form" class="surface-form compact-form">
+        <label>
+          Load revised-reminder-deadline-receipts.json
+          <input id="revised-reminder-deadline-receipt-file" name="revisedReminderDeadlineReceiptExport" type="file" accept="application/json,.json" />
+        </label>
+        <div class="form-actions">
+          <button type="submit">Load Status</button>
+          <button id="clear-revised-reminder-deadline-receipts" type="button">Clear</button>
+        </div>
+      </form>
+      <p id="revised-reminder-deadline-receipt-summary" class="confirmation" role="status"></p>
+      <div id="portal-revised-reminder-deadline-receipts" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
         <p class="eyebrow">Receipts</p>
         <h2>Booking Receipts</h2>
       </div>
@@ -384,6 +403,6 @@
     </section>
   </main>
 
-  <script type="module" src="../shared/surface.js?v=epoch-revised-calendar-constraints"></script>
+  <script type="module" src="../shared/surface.js?v=epoch-revised-reminder-deadline-execution"></script>
 </body>
 </html>

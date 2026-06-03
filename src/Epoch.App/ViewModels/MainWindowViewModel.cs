@@ -33,7 +33,19 @@ public sealed class MainWindowViewModel
         string lifecycleStatusPath,
         EpochRevisedCalendarTimingExport? revisedTimingExport,
         IReadOnlyList<EpochRevisedCalendarTimingExport> revisedTimingExports,
-        string revisedTimingExportPath)
+        string revisedTimingExportPath,
+        EpochRevisedReminderExecution? revisedReminderExecution,
+        IReadOnlyList<EpochRevisedReminderExecution> revisedReminderExecutions,
+        string revisedReminderExecutionPath,
+        EpochRevisedDeadlineExecution? revisedDeadlineExecution,
+        IReadOnlyList<EpochRevisedDeadlineExecution> revisedDeadlineExecutions,
+        string revisedDeadlineExecutionPath,
+        EpochRevisedDeadlineEscalation? revisedDeadlineEscalation,
+        IReadOnlyList<EpochRevisedDeadlineEscalation> revisedDeadlineEscalations,
+        string revisedDeadlineEscalationPath,
+        EpochRevisedReminderDeadlineReceipt? revisedReminderDeadlineReceipt,
+        IReadOnlyList<EpochRevisedReminderDeadlineReceipt> revisedReminderDeadlineReceipts,
+        string revisedReminderDeadlineReceiptPath)
     {
         ProductName = snapshot.ProductName;
         CoreStatus = snapshot.CoreStatus;
@@ -136,6 +148,30 @@ public sealed class MainWindowViewModel
         RevisedTimingExportStatus = revisedTimingExport is not null
             ? $"Latest export {revisedTimingExport.PayloadId}: {revisedTimingExport.CalendarSystemLabel}; customer-safe: {revisedTimingExport.CustomerSafe.ToString().ToLowerInvariant()}; WORKSHOP calendar ownership: {revisedTimingExport.WorkshopCalendarOwnership.ToString().ToLowerInvariant()}."
             : "No EPOCH revised timing export was written in this shell load.";
+        RevisedReminderExecutionCount = revisedReminderExecutions.Count;
+        RevisedReminderExecutionSummary = $"{revisedReminderExecutions.Count} revised-calendar reminder execution(s) in the EPOCH App ledger.";
+        RevisedReminderExecutionLocation = revisedReminderExecutionPath;
+        RevisedReminderExecutionStatus = revisedReminderExecution is not null
+            ? $"Latest reminder execution {revisedReminderExecution.ExecutionId}: {revisedReminderExecution.Status}; notification sends enabled: {revisedReminderExecution.NotificationSendEnabled.ToString().ToLowerInvariant()}."
+            : "No revised-calendar reminder execution was prepared from EPOCH revised timing context.";
+        RevisedDeadlineExecutionCount = revisedDeadlineExecutions.Count;
+        RevisedDeadlineExecutionSummary = $"{revisedDeadlineExecutions.Count} revised-calendar deadline execution(s) in the EPOCH App ledger.";
+        RevisedDeadlineExecutionLocation = revisedDeadlineExecutionPath;
+        RevisedDeadlineExecutionStatus = revisedDeadlineExecution is not null
+            ? $"Latest deadline execution {revisedDeadlineExecution.ExecutionId}: {revisedDeadlineExecution.Health}; provider calls enabled: {revisedDeadlineExecution.ProviderCallsEnabled.ToString().ToLowerInvariant()}."
+            : "No revised-calendar deadline execution was prepared from EPOCH revised timing context.";
+        RevisedDeadlineEscalationCount = revisedDeadlineEscalations.Count;
+        RevisedDeadlineEscalationSummary = $"{revisedDeadlineEscalations.Count} revised-calendar deadline escalation(s) in the EPOCH App ledger.";
+        RevisedDeadlineEscalationLocation = revisedDeadlineEscalationPath;
+        RevisedDeadlineEscalationStatus = revisedDeadlineEscalation is not null
+            ? $"Latest escalation {revisedDeadlineEscalation.EscalationId}: {revisedDeadlineEscalation.Status}; MONITOR workflow exposed: {revisedDeadlineEscalation.MonitorWorkflowExposed.ToString().ToLowerInvariant()}."
+            : "No revised-calendar deadline escalation was prepared from EPOCH revised timing context.";
+        RevisedReminderDeadlineReceiptCount = revisedReminderDeadlineReceipts.Count;
+        RevisedReminderDeadlineReceiptSummary = $"{revisedReminderDeadlineReceipts.Count} revised reminder/deadline receipt(s) ready for customer-safe Webportal import.";
+        RevisedReminderDeadlineReceiptLocation = revisedReminderDeadlineReceiptPath;
+        RevisedReminderDeadlineReceiptStatus = revisedReminderDeadlineReceipt is not null
+            ? $"Latest receipt {revisedReminderDeadlineReceipt.ReceiptId}: {revisedReminderDeadlineReceipt.Status}; Webportal export ready: {revisedReminderDeadlineReceipt.WebportalExportReady.ToString().ToLowerInvariant()}."
+            : "No customer-safe revised reminder/deadline receipt was prepared in this shell load.";
     }
 
     public string ProductName { get; }
@@ -202,6 +238,22 @@ public sealed class MainWindowViewModel
     public string RevisedTimingExportSummary { get; }
     public string RevisedTimingExportLocation { get; }
     public string RevisedTimingExportStatus { get; }
+    public int RevisedReminderExecutionCount { get; }
+    public string RevisedReminderExecutionSummary { get; }
+    public string RevisedReminderExecutionLocation { get; }
+    public string RevisedReminderExecutionStatus { get; }
+    public int RevisedDeadlineExecutionCount { get; }
+    public string RevisedDeadlineExecutionSummary { get; }
+    public string RevisedDeadlineExecutionLocation { get; }
+    public string RevisedDeadlineExecutionStatus { get; }
+    public int RevisedDeadlineEscalationCount { get; }
+    public string RevisedDeadlineEscalationSummary { get; }
+    public string RevisedDeadlineEscalationLocation { get; }
+    public string RevisedDeadlineEscalationStatus { get; }
+    public int RevisedReminderDeadlineReceiptCount { get; }
+    public string RevisedReminderDeadlineReceiptSummary { get; }
+    public string RevisedReminderDeadlineReceiptLocation { get; }
+    public string RevisedReminderDeadlineReceiptStatus { get; }
 
     public static MainWindowViewModel Load()
     {
@@ -295,6 +347,47 @@ public sealed class MainWindowViewModel
             out revisedTimingExport);
         IReadOnlyList<EpochRevisedCalendarTimingExport> revisedTimingExports =
             EpochRevisedCalendarTimingExportStore.Load();
+        EpochRevisedReminderExecution? revisedReminderExecution = null;
+        EpochRevisedDeadlineExecution? revisedDeadlineExecution = null;
+        EpochRevisedDeadlineEscalation? revisedDeadlineEscalation = null;
+        EpochRevisedReminderDeadlineReceipt? revisedReminderDeadlineReceipt = null;
+        if (revisedTimingExport is not null && revisedTimingExport.CustomerSafe)
+        {
+            EpochRevisedReminderExecutionStore.TryAppend(
+                revisedTimingExport,
+                out revisedReminderExecution);
+            EpochRevisedDeadlineExecutionStore.TryAppend(
+                revisedTimingExport,
+                out revisedDeadlineExecution);
+        }
+
+        if (revisedReminderExecution is not null && revisedDeadlineExecution is not null)
+        {
+            EpochRevisedDeadlineEscalationStore.TryAppend(
+                revisedReminderExecution,
+                revisedDeadlineExecution,
+                out revisedDeadlineEscalation);
+        }
+
+        if (revisedReminderExecution is not null &&
+            revisedDeadlineExecution is not null &&
+            revisedDeadlineEscalation is not null)
+        {
+            EpochRevisedReminderDeadlineReceiptStore.TryAppend(
+                revisedReminderExecution,
+                revisedDeadlineExecution,
+                revisedDeadlineEscalation,
+                out revisedReminderDeadlineReceipt);
+        }
+
+        IReadOnlyList<EpochRevisedReminderExecution> revisedReminderExecutions =
+            EpochRevisedReminderExecutionStore.Load();
+        IReadOnlyList<EpochRevisedDeadlineExecution> revisedDeadlineExecutions =
+            EpochRevisedDeadlineExecutionStore.Load();
+        IReadOnlyList<EpochRevisedDeadlineEscalation> revisedDeadlineEscalations =
+            EpochRevisedDeadlineEscalationStore.Load();
+        IReadOnlyList<EpochRevisedReminderDeadlineReceipt> revisedReminderDeadlineReceipts =
+            EpochRevisedReminderDeadlineReceiptStore.Load();
 
         return new MainWindowViewModel(
             snapshot,
@@ -324,7 +417,19 @@ public sealed class MainWindowViewModel
             EpochScheduleLifecycleStatusStore.StatusPath,
             revisedTimingExport,
             revisedTimingExports,
-            EpochRevisedCalendarTimingExportStore.ExportPath);
+            EpochRevisedCalendarTimingExportStore.ExportPath,
+            revisedReminderExecution,
+            revisedReminderExecutions,
+            EpochRevisedReminderExecutionStore.ExecutionPath,
+            revisedDeadlineExecution,
+            revisedDeadlineExecutions,
+            EpochRevisedDeadlineExecutionStore.ExecutionPath,
+            revisedDeadlineEscalation,
+            revisedDeadlineEscalations,
+            EpochRevisedDeadlineEscalationStore.EscalationPath,
+            revisedReminderDeadlineReceipt,
+            revisedReminderDeadlineReceipts,
+            EpochRevisedReminderDeadlineReceiptStore.ReceiptPath);
     }
 
     private static EpochScheduleExecutionReceipt ExecuteNativeOrFallback(string intentKind)

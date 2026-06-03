@@ -119,6 +119,20 @@
                   <TextBlock Text="{Binding RevisedTimingExportLocation}" TextWrapping="Wrap" FontSize="11" Foreground="#687588" />
                 </StackPanel>
               </Border>
+              <Border Padding="12" CornerRadius="8" Background="#f7fff9" BorderBrush="#c9e7d1" BorderThickness="1">
+                <StackPanel Spacing="5">
+                  <TextBlock Text="Revised Reminder And Deadline Execution" FontWeight="SemiBold" Foreground="#172033" />
+                  <TextBlock Text="{Binding RevisedReminderExecutionSummary}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedReminderExecutionStatus}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedDeadlineExecutionSummary}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedDeadlineExecutionStatus}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedDeadlineEscalationSummary}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedDeadlineEscalationStatus}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedReminderDeadlineReceiptSummary}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedReminderDeadlineReceiptStatus}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedReminderDeadlineReceiptLocation}" TextWrapping="Wrap" FontSize="11" Foreground="#687588" />
+                </StackPanel>
+              </Border>
             </StackPanel>
           </Border>
 

@@ -262,6 +262,60 @@ const saveScheduleLifecycleStatusExports = (records) => {
   if (storage) storage.setItem(EPOCH_SCHEDULE_LIFECYCLE_STATUS_EXPORT_KEY, JSON.stringify(records));
 };
 
+const EPOCH_REVISED_REMINDER_DEADLINE_RECEIPT_EXPORT_KEY = "epoch.webportal.revisedReminderDeadlineReceipts.v1";
+
+const normalizeRevisedReminderDeadlineReceiptExport = (item) => {
+  if (!item || typeof item !== "object") return null;
+  const customerSafe =
+    item.customerSafe === true &&
+    item.webportalExportReady === true &&
+    item.notificationSendEnabled !== true &&
+    item.providerCallsEnabled !== true &&
+    item.monitorWorkflowExposed !== true &&
+    item.workshopCalendarOwnership !== true;
+  if (!customerSafe) return null;
+
+  return {
+    receiptId: String(item.receiptId || item.id || "revised-reminder-deadline-receipt"),
+    requestId: String(item.requestId || "schedule request"),
+    revisedTimingPayloadId: String(item.revisedTimingPayloadId || "revised timing payload"),
+    kind: String(item.kind || "revised-reminder-deadline-execution"),
+    status: String(item.status || "customer-safe-revised-deadline-status-ready"),
+    customerSafeMessage: String(item.customerSafeMessage || "Your reminder/deadline status is ready."),
+    nextAction: String(item.nextAction || "Review the customer-safe revised reminder/deadline status."),
+    createdAtUtc: String(item.createdAtUtc || ""),
+    sourceSurface: String(item.sourceSurface || "EPOCH.App.RevisedReminderDeadlineReceipt")
+  };
+};
+
+const normalizeRevisedReminderDeadlineReceiptPayload = (payload) => {
+  const records = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.receipts)
+      ? payload.receipts
+      : payload?.receiptId
+        ? [payload]
+        : [];
+  return records
+    .map(normalizeRevisedReminderDeadlineReceiptExport)
+    .filter(Boolean);
+};
+
+const loadRevisedReminderDeadlineReceiptExports = () => {
+  const storage = getStorage();
+  if (!storage) return [];
+  try {
+    return normalizeRevisedReminderDeadlineReceiptPayload(JSON.parse(storage.getItem(EPOCH_REVISED_REMINDER_DEADLINE_RECEIPT_EXPORT_KEY) || "[]"));
+  } catch {
+    return [];
+  }
+};
+
+const saveRevisedReminderDeadlineReceiptExports = (records) => {
+  const storage = getStorage();
+  if (storage) storage.setItem(EPOCH_REVISED_REMINDER_DEADLINE_RECEIPT_EXPORT_KEY, JSON.stringify(records));
+};
+
 const state = {
   ledger: loadLedger()
 };
@@ -272,6 +326,10 @@ const customerScheduleStatusExportState = {
 
 const scheduleLifecycleStatusExportState = {
   records: loadScheduleLifecycleStatusExports()
+};
+
+const revisedReminderDeadlineReceiptExportState = {
+  records: loadRevisedReminderDeadlineReceiptExports()
 };
 
 const byId = (id) => document.getElementById(id);
@@ -1128,6 +1186,41 @@ function renderScheduleLifecycleStatusExports() {
   );
 }
 
+function renderRevisedReminderDeadlineReceiptExports() {
+  setText(
+    "revised-reminder-deadline-receipt-summary",
+    revisedReminderDeadlineReceiptExportState.records.length
+      ? `${revisedReminderDeadlineReceiptExportState.records.length} App-exported revised reminder/deadline receipt(s) loaded.`
+      : "No App-exported revised reminder/deadline receipts loaded."
+  );
+
+  renderStack(
+    "portal-revised-reminder-deadline-receipts",
+    revisedReminderDeadlineReceiptExportState.records,
+    (item) => `
+      <article class="mini-row">
+        <strong>${escapeHtml(item.status)}</strong>
+        <span>${escapeHtml(item.requestId)} / ${escapeHtml(item.kind)}</span>
+        <small>${escapeHtml(item.customerSafeMessage)}</small>
+        <small>${escapeHtml(item.nextAction)}</small>
+      </article>
+    `,
+    "No customer-safe revised reminder/deadline receipt exports loaded."
+  );
+  renderStack(
+    "app-revised-reminder-deadline-receipts",
+    revisedReminderDeadlineReceiptExportState.records,
+    (item) => `
+      <article class="mini-row">
+        <strong>${escapeHtml(item.status)}</strong>
+        <span>${escapeHtml(item.requestId)} / ${escapeHtml(item.revisedTimingPayloadId)}</span>
+        <small>${escapeHtml(item.customerSafeMessage)}</small>
+      </article>
+    `,
+    "No App-exported revised reminder/deadline receipt records loaded."
+  );
+}
+
 function renderReceipts() {
   renderStack("receipt-list", state.ledger.receipts, (item) => `
     <article class="mini-row">
@@ -1329,6 +1422,7 @@ function renderAll() {
   renderCustomerScheduleStatusExports();
   renderScheduleLifecycleActions();
   renderScheduleLifecycleStatusExports();
+  renderRevisedReminderDeadlineReceiptExports();
   renderReceipts();
 }
 
@@ -1398,6 +1492,41 @@ function handleClearScheduleLifecycleStatusExports() {
   scheduleLifecycleStatusExportState.records = [];
   saveScheduleLifecycleStatusExports(scheduleLifecycleStatusExportState.records);
   const fileInput = byId("schedule-lifecycle-status-file");
+  if (fileInput) fileInput.value = "";
+  renderAll();
+}
+
+async function handleRevisedReminderDeadlineReceiptImport(event) {
+  event.preventDefault();
+  const fileInput = byId("revised-reminder-deadline-receipt-file");
+  const confirmation = byId("revised-reminder-deadline-receipt-summary");
+  const file = fileInput?.files?.[0];
+  if (!file) {
+    if (confirmation) confirmation.textContent = "Choose revised-reminder-deadline-receipts.json first.";
+    return;
+  }
+
+  try {
+    const imported = normalizeRevisedReminderDeadlineReceiptPayload(JSON.parse(await file.text()));
+    if (!imported.length) {
+      if (confirmation) confirmation.textContent = "No customer-safe revised reminder/deadline receipt records found.";
+      return;
+    }
+
+    const byReceiptId = new Map(revisedReminderDeadlineReceiptExportState.records.map((item) => [item.receiptId, item]));
+    for (const item of imported) byReceiptId.set(item.receiptId, item);
+    revisedReminderDeadlineReceiptExportState.records = Array.from(byReceiptId.values());
+    saveRevisedReminderDeadlineReceiptExports(revisedReminderDeadlineReceiptExportState.records);
+    renderAll();
+  } catch {
+    if (confirmation) confirmation.textContent = "Revised reminder/deadline receipt export could not be read.";
+  }
+}
+
+function handleClearRevisedReminderDeadlineReceiptExports() {
+  revisedReminderDeadlineReceiptExportState.records = [];
+  saveRevisedReminderDeadlineReceiptExports(revisedReminderDeadlineReceiptExportState.records);
+  const fileInput = byId("revised-reminder-deadline-receipt-file");
   if (fileInput) fileInput.value = "";
   renderAll();
 }
@@ -1526,6 +1655,12 @@ function bindControls() {
 
   const clearLifecycleStatusExportButton = byId("clear-schedule-lifecycle-status-export");
   if (clearLifecycleStatusExportButton) clearLifecycleStatusExportButton.addEventListener("click", handleClearScheduleLifecycleStatusExports);
+
+  const revisedReminderDeadlineReceiptImportForm = byId("revised-reminder-deadline-receipt-import-form");
+  if (revisedReminderDeadlineReceiptImportForm) revisedReminderDeadlineReceiptImportForm.addEventListener("submit", handleRevisedReminderDeadlineReceiptImport);
+
+  const clearRevisedReminderDeadlineReceiptsButton = byId("clear-revised-reminder-deadline-receipts");
+  if (clearRevisedReminderDeadlineReceiptsButton) clearRevisedReminderDeadlineReceiptsButton.addEventListener("click", handleClearRevisedReminderDeadlineReceiptExports);
 
   const resetButton = byId("reset-schedule-ledger");
   if (resetButton) {

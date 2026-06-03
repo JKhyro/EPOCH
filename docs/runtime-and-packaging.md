@@ -255,3 +255,25 @@ only where the host, UI framework, or platform integration makes it necessary.
 - The Avalonia Revised Calendar Lab renders the export count, latest export
   status, and export path so the operator can see the bridge artifact without
   moving the workflow into MONITOR.
+
+## Local revised-calendar reminder/deadline execution slice
+
+- `EpochRevisedReminderExecutionStore` persists App-owned revised-calendar
+  reminder execution records in `revised-reminder-executions.json` after the
+  App has a customer-safe revised timing export.
+- `EpochRevisedDeadlineExecutionStore` persists matching deadline evaluation
+  records in `revised-deadline-executions.json` while revised-calendar
+  conversion remains owner-gated.
+- `EpochRevisedDeadlineEscalationStore` links the reminder and deadline records
+  into `revised-deadline-escalations.json` as a local follow-up hold.
+- `EpochRevisedReminderDeadlineReceiptStore` writes customer-safe Webportal
+  import receipts in `revised-reminder-deadline-receipts.json`.
+- Notification sends remain disabled, provider calls remain disabled, WORKSHOP
+  calendar ownership remains false, and MONITOR workflow exposure remains false
+  across the whole chain.
+- The EPOCH Webportal can load the App-exported
+  `revised-reminder-deadline-receipts.json` file into a browser-local reader.
+  The reader accepts only customer-safe, Webportal-ready, notification-off,
+  provider-off, and MONITOR-off records before rendering status. It does not
+  expose App ledger internals, notification controls, provider controls, or
+  MONITOR workflow state.
