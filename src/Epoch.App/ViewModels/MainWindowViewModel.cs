@@ -1,4 +1,5 @@
 using Epoch.App.Native;
+using Epoch.App.Services;
 
 namespace Epoch.App.ViewModels;
 
@@ -7,7 +8,10 @@ public sealed class MainWindowViewModel
     private MainWindowViewModel(
         EpochShellSnapshot snapshot,
         EpochScheduleCommandResult command,
-        EpochScheduleExecutionReceipt execution)
+        EpochScheduleExecutionReceipt execution,
+        EpochScheduleExecutionHistoryEntry? historyEntry,
+        IReadOnlyList<EpochScheduleExecutionHistoryEntry> history,
+        string historyPath)
     {
         ProductName = snapshot.ProductName;
         CoreStatus = snapshot.CoreStatus;
@@ -41,6 +45,12 @@ public sealed class MainWindowViewModel
                 ? "native execution receipt ready"
                 : "native execution receipt blocked";
         ExecutionCustomerSafeStatus = execution.CustomerSafeStatus;
+        ExecutionHistoryCount = history.Count;
+        ExecutionHistorySummary = $"{history.Count} local scheduling execution receipt(s) persisted in the EPOCH App ledger.";
+        ExecutionHistoryLocation = historyPath;
+        LastExecutionHistoryStatus = historyEntry is not null
+            ? $"Last history {historyEntry.HistoryId}: {historyEntry.IntentKind} -> {historyEntry.ExecutionStatus}; provider calls enabled: {historyEntry.ProviderCallsEnabled.ToString().ToLowerInvariant()}."
+            : "No new native execution history was persisted in this shell load.";
     }
 
     public string ProductName { get; }
@@ -60,12 +70,46 @@ public sealed class MainWindowViewModel
     public string ExecutionReceiptEvidence { get; }
     public string ExecutionSafetyStatus { get; }
     public string ExecutionCustomerSafeStatus { get; }
+    public int ExecutionHistoryCount { get; }
+    public string ExecutionHistorySummary { get; }
+    public string ExecutionHistoryLocation { get; }
+    public string LastExecutionHistoryStatus { get; }
 
     public static MainWindowViewModel Load()
     {
+        EpochScheduleExecutionReceipt execution = ExecuteNativeOrFallback("confirm-local-booking");
+        EpochScheduleExecutionHistoryEntry? historyEntry = null;
+        if (execution.NativeExecutionReady &&
+            execution.ExecutedLocally &&
+            !execution.ProviderCallsEnabled &&
+            !execution.MonitorWorkflowExposed)
+        {
+            EpochScheduleExecutionHistoryStore.TryAppend(
+                execution,
+                "Epoch.App.Avalonia",
+                out historyEntry);
+        }
+
+        IReadOnlyList<EpochScheduleExecutionHistoryEntry> history = EpochScheduleExecutionHistoryStore.Load();
+
         return new MainWindowViewModel(
             EpochNative.LoadSnapshotOrFallback(),
             EpochNative.LoadScheduleCommandOrFallback(),
-            EpochNative.ExecuteScheduleCommandOrFallback("confirm-local-booking"));
+            execution,
+            historyEntry,
+            history,
+            EpochScheduleExecutionHistoryStore.HistoryPath);
+    }
+
+    private static EpochScheduleExecutionReceipt ExecuteNativeOrFallback(string intentKind)
+    {
+        try
+        {
+            return EpochNative.ExecuteScheduleCommand(intentKind);
+        }
+        catch
+        {
+            return EpochNative.ExecuteScheduleCommandOrFallback(intentKind);
+        }
     }
 }

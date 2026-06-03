@@ -125,3 +125,17 @@ only where the host, UI framework, or platform integration makes it necessary.
 - The execution path is local-only: provider calls stay disabled, MONITOR
   workflow exposure stays false, and WORKSHOP service/CRM details remain
   outside EPOCH.
+
+## Local scheduling execution history slice
+
+- `EpochScheduleExecutionHistoryStore` persists native execution receipts in an
+  EPOCH App-owned JSON ledger named `schedule-execution-history.json`.
+- The default ledger directory is under the local application-data path at
+  `KHYRON/EPOCH/App`; tests and smoke runs can override it with
+  `EPOCH_APP_STATE_DIR`.
+- The Avalonia shell displays the persisted command count, latest local history
+  status, and ledger path in the App. MONITOR remains a development/control
+  evidence surface and does not become the scheduling history workflow.
+- Invalid JSON history is archived aside instead of blocking the desktop shell,
+  keeping local recovery inside the App layer and away from public/provider
+  integrations.

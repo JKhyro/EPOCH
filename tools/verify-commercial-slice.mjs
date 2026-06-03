@@ -28,9 +28,12 @@ const cmake = read("../CMakeLists.txt");
 const packageJson = read("../package.json");
 const appProject = read("../src/Epoch.App/Epoch.App.csproj");
 const appProgram = read("../src/Epoch.App/Program.cs");
+const appShellSmoke = read("../src/Epoch.App/EpochShellSmoke.cs");
 const appXaml = read("../src/Epoch.App/MainWindow.axaml");
 const appNative = read("../src/Epoch.App/Native/EpochNative.cs");
 const appViewModel = read("../src/Epoch.App/ViewModels/MainWindowViewModel.cs");
+const appHistoryEntry = read("../src/Epoch.App/Models/EpochScheduleExecutionHistoryEntry.cs");
+const appHistoryStore = read("../src/Epoch.App/Services/EpochScheduleExecutionHistoryStore.cs");
 const {
   createAvailabilityConflictDecisionForHandoff,
   createAvailabilityCapacityReceiptForPromotion,
@@ -523,10 +526,13 @@ for (const phrase of [
   "Boundary Contract",
   "Native Scheduling Command",
   "Native Execution Receipt",
+  "Execution History",
   "CommandReadiness",
   "CommandReceiptStatus",
   "ExecutionSafetyStatus",
   "ExecutionReceiptEvidence",
+  "ExecutionHistorySummary",
+  "LastExecutionHistoryStatus",
   "MONITOR owns development/control status",
   "WORKSHOP may request timing"
 ]) {
@@ -552,12 +558,58 @@ for (const phrase of [
   "EpochNative.LoadSnapshotOrFallback",
   "EpochNative.LoadScheduleCommandOrFallback",
   "EpochNative.ExecuteScheduleCommandOrFallback",
+  "EpochNative.ExecuteScheduleCommand",
+  "EpochScheduleExecutionHistoryStore.TryAppend",
+  "EpochScheduleExecutionHistoryStore.Load",
   "native scheduling command ready",
   "native execution receipt ready",
+  "local scheduling execution receipt(s) persisted in the EPOCH App ledger",
+  "No new native execution history was persisted",
   "audit, receipts, log, search, and templates",
   "monitor boundary enforced"
 ]) {
   if (!appViewModel.includes(phrase)) fail(`Avalonia view model missing ${phrase}`);
+}
+
+for (const phrase of [
+  "EpochScheduleExecutionHistoryEntry",
+  "FromReceipt",
+  "HistoryId",
+  "RecordedAtUtc",
+  "SourceSurface",
+  "BookingReceiptId",
+  "ProviderCallsEnabled",
+  "MonitorWorkflowExposed",
+  "NativeExecutionReady"
+]) {
+  if (!appHistoryEntry.includes(phrase)) fail(`Avalonia history entry missing ${phrase}`);
+}
+
+for (const phrase of [
+  "EPOCH_APP_STATE_DIR",
+  "schedule-execution-history.json",
+  "HistoryPath",
+  "JsonSerializer",
+  "Append",
+  "TryAppend",
+  "ArchiveInvalidHistory",
+  "Environment.SpecialFolder.LocalApplicationData",
+  "KHYRON",
+  "EPOCH",
+  "App"
+]) {
+  if (!appHistoryStore.includes(phrase)) fail(`Avalonia history store missing ${phrase}`);
+}
+
+for (const phrase of [
+  "StateDirectoryEnvironmentVariable",
+  "EpochScheduleExecutionHistoryStore.Append",
+  "EpochScheduleExecutionHistoryStore.Load",
+  "history.Count != 1",
+  "File.Exists(EpochScheduleExecutionHistoryStore.HistoryPath)",
+  "Directory.Delete(smokeStateDirectory, true)"
+]) {
+  if (!appShellSmoke.includes(phrase)) fail(`Avalonia smoke missing history proof ${phrase}`);
 }
 
 for (const phrase of [
@@ -567,7 +619,12 @@ for (const phrase of [
   "does not expose WORKSHOP service or CRM internals",
   "Native-backed scheduling execution slice",
   "epoch_app_bridge_execute_schedule_command",
-  "provider calls stay disabled"
+  "provider calls stay disabled",
+  "Local scheduling execution history slice",
+  "EpochScheduleExecutionHistoryStore",
+  "schedule-execution-history.json",
+  "EPOCH_APP_STATE_DIR",
+  "MONITOR remains a development/control"
 ]) {
   if (!runtime.includes(phrase)) fail(`runtime docs missing scheduling command phrase ${phrase}`);
 }

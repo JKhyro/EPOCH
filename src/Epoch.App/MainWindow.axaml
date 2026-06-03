@@ -73,6 +73,10 @@
           <TextBlock Text="{Binding ExecutionReceiptEvidence}" TextWrapping="Wrap" Foreground="#526071" />
         </StackPanel>
         <StackPanel Grid.Column="3" Spacing="6">
+          <TextBlock Text="Execution History" FontSize="18" FontWeight="SemiBold" Foreground="#172033" />
+          <TextBlock Text="{Binding ExecutionHistorySummary}" TextWrapping="Wrap" Foreground="#526071" />
+          <TextBlock Text="{Binding LastExecutionHistoryStatus}" TextWrapping="Wrap" Foreground="#526071" />
+          <TextBlock Text="{Binding ExecutionHistoryLocation}" TextWrapping="Wrap" FontSize="11" Foreground="#687588" />
           <TextBlock Text="{Binding CommandCustomerSafeStatus}" TextWrapping="Wrap" Foreground="#526071" />
           <TextBlock Text="{Binding ExecutionCustomerSafeStatus}" TextWrapping="Wrap" Foreground="#526071" />
         </StackPanel>
