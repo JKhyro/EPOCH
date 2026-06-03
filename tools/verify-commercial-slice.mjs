@@ -29,7 +29,11 @@ const {
   createAvailabilityHoldReleaseForHold,
   createAvailabilityPromotionCandidateForWaitlist,
   createAvailabilityWaitlistEntryForRequest,
+  createBookingOptimizationRunForRequest,
+  createBookingOverloadWarningForWindow,
   createBookingConfirmationForHold,
+  createBookingRecommendationCandidateForWindow,
+  createBookingRecommendationReceiptForRun,
   createBookingReceiptForConfirmation,
   createDeadlineEscalationForExecution,
   createDeadlineExecutionForItem,
@@ -52,6 +56,7 @@ const {
   providerGateReadyForToggle,
   revisedRulepackBlocksConversion,
   revisedRulepackReady,
+  rankAvailabilityWindowsForRequest,
   selectFullAvailabilityWindow,
   selectOpenAvailabilityWindow
 } = await import("../web/shared/epoch-data.js");
@@ -97,6 +102,10 @@ for (const phrase of [
   "Hold Releases",
   "Promotion Candidates",
   "Capacity Receipts",
+  "Booking Optimization Runs",
+  "Booking Recommendation Candidates",
+  "Booking Overload Warnings",
+  "Booking Recommendation Receipts",
   "Booking Confirmations",
   "Schedule Status Events",
   "Booking Receipts",
@@ -127,6 +136,9 @@ for (const phrase of [
   "Capacity Status",
   "Waitlist Status",
   "Promotion Status",
+  "Recommended Booking Windows",
+  "Booking Alternative Status",
+  "Booking Recommendation Receipts",
   "Booking Confirmation Status",
   "Schedule Status Updates",
   "Reminder Execution Status",
@@ -155,7 +167,7 @@ for (const path of [
   if (!root.includes(path)) fail(`root directory missing route ${path}`);
 }
 
-for (const phrase of ["epochSchedule", "availabilityWindows", "availabilityCapacitySnapshots", "availabilityWaitlistEntries", "availabilityHoldReleases", "availabilityPromotionCandidates", "availabilityCapacityReceipts", "deadlineItems", "reminderExecutions", "deadlineExecutions", "deadlineEscalations", "reminderDeadlineReceipts", "revisedMonths", "portalTimeline"]) {
+for (const phrase of ["epochSchedule", "availabilityWindows", "availabilityCapacitySnapshots", "availabilityWaitlistEntries", "availabilityHoldReleases", "availabilityPromotionCandidates", "availabilityCapacityReceipts", "bookingOptimizationRuns", "bookingRecommendationCandidates", "bookingOverloadWarnings", "bookingRecommendationReceipts", "deadlineItems", "reminderExecutions", "deadlineExecutions", "deadlineEscalations", "reminderDeadlineReceipts", "revisedMonths", "portalTimeline"]) {
   if (!data.includes(phrase)) fail(`EPOCH data missing ${phrase}`);
 }
 
@@ -178,6 +190,10 @@ for (const phrase of [
   "availabilityHoldReleases",
   "availabilityPromotionCandidates",
   "availabilityCapacityReceipts",
+  "bookingOptimizationRuns",
+  "bookingRecommendationCandidates",
+  "bookingOverloadWarnings",
+  "bookingRecommendationReceipts",
   "reminderExecutions",
   "deadlineExecutions",
   "deadlineEscalations",
@@ -203,6 +219,11 @@ for (const phrase of [
   "createAvailabilityHoldReleaseForHold",
   "createAvailabilityPromotionCandidateForWaitlist",
   "createAvailabilityCapacityReceiptForPromotion",
+  "createBookingOptimizationRunForRequest",
+  "rankAvailabilityWindowsForRequest",
+  "createBookingRecommendationCandidateForWindow",
+  "createBookingOverloadWarningForWindow",
+  "createBookingRecommendationReceiptForRun",
   "createBookingConfirmationForHold",
   "createScheduleStatusEventForBooking",
   "createScheduleStatusEventForConflict",
@@ -243,6 +264,10 @@ for (const phrase of [
   "hold-release-list",
   "promotion-candidate-list",
   "capacity-receipt-list",
+  "booking-optimization-list",
+  "booking-recommendation-list",
+  "booking-overload-warning-list",
+  "booking-recommendation-receipt-list",
   "booking-confirmation-list",
   "schedule-status-event-list",
   "booking-receipt-list",
@@ -259,6 +284,9 @@ for (const phrase of [
   "portal-capacity-status",
   "portal-waitlist-status",
   "portal-promotion-status",
+  "portal-booking-recommendations",
+  "portal-booking-overload-warnings",
+  "portal-booking-recommendation-receipts",
   "portal-booking-status",
   "portal-schedule-status-events",
   "portal-booking-receipts",
@@ -279,6 +307,7 @@ for (const phrase of [
   "portal-recurring-instance-status",
   "portal-recurring-exceptions",
   "generate-recurring-series",
+  "generate-booking-recommendations",
   "promote-waitlist",
   "run-reminder-deadline-pass",
   "revised-rulepack-status",
@@ -335,6 +364,10 @@ for (const type of [
   "EpochAvailabilityHoldRelease",
   "EpochAvailabilityPromotionCandidate",
   "EpochAvailabilityCapacityReceipt",
+  "EpochBookingOptimizationRun",
+  "EpochBookingRecommendationCandidate",
+  "EpochBookingOverloadWarning",
+  "EpochBookingRecommendationReceipt",
   "EpochBookingConfirmation",
   "EpochScheduleStatusEvent",
   "EpochBookingReceipt",
@@ -376,6 +409,10 @@ for (const fn of [
   "epoch_availability_hold_release_is_ready",
   "epoch_availability_promotion_candidate_is_ready",
   "epoch_availability_capacity_receipt_is_customer_safe",
+  "epoch_booking_optimization_run_is_customer_safe",
+  "epoch_booking_recommendation_candidate_is_customer_safe",
+  "epoch_booking_overload_warning_is_customer_safe",
+  "epoch_booking_recommendation_receipt_is_customer_safe",
   "epoch_booking_confirmation_is_customer_safe",
   "epoch_schedule_status_event_is_customer_safe",
   "epoch_booking_receipt_is_customer_safe",
@@ -461,6 +498,15 @@ const capacitySnapshot = createAvailabilityCapacitySnapshotForWindow(
   [holdRelease, ...initialEpochLedger.availabilityHoldReleases],
   [promotionCandidate, ...initialEpochLedger.availabilityPromotionCandidates]
 );
+const rankedWindows = rankAvailabilityWindowsForRequest(initialEpochLedger.availabilityWindows);
+const optimizationRun = createBookingOptimizationRunForRequest(request, initialEpochLedger.availabilityWindows);
+const recommendationCandidate = createBookingRecommendationCandidateForWindow(optimizationRun, request, rankedWindows[0], 1);
+const overloadWarning = createBookingOverloadWarningForWindow(optimizationRun, fullWindow);
+const recommendationReceipt = createBookingRecommendationReceiptForRun(
+  optimizationRun,
+  [recommendationCandidate],
+  [overloadWarning]
+);
 const recurrenceCandidate = initialEpochLedger.recurrenceCandidates.find((candidate) => candidate.createsFutureEntries);
 const recurringSeries = createRecurringBookingSeriesForRule(recurrenceCandidate, entry);
 const recurringInstance = createRecurringBookingInstanceForSeries(recurringSeries, 1, openWindow, entry);
@@ -523,6 +569,11 @@ if (holdRelease.status !== "released" || holdRelease.providerGoLiveRequested || 
 if (promotionCandidate.status !== "promoted" || promotionCandidate.providerGoLiveRequested || promotionCandidate.waitlistEntryId !== waitlistEntry.id) fail("promotion factory did not create safe local promotion candidate");
 if (capacityReceipt.status !== "promoted" || capacityReceipt.kind !== "availability-capacity" || !capacityReceipt.summary.includes("without live provider calls")) fail("capacity receipt did not preserve local-only proof");
 if (capacitySnapshot.status !== "waitlisted" || capacitySnapshot.providerGoLiveRequested || capacitySnapshot.waitlistCount < 1 || capacitySnapshot.promotionCandidateCount < 1) fail("capacity snapshot did not summarize waitlist/promotion state");
+if (!rankedWindows.length || rankedWindows[0].id !== "EPOCH-WIN-002") fail("availability ranking did not choose the strongest open local window");
+if (optimizationRun.status !== "complete" || optimizationRun.providerGoLiveRequested || optimizationRun.candidateCount < 1 || !optimizationRun.customerSafeStatus.includes("no external calendar write")) fail("optimization run did not create safe local recommendation state");
+if (recommendationCandidate.rank !== 1 || recommendationCandidate.status !== "available" || recommendationCandidate.providerGoLiveRequested || recommendationCandidate.score <= 0) fail("recommendation candidate did not create ranked customer-safe local option");
+if (overloadWarning.status !== "needs-reschedule" || overloadWarning.providerGoLiveRequested || overloadWarning.loadRatioPercent < 100) fail("overload warning did not preserve full-window customer-safe status");
+if (recommendationReceipt.kind !== "booking-recommendation" || recommendationReceipt.status !== "complete" || recommendationReceipt.providerGoLiveRequested || !recommendationReceipt.summary.includes("without live provider calls")) fail("recommendation receipt did not preserve local-only proof");
 if (!recurrenceCandidate || recurrenceCandidate.calendarSystem !== "gregorian") fail("approved recurrence candidate missing for series generation");
 if (recurringSeries.status !== "confirmed" || recurringSeries.providerGoLiveRequested || !recurringSeries.customerSafeStatus.includes("generated locally")) fail("recurring series factory did not create safe local series");
 if (recurringInstance.status !== "confirmed" || recurringInstance.providerGoLiveRequested || !recurringInstance.bookingConfirmationId) fail("recurring instance factory did not create confirmed local instance");

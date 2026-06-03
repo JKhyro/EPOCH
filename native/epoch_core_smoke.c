@@ -156,6 +156,49 @@ int main(void) {
         1,
         0,
     };
+    EpochBookingOptimizationRun booking_optimization_run = {
+        "booking-opt-001",
+        "req-002",
+        "win-002",
+        "EPOCH ranked local availability options; no external calendar write was made.",
+        3,
+        1,
+        EPOCH_STATUS_COMPLETE,
+        1,
+        0,
+    };
+    EpochBookingRecommendationCandidate booking_recommendation = {
+        "booking-rec-001",
+        "booking-opt-001",
+        "req-002",
+        "win-002",
+        "best-fit",
+        "Recommended local window: 2026-06-05 09:00 JST.",
+        1,
+        96,
+        EPOCH_STATUS_AVAILABLE,
+        1,
+        0,
+    };
+    EpochBookingOverloadWarning booking_overload_warning = {
+        "booking-overload-001",
+        "booking-opt-001",
+        "win-001",
+        "Preferred window is full; choose an alternate local window or stay waitlisted.",
+        100,
+        EPOCH_STATUS_NEEDS_RESCHEDULE,
+        1,
+        0,
+    };
+    EpochBookingRecommendationReceipt booking_recommendation_receipt = {
+        "booking-rec-receipt-001",
+        "booking-recommendation",
+        "booking-opt-001",
+        "EPOCH generated ranked local booking recommendations and one overload warning without live provider calls.",
+        EPOCH_STATUS_COMPLETE,
+        1,
+        0,
+    };
     EpochBookingConfirmation booking = {
         "book-001",
         "accept-001",
@@ -488,6 +531,10 @@ int main(void) {
     assert(epoch_availability_hold_release_is_ready(&hold_release) == 1);
     assert(epoch_availability_promotion_candidate_is_ready(&promotion_candidate) == 1);
     assert(epoch_availability_capacity_receipt_is_customer_safe(&capacity_receipt) == 1);
+    assert(epoch_booking_optimization_run_is_customer_safe(&booking_optimization_run) == 1);
+    assert(epoch_booking_recommendation_candidate_is_customer_safe(&booking_recommendation) == 1);
+    assert(epoch_booking_overload_warning_is_customer_safe(&booking_overload_warning) == 1);
+    assert(epoch_booking_recommendation_receipt_is_customer_safe(&booking_recommendation_receipt) == 1);
     capacity_snapshot.holds = 4;
     assert(epoch_availability_capacity_snapshot_is_customer_safe(&capacity_snapshot) == 0);
     capacity_snapshot.holds = 2;
@@ -503,6 +550,24 @@ int main(void) {
     capacity_receipt.kind = "booking";
     assert(epoch_availability_capacity_receipt_is_customer_safe(&capacity_receipt) == 0);
     capacity_receipt.kind = "availability-capacity";
+    booking_optimization_run.provider_go_live_requested = 1;
+    assert(epoch_booking_optimization_run_is_customer_safe(&booking_optimization_run) == 0);
+    booking_optimization_run.provider_go_live_requested = 0;
+    booking_optimization_run.candidate_count = 0;
+    assert(epoch_booking_optimization_run_is_customer_safe(&booking_optimization_run) == 0);
+    booking_optimization_run.candidate_count = 3;
+    booking_recommendation.score = 0;
+    assert(epoch_booking_recommendation_candidate_is_customer_safe(&booking_recommendation) == 0);
+    booking_recommendation.score = 96;
+    booking_recommendation.provider_go_live_requested = 1;
+    assert(epoch_booking_recommendation_candidate_is_customer_safe(&booking_recommendation) == 0);
+    booking_recommendation.provider_go_live_requested = 0;
+    booking_overload_warning.load_ratio_percent = 0;
+    assert(epoch_booking_overload_warning_is_customer_safe(&booking_overload_warning) == 0);
+    booking_overload_warning.load_ratio_percent = 100;
+    booking_recommendation_receipt.kind = "booking";
+    assert(epoch_booking_recommendation_receipt_is_customer_safe(&booking_recommendation_receipt) == 0);
+    booking_recommendation_receipt.kind = "booking-recommendation";
     assert(epoch_reminder_rule_is_sandbox_safe(&reminder) == 1);
     assert(epoch_recurrence_rule_is_sandbox_safe(&recurrence) == 1);
     assert(epoch_recurring_booking_series_is_customer_safe(&recurring_series) == 1);

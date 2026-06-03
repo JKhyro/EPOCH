@@ -218,6 +218,53 @@ typedef struct EpochAvailabilityCapacityReceipt {
     int provider_go_live_requested;
 } EpochAvailabilityCapacityReceipt;
 
+typedef struct EpochBookingOptimizationRun {
+    const char *id;
+    const char *schedule_request_id;
+    const char *primary_availability_window_id;
+    const char *customer_safe_status;
+    int candidate_count;
+    int overload_warning_count;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int provider_go_live_requested;
+} EpochBookingOptimizationRun;
+
+typedef struct EpochBookingRecommendationCandidate {
+    const char *id;
+    const char *optimization_run_id;
+    const char *schedule_request_id;
+    const char *availability_window_id;
+    const char *recommendation_type;
+    const char *customer_safe_status;
+    int rank;
+    int score;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int provider_go_live_requested;
+} EpochBookingRecommendationCandidate;
+
+typedef struct EpochBookingOverloadWarning {
+    const char *id;
+    const char *optimization_run_id;
+    const char *availability_window_id;
+    const char *customer_safe_status;
+    int load_ratio_percent;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int provider_go_live_requested;
+} EpochBookingOverloadWarning;
+
+typedef struct EpochBookingRecommendationReceipt {
+    const char *id;
+    const char *kind;
+    const char *optimization_run_id;
+    const char *summary;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int provider_go_live_requested;
+} EpochBookingRecommendationReceipt;
+
 typedef struct EpochBookingConfirmation {
     const char *id;
     const char *acceptance_id;
@@ -478,6 +525,10 @@ int epoch_availability_waitlist_entry_is_customer_safe(const EpochAvailabilityWa
 int epoch_availability_hold_release_is_ready(const EpochAvailabilityHoldRelease *release);
 int epoch_availability_promotion_candidate_is_ready(const EpochAvailabilityPromotionCandidate *candidate);
 int epoch_availability_capacity_receipt_is_customer_safe(const EpochAvailabilityCapacityReceipt *receipt);
+int epoch_booking_optimization_run_is_customer_safe(const EpochBookingOptimizationRun *run);
+int epoch_booking_recommendation_candidate_is_customer_safe(const EpochBookingRecommendationCandidate *candidate);
+int epoch_booking_overload_warning_is_customer_safe(const EpochBookingOverloadWarning *warning);
+int epoch_booking_recommendation_receipt_is_customer_safe(const EpochBookingRecommendationReceipt *receipt);
 int epoch_booking_confirmation_is_customer_safe(const EpochBookingConfirmation *confirmation);
 int epoch_schedule_status_event_is_customer_safe(const EpochScheduleStatusEvent *event);
 int epoch_booking_receipt_is_customer_safe(const EpochBookingReceipt *receipt);
