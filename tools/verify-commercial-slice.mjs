@@ -38,6 +38,7 @@ const appRequestInboxEntry = read("../src/Epoch.App/Models/EpochWebportalSchedul
 const appRequestInboxStore = read("../src/Epoch.App/Services/EpochScheduleRequestInboxStore.cs");
 const appRequestCommandReceipt = read("../src/Epoch.App/Models/EpochRequestScheduleCommandReceipt.cs");
 const appRequestCommandStore = read("../src/Epoch.App/Services/EpochRequestScheduleCommandReceiptStore.cs");
+const appOperationsBoard = read("../src/Epoch.App/Models/EpochScheduleOperationsBoardSnapshot.cs");
 const {
   createAvailabilityConflictDecisionForHandoff,
   createAvailabilityCapacityReceiptForPromotion,
@@ -531,8 +532,21 @@ for (const phrase of [
   "Native Scheduling Command",
   "Native Execution Receipt",
   "Execution History",
+  "Schedule Operations Board",
+  "Queue State",
+  "Command Link",
+  "Safety And Ledgers",
   "Webportal Request Inbox",
   "Request To Native Command",
+  "OperationsBoardStatus",
+  "OperationsBoardNextAction",
+  "OperationsBoardQueueSummary",
+  "OperationsBoardLatestRequestStatus",
+  "OperationsBoardLatestCommandStatus",
+  "OperationsBoardLatestExecutionStatus",
+  "OperationsBoardSafetySummary",
+  "OperationsBoardLedgerSummary",
+  "OperationsBoardReadyForOperatorReview",
   "CommandReadiness",
   "CommandReceiptStatus",
   "ExecutionSafetyStatus",
@@ -575,6 +589,11 @@ for (const phrase of [
   "EpochScheduleRequestInboxStore.Load",
   "EpochRequestScheduleCommandReceiptStore.TryAppend",
   "EpochRequestScheduleCommandReceiptStore.Load",
+  "EpochScheduleOperationsBoardSnapshot.FromLedgers",
+  "OperationsBoardStatus",
+  "OperationsBoardNextAction",
+  "OperationsBoardQueueSummary",
+  "OperationsBoardReadyForOperatorReview",
   "native scheduling command ready",
   "native execution receipt ready",
   "local scheduling execution receipt(s) persisted in the EPOCH App ledger",
@@ -587,6 +606,23 @@ for (const phrase of [
   "monitor boundary enforced"
 ]) {
   if (!appViewModel.includes(phrase)) fail(`Avalonia view model missing ${phrase}`);
+}
+
+for (const phrase of [
+  "EpochScheduleOperationsBoardSnapshot",
+  "FromLedgers",
+  "schedule operations board ready",
+  "ReadyForOperatorReview",
+  "ProviderCallsEnabled",
+  "MonitorWorkflowExposed",
+  "CustomerSafeChain",
+  "requestCommandReceipts",
+  "executionHistory",
+  "Review the linked request and native execution",
+  "Move scheduling workflow exposure out of MONITOR",
+  "Block live provider calls"
+]) {
+  if (!appOperationsBoard.includes(phrase)) fail(`Avalonia operations board missing ${phrase}`);
 }
 
 for (const phrase of [
@@ -686,6 +722,10 @@ for (const phrase of [
   "history.Count != 1",
   "requestInbox.Count != 1",
   "requestCommandReceipts.Count != 1",
+  "operationsBoard.ReadyForOperatorReview",
+  "operationsBoard.CustomerSafeChain",
+  "schedule operations board ready",
+  "Provider calls enabled: false",
   "File.Exists(EpochScheduleExecutionHistoryStore.HistoryPath)",
   "File.Exists(EpochScheduleRequestInboxStore.InboxPath)",
   "File.Exists(EpochRequestScheduleCommandReceiptStore.ReceiptPath)",
@@ -715,7 +755,10 @@ for (const phrase of [
   "Local request-to-scheduling-command slice",
   "EpochRequestScheduleCommandReceiptStore",
   "request-to-schedule-command.json",
-  "Request To Native Command"
+  "Request To Native Command",
+  "Local schedule operations board slice",
+  "EpochScheduleOperationsBoardSnapshot",
+  "Schedule Operations Board"
 ]) {
   if (!runtime.includes(phrase)) fail(`runtime docs missing scheduling command phrase ${phrase}`);
 }

@@ -165,3 +165,18 @@ only where the host, UI framework, or platform integration makes it necessary.
   EPOCH scheduling execution.
 - The receipt remains local-only, provider-off, MONITOR-off, and native-ready;
   MONITOR may report implementation evidence but does not run the request flow.
+
+## Local schedule operations board slice
+
+- `EpochScheduleOperationsBoardSnapshot` synthesizes the Webportal Request
+  Inbox, Request To Native Command receipts, and Native Execution History into
+  one App-owned scheduling operations board.
+- The board reports queue state, latest customer-safe Webportal request, latest
+  request-command link, latest native execution history item, safety flags,
+  ledger locations, and the next operator action.
+- The board is ready only when the request, command link, and native execution
+  history agree, provider calls are disabled, MONITOR workflow exposure is
+  false, and the chain is customer-safe.
+- The Avalonia shell renders Schedule Operations Board above the Calendar Board
+  and Schedule Queue so the EPOCH App behaves like the scheduling command
+  surface. MONITOR remains development/control evidence only.

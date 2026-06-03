@@ -17,7 +17,8 @@ public sealed class MainWindowViewModel
         string requestInboxPath,
         EpochRequestScheduleCommandReceipt? requestCommandReceipt,
         IReadOnlyList<EpochRequestScheduleCommandReceipt> requestCommandReceipts,
-        string requestCommandReceiptPath)
+        string requestCommandReceiptPath,
+        EpochScheduleOperationsBoardSnapshot operationsBoard)
     {
         ProductName = snapshot.ProductName;
         CoreStatus = snapshot.CoreStatus;
@@ -69,6 +70,17 @@ public sealed class MainWindowViewModel
         RequestCommandReceiptStatus = requestCommandReceipt is not null
             ? $"Latest request command {requestCommandReceipt.RequestId} -> {requestCommandReceipt.BookingReceiptId}; native ready: {requestCommandReceipt.NativeExecutionReady.ToString().ToLowerInvariant()}."
             : "No Webportal request has been linked to a native scheduling command receipt in this shell load.";
+        OperationsBoardStatus = operationsBoard.BoardStatus;
+        OperationsBoardNextAction = operationsBoard.OperatorNextAction;
+        OperationsBoardQueueSummary = operationsBoard.QueueSummary;
+        OperationsBoardLatestRequestStatus = operationsBoard.LatestRequestStatus;
+        OperationsBoardLatestCommandStatus = operationsBoard.LatestCommandStatus;
+        OperationsBoardLatestExecutionStatus = operationsBoard.LatestExecutionStatus;
+        OperationsBoardSafetySummary = operationsBoard.SafetySummary;
+        OperationsBoardLedgerSummary = operationsBoard.LedgerSummary;
+        OperationsBoardReadyForOperatorReview = operationsBoard.ReadyForOperatorReview
+            ? "operator review ready"
+            : "operator review blocked";
     }
 
     public string ProductName { get; }
@@ -100,6 +112,15 @@ public sealed class MainWindowViewModel
     public string RequestCommandReceiptSummary { get; }
     public string RequestCommandReceiptLocation { get; }
     public string RequestCommandReceiptStatus { get; }
+    public string OperationsBoardStatus { get; }
+    public string OperationsBoardNextAction { get; }
+    public string OperationsBoardQueueSummary { get; }
+    public string OperationsBoardLatestRequestStatus { get; }
+    public string OperationsBoardLatestCommandStatus { get; }
+    public string OperationsBoardLatestExecutionStatus { get; }
+    public string OperationsBoardSafetySummary { get; }
+    public string OperationsBoardLedgerSummary { get; }
+    public string OperationsBoardReadyForOperatorReview { get; }
 
     public static MainWindowViewModel Load()
     {
@@ -134,6 +155,14 @@ public sealed class MainWindowViewModel
 
         IReadOnlyList<EpochRequestScheduleCommandReceipt> requestCommandReceipts =
             EpochRequestScheduleCommandReceiptStore.Load();
+        EpochScheduleOperationsBoardSnapshot operationsBoard =
+            EpochScheduleOperationsBoardSnapshot.FromLedgers(
+                requestInbox,
+                requestCommandReceipts,
+                history,
+                EpochScheduleRequestInboxStore.InboxPath,
+                EpochRequestScheduleCommandReceiptStore.ReceiptPath,
+                EpochScheduleExecutionHistoryStore.HistoryPath);
 
         return new MainWindowViewModel(
             EpochNative.LoadSnapshotOrFallback(),
@@ -147,7 +176,8 @@ public sealed class MainWindowViewModel
             EpochScheduleRequestInboxStore.InboxPath,
             requestCommandReceipt,
             requestCommandReceipts,
-            EpochRequestScheduleCommandReceiptStore.ReceiptPath);
+            EpochRequestScheduleCommandReceiptStore.ReceiptPath,
+            operationsBoard);
     }
 
     private static EpochScheduleExecutionReceipt ExecuteNativeOrFallback(string intentKind)

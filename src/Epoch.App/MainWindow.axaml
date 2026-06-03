@@ -19,48 +19,84 @@
       </Border>
     </Grid>
 
-    <Grid Grid.Row="1" ColumnDefinitions="1.1*,1.4*" RowDefinitions="*,*" ColumnSpacing="18" RowSpacing="18">
-      <Border Padding="20" CornerRadius="8" Background="White" BorderBrush="#dde3ed" BorderThickness="1">
-        <StackPanel Spacing="12">
-          <TextBlock Text="Calendar Board" FontSize="20" FontWeight="SemiBold" Foreground="#172033" />
-          <TextBlock Text="Native-backed schedule and availability status for the internal operator shell." TextWrapping="Wrap" Foreground="#526071" />
-          <TextBlock Text="{Binding CalendarSystem}" FontSize="26" FontWeight="SemiBold" Foreground="#294a80" />
-          <TextBlock Text="Gregorian, revised 13-month, and side-by-side modes belong here in the App. MONITOR reports readiness only." TextWrapping="Wrap" Foreground="#526071" />
-        </StackPanel>
-      </Border>
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+      <StackPanel Spacing="18">
+        <Border Padding="20" CornerRadius="8" Background="White" BorderBrush="#b9d4ea" BorderThickness="1">
+          <StackPanel Spacing="12">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <StackPanel Spacing="6">
+                <TextBlock Text="Schedule Operations Board" FontSize="22" FontWeight="SemiBold" Foreground="#172033" />
+                <TextBlock Text="{Binding OperationsBoardStatus}" FontSize="18" FontWeight="SemiBold" Foreground="#294a80" />
+              </StackPanel>
+              <Border Grid.Column="1" Padding="12,7" CornerRadius="8" Background="#f2f6fb" BorderBrush="#c8d7ea" BorderThickness="1">
+                <TextBlock Text="{Binding OperationsBoardReadyForOperatorReview}" FontWeight="SemiBold" Foreground="#294a80" />
+              </Border>
+            </Grid>
+            <TextBlock Text="{Binding OperationsBoardNextAction}" TextWrapping="Wrap" Foreground="#526071" />
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="14">
+              <StackPanel Spacing="6">
+                <TextBlock Text="Queue State" FontWeight="SemiBold" Foreground="#172033" />
+                <TextBlock Text="{Binding OperationsBoardQueueSummary}" TextWrapping="Wrap" Foreground="#526071" />
+                <TextBlock Text="{Binding OperationsBoardLatestRequestStatus}" TextWrapping="Wrap" Foreground="#526071" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Spacing="6">
+                <TextBlock Text="Command Link" FontWeight="SemiBold" Foreground="#172033" />
+                <TextBlock Text="{Binding OperationsBoardLatestCommandStatus}" TextWrapping="Wrap" Foreground="#526071" />
+                <TextBlock Text="{Binding OperationsBoardLatestExecutionStatus}" TextWrapping="Wrap" Foreground="#526071" />
+              </StackPanel>
+              <StackPanel Grid.Column="2" Spacing="6">
+                <TextBlock Text="Safety And Ledgers" FontWeight="SemiBold" Foreground="#172033" />
+                <TextBlock Text="{Binding OperationsBoardSafetySummary}" TextWrapping="Wrap" Foreground="#526071" />
+                <TextBlock Text="{Binding OperationsBoardLedgerSummary}" TextWrapping="Wrap" FontSize="11" Foreground="#687588" />
+              </StackPanel>
+            </Grid>
+          </StackPanel>
+        </Border>
 
-      <Border Grid.Column="1" Padding="20" CornerRadius="8" Background="White" BorderBrush="#dde3ed" BorderThickness="1">
-        <StackPanel Spacing="12">
-          <TextBlock Text="Schedule Queue" FontSize="20" FontWeight="SemiBold" Foreground="#172033" />
-          <TextBlock Text="{Binding ScheduleQueueStatus}" FontSize="26" FontWeight="SemiBold" Foreground="#7a4b12" />
-          <TextBlock Text="Requests, holds, booking confirmations, receipts, and customer-safe timing returns are read through the Native C bridge." TextWrapping="Wrap" Foreground="#526071" />
-          <TextBlock Text="{Binding ModuleSummary}" TextWrapping="Wrap" Foreground="#526071" />
-          <TextBlock Text="Webportal Request Inbox" FontSize="16" FontWeight="SemiBold" Foreground="#172033" Margin="0,8,0,0" />
-          <TextBlock Text="{Binding RequestInboxSummary}" TextWrapping="Wrap" Foreground="#526071" />
-          <TextBlock Text="{Binding RequestInboxStatus}" TextWrapping="Wrap" Foreground="#526071" />
-          <TextBlock Text="Request To Native Command" FontSize="16" FontWeight="SemiBold" Foreground="#172033" Margin="0,8,0,0" />
-          <TextBlock Text="{Binding RequestCommandReceiptSummary}" TextWrapping="Wrap" Foreground="#526071" />
-          <TextBlock Text="{Binding RequestCommandReceiptStatus}" TextWrapping="Wrap" Foreground="#526071" />
-        </StackPanel>
-      </Border>
+        <Grid ColumnDefinitions="1.1*,1.4*" RowDefinitions="*,*" ColumnSpacing="18" RowSpacing="18">
+          <Border Padding="20" CornerRadius="8" Background="White" BorderBrush="#dde3ed" BorderThickness="1">
+            <StackPanel Spacing="12">
+              <TextBlock Text="Calendar Board" FontSize="20" FontWeight="SemiBold" Foreground="#172033" />
+              <TextBlock Text="Native-backed schedule and availability status for the internal operator shell." TextWrapping="Wrap" Foreground="#526071" />
+              <TextBlock Text="{Binding CalendarSystem}" FontSize="26" FontWeight="SemiBold" Foreground="#294a80" />
+              <TextBlock Text="Gregorian, revised 13-month, and side-by-side modes belong here in the App. MONITOR reports readiness only." TextWrapping="Wrap" Foreground="#526071" />
+            </StackPanel>
+          </Border>
 
-      <Border Grid.Row="1" Padding="20" CornerRadius="8" Background="White" BorderBrush="#dde3ed" BorderThickness="1">
-        <StackPanel Spacing="12">
-          <TextBlock Text="Revised Calendar Lab" FontSize="20" FontWeight="SemiBold" Foreground="#172033" />
-          <TextBlock Text="{Binding RevisedRulepackStatus}" FontSize="20" FontWeight="SemiBold" Foreground="#294a80" />
-          <TextBlock Text="{Binding RevisedCalendarShape}" TextWrapping="Wrap" Foreground="#526071" />
-          <TextBlock Text="Conversion remains gated until the owner-approved physical spring anchor and display rulepack are complete." TextWrapping="Wrap" Foreground="#526071" />
-        </StackPanel>
-      </Border>
+          <Border Grid.Column="1" Padding="20" CornerRadius="8" Background="White" BorderBrush="#dde3ed" BorderThickness="1">
+            <StackPanel Spacing="12">
+              <TextBlock Text="Schedule Queue" FontSize="20" FontWeight="SemiBold" Foreground="#172033" />
+              <TextBlock Text="{Binding ScheduleQueueStatus}" FontSize="26" FontWeight="SemiBold" Foreground="#7a4b12" />
+              <TextBlock Text="Requests, holds, booking confirmations, receipts, and customer-safe timing returns are read through the Native C bridge." TextWrapping="Wrap" Foreground="#526071" />
+              <TextBlock Text="{Binding ModuleSummary}" TextWrapping="Wrap" Foreground="#526071" />
+              <TextBlock Text="Webportal Request Inbox" FontSize="16" FontWeight="SemiBold" Foreground="#172033" Margin="0,8,0,0" />
+              <TextBlock Text="{Binding RequestInboxSummary}" TextWrapping="Wrap" Foreground="#526071" />
+              <TextBlock Text="{Binding RequestInboxStatus}" TextWrapping="Wrap" Foreground="#526071" />
+              <TextBlock Text="Request To Native Command" FontSize="16" FontWeight="SemiBold" Foreground="#172033" Margin="0,8,0,0" />
+              <TextBlock Text="{Binding RequestCommandReceiptSummary}" TextWrapping="Wrap" Foreground="#526071" />
+              <TextBlock Text="{Binding RequestCommandReceiptStatus}" TextWrapping="Wrap" Foreground="#526071" />
+            </StackPanel>
+          </Border>
 
-      <Border Grid.Row="1" Grid.Column="1" Padding="20" CornerRadius="8" Background="White" BorderBrush="#dde3ed" BorderThickness="1">
-        <StackPanel Spacing="12">
-          <TextBlock Text="Boundary Contract" FontSize="20" FontWeight="SemiBold" Foreground="#172033" />
-          <TextBlock Text="{Binding BoundaryStatus}" FontSize="20" FontWeight="SemiBold" Foreground="#0f6844" />
-          <TextBlock Text="EPOCH App owns scheduling and calendar product workflows. EPOCH MONITOR owns development/control status. WORKSHOP may request timing, but it does not own calendar state." TextWrapping="Wrap" Foreground="#526071" />
-        </StackPanel>
-      </Border>
-    </Grid>
+          <Border Grid.Row="1" Padding="20" CornerRadius="8" Background="White" BorderBrush="#dde3ed" BorderThickness="1">
+            <StackPanel Spacing="12">
+              <TextBlock Text="Revised Calendar Lab" FontSize="20" FontWeight="SemiBold" Foreground="#172033" />
+              <TextBlock Text="{Binding RevisedRulepackStatus}" FontSize="20" FontWeight="SemiBold" Foreground="#294a80" />
+              <TextBlock Text="{Binding RevisedCalendarShape}" TextWrapping="Wrap" Foreground="#526071" />
+              <TextBlock Text="Conversion remains gated until the owner-approved physical spring anchor and display rulepack are complete." TextWrapping="Wrap" Foreground="#526071" />
+            </StackPanel>
+          </Border>
+
+          <Border Grid.Row="1" Grid.Column="1" Padding="20" CornerRadius="8" Background="White" BorderBrush="#dde3ed" BorderThickness="1">
+            <StackPanel Spacing="12">
+              <TextBlock Text="Boundary Contract" FontSize="20" FontWeight="SemiBold" Foreground="#172033" />
+              <TextBlock Text="{Binding BoundaryStatus}" FontSize="20" FontWeight="SemiBold" Foreground="#0f6844" />
+              <TextBlock Text="EPOCH App owns scheduling and calendar product workflows. EPOCH MONITOR owns development/control status. WORKSHOP may request timing, but it does not own calendar state." TextWrapping="Wrap" Foreground="#526071" />
+            </StackPanel>
+          </Border>
+        </Grid>
+      </StackPanel>
+    </ScrollViewer>
 
     <Border Grid.Row="2" Margin="0,18,0,0" Padding="18" CornerRadius="8" Background="#fffdf4" BorderBrush="#e4d48a" BorderThickness="1">
       <Grid ColumnDefinitions="*,*,*,1.2*" ColumnSpacing="18">

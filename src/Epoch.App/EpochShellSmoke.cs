@@ -33,6 +33,14 @@ internal static class EpochShellSmoke
                 EpochRequestScheduleCommandReceiptStore.Append(inboxRequest, historyEntry, execution);
             IReadOnlyList<EpochRequestScheduleCommandReceipt> requestCommandReceipts =
                 EpochRequestScheduleCommandReceiptStore.Load();
+            EpochScheduleOperationsBoardSnapshot operationsBoard =
+                EpochScheduleOperationsBoardSnapshot.FromLedgers(
+                    requestInbox,
+                    requestCommandReceipts,
+                    history,
+                    EpochScheduleRequestInboxStore.InboxPath,
+                    EpochRequestScheduleCommandReceiptStore.ReceiptPath,
+                    EpochScheduleExecutionHistoryStore.HistoryPath);
 
             if (snapshot.ProductName != "EPOCH" ||
                 snapshot.CoreStatus != "native-core-ready" ||
@@ -71,7 +79,16 @@ internal static class EpochShellSmoke
                 requestCommandReceipts[0].ProviderCallsEnabled ||
                 requestCommandReceipts[0].MonitorWorkflowExposed ||
                 !requestCommandReceipts[0].NativeExecutionReady ||
-                !File.Exists(EpochRequestScheduleCommandReceiptStore.ReceiptPath))
+                !File.Exists(EpochRequestScheduleCommandReceiptStore.ReceiptPath) ||
+                !operationsBoard.ReadyForOperatorReview ||
+                operationsBoard.ProviderCallsEnabled ||
+                operationsBoard.MonitorWorkflowExposed ||
+                !operationsBoard.CustomerSafeChain ||
+                operationsBoard.BoardStatus != "schedule operations board ready" ||
+                !operationsBoard.OperatorNextAction.Contains("approve the next EPOCH-owned scheduling transition", StringComparison.Ordinal) ||
+                !operationsBoard.QueueSummary.Contains("1 inbox request", StringComparison.Ordinal) ||
+                !operationsBoard.SafetySummary.Contains("Provider calls enabled: false", StringComparison.Ordinal) ||
+                !operationsBoard.LedgerSummary.Contains(EpochScheduleExecutionHistoryStore.HistoryPath, StringComparison.Ordinal))
             {
                 return 2;
             }

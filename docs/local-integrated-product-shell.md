@@ -4,7 +4,7 @@
 
 Local branch: `codex/local-epoch-avalonia-integrated-product-shell`
 
-Integrated source head: `7d95603`
+Integrated source head: `1b323d1`
 
 This branch freezes the current EPOCH App/Webportal/native shell stack before
 deeper scheduling modules are added. It is local Git only; no GitHub writeback,
@@ -23,6 +23,14 @@ exposure is part of this integration checkpoint.
   inbox entries to native execution history.
 - Avalonia Schedule Queue rendering for Webportal Request Inbox and Request To
   Native Command status.
+
+## Next Local Product Slice
+
+- `codex/local-epoch-avalonia-schedule-operations-board` builds the EPOCH
+  Avalonia Schedule Operations Board over the existing App-owned request inbox,
+  request-command receipt, and native execution history ledgers.
+- The board is still local-only, provider-off, MONITOR-off, and EPOCH-owned.
+  It is not a WORKSHOP revenue surface and not a MONITOR development page.
 
 ## Boundary Status
 
