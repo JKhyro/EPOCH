@@ -19,6 +19,8 @@ import {
   createReminderExecutionForRule,
   createRevisedAvailabilityExceptionForTiming,
   createRevisedAvailabilityExceptionReceiptForException,
+  createRevisedRulepackApprovalReceiptForDecision,
+  createRevisedRulepackOwnerDecisionForRulepack,
   createScheduleEntryForRequest,
   createScheduleLifecycleActionRecord,
   createScheduleRequestRecord,
@@ -45,7 +47,7 @@ import {
   scheduleNeedOptions,
   selectFullAvailabilityWindow,
   selectOpenAvailabilityWindow
-} from "./epoch-data.js?v=epoch-revised-availability-exceptions";
+} from "./epoch-data.js?v=epoch-revised-rulepack-owner-decisions";
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
@@ -115,6 +117,8 @@ const mergeLedger = (stored) => {
     "recurringBookingSeries",
     "recurringBookingInstances",
     "recurrenceConflictExceptions",
+    "revisedRulepackOwnerDecisions",
+    "revisedRulepackApprovalReceipts",
     "revisedAvailabilityExceptions",
     "revisedAvailabilityExceptionReceipts",
     "recurringSeriesReceipts",
@@ -380,6 +384,62 @@ const saveRevisedAvailabilityExceptionReceiptExports = (records) => {
   if (storage) storage.setItem(EPOCH_REVISED_AVAILABILITY_EXCEPTION_RECEIPT_EXPORT_KEY, JSON.stringify(records));
 };
 
+const EPOCH_REVISED_RULEPACK_APPROVAL_RECEIPT_EXPORT_KEY = "epoch.webportal.revisedRulepackApprovalReceipts.v1";
+
+const normalizeRevisedRulepackApprovalReceiptExport = (item) => {
+  if (!item || typeof item !== "object") return null;
+  const customerSafe =
+    item.customerSafe === true &&
+    item.webportalExportReady === true &&
+    item.customerVisibleReceiptReady !== false &&
+    item.providerCallsEnabled !== true &&
+    item.providerGoLiveRequested !== true &&
+    item.monitorWorkflowExposed !== true &&
+    item.workshopCalendarOwnership !== true &&
+    item.conversionReady !== true;
+  if (!customerSafe) return null;
+
+  return {
+    receiptId: String(item.receiptId || item.id || "revised-rulepack-approval-receipt"),
+    rulepackId: String(item.rulepackId || "revised calendar rulepack"),
+    calendarSystem: String(item.calendarSystem || "revised-13-month"),
+    kind: String(item.kind || "revised-rulepack-owner-decision"),
+    status: String(item.status || "customer-safe-revised-rulepack-approval-held"),
+    customerSafeMessage: String(item.customerSafeMessage || "Revised-calendar conversion is still held."),
+    nextAction: String(item.nextAction || "Review the owner-approved rulepack decisions before enabling conversion."),
+    createdAtUtc: String(item.createdAtUtc || item.generatedAt || ""),
+    sourceSurface: String(item.sourceSurface || "EPOCH.App.RevisedRulepackApprovalReceipt")
+  };
+};
+
+const normalizeRevisedRulepackApprovalReceiptPayload = (payload) => {
+  const records = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.receipts)
+      ? payload.receipts
+      : payload?.receiptId || payload?.id
+        ? [payload]
+        : [];
+  return records
+    .map(normalizeRevisedRulepackApprovalReceiptExport)
+    .filter(Boolean);
+};
+
+const loadRevisedRulepackApprovalReceiptExports = () => {
+  const storage = getStorage();
+  if (!storage) return [];
+  try {
+    return normalizeRevisedRulepackApprovalReceiptPayload(JSON.parse(storage.getItem(EPOCH_REVISED_RULEPACK_APPROVAL_RECEIPT_EXPORT_KEY) || "[]"));
+  } catch {
+    return [];
+  }
+};
+
+const saveRevisedRulepackApprovalReceiptExports = (records) => {
+  const storage = getStorage();
+  if (storage) storage.setItem(EPOCH_REVISED_RULEPACK_APPROVAL_RECEIPT_EXPORT_KEY, JSON.stringify(records));
+};
+
 const state = {
   ledger: loadLedger()
 };
@@ -398,6 +458,10 @@ const revisedReminderDeadlineReceiptExportState = {
 
 const revisedAvailabilityExceptionReceiptExportState = {
   records: loadRevisedAvailabilityExceptionReceiptExports()
+};
+
+const revisedRulepackApprovalReceiptExportState = {
+  records: loadRevisedRulepackApprovalReceiptExports()
 };
 
 const byId = (id) => document.getElementById(id);
@@ -454,6 +518,8 @@ function renderStats() {
   setText("stat-recurring-series", String((state.ledger.recurringBookingSeries || []).length));
   setText("stat-series-instances", String((state.ledger.recurringBookingInstances || []).length));
   setText("stat-series-exceptions", String((state.ledger.recurrenceConflictExceptions || []).length));
+  setText("stat-rulepack-decisions", String((state.ledger.revisedRulepackOwnerDecisions || []).length));
+  setText("stat-rulepack-approval-receipts", String((state.ledger.revisedRulepackApprovalReceipts || []).length));
   setText("stat-revised-availability-exceptions", String((state.ledger.revisedAvailabilityExceptions || []).length));
   setText("stat-revised-availability-receipts", String((state.ledger.revisedAvailabilityExceptionReceipts || []).length));
   setText("stat-series-receipts", String((state.ledger.recurringSeriesReceipts || []).length));
@@ -1120,6 +1186,52 @@ function renderRevisedCalendar() {
     </article>
   `);
 
+  const fallbackDecision = createRevisedRulepackOwnerDecisionForRulepack(rulepack);
+  const decisionRecords = (state.ledger.revisedRulepackOwnerDecisions || []).length
+    ? state.ledger.revisedRulepackOwnerDecisions
+    : [fallbackDecision];
+  const approvalReceipts = (state.ledger.revisedRulepackApprovalReceipts || []).length
+    ? state.ledger.revisedRulepackApprovalReceipts
+    : [createRevisedRulepackApprovalReceiptForDecision(fallbackDecision)];
+  const customerSafeApprovalReceipts = approvalReceipts.filter((receipt) =>
+    receipt.customerVisible &&
+    receipt.customerSafe &&
+    receipt.webportalExportReady &&
+    receipt.conversionReady !== true &&
+    receipt.providerCallsEnabled !== true &&
+    receipt.providerGoLiveRequested !== true &&
+    receipt.monitorWorkflowExposed !== true &&
+    receipt.workshopCalendarOwnership !== true
+  );
+
+  renderStack("revised-rulepack-owner-decision-list", decisionRecords, (item) => `
+    <article class="item-card">
+      <div>
+        <strong>${escapeHtml(item.status || "owner-decision-required")}</strong>
+        <p>${escapeHtml(item.customerSafeStatus || item.decisionSummary || "Rulepack owner decisions are pending.")}</p>
+        <small>${escapeHtml(item.missingApprovalSummary || "Owner approvals are still required.")}</small>
+      </div>
+      <div class="item-meta">
+        ${chip(item.conversionReady ? "conversion ready" : "conversion held")}
+        <span>${escapeHtml(item.missingApprovalCount ?? 0)} missing</span>
+      </div>
+    </article>
+  `);
+
+  renderStack("revised-rulepack-approval-receipt-list", approvalReceipts, (item) => `
+    <article class="item-card">
+      <div>
+        <strong>${escapeHtml(item.receiptId || item.id || "approval receipt")}</strong>
+        <p>${escapeHtml(item.summary || "Rulepack approval receipt is ready.")}</p>
+        <small>${escapeHtml(item.nextAction || "Review owner approval decisions before conversion.")}</small>
+      </div>
+      <div class="item-meta">
+        ${chip(item.status || "approval-held")}
+        <span>${escapeHtml(item.rulepackId || "rulepack")}</span>
+      </div>
+    </article>
+  `);
+
   renderStack("portal-revised-status", [rulepack], (item) => `
     <article class="mini-row">
       <strong>${escapeHtml(item.calendarSystem || "revised calendar")}</strong>
@@ -1133,6 +1245,14 @@ function renderRevisedCalendar() {
       <strong>${escapeHtml(item.monthCount)} x ${escapeHtml(item.daysPerMonth)}</strong>
       <span>${escapeHtml(item.commonIntercalaryDayCount)} common / ${escapeHtml(item.leapIntercalaryDayCount)} leap day(s) outside months</span>
       <small>${escapeHtml(item.conversionGateReason)}</small>
+    </article>
+  `);
+
+  renderStack("portal-revised-rulepack-approval-status", customerSafeApprovalReceipts, (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.status || "approval held")}</strong>
+      <span>${escapeHtml(item.calendarSystem || "revised-13-month")}</span>
+      <small>${escapeHtml(item.customerSafeMessage || "Revised-calendar conversion is still held.")}</small>
     </article>
   `);
 }
@@ -1156,6 +1276,8 @@ function renderCoreReadiness() {
     ["Deadline Execution", core.deadlineExecutionValidation],
     ["Escalation", core.escalationValidation],
     ["Recurrence", core.recurrenceSandboxValidation],
+    ["Rulepack Owner Decision", core.revisedRulepackOwnerDecisionValidation],
+    ["Rulepack Approval Receipt", core.revisedRulepackApprovalReceiptValidation],
     ["Revised Availability Exception", core.revisedAvailabilityExceptionValidation],
     ["Revised Availability Receipt", core.revisedAvailabilityExceptionReceiptValidation],
     ["Customer Status", core.customerSafeStatusValidation],
@@ -1357,6 +1479,41 @@ function renderRevisedAvailabilityExceptionReceiptExports() {
       </article>
     `,
     "No App-exported revised availability exception receipt records loaded."
+  );
+}
+
+function renderRevisedRulepackApprovalReceiptExports() {
+  setText(
+    "revised-rulepack-approval-receipt-summary",
+    revisedRulepackApprovalReceiptExportState.records.length
+      ? `${revisedRulepackApprovalReceiptExportState.records.length} App-exported revised rulepack approval receipt(s) loaded.`
+      : "No App-exported revised rulepack approval receipts loaded."
+  );
+
+  renderStack(
+    "portal-revised-rulepack-approval-receipt-export",
+    revisedRulepackApprovalReceiptExportState.records,
+    (item) => `
+      <article class="mini-row">
+        <strong>${escapeHtml(item.status)}</strong>
+        <span>${escapeHtml(item.calendarSystem)} / ${escapeHtml(item.rulepackId)}</span>
+        <small>${escapeHtml(item.customerSafeMessage)}</small>
+        <small>${escapeHtml(item.nextAction)}</small>
+      </article>
+    `,
+    "No customer-safe revised rulepack approval receipt exports loaded."
+  );
+  renderStack(
+    "app-revised-rulepack-approval-receipt-export",
+    revisedRulepackApprovalReceiptExportState.records,
+    (item) => `
+      <article class="mini-row">
+        <strong>${escapeHtml(item.status)}</strong>
+        <span>${escapeHtml(item.calendarSystem)} / ${escapeHtml(item.rulepackId)}</span>
+        <small>${escapeHtml(item.customerSafeMessage)}</small>
+      </article>
+    `,
+    "No App-exported revised rulepack approval receipt records loaded."
   );
 }
 
@@ -1579,6 +1736,7 @@ function renderAll() {
   renderScheduleLifecycleStatusExports();
   renderRevisedReminderDeadlineReceiptExports();
   renderRevisedAvailabilityExceptionReceiptExports();
+  renderRevisedRulepackApprovalReceiptExports();
   renderReceipts();
 }
 
@@ -1722,6 +1880,41 @@ function handleClearRevisedAvailabilityExceptionReceiptExports() {
   renderAll();
 }
 
+async function handleRevisedRulepackApprovalReceiptImport(event) {
+  event.preventDefault();
+  const fileInput = byId("revised-rulepack-approval-receipt-file");
+  const confirmation = byId("revised-rulepack-approval-receipt-summary");
+  const file = fileInput?.files?.[0];
+  if (!file) {
+    if (confirmation) confirmation.textContent = "Choose revised-rulepack-approval-receipts.json first.";
+    return;
+  }
+
+  try {
+    const imported = normalizeRevisedRulepackApprovalReceiptPayload(JSON.parse(await file.text()));
+    if (!imported.length) {
+      if (confirmation) confirmation.textContent = "No customer-safe revised rulepack approval receipt records found.";
+      return;
+    }
+
+    const byReceiptId = new Map(revisedRulepackApprovalReceiptExportState.records.map((item) => [item.receiptId, item]));
+    for (const item of imported) byReceiptId.set(item.receiptId, item);
+    revisedRulepackApprovalReceiptExportState.records = Array.from(byReceiptId.values());
+    saveRevisedRulepackApprovalReceiptExports(revisedRulepackApprovalReceiptExportState.records);
+    renderAll();
+  } catch {
+    if (confirmation) confirmation.textContent = "Revised rulepack approval receipt export could not be read.";
+  }
+}
+
+function handleClearRevisedRulepackApprovalReceiptExports() {
+  revisedRulepackApprovalReceiptExportState.records = [];
+  saveRevisedRulepackApprovalReceiptExports(revisedRulepackApprovalReceiptExportState.records);
+  const fileInput = byId("revised-rulepack-approval-receipt-file");
+  if (fileInput) fileInput.value = "";
+  renderAll();
+}
+
 function handleScheduleLifecycleAction(event) {
   event.preventDefault();
   const form = event.currentTarget;
@@ -1858,6 +2051,12 @@ function bindControls() {
 
   const clearRevisedAvailabilityExceptionReceiptsButton = byId("clear-revised-availability-exception-receipts");
   if (clearRevisedAvailabilityExceptionReceiptsButton) clearRevisedAvailabilityExceptionReceiptsButton.addEventListener("click", handleClearRevisedAvailabilityExceptionReceiptExports);
+
+  const revisedRulepackApprovalReceiptImportForm = byId("revised-rulepack-approval-receipt-import-form");
+  if (revisedRulepackApprovalReceiptImportForm) revisedRulepackApprovalReceiptImportForm.addEventListener("submit", handleRevisedRulepackApprovalReceiptImport);
+
+  const clearRevisedRulepackApprovalReceiptsButton = byId("clear-revised-rulepack-approval-receipts");
+  if (clearRevisedRulepackApprovalReceiptsButton) clearRevisedRulepackApprovalReceiptsButton.addEventListener("click", handleClearRevisedRulepackApprovalReceiptExports);
 
   const resetButton = byId("reset-schedule-ledger");
   if (resetButton) {

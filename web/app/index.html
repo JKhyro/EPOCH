@@ -33,6 +33,8 @@
         <div><dt>Provider State</dt><dd id="stat-live-state">Sandbox only</dd></div>
         <div><dt>Core State</dt><dd id="stat-core-state">pending</dd></div>
         <div><dt>Rulepack</dt><dd id="stat-rulepack-state">held</dd></div>
+        <div><dt>Rule Decisions</dt><dd id="stat-rulepack-decisions">0</dd></div>
+        <div><dt>Rule Receipts</dt><dd id="stat-rulepack-approval-receipts">0</dd></div>
         <div><dt>Accepted</dt><dd id="stat-accepted-requests">0</dd></div>
         <div><dt>Holds</dt><dd id="stat-active-holds">0</dd></div>
         <div><dt>Bookings</dt><dd id="stat-bookings">0</dd></div>
@@ -457,6 +459,23 @@
 
     <section class="panel wide-panel">
       <div class="section-title">
+        <p class="eyebrow">13-Month Contract</p>
+        <h2>Rulepack Owner Decision Gate</h2>
+      </div>
+      <div id="revised-rulepack-owner-decision-list" class="item-stack"></div>
+    </section>
+
+    <section class="panel wide-panel">
+      <div class="section-title">
+        <p class="eyebrow">App Export</p>
+        <h2>Rulepack Approval Receipts</h2>
+      </div>
+      <div id="revised-rulepack-approval-receipt-list" class="item-stack"></div>
+      <div id="app-revised-rulepack-approval-receipt-export" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel wide-panel">
+      <div class="section-title">
         <p class="eyebrow">Receipts</p>
         <h2>Local Schedule Evidence</h2>
       </div>
@@ -485,6 +504,6 @@
     </section>
   </main>
 
-  <script type="module" src="../shared/surface.js?v=epoch-revised-availability-exceptions"></script>
+  <script type="module" src="../shared/surface.js?v=epoch-revised-rulepack-owner-decisions"></script>
 </body>
 </html>

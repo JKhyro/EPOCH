@@ -65,6 +65,11 @@ exposure is part of this integration checkpoint.
   context to EPOCH-owned availability and recurrence exception status while
   revised conversion, live provider calls, notification sends, WORKSHOP calendar
   ownership, and MONITOR workflow exposure remain blocked.
+- `codex/local-epoch-revised-rulepack-owner-decisions` adds App-owned
+  revised-calendar owner decision and approval receipt ledgers. The App records
+  which owner approvals are still missing, the Webportal can import only
+  customer-safe held approval receipts, and revised conversion remains disabled
+  unless the approved rulepack and explicit conversion toggle are both present.
 
 ## Boundary Status
 

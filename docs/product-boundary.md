@@ -98,9 +98,11 @@ EPOCH has three separate surface classes:
 
 - App: internal product operations for calendar, availability, deadlines,
   reminders, recurrence, recurring revised-calendar availability exceptions,
-  and schedule-bound administration.
+  revised-calendar owner decision gates, approval receipts, and
+  schedule-bound administration.
 - Webportal: customer-safe schedule request, availability, deadline, and
-  status views, including customer-safe revised availability exception receipts.
+  status views, including customer-safe revised availability exception receipts
+  and revised-calendar approval-held receipts.
 - MONITOR: operational status/control only, following the HERMES structure with
   EPOCH data.
 

@@ -256,6 +256,26 @@ only where the host, UI framework, or platform integration makes it necessary.
   status, and export path so the operator can see the bridge artifact without
   moving the workflow into MONITOR.
 
+## Local revised-calendar owner decision gate slice
+
+- `EpochRevisedRulepackOwnerDecisionStore` persists App-owned revised-calendar
+  owner decision gate records in `revised-rulepack-owner-decisions.json`.
+- `EpochRevisedRulepackApprovalReceiptStore` writes customer-safe Webportal
+  import receipts in `revised-rulepack-approval-receipts.json`.
+- The decision record makes the current state explicit: the 13-month structure
+  is represented, but authoritative conversion remains blocked until the owner
+  approves the physical spring anchor source, month/intercalary day names, leap
+  rule, day-of-week mapping, timezone boundaries, recurrence mapping, public
+  wording, storage identifier, and conversion rules.
+- Required approvals may be tracked separately from the final conversion
+  toggle. Even if every approval field becomes true, conversion remains held
+  until `conversionLogicEnabled` is explicitly enabled under owner-approved
+  rules.
+- Provider calls remain disabled, provider go-live remains false, WORKSHOP
+  calendar ownership remains false, and MONITOR workflow exposure remains
+  false. The EPOCH Webportal may load only customer-safe held approval receipts;
+  it does not expose the operator decision workflow.
+
 ## Local revised-calendar availability exception slice
 
 - `EpochRevisedAvailabilityExceptionStore` persists App-owned recurring

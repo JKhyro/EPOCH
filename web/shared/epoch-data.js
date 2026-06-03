@@ -1,4 +1,4 @@
-export const EPOCH_LEDGER_KEY = "epoch.operatingLedger.v6";
+export const EPOCH_LEDGER_KEY = "epoch.operatingLedger.v7";
 
 export const scheduleNeedOptions = [
   { value: "diagnostic-call", label: "Diagnostic call", entryType: "request" },
@@ -16,8 +16,8 @@ export const scheduleLifecycleActionOptions = [
 ];
 
 export const initialEpochLedger = {
-  version: 6,
-  generatedAt: "2026-06-04T05:35:00+09:00",
+  version: 7,
+  generatedAt: "2026-06-04T17:20:00+09:00",
   schedulingCoreReadiness: {
     id: "EPOCH-CORE-SCHEDULING-001",
     nativeContract: "epoch_core",
@@ -38,6 +38,8 @@ export const initialEpochLedger = {
     escalationValidation: "ready",
     recurrenceSandboxValidation: "ready",
     recurrenceSeriesValidation: "ready",
+    revisedRulepackOwnerDecisionValidation: "ready",
+    revisedRulepackApprovalReceiptValidation: "ready",
     revisedAvailabilityExceptionValidation: "ready",
     revisedAvailabilityExceptionReceiptValidation: "ready",
     customerSafeStatusValidation: "ready",
@@ -84,6 +86,73 @@ export const initialEpochLedger = {
     ],
     customerSafeStatus: "Revised calendar display is draft-only; schedule conversion waits for the owner-approved rulepack."
   },
+  revisedRulepackOwnerDecisions: [
+    {
+      id: "EPOCH-REVISED-RULEPACK-OWNER-DECISION-001",
+      decisionId: "EPOCH-REVISED-RULEPACK-OWNER-DECISION-001",
+      sourceSurface: "EPOCH.App.RevisedRulepackOwnerDecision",
+      rulepackId: "EPOCH-RULEPACK-DRAFT-001",
+      versionId: "owner-approved-rulepack-required",
+      calendarSystem: "revised-13-month",
+      status: "owner-decision-required",
+      decisionSummary: "EPOCH has the revised 13-month structure represented, but authoritative conversion remains blocked.",
+      customerSafeStatus: "Revised-calendar conversion remains inactive until the owner-approved physical spring anchor, display wording, recurrence behavior, storage identifier, and conversion rules are complete.",
+      missingApprovalSummary: "Missing owner approvals include the physical spring anchor source, month and intercalary day names, leap rule, day-of-week mapping, timezone boundaries, recurrence mapping, public wording, storage identifier, and conversion rules.",
+      operatorNextAction: "Record explicit owner approval decisions before enabling revised-calendar conversion logic or any live provider calendar write.",
+      missingApprovalCount: 13,
+      ownerApproved: false,
+      monthNamesApproved: false,
+      dayDistributionApproved: false,
+      intercalaryDaysApproved: false,
+      leapRuleApproved: false,
+      epochAnchorApproved: false,
+      dayOfWeekMappingApproved: false,
+      formattingRulesApproved: false,
+      timezoneBoundaryApproved: false,
+      recurrenceMappingApproved: false,
+      publicDisplayWordingApproved: false,
+      storageIdentifierApproved: false,
+      conversionRulesApproved: false,
+      conversionLogicEnabled: false,
+      requiredApprovalsComplete: false,
+      conversionReady: false,
+      customerVisible: false,
+      customerSafe: true,
+      webportalExportReady: true,
+      providerCallsEnabled: false,
+      providerGoLiveRequested: false,
+      workshopCalendarOwnership: false,
+      monitorWorkflowExposed: false,
+      createdAtUtc: "2026-06-04T17:20:00+09:00"
+    }
+  ],
+  revisedRulepackApprovalReceipts: [
+    {
+      id: "EPOCH-REVISED-RULEPACK-APPROVAL-RECEIPT-001",
+      receiptId: "EPOCH-REVISED-RULEPACK-APPROVAL-RECEIPT-001",
+      decisionId: "EPOCH-REVISED-RULEPACK-OWNER-DECISION-001",
+      rulepackId: "EPOCH-RULEPACK-DRAFT-001",
+      calendarSystem: "revised-13-month",
+      sourceSurface: "EPOCH.App.RevisedRulepackApprovalReceipt",
+      kind: "revised-rulepack-owner-decision",
+      status: "customer-safe-revised-rulepack-approval-held",
+      summary: "EPOCH recorded the revised-calendar owner decision gate without enabling conversion, provider calls, WORKSHOP calendar ownership, or internal workflow exposure.",
+      customerSafeMessage: "Revised-calendar conversion is still held. EPOCH can show schedule-safe status, but authoritative revised-date conversion waits for owner-approved rules.",
+      nextAction: "Review the owner-approved rulepack decisions before enabling conversion logic or live provider calendar writes.",
+      customerVisible: true,
+      customerSafe: true,
+      customerVisibleReceiptReady: true,
+      webportalExportReady: true,
+      requiredApprovalsComplete: false,
+      conversionLogicEnabled: false,
+      conversionReady: false,
+      providerCallsEnabled: false,
+      providerGoLiveRequested: false,
+      workshopCalendarOwnership: false,
+      monitorWorkflowExposed: false,
+      createdAtUtc: "2026-06-04T17:20:00+09:00"
+    }
+  ],
   calendarDisplayModes: [
     {
       id: "EPOCH-CALENDAR-MODE-GREGORIAN",
@@ -1058,6 +1127,8 @@ export const reminderExecutions = initialEpochLedger.reminderExecutions;
 export const deadlineExecutions = initialEpochLedger.deadlineExecutions;
 export const deadlineEscalations = initialEpochLedger.deadlineEscalations;
 export const reminderDeadlineReceipts = initialEpochLedger.reminderDeadlineReceipts;
+export const revisedRulepackOwnerDecisions = initialEpochLedger.revisedRulepackOwnerDecisions;
+export const revisedRulepackApprovalReceipts = initialEpochLedger.revisedRulepackApprovalReceipts;
 export const revisedAvailabilityExceptions = initialEpochLedger.revisedAvailabilityExceptions;
 export const revisedAvailabilityExceptionReceipts = initialEpochLedger.revisedAvailabilityExceptionReceipts;
 export const scheduleLifecycleActions = initialEpochLedger.scheduleLifecycleActions;
@@ -1122,6 +1193,123 @@ export function revisedRulepackReady(rulepack) {
 
 export function revisedRulepackBlocksConversion(rulepack) {
   return !revisedRulepackReady(rulepack);
+}
+
+const revisedRulepackRequiredApprovalKeys = [
+  "ownerApproved",
+  "monthNamesApproved",
+  "dayDistributionApproved",
+  "intercalaryDaysApproved",
+  "leapRuleApproved",
+  "epochAnchorApproved",
+  "dayOfWeekMappingApproved",
+  "formattingRulesApproved",
+  "timezoneBoundaryApproved",
+  "recurrenceMappingApproved",
+  "publicDisplayWordingApproved",
+  "storageIdentifierApproved",
+  "conversionRulesApproved"
+];
+
+function revisedRulepackMissingApprovalKeys(rulepack) {
+  return revisedRulepackRequiredApprovalKeys.filter((key) => rulepack?.[key] !== true);
+}
+
+export function createRevisedRulepackOwnerDecisionForRulepack(rulepack = initialEpochLedger.revisedCalendarRulepack) {
+  const projection = projectRevisedRulepackConstraints(rulepack);
+  const missingApprovalKeys = revisedRulepackMissingApprovalKeys(rulepack);
+  const requiredApprovalsComplete = revisedRulepackHasRequiredApprovals(rulepack);
+  const conversionLogicEnabled = rulepack?.conversionLogicEnabled === true;
+  const conversionReady = requiredApprovalsComplete && conversionLogicEnabled;
+  const decisionId = makeId("EPOCH-REVISED-RULEPACK-OWNER-DECISION");
+
+  return {
+    id: decisionId,
+    decisionId,
+    sourceSurface: "EPOCH.App.RevisedRulepackOwnerDecision",
+    rulepackId: rulepack?.id || "EPOCH-RULEPACK-DRAFT-001",
+    versionId: rulepack?.versionId || "owner-approved-rulepack-required",
+    calendarSystem: projection.calendarSystem || "revised-13-month",
+    status: conversionReady ? "owner-approved-conversion-ready" : "owner-decision-required",
+    decisionSummary: conversionReady
+      ? "EPOCH has owner-approved revised-calendar conversion rules available."
+      : "EPOCH has the revised 13-month structure represented, but authoritative conversion remains blocked.",
+    customerSafeStatus: conversionReady
+      ? "Revised-calendar conversion is ready under the approved rulepack."
+      : "Revised-calendar conversion remains inactive until the owner-approved physical spring anchor, display wording, recurrence behavior, storage identifier, and conversion rules are complete.",
+    missingApprovalSummary: missingApprovalKeys.length
+      ? `Missing owner approvals: ${missingApprovalKeys.join(", ")}. The physical spring anchor source must be approved before conversion.`
+      : "All required owner approval fields are present; conversion still requires the explicit conversion logic toggle.",
+    operatorNextAction: conversionReady
+      ? "Review provider and public-display gates before any live calendar write."
+      : "Record explicit owner approval decisions before enabling revised-calendar conversion logic or any live provider calendar write.",
+    missingApprovalCount: missingApprovalKeys.length,
+    ownerApproved: rulepack?.ownerApproved === true,
+    monthNamesApproved: rulepack?.monthNamesApproved === true,
+    dayDistributionApproved: rulepack?.dayDistributionApproved === true,
+    intercalaryDaysApproved: rulepack?.intercalaryDaysApproved === true,
+    leapRuleApproved: rulepack?.leapRuleApproved === true,
+    epochAnchorApproved: rulepack?.epochAnchorApproved === true,
+    dayOfWeekMappingApproved: rulepack?.dayOfWeekMappingApproved === true,
+    formattingRulesApproved: rulepack?.formattingRulesApproved === true,
+    timezoneBoundaryApproved: rulepack?.timezoneBoundaryApproved === true,
+    recurrenceMappingApproved: rulepack?.recurrenceMappingApproved === true,
+    publicDisplayWordingApproved: rulepack?.publicDisplayWordingApproved === true,
+    storageIdentifierApproved: rulepack?.storageIdentifierApproved === true,
+    conversionRulesApproved: rulepack?.conversionRulesApproved === true,
+    conversionLogicEnabled,
+    requiredApprovalsComplete,
+    conversionReady,
+    customerVisible: false,
+    customerSafe: projection.customerSafe === true,
+    webportalExportReady: projection.customerSafe === true,
+    providerCallsEnabled: false,
+    providerGoLiveRequested: false,
+    workshopCalendarOwnership: false,
+    monitorWorkflowExposed: false,
+    createdAtUtc: new Date().toISOString()
+  };
+}
+
+export function createRevisedRulepackApprovalReceiptForDecision(decision) {
+  const receiptId = makeId("EPOCH-REVISED-RULEPACK-APPROVAL-RECEIPT");
+  const customerSafe =
+    decision?.customerSafe === true &&
+    decision?.providerCallsEnabled !== true &&
+    decision?.providerGoLiveRequested !== true &&
+    decision?.workshopCalendarOwnership !== true &&
+    decision?.monitorWorkflowExposed !== true &&
+    decision?.conversionReady !== true;
+
+  return {
+    id: receiptId,
+    receiptId,
+    decisionId: decision?.decisionId || decision?.id || "",
+    rulepackId: decision?.rulepackId || "EPOCH-RULEPACK-DRAFT-001",
+    calendarSystem: decision?.calendarSystem || "revised-13-month",
+    sourceSurface: "EPOCH.App.RevisedRulepackApprovalReceipt",
+    kind: "revised-rulepack-owner-decision",
+    status: customerSafe
+      ? "customer-safe-revised-rulepack-approval-held"
+      : "revised-rulepack-approval-not-exportable",
+    summary: "EPOCH recorded the revised-calendar owner decision gate without enabling conversion, provider calls, WORKSHOP calendar ownership, or internal workflow exposure.",
+    customerSafeMessage: customerSafe
+      ? "Revised-calendar conversion is still held. EPOCH can show schedule-safe status, but authoritative revised-date conversion waits for owner-approved rules."
+      : "Revised-calendar approval status is not ready for customer display.",
+    nextAction: "Review the owner-approved rulepack decisions before enabling conversion logic or live provider calendar writes.",
+    customerVisible: customerSafe,
+    customerSafe,
+    customerVisibleReceiptReady: customerSafe,
+    webportalExportReady: customerSafe,
+    requiredApprovalsComplete: decision?.requiredApprovalsComplete === true,
+    conversionLogicEnabled: decision?.conversionLogicEnabled === true,
+    conversionReady: decision?.conversionReady === true,
+    providerCallsEnabled: false,
+    providerGoLiveRequested: false,
+    workshopCalendarOwnership: false,
+    monitorWorkflowExposed: false,
+    createdAtUtc: new Date().toISOString()
+  };
 }
 
 export function projectRevisedRulepackConstraints(rulepack) {

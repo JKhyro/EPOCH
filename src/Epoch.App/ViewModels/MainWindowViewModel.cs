@@ -34,6 +34,12 @@ public sealed class MainWindowViewModel
         EpochRevisedCalendarTimingExport? revisedTimingExport,
         IReadOnlyList<EpochRevisedCalendarTimingExport> revisedTimingExports,
         string revisedTimingExportPath,
+        EpochRevisedRulepackOwnerDecision? revisedRulepackOwnerDecision,
+        IReadOnlyList<EpochRevisedRulepackOwnerDecision> revisedRulepackOwnerDecisions,
+        string revisedRulepackOwnerDecisionPath,
+        EpochRevisedRulepackApprovalReceipt? revisedRulepackApprovalReceipt,
+        IReadOnlyList<EpochRevisedRulepackApprovalReceipt> revisedRulepackApprovalReceipts,
+        string revisedRulepackApprovalReceiptPath,
         EpochRevisedAvailabilityException? revisedAvailabilityException,
         IReadOnlyList<EpochRevisedAvailabilityException> revisedAvailabilityExceptions,
         string revisedAvailabilityExceptionPath,
@@ -154,6 +160,24 @@ public sealed class MainWindowViewModel
         RevisedTimingExportStatus = revisedTimingExport is not null
             ? $"Latest export {revisedTimingExport.PayloadId}: {revisedTimingExport.CalendarSystemLabel}; customer-safe: {revisedTimingExport.CustomerSafe.ToString().ToLowerInvariant()}; WORKSHOP calendar ownership: {revisedTimingExport.WorkshopCalendarOwnership.ToString().ToLowerInvariant()}."
             : "No EPOCH revised timing export was written in this shell load.";
+        RevisedRulepackOwnerDecisionCount = revisedRulepackOwnerDecisions.Count;
+        RevisedRulepackOwnerDecisionSummary = $"{revisedRulepackOwnerDecisions.Count} revised-calendar owner decision gate record(s) in the EPOCH App ledger.";
+        RevisedRulepackOwnerDecisionLocation = revisedRulepackOwnerDecisionPath;
+        RevisedRulepackOwnerDecisionStatus = revisedRulepackOwnerDecision is not null
+            ? $"Latest owner decision {revisedRulepackOwnerDecision.DecisionId}: {revisedRulepackOwnerDecision.Status}; conversion logic enabled: {revisedRulepackOwnerDecision.ConversionLogicEnabled.ToString().ToLowerInvariant()}; missing approvals: {revisedRulepackOwnerDecision.MissingApprovalCount}."
+            : "No revised-calendar owner decision gate record was written in this shell load.";
+        RevisedRulepackOwnerDecisionMessage = revisedRulepackOwnerDecision is not null
+            ? revisedRulepackOwnerDecision.CustomerSafeStatus
+            : "The revised-calendar rulepack stays held until owner decisions are recorded.";
+        RevisedRulepackApprovalReceiptCount = revisedRulepackApprovalReceipts.Count;
+        RevisedRulepackApprovalReceiptSummary = $"{revisedRulepackApprovalReceipts.Count} revised-calendar approval receipt(s) ready for customer-safe Webportal import.";
+        RevisedRulepackApprovalReceiptLocation = revisedRulepackApprovalReceiptPath;
+        RevisedRulepackApprovalReceiptStatus = revisedRulepackApprovalReceipt is not null
+            ? $"Latest approval receipt {revisedRulepackApprovalReceipt.ReceiptId}: {revisedRulepackApprovalReceipt.Status}; Webportal export ready: {revisedRulepackApprovalReceipt.WebportalExportReady.ToString().ToLowerInvariant()}."
+            : "No customer-safe revised-calendar approval receipt was prepared in this shell load.";
+        RevisedRulepackApprovalReceiptMessage = revisedRulepackApprovalReceipt is not null
+            ? revisedRulepackApprovalReceipt.CustomerSafeMessage
+            : "The revised-calendar approval Webportal status loop is waiting for an App-owned owner decision gate record.";
         RevisedAvailabilityExceptionCount = revisedAvailabilityExceptions.Count;
         RevisedAvailabilityExceptionSummary = $"{revisedAvailabilityExceptions.Count} recurring revised-calendar availability exception(s) in the EPOCH App ledger.";
         RevisedAvailabilityExceptionLocation = revisedAvailabilityExceptionPath;
@@ -259,6 +283,16 @@ public sealed class MainWindowViewModel
     public string RevisedTimingExportSummary { get; }
     public string RevisedTimingExportLocation { get; }
     public string RevisedTimingExportStatus { get; }
+    public int RevisedRulepackOwnerDecisionCount { get; }
+    public string RevisedRulepackOwnerDecisionSummary { get; }
+    public string RevisedRulepackOwnerDecisionLocation { get; }
+    public string RevisedRulepackOwnerDecisionStatus { get; }
+    public string RevisedRulepackOwnerDecisionMessage { get; }
+    public int RevisedRulepackApprovalReceiptCount { get; }
+    public string RevisedRulepackApprovalReceiptSummary { get; }
+    public string RevisedRulepackApprovalReceiptLocation { get; }
+    public string RevisedRulepackApprovalReceiptStatus { get; }
+    public string RevisedRulepackApprovalReceiptMessage { get; }
     public int RevisedAvailabilityExceptionCount { get; }
     public string RevisedAvailabilityExceptionSummary { get; }
     public string RevisedAvailabilityExceptionLocation { get; }
@@ -378,6 +412,22 @@ public sealed class MainWindowViewModel
             out revisedTimingExport);
         IReadOnlyList<EpochRevisedCalendarTimingExport> revisedTimingExports =
             EpochRevisedCalendarTimingExportStore.Load();
+        EpochRevisedRulepackOwnerDecision? revisedRulepackOwnerDecision = null;
+        EpochRevisedRulepackApprovalReceipt? revisedRulepackApprovalReceipt = null;
+        EpochRevisedRulepackOwnerDecisionStore.TryEnsureDefaultDecision(
+            snapshot,
+            out revisedRulepackOwnerDecision);
+        if (revisedRulepackOwnerDecision is not null)
+        {
+            EpochRevisedRulepackApprovalReceiptStore.TryEnsureDefaultReceipt(
+                revisedRulepackOwnerDecision,
+                out revisedRulepackApprovalReceipt);
+        }
+
+        IReadOnlyList<EpochRevisedRulepackOwnerDecision> revisedRulepackOwnerDecisions =
+            EpochRevisedRulepackOwnerDecisionStore.Load();
+        IReadOnlyList<EpochRevisedRulepackApprovalReceipt> revisedRulepackApprovalReceipts =
+            EpochRevisedRulepackApprovalReceiptStore.Load();
         EpochRevisedAvailabilityException? revisedAvailabilityException = null;
         EpochRevisedAvailabilityExceptionReceipt? revisedAvailabilityExceptionReceipt = null;
         EpochRevisedReminderExecution? revisedReminderExecution = null;
@@ -466,6 +516,12 @@ public sealed class MainWindowViewModel
             revisedTimingExport,
             revisedTimingExports,
             EpochRevisedCalendarTimingExportStore.ExportPath,
+            revisedRulepackOwnerDecision,
+            revisedRulepackOwnerDecisions,
+            EpochRevisedRulepackOwnerDecisionStore.DecisionPath,
+            revisedRulepackApprovalReceipt,
+            revisedRulepackApprovalReceipts,
+            EpochRevisedRulepackApprovalReceiptStore.ReceiptPath,
             revisedAvailabilityException,
             revisedAvailabilityExceptions,
             EpochRevisedAvailabilityExceptionStore.ExceptionPath,

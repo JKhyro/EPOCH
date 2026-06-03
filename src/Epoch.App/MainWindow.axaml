@@ -119,6 +119,19 @@
                   <TextBlock Text="{Binding RevisedTimingExportLocation}" TextWrapping="Wrap" FontSize="11" Foreground="#687588" />
                 </StackPanel>
               </Border>
+              <Border Padding="12" CornerRadius="8" Background="#fffaf3" BorderBrush="#ead6af" BorderThickness="1">
+                <StackPanel Spacing="5">
+                  <TextBlock Text="Rulepack Owner Decision Gate" FontWeight="SemiBold" Foreground="#172033" />
+                  <TextBlock Text="{Binding RevisedRulepackOwnerDecisionSummary}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedRulepackOwnerDecisionStatus}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedRulepackOwnerDecisionMessage}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedRulepackOwnerDecisionLocation}" TextWrapping="Wrap" FontSize="11" Foreground="#687588" />
+                  <TextBlock Text="{Binding RevisedRulepackApprovalReceiptSummary}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedRulepackApprovalReceiptStatus}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedRulepackApprovalReceiptMessage}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedRulepackApprovalReceiptLocation}" TextWrapping="Wrap" FontSize="11" Foreground="#687588" />
+                </StackPanel>
+              </Border>
               <Border Padding="12" CornerRadius="8" Background="#f8f6ff" BorderBrush="#d6ceef" BorderThickness="1">
                 <StackPanel Spacing="5">
                   <TextBlock Text="Recurring Revised Availability Exceptions" FontWeight="SemiBold" Foreground="#172033" />

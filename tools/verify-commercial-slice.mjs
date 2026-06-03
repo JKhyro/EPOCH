@@ -34,9 +34,13 @@ const appNative = read("../src/Epoch.App/Native/EpochNative.cs");
 const appViewModel = read("../src/Epoch.App/ViewModels/MainWindowViewModel.cs");
 const appSnapshot = read("../src/Epoch.App/Models/EpochShellSnapshot.cs");
 const appRevisedTimingExport = read("../src/Epoch.App/Models/EpochRevisedCalendarTimingExport.cs");
+const appRevisedRulepackOwnerDecision = read("../src/Epoch.App/Models/EpochRevisedRulepackOwnerDecision.cs");
+const appRevisedRulepackApprovalReceipt = read("../src/Epoch.App/Models/EpochRevisedRulepackApprovalReceipt.cs");
 const appHistoryEntry = read("../src/Epoch.App/Models/EpochScheduleExecutionHistoryEntry.cs");
 const appHistoryStore = read("../src/Epoch.App/Services/EpochScheduleExecutionHistoryStore.cs");
 const appRevisedTimingExportStore = read("../src/Epoch.App/Services/EpochRevisedCalendarTimingExportStore.cs");
+const appRevisedRulepackOwnerDecisionStore = read("../src/Epoch.App/Services/EpochRevisedRulepackOwnerDecisionStore.cs");
+const appRevisedRulepackApprovalReceiptStore = read("../src/Epoch.App/Services/EpochRevisedRulepackApprovalReceiptStore.cs");
 const appRequestInboxEntry = read("../src/Epoch.App/Models/EpochWebportalScheduleRequest.cs");
 const appRequestInboxStore = read("../src/Epoch.App/Services/EpochScheduleRequestInboxStore.cs");
 const appRequestCommandReceipt = read("../src/Epoch.App/Models/EpochRequestScheduleCommandReceipt.cs");
@@ -82,6 +86,8 @@ const {
   createReminderExecutionForRule,
   createRevisedAvailabilityExceptionForTiming,
   createRevisedAvailabilityExceptionReceiptForException,
+  createRevisedRulepackApprovalReceiptForDecision,
+  createRevisedRulepackOwnerDecisionForRulepack,
   createScheduleEntryForRequest,
   createScheduleRequestRecord,
   createScheduleLifecycleActionRecord,
@@ -259,7 +265,7 @@ for (const path of [
   if (!root.includes(path)) fail(`root directory missing route ${path}`);
 }
 
-for (const phrase of ["epochSchedule", "availabilityWindows", "availabilityCapacitySnapshots", "availabilityWaitlistEntries", "availabilityHoldReleases", "availabilityPromotionCandidates", "availabilityCapacityReceipts", "bookingOptimizationRuns", "bookingRecommendationCandidates", "bookingOverloadWarnings", "bookingRecommendationReceipts", "deadlineItems", "reminderExecutions", "deadlineExecutions", "deadlineEscalations", "reminderDeadlineReceipts", "revisedAvailabilityExceptions", "revisedAvailabilityExceptionReceipts", "calendarDisplayModes", "scheduleAuditRecords", "scheduleReceipts", "schedulerLogEntries", "calendarSearchQueries", "calendarSearchResults", "scheduleTemplates", "scheduleLifecycleActions", "avaloniaShellReadiness", "revisedMonths", "projectRevisedRulepackConstraints", "portalTimeline"]) {
+for (const phrase of ["epochSchedule", "availabilityWindows", "availabilityCapacitySnapshots", "availabilityWaitlistEntries", "availabilityHoldReleases", "availabilityPromotionCandidates", "availabilityCapacityReceipts", "bookingOptimizationRuns", "bookingRecommendationCandidates", "bookingOverloadWarnings", "bookingRecommendationReceipts", "deadlineItems", "reminderExecutions", "deadlineExecutions", "deadlineEscalations", "reminderDeadlineReceipts", "revisedRulepackOwnerDecisions", "revisedRulepackApprovalReceipts", "revisedAvailabilityExceptions", "revisedAvailabilityExceptionReceipts", "calendarDisplayModes", "scheduleAuditRecords", "scheduleReceipts", "schedulerLogEntries", "calendarSearchQueries", "calendarSearchResults", "scheduleTemplates", "scheduleLifecycleActions", "avaloniaShellReadiness", "revisedMonths", "projectRevisedRulepackConstraints", "portalTimeline"]) {
   if (!data.includes(phrase)) fail(`EPOCH data missing ${phrase}`);
 }
 
@@ -296,6 +302,8 @@ for (const phrase of [
   "recurringBookingSeries",
   "recurringBookingInstances",
   "recurrenceConflictExceptions",
+  "revisedRulepackOwnerDecisions",
+  "revisedRulepackApprovalReceipts",
   "revisedAvailabilityExceptions",
   "revisedAvailabilityExceptionReceipts",
   "recurringSeriesReceipts",
@@ -349,6 +357,8 @@ for (const phrase of [
   "createRecurringBookingInstanceForSeries",
   "createRecurrenceConflictExceptionForInstance",
   "createRecurringSeriesReceiptForSeries",
+  "createRevisedRulepackOwnerDecisionForRulepack",
+  "createRevisedRulepackApprovalReceiptForDecision",
   "createRevisedAvailabilityExceptionForTiming",
   "createRevisedAvailabilityExceptionReceiptForException",
   "selectOpenAvailabilityWindow",
@@ -474,6 +484,21 @@ for (const phrase of [
   "portal-revised-reminder-deadline-receipts",
   "handleRevisedReminderDeadlineReceiptImport",
   "handleClearRevisedReminderDeadlineReceiptExports",
+  "EPOCH_REVISED_RULEPACK_APPROVAL_RECEIPT_EXPORT_KEY",
+  "normalizeRevisedRulepackApprovalReceiptExport",
+  "normalizeRevisedRulepackApprovalReceiptPayload",
+  "loadRevisedRulepackApprovalReceiptExports",
+  "saveRevisedRulepackApprovalReceiptExports",
+  "revisedRulepackApprovalReceiptExportState",
+  "revised-rulepack-approval-receipts.json",
+  "revised-rulepack-approval-receipt-import-form",
+  "revised-rulepack-approval-receipt-file",
+  "revised-rulepack-approval-receipt-summary",
+  "portal-revised-rulepack-approval-receipt-export",
+  "portal-revised-rulepack-approval-status",
+  "app-revised-rulepack-approval-receipt-export",
+  "handleRevisedRulepackApprovalReceiptImport",
+  "handleClearRevisedRulepackApprovalReceiptExports",
   "EPOCH_REVISED_AVAILABILITY_EXCEPTION_RECEIPT_EXPORT_KEY",
   "normalizeRevisedAvailabilityExceptionReceiptExport",
   "normalizeRevisedAvailabilityExceptionReceiptPayload",
@@ -725,6 +750,13 @@ for (const phrase of [
   "RevisedTimingExportSummary",
   "RevisedTimingExportStatus",
   "RevisedTimingExportLocation",
+  "Rulepack Owner Decision Gate",
+  "RevisedRulepackOwnerDecisionSummary",
+  "RevisedRulepackOwnerDecisionStatus",
+  "RevisedRulepackOwnerDecisionMessage",
+  "RevisedRulepackApprovalReceiptSummary",
+  "RevisedRulepackApprovalReceiptStatus",
+  "RevisedRulepackApprovalReceiptMessage",
   "Recurring Revised Availability Exceptions",
   "RevisedAvailabilityExceptionSummary",
   "RevisedAvailabilityExceptionStatus",
@@ -839,6 +871,35 @@ for (const [label, file, required] of [
     "MonitorWorkflowExposed",
     "WorkshopCalendarOwnership"
   ]],
+  ["revised rulepack owner decision", appRevisedRulepackOwnerDecision, [
+    "EpochRevisedRulepackOwnerDecision",
+    "FromSnapshot",
+    "EPOCH.App.RevisedRulepackOwnerDecision",
+    "owner-decision-required",
+    "MissingApprovalCount",
+    "ConversionLogicEnabled",
+    "RequiredApprovalsComplete",
+    "ConversionReady",
+    "ProviderCallsEnabled",
+    "ProviderGoLiveRequested",
+    "MonitorWorkflowExposed",
+    "WorkshopCalendarOwnership"
+  ]],
+  ["revised rulepack approval receipt", appRevisedRulepackApprovalReceipt, [
+    "EpochRevisedRulepackApprovalReceipt",
+    "FromDecision",
+    "revised-rulepack-owner-decision",
+    "customer-safe-revised-rulepack-approval-held",
+    "EPOCH.App.RevisedRulepackApprovalReceipt",
+    "CustomerVisibleReceiptReady",
+    "WebportalExportReady",
+    "ConversionLogicEnabled",
+    "ConversionReady",
+    "ProviderCallsEnabled",
+    "ProviderGoLiveRequested",
+    "MonitorWorkflowExposed",
+    "WorkshopCalendarOwnership"
+  ]],
   ["revised availability exception", appRevisedAvailabilityException, [
     "EpochRevisedAvailabilityException",
     "FromRevisedTimingExport",
@@ -899,6 +960,20 @@ for (const [label, file, required] of [
     "ArchiveInvalidReceipts",
     "EpochScheduleExecutionHistoryStore.StateDirectoryEnvironmentVariable"
   ]],
+  ["revised rulepack owner decision store", appRevisedRulepackOwnerDecisionStore, [
+    "revised-rulepack-owner-decisions.json",
+    "EpochRevisedRulepackOwnerDecisionStore",
+    "TryEnsureDefaultDecision",
+    "ArchiveInvalidDecisions",
+    "EpochScheduleExecutionHistoryStore.StateDirectoryEnvironmentVariable"
+  ]],
+  ["revised rulepack approval receipt store", appRevisedRulepackApprovalReceiptStore, [
+    "revised-rulepack-approval-receipts.json",
+    "EpochRevisedRulepackApprovalReceiptStore",
+    "TryEnsureDefaultReceipt",
+    "ArchiveInvalidReceipts",
+    "EpochScheduleExecutionHistoryStore.StateDirectoryEnvironmentVariable"
+  ]],
   ["revised availability exception store", appRevisedAvailabilityExceptionStore, [
     "revised-availability-exceptions.json",
     "EpochRevisedAvailabilityExceptionStore",
@@ -941,6 +1016,10 @@ for (const phrase of [
   "EpochScheduleLifecycleStatusStore.Load",
   "EpochRevisedCalendarTimingExportStore.TryEnsureDefaultExport",
   "EpochRevisedCalendarTimingExportStore.Load",
+  "EpochRevisedRulepackOwnerDecisionStore.TryEnsureDefaultDecision",
+  "EpochRevisedRulepackOwnerDecisionStore.Load",
+  "EpochRevisedRulepackApprovalReceiptStore.TryEnsureDefaultReceipt",
+  "EpochRevisedRulepackApprovalReceiptStore.Load",
   "EpochRevisedAvailabilityExceptionStore.TryAppend",
   "EpochRevisedAvailabilityExceptionStore.Load",
   "EpochRevisedAvailabilityExceptionReceiptStore.TryAppend",
@@ -958,6 +1037,14 @@ for (const phrase of [
   "RevisedTimingExportSummary",
   "RevisedTimingExportStatus",
   "RevisedTimingExportLocation",
+  "RevisedRulepackOwnerDecisionSummary",
+  "RevisedRulepackOwnerDecisionStatus",
+  "RevisedRulepackOwnerDecisionLocation",
+  "RevisedRulepackOwnerDecisionMessage",
+  "RevisedRulepackApprovalReceiptSummary",
+  "RevisedRulepackApprovalReceiptStatus",
+  "RevisedRulepackApprovalReceiptLocation",
+  "RevisedRulepackApprovalReceiptMessage",
   "RevisedAvailabilityExceptionSummary",
   "RevisedAvailabilityExceptionStatus",
   "RevisedAvailabilityExceptionReceiptSummary",
@@ -973,6 +1060,8 @@ for (const phrase of [
   "schedule lifecycle receipt(s)",
   "customer-safe schedule lifecycle status export(s)",
   "EPOCH revised timing export payload(s)",
+  "revised-calendar owner decision gate record(s)",
+  "revised-calendar approval receipt(s)",
   "recurring revised-calendar availability exception(s)",
   "revised availability exception receipt(s)",
   "revised-calendar reminder execution(s)",
@@ -1261,6 +1350,10 @@ for (const phrase of [
   "EpochScheduleLifecycleStatusStore.Load",
   "EpochRevisedCalendarTimingExportStore.EnsureDefaultExport",
   "EpochRevisedCalendarTimingExportStore.Load",
+  "EpochRevisedRulepackOwnerDecisionStore.EnsureDefaultDecision",
+  "EpochRevisedRulepackOwnerDecisionStore.Load",
+  "EpochRevisedRulepackApprovalReceiptStore.EnsureDefaultReceipt",
+  "EpochRevisedRulepackApprovalReceiptStore.Load",
   "EpochRevisedAvailabilityExceptionStore.Append",
   "EpochRevisedAvailabilityExceptionStore.Load",
   "EpochRevisedAvailabilityExceptionReceiptStore.Append",
@@ -1282,6 +1375,15 @@ for (const phrase of [
   "revisedTimingExports.Count != 1",
   "revisedTimingExports[0].CalendarSystemLabel != \"revised-13-month\"",
   "revisedTimingExports[0].WorkshopCalendarOwnership",
+  "revisedRulepackOwnerDecisions.Count != 1",
+  "revisedRulepackOwnerDecisions[0].Status != \"owner-decision-required\"",
+  "revisedRulepackOwnerDecisions[0].ConversionLogicEnabled",
+  "revisedRulepackOwnerDecisions[0].ConversionReady",
+  "revisedRulepackApprovalReceipts.Count != 1",
+  "revisedRulepackApprovalReceipts[0].Kind != \"revised-rulepack-owner-decision\"",
+  "revisedRulepackApprovalReceipts[0].Status != \"customer-safe-revised-rulepack-approval-held\"",
+  "revisedRulepackApprovalReceipts[0].ConversionLogicEnabled",
+  "revisedRulepackApprovalReceipts[0].ConversionReady",
   "revisedAvailabilityExceptions.Count != 1",
   "revisedAvailabilityExceptions[0].AvailabilityWindowId",
   "revisedAvailabilityExceptions[0].RevisedConversionReady",
@@ -1292,6 +1394,8 @@ for (const phrase of [
   "File.Exists(EpochScheduleLifecycleReceiptStore.ReceiptPath)",
   "File.Exists(EpochScheduleLifecycleStatusStore.StatusPath)",
   "File.Exists(EpochRevisedCalendarTimingExportStore.ExportPath)",
+  "File.Exists(EpochRevisedRulepackOwnerDecisionStore.DecisionPath)",
+  "File.Exists(EpochRevisedRulepackApprovalReceiptStore.ReceiptPath)",
   "File.Exists(EpochRevisedAvailabilityExceptionStore.ExceptionPath)",
   "File.Exists(EpochRevisedAvailabilityExceptionReceiptStore.ReceiptPath)",
   "File.Exists(EpochRevisedReminderExecutionStore.ExecutionPath)",
@@ -1352,6 +1456,12 @@ for (const phrase of [
   "Provider go-live remains false",
   "WORKSHOP calendar ownership remains false",
   "MONITOR workflow exposure remains false",
+  "Local revised-calendar owner decision gate slice",
+  "EpochRevisedRulepackOwnerDecisionStore",
+  "revised-rulepack-owner-decisions.json",
+  "EpochRevisedRulepackApprovalReceiptStore",
+  "revised-rulepack-approval-receipts.json",
+  "conversionLogicEnabled",
   "Local revised-calendar reminder/deadline execution slice",
   "Local revised-calendar availability exception slice",
   "EpochRevisedAvailabilityExceptionStore",
@@ -1566,6 +1676,8 @@ const recurringReceipt = createRecurringSeriesReceiptForSeries(recurringSeries, 
 const rulepack = initialEpochLedger.revisedCalendarRulepack;
 const revisedAvailabilityException = createRevisedAvailabilityExceptionForTiming(rulepack, recurringSeries, recurringConflictInstance, recurringException, openWindow);
 const revisedAvailabilityExceptionReceipt = createRevisedAvailabilityExceptionReceiptForException(revisedAvailabilityException);
+const revisedRulepackOwnerDecision = createRevisedRulepackOwnerDecisionForRulepack(rulepack);
+const revisedRulepackApprovalReceipt = createRevisedRulepackApprovalReceiptForDecision(revisedRulepackOwnerDecision);
 const approvedRulepack = {
   ...rulepack,
   versionId: "owner-approved-rulepack-v1",
@@ -1584,6 +1696,12 @@ const approvedRulepack = {
   conversionRulesApproved: true,
   conversionLogicEnabled: true
 };
+const approvedButDisabledRulepack = {
+  ...approvedRulepack,
+  conversionLogicEnabled: false
+};
+const approvedButDisabledDecision = createRevisedRulepackOwnerDecisionForRulepack(approvedButDisabledRulepack);
+const approvedButDisabledReceipt = createRevisedRulepackApprovalReceiptForDecision(approvedButDisabledDecision);
 const gate = {
   ...initialEpochLedger.providerReadinessGates[0],
   revisedCalendarMappingVerified: true,
@@ -1670,6 +1788,45 @@ if (revisedAvailabilityExceptionReceipt.kind !== "revised-availability-exception
     !revisedAvailabilityExceptionReceipt.customerSafeMessage.includes("owner-gated")) {
   fail("revised availability exception receipt did not preserve customer-safe local-only proof");
 }
+if (revisedRulepackOwnerDecision.status !== "owner-decision-required" ||
+    revisedRulepackOwnerDecision.conversionLogicEnabled ||
+    revisedRulepackOwnerDecision.requiredApprovalsComplete ||
+    revisedRulepackOwnerDecision.conversionReady ||
+    revisedRulepackOwnerDecision.providerCallsEnabled ||
+    revisedRulepackOwnerDecision.providerGoLiveRequested ||
+    revisedRulepackOwnerDecision.workshopCalendarOwnership ||
+    revisedRulepackOwnerDecision.monitorWorkflowExposed ||
+    !revisedRulepackOwnerDecision.customerSafe ||
+    !revisedRulepackOwnerDecision.webportalExportReady ||
+    revisedRulepackOwnerDecision.missingApprovalCount < 1 ||
+    !revisedRulepackOwnerDecision.missingApprovalSummary.includes("physical spring anchor")) {
+  fail("revised rulepack owner decision did not preserve conversion-held owner gate proof");
+}
+if (revisedRulepackApprovalReceipt.kind !== "revised-rulepack-owner-decision" ||
+    revisedRulepackApprovalReceipt.status !== "customer-safe-revised-rulepack-approval-held" ||
+    revisedRulepackApprovalReceipt.providerCallsEnabled ||
+    revisedRulepackApprovalReceipt.providerGoLiveRequested ||
+    revisedRulepackApprovalReceipt.workshopCalendarOwnership ||
+    revisedRulepackApprovalReceipt.monitorWorkflowExposed ||
+    revisedRulepackApprovalReceipt.conversionReady ||
+    revisedRulepackApprovalReceipt.conversionLogicEnabled ||
+    revisedRulepackApprovalReceipt.requiredApprovalsComplete ||
+    !revisedRulepackApprovalReceipt.customerSafe ||
+    !revisedRulepackApprovalReceipt.customerVisibleReceiptReady ||
+    !revisedRulepackApprovalReceipt.webportalExportReady ||
+    !revisedRulepackApprovalReceipt.nextAction.includes("owner-approved rulepack")) {
+  fail("revised rulepack approval receipt did not preserve customer-safe held proof");
+}
+if (!approvedButDisabledDecision.requiredApprovalsComplete ||
+    approvedButDisabledDecision.conversionLogicEnabled ||
+    approvedButDisabledDecision.conversionReady ||
+    approvedButDisabledDecision.status !== "owner-decision-required" ||
+    approvedButDisabledReceipt.status !== "customer-safe-revised-rulepack-approval-held" ||
+    approvedButDisabledReceipt.conversionReady ||
+    approvedButDisabledReceipt.conversionLogicEnabled ||
+    !approvedButDisabledReceipt.customerSafe) {
+  fail("approved-but-disabled revised rulepack must keep conversion held and Webportal status customer-safe");
+}
 if (!providerGateReadyForToggle(gate)) fail("provider gate should be ready for live toggle after all checks");
 if (!providerGateBlocksLiveCalls(gate)) fail("provider gate should still block live calls before toggle");
 gate.liveProviderCallsEnabled = true;
@@ -1691,6 +1848,12 @@ if (!projection.customerSafe ||
 if (!initialEpochLedger.scheduleAuditRecords.length || !initialEpochLedger.scheduleReceipts.length || !initialEpochLedger.schedulerLogEntries.length || !initialEpochLedger.calendarSearchResults.length || !initialEpochLedger.scheduleTemplates.length) fail("EPOCH product module records are not seeded in App/Webportal ledger");
 if (!initialEpochLedger.scheduleTemplates.some((template) => template.id === "EPOCH-SCHEDULE-TEMPLATE-003" && template.templateKind === "systems-scope-review" && template.customerVisible && !template.providerGoLiveRequested)) fail("EPOCH ledger missing customer-safe systems scope review schedule template");
 if (!initialEpochLedger.scheduleLifecycleActions.length) fail("EPOCH lifecycle action records are not seeded in App/Webportal ledger");
+if (!initialEpochLedger.revisedRulepackOwnerDecisions.length ||
+    !initialEpochLedger.revisedRulepackApprovalReceipts.length ||
+    initialEpochLedger.revisedRulepackOwnerDecisions.some((record) => record.conversionLogicEnabled || record.conversionReady || record.providerCallsEnabled || record.providerGoLiveRequested || record.workshopCalendarOwnership || record.monitorWorkflowExposed) ||
+    initialEpochLedger.revisedRulepackApprovalReceipts.some((record) => record.conversionLogicEnabled || record.conversionReady || record.providerCallsEnabled || record.providerGoLiveRequested || record.workshopCalendarOwnership || record.monitorWorkflowExposed || !record.customerVisible || !record.webportalExportReady)) {
+  fail("EPOCH revised rulepack owner decision ledgers must stay App-owned, conversion-held, provider-off, WORKSHOP-off, and customer-safe when exported");
+}
 if (initialEpochLedger.scheduleLifecycleActions.some((record) => record.providerCallsEnabled || record.monitorWorkflowExposed || !record.appOwnedLifecycleState || !record.customerVisible)) fail("schedule lifecycle action records must stay App-owned, customer-visible, provider-off, and MONITOR-off");
 if (initialEpochLedger.scheduleAuditRecords.some((record) => record.providerGoLiveRequested)) fail("schedule audit records must stay local-only");
 if (initialEpochLedger.schedulerLogEntries.some((entry) => entry.monitorRunnerLog)) fail("scheduler log product module must not be MONITOR runner log data");

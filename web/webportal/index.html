@@ -281,6 +281,25 @@
 
     <section class="panel">
       <div class="section-title">
+        <p class="eyebrow">App Export</p>
+        <h2>Revised Rulepack Approval Receipt</h2>
+      </div>
+      <form id="revised-rulepack-approval-receipt-import-form" class="surface-form compact-form">
+        <label>
+          Load revised-rulepack-approval-receipts.json
+          <input id="revised-rulepack-approval-receipt-file" name="revisedRulepackApprovalReceiptExport" type="file" accept="application/json,.json" />
+        </label>
+        <div class="form-actions">
+          <button type="submit">Load Status</button>
+          <button id="clear-revised-rulepack-approval-receipts" type="button">Clear</button>
+        </div>
+      </form>
+      <p id="revised-rulepack-approval-receipt-summary" class="confirmation" role="status"></p>
+      <div id="portal-revised-rulepack-approval-receipt-export" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
         <p class="eyebrow">Receipts</p>
         <h2>Booking Receipts</h2>
       </div>
@@ -418,6 +437,14 @@
 
     <section class="panel">
       <div class="section-title">
+        <p class="eyebrow">Calendar Status</p>
+        <h2>Rulepack Approval Status</h2>
+      </div>
+      <div id="portal-revised-rulepack-approval-status" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
         <p class="eyebrow">Boundary</p>
         <h2>What This Portal Does</h2>
       </div>
@@ -431,6 +458,6 @@
     </section>
   </main>
 
-  <script type="module" src="../shared/surface.js?v=epoch-revised-availability-exceptions"></script>
+  <script type="module" src="../shared/surface.js?v=epoch-revised-rulepack-owner-decisions"></script>
 </body>
 </html>

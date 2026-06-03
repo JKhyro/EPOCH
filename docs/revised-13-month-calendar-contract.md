@@ -80,6 +80,25 @@ values, but they should not independently define conversion rules.
 The App/Webportal may display the constraint projection and conversion gate
 reason. MONITOR may report implementation readiness only.
 
+## App-owned owner decision and approval receipts
+
+EPOCH now records the revised-calendar owner decision gate in App-owned local
+ledgers:
+
+- `revised-rulepack-owner-decisions.json` records the operator-facing owner
+  decision state.
+- `revised-rulepack-approval-receipts.json` records customer-safe Webportal
+  status receipts.
+
+These records do not approve conversion by themselves. They make the missing
+approval state explicit and keep conversion disabled until both conditions are
+true: all required owner approval fields are present and the explicit
+conversion logic toggle is enabled under the approved rulepack.
+
+The Webportal may show only customer-safe approval-held status. It must not
+show operator decision controls, provider toggles, live calendar writes,
+WORKSHOP calendar ownership, or MONITOR workflow state.
+
 ## Compatibility rules
 
 - Store canonical timestamps in an unambiguous machine format.

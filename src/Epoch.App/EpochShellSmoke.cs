@@ -61,6 +61,14 @@ internal static class EpochShellSmoke
                 EpochRevisedCalendarTimingExportStore.EnsureDefaultExport(snapshot);
             IReadOnlyList<EpochRevisedCalendarTimingExport> revisedTimingExports =
                 EpochRevisedCalendarTimingExportStore.Load();
+            EpochRevisedRulepackOwnerDecision revisedRulepackOwnerDecision =
+                EpochRevisedRulepackOwnerDecisionStore.EnsureDefaultDecision(snapshot);
+            IReadOnlyList<EpochRevisedRulepackOwnerDecision> revisedRulepackOwnerDecisions =
+                EpochRevisedRulepackOwnerDecisionStore.Load();
+            EpochRevisedRulepackApprovalReceipt revisedRulepackApprovalReceipt =
+                EpochRevisedRulepackApprovalReceiptStore.EnsureDefaultReceipt(revisedRulepackOwnerDecision);
+            IReadOnlyList<EpochRevisedRulepackApprovalReceipt> revisedRulepackApprovalReceipts =
+                EpochRevisedRulepackApprovalReceiptStore.Load();
             EpochRevisedAvailabilityException revisedAvailabilityException =
                 EpochRevisedAvailabilityExceptionStore.Append(revisedTimingExport, command);
             IReadOnlyList<EpochRevisedAvailabilityException> revisedAvailabilityExceptions =
@@ -189,6 +197,50 @@ internal static class EpochShellSmoke
                 !revisedTimingExports[0].CustomerSafe ||
                 !revisedTimingExports[0].ConversionGateReason.Contains("owner-approved physical spring anchor", StringComparison.Ordinal) ||
                 !File.Exists(EpochRevisedCalendarTimingExportStore.ExportPath) ||
+                revisedRulepackOwnerDecisions.Count != 1 ||
+                revisedRulepackOwnerDecisions[0].DecisionId != revisedRulepackOwnerDecision.DecisionId ||
+                revisedRulepackOwnerDecisions[0].Status != "owner-decision-required" ||
+                revisedRulepackOwnerDecisions[0].OwnerApproved ||
+                revisedRulepackOwnerDecisions[0].MonthNamesApproved ||
+                revisedRulepackOwnerDecisions[0].DayDistributionApproved ||
+                revisedRulepackOwnerDecisions[0].IntercalaryDaysApproved ||
+                revisedRulepackOwnerDecisions[0].LeapRuleApproved ||
+                revisedRulepackOwnerDecisions[0].EpochAnchorApproved ||
+                revisedRulepackOwnerDecisions[0].DayOfWeekMappingApproved ||
+                revisedRulepackOwnerDecisions[0].FormattingRulesApproved ||
+                revisedRulepackOwnerDecisions[0].TimezoneBoundaryApproved ||
+                revisedRulepackOwnerDecisions[0].RecurrenceMappingApproved ||
+                revisedRulepackOwnerDecisions[0].PublicDisplayWordingApproved ||
+                revisedRulepackOwnerDecisions[0].StorageIdentifierApproved ||
+                revisedRulepackOwnerDecisions[0].ConversionRulesApproved ||
+                revisedRulepackOwnerDecisions[0].ConversionLogicEnabled ||
+                revisedRulepackOwnerDecisions[0].RequiredApprovalsComplete ||
+                revisedRulepackOwnerDecisions[0].ConversionReady ||
+                revisedRulepackOwnerDecisions[0].ProviderCallsEnabled ||
+                revisedRulepackOwnerDecisions[0].ProviderGoLiveRequested ||
+                revisedRulepackOwnerDecisions[0].WorkshopCalendarOwnership ||
+                revisedRulepackOwnerDecisions[0].MonitorWorkflowExposed ||
+                !revisedRulepackOwnerDecisions[0].CustomerSafe ||
+                !revisedRulepackOwnerDecisions[0].WebportalExportReady ||
+                !revisedRulepackOwnerDecisions[0].MissingApprovalSummary.Contains("physical spring anchor", StringComparison.Ordinal) ||
+                !File.Exists(EpochRevisedRulepackOwnerDecisionStore.DecisionPath) ||
+                revisedRulepackApprovalReceipts.Count != 1 ||
+                revisedRulepackApprovalReceipts[0].ReceiptId != revisedRulepackApprovalReceipt.ReceiptId ||
+                revisedRulepackApprovalReceipts[0].DecisionId != revisedRulepackOwnerDecision.DecisionId ||
+                revisedRulepackApprovalReceipts[0].Kind != "revised-rulepack-owner-decision" ||
+                revisedRulepackApprovalReceipts[0].Status != "customer-safe-revised-rulepack-approval-held" ||
+                revisedRulepackApprovalReceipts[0].RequiredApprovalsComplete ||
+                revisedRulepackApprovalReceipts[0].ConversionLogicEnabled ||
+                revisedRulepackApprovalReceipts[0].ConversionReady ||
+                revisedRulepackApprovalReceipts[0].ProviderCallsEnabled ||
+                revisedRulepackApprovalReceipts[0].ProviderGoLiveRequested ||
+                revisedRulepackApprovalReceipts[0].WorkshopCalendarOwnership ||
+                revisedRulepackApprovalReceipts[0].MonitorWorkflowExposed ||
+                !revisedRulepackApprovalReceipts[0].CustomerSafe ||
+                !revisedRulepackApprovalReceipts[0].CustomerVisibleReceiptReady ||
+                !revisedRulepackApprovalReceipts[0].WebportalExportReady ||
+                !revisedRulepackApprovalReceipts[0].NextAction.Contains("owner-approved rulepack", StringComparison.Ordinal) ||
+                !File.Exists(EpochRevisedRulepackApprovalReceiptStore.ReceiptPath) ||
                 revisedAvailabilityExceptions.Count != 1 ||
                 revisedAvailabilityExceptions[0].ExceptionId != revisedAvailabilityException.ExceptionId ||
                 revisedAvailabilityExceptions[0].RevisedTimingPayloadId != revisedTimingExport.PayloadId ||
