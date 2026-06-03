@@ -18,7 +18,10 @@ public sealed class MainWindowViewModel
         EpochRequestScheduleCommandReceipt? requestCommandReceipt,
         IReadOnlyList<EpochRequestScheduleCommandReceipt> requestCommandReceipts,
         string requestCommandReceiptPath,
-        EpochScheduleOperationsBoardSnapshot operationsBoard)
+        EpochScheduleOperationsBoardSnapshot operationsBoard,
+        EpochCustomerScheduleStatusRecord? statusFeedback,
+        IReadOnlyList<EpochCustomerScheduleStatusRecord> statusFeedbackRecords,
+        string statusFeedbackPath)
     {
         ProductName = snapshot.ProductName;
         CoreStatus = snapshot.CoreStatus;
@@ -81,6 +84,15 @@ public sealed class MainWindowViewModel
         OperationsBoardReadyForOperatorReview = operationsBoard.ReadyForOperatorReview
             ? "operator review ready"
             : "operator review blocked";
+        CustomerStatusFeedbackCount = statusFeedbackRecords.Count;
+        CustomerStatusFeedbackSummary = $"{statusFeedbackRecords.Count} customer-safe schedule status export(s) in the EPOCH App ledger.";
+        CustomerStatusFeedbackLocation = statusFeedbackPath;
+        CustomerStatusFeedbackStatus = statusFeedback is not null
+            ? $"Latest status {statusFeedback.StatusId}: {statusFeedback.Status}; Webportal export ready: {statusFeedback.WebportalExportReady.ToString().ToLowerInvariant()}."
+            : "No customer-safe schedule status feedback was exported in this shell load.";
+        CustomerStatusFeedbackMessage = statusFeedback is not null
+            ? statusFeedback.CustomerSafeMessage
+            : "The customer-safe Webportal status loop is waiting for a linked request and native execution.";
     }
 
     public string ProductName { get; }
@@ -121,6 +133,11 @@ public sealed class MainWindowViewModel
     public string OperationsBoardSafetySummary { get; }
     public string OperationsBoardLedgerSummary { get; }
     public string OperationsBoardReadyForOperatorReview { get; }
+    public int CustomerStatusFeedbackCount { get; }
+    public string CustomerStatusFeedbackSummary { get; }
+    public string CustomerStatusFeedbackLocation { get; }
+    public string CustomerStatusFeedbackStatus { get; }
+    public string CustomerStatusFeedbackMessage { get; }
 
     public static MainWindowViewModel Load()
     {
@@ -163,6 +180,21 @@ public sealed class MainWindowViewModel
                 EpochScheduleRequestInboxStore.InboxPath,
                 EpochRequestScheduleCommandReceiptStore.ReceiptPath,
                 EpochScheduleExecutionHistoryStore.HistoryPath);
+        EpochCustomerScheduleStatusRecord? statusFeedback = null;
+        if (operationsBoard.ReadyForOperatorReview &&
+            inboxRequest is not null &&
+            requestCommandReceipt is not null &&
+            historyEntry is not null)
+        {
+            EpochCustomerScheduleStatusStore.TryAppend(
+                inboxRequest,
+                requestCommandReceipt,
+                historyEntry,
+                out statusFeedback);
+        }
+
+        IReadOnlyList<EpochCustomerScheduleStatusRecord> statusFeedbackRecords =
+            EpochCustomerScheduleStatusStore.Load();
 
         return new MainWindowViewModel(
             EpochNative.LoadSnapshotOrFallback(),
@@ -177,7 +209,10 @@ public sealed class MainWindowViewModel
             requestCommandReceipt,
             requestCommandReceipts,
             EpochRequestScheduleCommandReceiptStore.ReceiptPath,
-            operationsBoard);
+            operationsBoard,
+            statusFeedback,
+            statusFeedbackRecords,
+            EpochCustomerScheduleStatusStore.StatusPath);
     }
 
     private static EpochScheduleExecutionReceipt ExecuteNativeOrFallback(string intentKind)

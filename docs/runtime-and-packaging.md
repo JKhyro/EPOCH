@@ -180,3 +180,17 @@ only where the host, UI framework, or platform integration makes it necessary.
 - The Avalonia shell renders Schedule Operations Board above the Calendar Board
   and Schedule Queue so the EPOCH App behaves like the scheduling command
   surface. MONITOR remains development/control evidence only.
+
+## Local customer-safe schedule status feedback slice
+
+- `EpochCustomerScheduleStatusStore` persists App-owned customer-safe schedule
+  status exports in `customer-schedule-status.json`.
+- `EpochCustomerScheduleStatusRecord` is created from the linked Webportal
+  Request Inbox entry, Request To Native Command receipt, and Native Execution
+  History item after the operations board is ready for operator review.
+- The exported status is Webportal-ready only when the whole chain is
+  customer-safe, provider calls are disabled, and MONITOR workflow exposure is
+  false.
+- The Avalonia shell renders Customer-Safe Status Feedback so the operator can
+  see what the Webportal may safely show without exposing MONITOR controls or
+  live calendar provider behavior.

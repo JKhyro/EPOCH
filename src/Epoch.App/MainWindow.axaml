@@ -33,6 +33,14 @@
               </Border>
             </Grid>
             <TextBlock Text="{Binding OperationsBoardNextAction}" TextWrapping="Wrap" Foreground="#526071" />
+            <Border Padding="14" CornerRadius="8" Background="#f7fbff" BorderBrush="#d6e4f3" BorderThickness="1">
+              <StackPanel Spacing="6">
+                <TextBlock Text="Customer-Safe Status Feedback" FontWeight="SemiBold" Foreground="#172033" />
+                <TextBlock Text="{Binding CustomerStatusFeedbackSummary}" TextWrapping="Wrap" Foreground="#526071" />
+                <TextBlock Text="{Binding CustomerStatusFeedbackStatus}" TextWrapping="Wrap" Foreground="#526071" />
+                <TextBlock Text="{Binding CustomerStatusFeedbackMessage}" TextWrapping="Wrap" Foreground="#526071" />
+              </StackPanel>
+            </Border>
             <Grid ColumnDefinitions="*,*,*" ColumnSpacing="14">
               <StackPanel Spacing="6">
                 <TextBlock Text="Queue State" FontWeight="SemiBold" Foreground="#172033" />
@@ -48,6 +56,7 @@
                 <TextBlock Text="Safety And Ledgers" FontWeight="SemiBold" Foreground="#172033" />
                 <TextBlock Text="{Binding OperationsBoardSafetySummary}" TextWrapping="Wrap" Foreground="#526071" />
                 <TextBlock Text="{Binding OperationsBoardLedgerSummary}" TextWrapping="Wrap" FontSize="11" Foreground="#687588" />
+                <TextBlock Text="{Binding CustomerStatusFeedbackLocation}" TextWrapping="Wrap" FontSize="11" Foreground="#687588" />
               </StackPanel>
             </Grid>
           </StackPanel>

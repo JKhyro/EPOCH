@@ -41,6 +41,10 @@ internal static class EpochShellSmoke
                     EpochScheduleRequestInboxStore.InboxPath,
                     EpochRequestScheduleCommandReceiptStore.ReceiptPath,
                     EpochScheduleExecutionHistoryStore.HistoryPath);
+            EpochCustomerScheduleStatusRecord customerStatus =
+                EpochCustomerScheduleStatusStore.Append(inboxRequest, requestCommandReceipt, historyEntry);
+            IReadOnlyList<EpochCustomerScheduleStatusRecord> customerStatuses =
+                EpochCustomerScheduleStatusStore.Load();
 
             if (snapshot.ProductName != "EPOCH" ||
                 snapshot.CoreStatus != "native-core-ready" ||
@@ -88,7 +92,16 @@ internal static class EpochShellSmoke
                 !operationsBoard.OperatorNextAction.Contains("approve the next EPOCH-owned scheduling transition", StringComparison.Ordinal) ||
                 !operationsBoard.QueueSummary.Contains("1 inbox request", StringComparison.Ordinal) ||
                 !operationsBoard.SafetySummary.Contains("Provider calls enabled: false", StringComparison.Ordinal) ||
-                !operationsBoard.LedgerSummary.Contains(EpochScheduleExecutionHistoryStore.HistoryPath, StringComparison.Ordinal))
+                !operationsBoard.LedgerSummary.Contains(EpochScheduleExecutionHistoryStore.HistoryPath, StringComparison.Ordinal) ||
+                customerStatuses.Count != 1 ||
+                customerStatuses[0].StatusId != customerStatus.StatusId ||
+                customerStatuses[0].RequestId != inboxRequest.RequestId ||
+                !customerStatuses[0].CustomerSafe ||
+                !customerStatuses[0].WebportalExportReady ||
+                customerStatuses[0].ProviderCallsEnabled ||
+                customerStatuses[0].MonitorWorkflowExposed ||
+                !customerStatuses[0].CustomerSafeMessage.Contains("External calendar provider calls remain disabled", StringComparison.Ordinal) ||
+                !File.Exists(EpochCustomerScheduleStatusStore.StatusPath))
             {
                 return 2;
             }

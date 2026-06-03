@@ -31,6 +31,10 @@ exposure is part of this integration checkpoint.
   request-command receipt, and native execution history ledgers.
 - The board is still local-only, provider-off, MONITOR-off, and EPOCH-owned.
   It is not a WORKSHOP revenue surface and not a MONITOR development page.
+- `codex/local-epoch-avalonia-status-feedback` adds the App-owned
+  `customer-schedule-status.json` export ledger so linked schedule requests and
+  native execution history can become customer-safe Webportal status records
+  without exposing MONITOR or live provider behavior.
 
 ## Boundary Status
 

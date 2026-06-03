@@ -39,6 +39,8 @@ const appRequestInboxStore = read("../src/Epoch.App/Services/EpochScheduleReques
 const appRequestCommandReceipt = read("../src/Epoch.App/Models/EpochRequestScheduleCommandReceipt.cs");
 const appRequestCommandStore = read("../src/Epoch.App/Services/EpochRequestScheduleCommandReceiptStore.cs");
 const appOperationsBoard = read("../src/Epoch.App/Models/EpochScheduleOperationsBoardSnapshot.cs");
+const appCustomerStatus = read("../src/Epoch.App/Models/EpochCustomerScheduleStatusRecord.cs");
+const appCustomerStatusStore = read("../src/Epoch.App/Services/EpochCustomerScheduleStatusStore.cs");
 const {
   createAvailabilityConflictDecisionForHandoff,
   createAvailabilityCapacityReceiptForPromotion,
@@ -533,6 +535,7 @@ for (const phrase of [
   "Native Execution Receipt",
   "Execution History",
   "Schedule Operations Board",
+  "Customer-Safe Status Feedback",
   "Queue State",
   "Command Link",
   "Safety And Ledgers",
@@ -547,6 +550,10 @@ for (const phrase of [
   "OperationsBoardSafetySummary",
   "OperationsBoardLedgerSummary",
   "OperationsBoardReadyForOperatorReview",
+  "CustomerStatusFeedbackSummary",
+  "CustomerStatusFeedbackStatus",
+  "CustomerStatusFeedbackMessage",
+  "CustomerStatusFeedbackLocation",
   "CommandReadiness",
   "CommandReceiptStatus",
   "ExecutionSafetyStatus",
@@ -590,10 +597,16 @@ for (const phrase of [
   "EpochRequestScheduleCommandReceiptStore.TryAppend",
   "EpochRequestScheduleCommandReceiptStore.Load",
   "EpochScheduleOperationsBoardSnapshot.FromLedgers",
+  "EpochCustomerScheduleStatusStore.TryAppend",
+  "EpochCustomerScheduleStatusStore.Load",
   "OperationsBoardStatus",
   "OperationsBoardNextAction",
   "OperationsBoardQueueSummary",
   "OperationsBoardReadyForOperatorReview",
+  "CustomerStatusFeedbackSummary",
+  "CustomerStatusFeedbackStatus",
+  "customer-safe schedule status export(s)",
+  "Webportal export ready",
   "native scheduling command ready",
   "native execution receipt ready",
   "local scheduling execution receipt(s) persisted in the EPOCH App ledger",
@@ -623,6 +636,20 @@ for (const phrase of [
   "Block live provider calls"
 ]) {
   if (!appOperationsBoard.includes(phrase)) fail(`Avalonia operations board missing ${phrase}`);
+}
+
+for (const phrase of [
+  "EpochCustomerScheduleStatusRecord",
+  "FromScheduleChain",
+  "EPOCH.App.CustomerSafeStatusExport",
+  "local-schedule-status-ready",
+  "WebportalExportReady",
+  "ProviderCallsEnabled",
+  "MonitorWorkflowExposed",
+  "External calendar provider calls remain disabled",
+  "Review the returned timing status"
+]) {
+  if (!appCustomerStatus.includes(phrase)) fail(`Avalonia customer status record missing ${phrase}`);
 }
 
 for (const phrase of [
@@ -712,6 +739,21 @@ for (const phrase of [
 }
 
 for (const phrase of [
+  "customer-schedule-status.json",
+  "StatusPath",
+  "Append",
+  "TryAppend",
+  "ArchiveInvalidStatuses",
+  "StateDirectoryEnvironmentVariable",
+  "Environment.SpecialFolder.LocalApplicationData",
+  "KHYRON",
+  "EPOCH",
+  "App"
+]) {
+  if (!appCustomerStatusStore.includes(phrase)) fail(`Avalonia customer status store missing ${phrase}`);
+}
+
+for (const phrase of [
   "StateDirectoryEnvironmentVariable",
   "EpochScheduleExecutionHistoryStore.Append",
   "EpochScheduleExecutionHistoryStore.Load",
@@ -726,6 +768,12 @@ for (const phrase of [
   "operationsBoard.CustomerSafeChain",
   "schedule operations board ready",
   "Provider calls enabled: false",
+  "EpochCustomerScheduleStatusStore.Append",
+  "EpochCustomerScheduleStatusStore.Load",
+  "customerStatuses.Count != 1",
+  "customerStatuses[0].WebportalExportReady",
+  "External calendar provider calls remain disabled",
+  "File.Exists(EpochCustomerScheduleStatusStore.StatusPath)",
   "File.Exists(EpochScheduleExecutionHistoryStore.HistoryPath)",
   "File.Exists(EpochScheduleRequestInboxStore.InboxPath)",
   "File.Exists(EpochRequestScheduleCommandReceiptStore.ReceiptPath)",
@@ -758,7 +806,12 @@ for (const phrase of [
   "Request To Native Command",
   "Local schedule operations board slice",
   "EpochScheduleOperationsBoardSnapshot",
-  "Schedule Operations Board"
+  "Schedule Operations Board",
+  "Local customer-safe schedule status feedback slice",
+  "EpochCustomerScheduleStatusStore",
+  "customer-schedule-status.json",
+  "EpochCustomerScheduleStatusRecord",
+  "Customer-Safe Status Feedback"
 ]) {
   if (!runtime.includes(phrase)) fail(`runtime docs missing scheduling command phrase ${phrase}`);
 }
