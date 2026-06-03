@@ -9,6 +9,10 @@ import {
   createAvailabilityWaitlistEntryForRequest,
   createBookingConfirmationForHold,
   createBookingReceiptForConfirmation,
+  createDeadlineEscalationForExecution,
+  createDeadlineExecutionForItem,
+  createReminderDeadlineReceiptForEscalation,
+  createReminderExecutionForRule,
   createScheduleEntryForRequest,
   createScheduleRequestRecord,
   createScheduleRequestAcceptanceForRequest,
@@ -31,7 +35,7 @@ import {
   scheduleNeedOptions,
   selectFullAvailabilityWindow,
   selectOpenAvailabilityWindow
-} from "./epoch-data.js?v=epoch-capacity-waitlist-context";
+} from "./epoch-data.js?v=epoch-reminder-deadline-execution";
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
@@ -72,6 +76,10 @@ const mergeLedger = (stored) => {
     "availabilityPromotionCandidates",
     "availabilityCapacityReceipts",
     "deadlineItems",
+    "reminderExecutions",
+    "deadlineExecutions",
+    "deadlineEscalations",
+    "reminderDeadlineReceipts",
     "recurrenceCandidates",
     "recurringBookingSeries",
     "recurringBookingInstances",
@@ -167,6 +175,10 @@ function renderStats() {
   setText("stat-hold-releases", String((state.ledger.availabilityHoldReleases || []).length));
   setText("stat-promotions", String((state.ledger.availabilityPromotionCandidates || []).length));
   setText("stat-capacity-receipts", String((state.ledger.availabilityCapacityReceipts || []).length));
+  setText("stat-reminder-executions", String((state.ledger.reminderExecutions || []).length));
+  setText("stat-deadline-executions", String((state.ledger.deadlineExecutions || []).length));
+  setText("stat-deadline-escalations", String((state.ledger.deadlineEscalations || []).length));
+  setText("stat-reminder-deadline-receipts", String((state.ledger.reminderDeadlineReceipts || []).length));
 }
 
 function renderScheduleQueue() {
@@ -440,6 +452,38 @@ function renderDeadlinesAndReminders() {
     </article>
   `);
 
+  renderStack("reminder-execution-list", state.ledger.reminderExecutions || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.reminderRuleId)}</strong>
+      <span>${escapeHtml(item.status)} - ${escapeHtml(item.channel)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("deadline-execution-list", state.ledger.deadlineExecutions || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.deadlineItemId)}</strong>
+      <span>${escapeHtml(item.health)} - ${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("deadline-escalation-list", state.ledger.deadlineEscalations || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.owner)}</strong>
+      <span>Level ${escapeHtml(item.escalationLevel)} - ${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("reminder-deadline-receipt-list", state.ledger.reminderDeadlineReceipts || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.id)}</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.summary)}</small>
+    </article>
+  `);
+
   renderStack("recurrence-candidate-list", state.ledger.recurrenceCandidates || [], (item) => `
     <article class="mini-row">
       <strong>${escapeHtml(item.label)}</strong>
@@ -517,6 +561,29 @@ function renderDeadlinesAndReminders() {
       <small>${escapeHtml(item.customerSafeLabel)} · ${item.sandboxOnly ? "sandbox-only" : "review required"}</small>
     </article>
   `);
+  renderStack("portal-reminder-execution-status", (state.ledger.reminderExecutions || []).filter((item) => item.customerVisible), (item) => `
+    <article class="mini-row">
+      <strong>Reminder status</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("portal-deadline-execution-status", (state.ledger.deadlineExecutions || []).filter((item) => item.customerVisible), (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.deadlineItemId)}</strong>
+      <span>${escapeHtml(item.health)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("portal-deadline-escalation-status", (state.ledger.deadlineEscalations || []).filter((item) => item.customerVisible), (item) => `
+    <article class="mini-row">
+      <strong>Deadline follow-up</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
 }
 
 function renderRevisedCalendar() {
@@ -567,6 +634,9 @@ function renderCoreReadiness() {
     ["Hold Release", core.holdReleaseValidation],
     ["Promotion", core.waitlistPromotionValidation],
     ["Deadline Health", core.deadlineHealthValidation],
+    ["Reminder Execution", core.reminderExecutionValidation],
+    ["Deadline Execution", core.deadlineExecutionValidation],
+    ["Escalation", core.escalationValidation],
     ["Recurrence", core.recurrenceSandboxValidation],
     ["Customer Status", core.customerSafeStatusValidation],
     ["Rulepack Gate", core.revisedRulepackGate],
@@ -747,6 +817,39 @@ function handlePromoteWaitlist() {
   renderAll();
 }
 
+function handleRunReminderDeadlinePass() {
+  const reminderRule = (state.ledger.reminderRules || []).find((rule) => rule.sandboxOnly && rule.status !== "failed");
+  const scheduleEntry = (state.ledger.scheduleEntries || []).find((entry) => entry.id === reminderRule?.scheduleEntryId);
+  const deadlineItem = (state.ledger.deadlineItems || []).find((item) => item.health && item.health !== "on-track")
+    || (state.ledger.deadlineItems || [])[0];
+  const confirmation = byId("reminder-deadline-confirmation");
+
+  if (!reminderRule || !deadlineItem) {
+    if (confirmation) confirmation.textContent = "No local reminder rule and deadline item are ready for execution.";
+    return;
+  }
+
+  const reminderExecution = createReminderExecutionForRule(reminderRule, scheduleEntry);
+  const deadlineExecution = createDeadlineExecutionForItem(deadlineItem);
+  const escalation = createDeadlineEscalationForExecution(deadlineExecution, reminderExecution);
+  const receipt = createReminderDeadlineReceiptForEscalation(escalation, deadlineExecution, reminderExecution);
+
+  state.ledger.reminderExecutions.unshift(reminderExecution);
+  state.ledger.deadlineExecutions.unshift(deadlineExecution);
+  state.ledger.deadlineEscalations.unshift(escalation);
+  state.ledger.reminderDeadlineReceipts.unshift(receipt);
+  state.ledger.receipts.unshift({
+    id: receipt.id,
+    status: receipt.status,
+    summary: receipt.summary
+  });
+  addTimeline("Reminder deadline pass", receipt.summary, receipt.status);
+  saveLedger(state.ledger);
+
+  if (confirmation) confirmation.textContent = receipt.summary;
+  renderAll();
+}
+
 function renderAll() {
   renderNeedOptions();
   renderStats();
@@ -868,6 +971,9 @@ function bindControls() {
 
   const promoteButton = byId("promote-waitlist");
   if (promoteButton) promoteButton.addEventListener("click", handlePromoteWaitlist);
+
+  const reminderDeadlineButton = byId("run-reminder-deadline-pass");
+  if (reminderDeadlineButton) reminderDeadlineButton.addEventListener("click", handleRunReminderDeadlinePass);
 }
 
 renderAll();

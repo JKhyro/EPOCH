@@ -25,6 +25,8 @@ EPOCH MONITOR should expose local operator sections for:
   aggregates
 - Availability capacity, waitlist, hold-release, promotion, and capacity-receipt
   aggregates
+- Reminder execution, deadline execution, escalation, and execution-receipt
+  aggregates
 - Safe Access
 - Calendar Provider Readiness
 - Reminder And Recurrence Readiness
@@ -105,3 +107,9 @@ The availability capacity workflow follows the same placement rule: EPOCH App
 and EPOCH Webportal expose local capacity, waitlist, release, and promotion
 status, while EPOCH MONITOR reports aggregate waitlist, release, promotion,
 capacity-risk, and receipt counts only.
+
+The reminder/deadline execution workflow follows the same placement rule: EPOCH
+App and EPOCH Webportal expose local reminder status, deadline evaluation, and
+customer-safe follow-up state, while EPOCH MONITOR reports aggregate reminder
+execution, deadline execution, escalation, notification-send-block, and receipt
+counts only.

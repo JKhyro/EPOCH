@@ -1,4 +1,4 @@
-export const EPOCH_LEDGER_KEY = "epoch.operatingLedger.v3";
+export const EPOCH_LEDGER_KEY = "epoch.operatingLedger.v4";
 
 export const scheduleNeedOptions = [
   { value: "diagnostic-call", label: "Diagnostic call", entryType: "request" },
@@ -9,8 +9,8 @@ export const scheduleNeedOptions = [
 ];
 
 export const initialEpochLedger = {
-  version: 3,
-  generatedAt: "2026-06-03T23:35:00+09:00",
+  version: 4,
+  generatedAt: "2026-06-04T00:45:00+09:00",
   schedulingCoreReadiness: {
     id: "EPOCH-CORE-SCHEDULING-001",
     nativeContract: "epoch_core",
@@ -22,6 +22,9 @@ export const initialEpochLedger = {
     holdReleaseValidation: "ready",
     waitlistPromotionValidation: "ready",
     deadlineHealthValidation: "ready",
+    reminderExecutionValidation: "ready",
+    deadlineExecutionValidation: "ready",
+    escalationValidation: "ready",
     recurrenceSandboxValidation: "ready",
     recurrenceSeriesValidation: "ready",
     customerSafeStatusValidation: "ready",
@@ -427,6 +430,62 @@ export const initialEpochLedger = {
     { id: "EPOCH-DUE-002", label: "Reminder recurrence review", due: "2026-06-05 17:00 JST", state: "planned", health: "on-track", customerSafeStatus: "Reminder rule review is planned." },
     { id: "EPOCH-DUE-003", label: "Calendar export handoff", due: "2026-06-07 09:00 JST", state: "blocked on adapter selection", health: "blocked", customerSafeStatus: "Calendar export is not active." }
   ],
+  reminderExecutions: [
+    {
+      id: "EPOCH-REM-EXEC-001",
+      reminderRuleId: "EPOCH-REM-001",
+      scheduleEntryId: "EPOCH-SCH-001",
+      scheduledFor: "2026-06-03T11:30:00+09:00",
+      executedAt: "2026-06-03T11:31:00+09:00",
+      channel: "local-status",
+      status: "dispatched",
+      sandboxOnly: true,
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      notificationSendEnabled: false,
+      customerSafeStatus: "Reminder status was recorded locally; no notification was sent."
+    }
+  ],
+  deadlineExecutions: [
+    {
+      id: "EPOCH-DUE-EXEC-001",
+      deadlineItemId: "EPOCH-DUE-001",
+      linkedEntryId: "EPOCH-SCH-001",
+      due: "2026-06-03 12:00 JST",
+      evaluatedAt: "2026-06-03T11:32:00+09:00",
+      status: "retry-ready",
+      health: "at-risk",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Deadline is at risk; EPOCH queued a local escalation check."
+    }
+  ],
+  deadlineEscalations: [
+    {
+      id: "EPOCH-DUE-ESC-001",
+      deadlineExecutionId: "EPOCH-DUE-EXEC-001",
+      reminderExecutionId: "EPOCH-REM-EXEC-001",
+      owner: "EPOCH operator",
+      escalationLevel: 1,
+      status: "acknowledged",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      notificationSendEnabled: false,
+      customerSafeStatus: "Operator follow-up is queued locally; no external reminder was sent."
+    }
+  ],
+  reminderDeadlineReceipts: [
+    {
+      id: "EPOCH-REM-DUE-RECEIPT-001",
+      kind: "reminder-deadline-execution",
+      status: "complete",
+      summary: "EPOCH recorded reminder execution, deadline evaluation, and escalation status without live notification sends.",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      notificationSendEnabled: false,
+      generatedAt: "2026-06-03T11:33:00+09:00"
+    }
+  ],
   recurrenceCandidates: [
     {
       id: "EPOCH-REC-001",
@@ -632,7 +691,8 @@ export const initialEpochLedger = {
   receipts: [
     { id: "EPOCH-RECEIPT-GATE-001", status: "ready", summary: "Provider readiness gate blocks live calendar calls until sandbox, local records, customer-safe status, revised mapping, and operator approval are satisfied." },
     { id: "EPOCH-RECEIPT-LEDGER-001", status: "ready", summary: "Local ledger contains schedule entries, requests, availability windows, waitlists, reminder rules, and provider-readiness gates." },
-    { id: "EPOCH-CAPACITY-RECEIPT-001", status: "promoted", summary: "Availability capacity workflow released one local hold and promoted a waitlisted request without live provider calls." }
+    { id: "EPOCH-CAPACITY-RECEIPT-001", status: "promoted", summary: "Availability capacity workflow released one local hold and promoted a waitlisted request without live provider calls." },
+    { id: "EPOCH-REM-DUE-RECEIPT-001", status: "complete", summary: "Reminder and deadline execution workflow recorded local escalation status without live notification sends." }
   ]
 };
 
@@ -654,6 +714,10 @@ export const availabilityHoldReleases = initialEpochLedger.availabilityHoldRelea
 export const availabilityPromotionCandidates = initialEpochLedger.availabilityPromotionCandidates;
 export const availabilityCapacityReceipts = initialEpochLedger.availabilityCapacityReceipts;
 export const deadlineItems = initialEpochLedger.deadlineItems;
+export const reminderExecutions = initialEpochLedger.reminderExecutions;
+export const deadlineExecutions = initialEpochLedger.deadlineExecutions;
+export const deadlineEscalations = initialEpochLedger.deadlineEscalations;
+export const reminderDeadlineReceipts = initialEpochLedger.reminderDeadlineReceipts;
 export const portalTimeline = initialEpochLedger.portalTimeline;
 
 export function makeId(prefix) {
@@ -991,6 +1055,79 @@ export function createTimingReturnReceiptForPayload(payload, decision) {
     summary: payload.status === "returned"
       ? "EPOCH returned a confirmed local booking payload without live provider calls."
       : "EPOCH returned a customer-safe availability conflict payload without live provider calls.",
+    generatedAt: new Date().toISOString()
+  };
+}
+
+export function createReminderExecutionForRule(rule, entry = null) {
+  const now = new Date().toISOString();
+  return {
+    id: makeId("EPOCH-REM-EXEC"),
+    reminderRuleId: rule?.id || "",
+    scheduleEntryId: rule?.scheduleEntryId || entry?.id || "",
+    scheduledFor: entry?.startIso || now,
+    executedAt: now,
+    channel: "local-status",
+    status: "dispatched",
+    sandboxOnly: true,
+    customerVisible: true,
+    providerGoLiveRequested: false,
+    notificationSendEnabled: false,
+    customerSafeStatus: "Reminder status was recorded locally; no notification was sent."
+  };
+}
+
+export function createDeadlineExecutionForItem(item) {
+  const health = item?.health === "blocked" ? "at-risk" : (item?.health || "on-track");
+  return {
+    id: makeId("EPOCH-DUE-EXEC"),
+    deadlineItemId: item?.id || "",
+    linkedEntryId: item?.linkedEntryId || "EPOCH-SCH-001",
+    due: item?.due || "deadline pending",
+    evaluatedAt: new Date().toISOString(),
+    status: health === "on-track" ? "acknowledged" : "retry-ready",
+    health,
+    customerVisible: true,
+    providerGoLiveRequested: false,
+    customerSafeStatus: health === "on-track"
+      ? "Deadline is on track after local EPOCH evaluation."
+      : "Deadline is at risk; EPOCH queued a local escalation check."
+  };
+}
+
+export function createDeadlineEscalationForExecution(deadlineExecution, reminderExecution = null) {
+  const atRisk = deadlineExecution?.health && deadlineExecution.health !== "on-track";
+  return {
+    id: makeId("EPOCH-DUE-ESC"),
+    deadlineExecutionId: deadlineExecution?.id || "",
+    reminderExecutionId: reminderExecution?.id || "",
+    owner: "EPOCH operator",
+    escalationLevel: atRisk ? 1 : 0,
+    status: atRisk ? "acknowledged" : "complete",
+    customerVisible: true,
+    providerGoLiveRequested: false,
+    notificationSendEnabled: false,
+    customerSafeStatus: atRisk
+      ? "Operator follow-up is queued locally; no external reminder was sent."
+      : "No escalation is needed after local deadline evaluation."
+  };
+}
+
+export function createReminderDeadlineReceiptForEscalation(escalation, deadlineExecution, reminderExecution = null) {
+  const escalated = Number(escalation?.escalationLevel || 0) > 0;
+  return {
+    id: makeId("EPOCH-REM-DUE-RECEIPT"),
+    kind: "reminder-deadline-execution",
+    status: escalated ? "acknowledged" : "complete",
+    summary: escalated
+      ? "EPOCH recorded reminder execution, deadline evaluation, and escalation status without live notification sends."
+      : "EPOCH recorded reminder execution and deadline evaluation without live notification sends.",
+    reminderExecutionId: reminderExecution?.id || escalation?.reminderExecutionId || "",
+    deadlineExecutionId: deadlineExecution?.id || escalation?.deadlineExecutionId || "",
+    escalationId: escalation?.id || "",
+    customerVisible: true,
+    providerGoLiveRequested: false,
+    notificationSendEnabled: false,
     generatedAt: new Date().toISOString()
   };
 }

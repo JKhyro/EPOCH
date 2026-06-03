@@ -603,6 +603,83 @@ int epoch_deadline_rule_is_customer_safe(const EpochDeadlineRule *rule) {
            rule->health != EPOCH_DEADLINE_BLOCKED;
 }
 
+int epoch_reminder_execution_is_customer_safe(const EpochReminderExecution *execution) {
+    if (execution == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(execution->id) &&
+           epoch_text_present(execution->reminder_rule_id) &&
+           epoch_text_present(execution->schedule_entry_id) &&
+           epoch_text_present(execution->scheduled_for_iso) &&
+           epoch_text_present(execution->executed_at_iso) &&
+           epoch_text_present(execution->channel) &&
+           epoch_text_present(execution->customer_safe_status) &&
+           execution->sandbox_only &&
+           execution->customer_visible &&
+           !execution->provider_go_live_requested &&
+           !execution->notification_send_enabled &&
+           (execution->status == EPOCH_STATUS_DISPATCHED ||
+            execution->status == EPOCH_STATUS_ACKNOWLEDGED ||
+            execution->status == EPOCH_STATUS_SNOOZED ||
+            execution->status == EPOCH_STATUS_RETRY_READY);
+}
+
+int epoch_deadline_execution_is_customer_safe(const EpochDeadlineExecution *execution) {
+    if (execution == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(execution->id) &&
+           epoch_text_present(execution->deadline_rule_id) &&
+           epoch_text_present(execution->linked_entry_id) &&
+           epoch_text_present(execution->due_iso) &&
+           epoch_text_present(execution->evaluated_at_iso) &&
+           epoch_text_present(execution->customer_safe_status) &&
+           execution->customer_visible &&
+           !execution->provider_go_live_requested &&
+           execution->status != EPOCH_STATUS_FAILED &&
+           execution->status != EPOCH_STATUS_REJECTED &&
+           execution->status != EPOCH_STATUS_ROLLED_BACK &&
+           execution->status != EPOCH_STATUS_CANCELED &&
+           execution->health != EPOCH_DEADLINE_BLOCKED;
+}
+
+int epoch_deadline_escalation_is_customer_safe(const EpochDeadlineEscalation *escalation) {
+    if (escalation == 0 || escalation->escalation_level <= 0) {
+        return 0;
+    }
+
+    return epoch_text_present(escalation->id) &&
+           epoch_text_present(escalation->deadline_execution_id) &&
+           epoch_text_present(escalation->reminder_execution_id) &&
+           epoch_text_present(escalation->owner) &&
+           epoch_text_present(escalation->customer_safe_status) &&
+           escalation->customer_visible &&
+           !escalation->provider_go_live_requested &&
+           !escalation->notification_send_enabled &&
+           (escalation->status == EPOCH_STATUS_DISPATCHED ||
+            escalation->status == EPOCH_STATUS_ACKNOWLEDGED ||
+            escalation->status == EPOCH_STATUS_RETRY_READY);
+}
+
+int epoch_reminder_deadline_receipt_is_customer_safe(const EpochReminderDeadlineReceipt *receipt) {
+    if (receipt == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(receipt->id) &&
+           epoch_text_present(receipt->kind) &&
+           epoch_text_present(receipt->summary) &&
+           receipt->customer_visible &&
+           !receipt->provider_go_live_requested &&
+           !receipt->notification_send_enabled &&
+           strcmp(receipt->kind, "reminder-deadline-execution") == 0 &&
+           (receipt->status == EPOCH_STATUS_COMPLETE ||
+            receipt->status == EPOCH_STATUS_ACKNOWLEDGED ||
+            receipt->status == EPOCH_STATUS_RETRY_READY);
+}
+
 int epoch_revised_calendar_rulepack_has_required_approvals(const EpochRevisedCalendarRulepack *rulepack) {
     if (rulepack == 0) {
         return 0;
