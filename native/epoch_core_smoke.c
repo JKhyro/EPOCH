@@ -527,10 +527,19 @@ int main(void) {
         1,
     };
     EpochScheduleTemplate schedule_template = {
-        "schedule-template-001",
+        "EPOCH-SCHEDULE-TEMPLATE-001",
         "submission-review-return",
         "Submission Review Return",
         "48-hour async return block",
+        "Asia/Tokyo",
+        1,
+        0,
+    };
+    EpochScheduleTemplate systems_schedule_template = {
+        "EPOCH-SCHEDULE-TEMPLATE-003",
+        "systems-scope-review",
+        "Systems Scope Review",
+        "30-minute scope and fit review hold",
         "Asia/Tokyo",
         1,
         0,
@@ -737,6 +746,7 @@ int main(void) {
     assert(epoch_calendar_search_query_respects_role(&customer_query) == 1);
     assert(epoch_calendar_search_result_is_customer_safe(&search_result) == 1);
     assert(epoch_schedule_template_is_ready(&schedule_template) == 1);
+    assert(epoch_schedule_template_is_ready(&systems_schedule_template) == 1);
     assert(epoch_persona_lane_status_is_local(&integrator_lane) == 1);
     assert(epoch_local_worktree_status_is_local_only(&local_worktree) == 1);
     assert(epoch_calendar_provider_gate_ready_for_live_toggle(&gate) == 1);

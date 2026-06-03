@@ -107,6 +107,11 @@ Service catalog, package delivery, revenue pipeline, CRM, consulting/support
 work, and submission-product operations belong in WORKSHOP App/Webportal, not
 EPOCH App/Webportal and not EPOCH MONITOR.
 
+WORKSHOP service pages may reference EPOCH-owned schedule template ids such as
+submission-return or systems scope-review holds, but EPOCH remains the template,
+availability, and schedule-status authority. Those references are timing
+handoffs only; they do not move WORKSHOP service records into EPOCH.
+
 ## Immediate lock criteria
 
 - EPOCH owns calendar/scheduling and schedule-bound administration.

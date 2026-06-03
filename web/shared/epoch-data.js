@@ -214,6 +214,16 @@ export const initialEpochLedger = {
       customerVisible: false,
       providerGoLiveRequested: false,
       customerSafeStatus: "Recurring cohort timing template is internal until EPOCH confirms availability."
+    },
+    {
+      id: "EPOCH-SCHEDULE-TEMPLATE-003",
+      templateKind: "systems-scope-review",
+      title: "Systems Scope Review",
+      defaultDurationLabel: "30-minute scope and fit review hold",
+      timezone: "Asia/Tokyo",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Systems review timing can be requested through EPOCH while service delivery remains in WORKSHOP."
     }
   ],
   avaloniaShellReadiness: {

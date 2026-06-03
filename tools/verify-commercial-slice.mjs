@@ -1406,6 +1406,7 @@ if (!projection.customerSafe ||
   fail("revised rulepack constraint projection did not preserve owner calendar constraints");
 }
 if (!initialEpochLedger.scheduleAuditRecords.length || !initialEpochLedger.scheduleReceipts.length || !initialEpochLedger.schedulerLogEntries.length || !initialEpochLedger.calendarSearchResults.length || !initialEpochLedger.scheduleTemplates.length) fail("EPOCH product module records are not seeded in App/Webportal ledger");
+if (!initialEpochLedger.scheduleTemplates.some((template) => template.id === "EPOCH-SCHEDULE-TEMPLATE-003" && template.templateKind === "systems-scope-review" && template.customerVisible && !template.providerGoLiveRequested)) fail("EPOCH ledger missing customer-safe systems scope review schedule template");
 if (!initialEpochLedger.scheduleLifecycleActions.length) fail("EPOCH lifecycle action records are not seeded in App/Webportal ledger");
 if (initialEpochLedger.scheduleLifecycleActions.some((record) => record.providerCallsEnabled || record.monitorWorkflowExposed || !record.appOwnedLifecycleState || !record.customerVisible)) fail("schedule lifecycle action records must stay App-owned, customer-visible, provider-off, and MONITOR-off");
 if (initialEpochLedger.scheduleAuditRecords.some((record) => record.providerGoLiveRequested)) fail("schedule audit records must stay local-only");
