@@ -1,7 +1,12 @@
 import {
   EPOCH_LEDGER_KEY,
   createAvailabilityConflictDecisionForHandoff,
+  createAvailabilityCapacityReceiptForPromotion,
+  createAvailabilityCapacitySnapshotForWindow,
   createAvailabilityHoldForAcceptance,
+  createAvailabilityHoldReleaseForHold,
+  createAvailabilityPromotionCandidateForWaitlist,
+  createAvailabilityWaitlistEntryForRequest,
   createBookingConfirmationForHold,
   createBookingReceiptForConfirmation,
   createScheduleEntryForRequest,
@@ -24,8 +29,9 @@ import {
   revisedMonths,
   scheduleNeedLabel,
   scheduleNeedOptions,
+  selectFullAvailabilityWindow,
   selectOpenAvailabilityWindow
-} from "./epoch-data.js?v=epoch-timing-return-context";
+} from "./epoch-data.js?v=epoch-capacity-waitlist-context";
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
@@ -60,6 +66,11 @@ const mergeLedger = (stored) => {
     "timingReturnPayloads",
     "timingReturnReceipts",
     "availabilityWindows",
+    "availabilityCapacitySnapshots",
+    "availabilityWaitlistEntries",
+    "availabilityHoldReleases",
+    "availabilityPromotionCandidates",
+    "availabilityCapacityReceipts",
     "deadlineItems",
     "recurrenceCandidates",
     "recurringBookingSeries",
@@ -151,6 +162,11 @@ function renderStats() {
   setText("stat-series-instances", String((state.ledger.recurringBookingInstances || []).length));
   setText("stat-series-exceptions", String((state.ledger.recurrenceConflictExceptions || []).length));
   setText("stat-series-receipts", String((state.ledger.recurringSeriesReceipts || []).length));
+  setText("stat-capacity-snapshots", String((state.ledger.availabilityCapacitySnapshots || []).length));
+  setText("stat-waitlist", String((state.ledger.availabilityWaitlistEntries || []).filter((entry) => entry.status === "waitlisted").length));
+  setText("stat-hold-releases", String((state.ledger.availabilityHoldReleases || []).length));
+  setText("stat-promotions", String((state.ledger.availabilityPromotionCandidates || []).length));
+  setText("stat-capacity-receipts", String((state.ledger.availabilityCapacityReceipts || []).length));
 }
 
 function renderScheduleQueue() {
@@ -191,6 +207,70 @@ function renderAvailability() {
   `;
   renderStack("availability-list", state.ledger.availabilityWindows, renderWindow);
   renderStack("portal-availability", state.ledger.availabilityWindows, renderWindow);
+
+  renderStack("capacity-snapshot-list", state.ledger.availabilityCapacitySnapshots || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.availabilityWindowId)}</strong>
+      <span>${escapeHtml(item.status)} - ${escapeHtml(item.holds)} of ${escapeHtml(item.capacity)} held</span>
+      <small>${escapeHtml(item.waitlistCount)} waitlisted / ${escapeHtml(item.promotionCandidateCount)} promotions - ${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("waitlist-list", state.ledger.availabilityWaitlistEntries || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.scheduleRequestId)}</strong>
+      <span>${escapeHtml(item.status)} - priority ${escapeHtml(item.priority)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("hold-release-list", state.ledger.availabilityHoldReleases || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.availabilityHoldId)}</strong>
+      <span>${escapeHtml(item.status)} - ${escapeHtml(item.availabilityWindowId)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("promotion-candidate-list", state.ledger.availabilityPromotionCandidates || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.waitlistEntryId)}</strong>
+      <span>${escapeHtml(item.status)} - ${escapeHtml(item.availabilityWindowId)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("capacity-receipt-list", state.ledger.availabilityCapacityReceipts || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.id)}</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.summary)}</small>
+    </article>
+  `);
+
+  renderStack("portal-waitlist-status", (state.ledger.availabilityWaitlistEntries || []).filter((item) => item.customerVisible), (item) => `
+    <article class="mini-row">
+      <strong>Waitlist priority ${escapeHtml(item.priority)}</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("portal-capacity-status", (state.ledger.availabilityCapacitySnapshots || []).filter((item) => item.customerVisible), (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.availabilityWindowId)}</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("portal-promotion-status", (state.ledger.availabilityPromotionCandidates || []).filter((item) => item.customerVisible), (item) => `
+    <article class="mini-row">
+      <strong>Waitlist promotion</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
 }
 
 function renderBookingWorkflow() {
@@ -482,6 +562,10 @@ function renderCoreReadiness() {
     ["Schedule Entry", core.scheduleEntryValidation],
     ["Schedule Request", core.scheduleRequestValidation],
     ["Availability", core.availabilityValidation],
+    ["Capacity", core.capacityValidation],
+    ["Waitlist", core.waitlistValidation],
+    ["Hold Release", core.holdReleaseValidation],
+    ["Promotion", core.waitlistPromotionValidation],
     ["Deadline Health", core.deadlineHealthValidation],
     ["Recurrence", core.recurrenceSandboxValidation],
     ["Customer Status", core.customerSafeStatusValidation],
@@ -625,6 +709,44 @@ function handleGenerateRecurringSeries() {
   renderAll();
 }
 
+function handlePromoteWaitlist() {
+  const waitlistEntry = (state.ledger.availabilityWaitlistEntries || []).find((entry) => entry.status === "waitlisted");
+  const fullWindow = selectFullAvailabilityWindow(state.ledger.availabilityWindows || []);
+  const releaseHold = (state.ledger.availabilityHolds || []).find((hold) => hold.status === "released" && (!fullWindow || hold.availabilityWindowId === fullWindow.id))
+    || (state.ledger.availabilityHolds || []).find((hold) => hold.status === "held" && (!fullWindow || hold.availabilityWindowId === fullWindow.id));
+  const confirmation = byId("waitlist-promotion-confirmation");
+
+  if (!waitlistEntry || !fullWindow || !releaseHold) {
+    if (confirmation) confirmation.textContent = "No local waitlist entry, full window, and releasable hold are ready for promotion.";
+    return;
+  }
+
+  const release = createAvailabilityHoldReleaseForHold(releaseHold, fullWindow);
+  const promotion = createAvailabilityPromotionCandidateForWaitlist(waitlistEntry, fullWindow, release);
+  const receipt = createAvailabilityCapacityReceiptForPromotion(promotion, release, waitlistEntry);
+  const snapshot = createAvailabilityCapacitySnapshotForWindow(
+    fullWindow,
+    state.ledger.availabilityWaitlistEntries,
+    [release, ...(state.ledger.availabilityHoldReleases || [])],
+    [promotion, ...(state.ledger.availabilityPromotionCandidates || [])]
+  );
+
+  releaseHold.status = "released";
+  releaseHold.customerSafeStatus = release.customerSafeStatus;
+  waitlistEntry.status = "promoted";
+  waitlistEntry.customerSafeStatus = "Waitlist request was promoted into a local availability hold.";
+  state.ledger.availabilityHoldReleases.unshift(release);
+  state.ledger.availabilityPromotionCandidates.unshift(promotion);
+  state.ledger.availabilityCapacitySnapshots.unshift(snapshot);
+  state.ledger.availabilityCapacityReceipts.unshift(receipt);
+  addTimeline("Waitlist promoted", promotion.customerSafeStatus, promotion.status);
+  appendReceipt(receipt.summary, receipt.status);
+  saveLedger(state.ledger);
+
+  if (confirmation) confirmation.textContent = promotion.customerSafeStatus;
+  renderAll();
+}
+
 function renderAll() {
   renderNeedOptions();
   renderStats();
@@ -689,18 +811,36 @@ function handleScheduleRequest(event) {
     const scheduleStatusEvent = createScheduleStatusEventForConflict(conflictDecision, request);
     const timingReturnPayload = createTimingReturnPayloadForDecision(conflictDecision, request);
     const timingReturnReceipt = createTimingReturnReceiptForPayload(timingReturnPayload, conflictDecision);
+    const waitlistEntry = createAvailabilityWaitlistEntryForRequest(
+      request,
+      conflictDecision,
+      (state.ledger.availabilityWaitlistEntries || []).length + 1
+    );
+    const fullWindow = selectFullAvailabilityWindow(state.ledger.availabilityWindows || []);
+    const snapshot = createAvailabilityCapacitySnapshotForWindow(
+      fullWindow,
+      [waitlistEntry, ...(state.ledger.availabilityWaitlistEntries || [])],
+      state.ledger.availabilityHoldReleases || [],
+      state.ledger.availabilityPromotionCandidates || []
+    );
+    const capacityReceipt = createAvailabilityCapacityReceiptForPromotion(null, null, waitlistEntry);
 
-    request.status = "needs-reschedule";
-    request.customerSafeStatus = conflictDecision.customerSafeStatus;
+    request.status = "waitlisted";
+    request.customerSafeStatus = waitlistEntry.customerSafeStatus;
     handoff.status = "needs-reschedule";
     handoff.customerSafeStatus = timingReturnPayload.customerSafeStatus;
 
     state.ledger.scheduleStatusEvents.unshift(scheduleStatusEvent);
     state.ledger.timingReturnPayloads.unshift(timingReturnPayload);
     state.ledger.timingReturnReceipts.unshift(timingReturnReceipt);
+    state.ledger.availabilityWaitlistEntries.unshift(waitlistEntry);
+    if (snapshot.availabilityWindowId) state.ledger.availabilityCapacitySnapshots.unshift(snapshot);
+    state.ledger.availabilityCapacityReceipts.unshift(capacityReceipt);
     addTimeline("Timing conflict", timingReturnPayload.customerSafeStatus, timingReturnPayload.status);
+    addTimeline("Waitlist opened", waitlistEntry.customerSafeStatus, waitlistEntry.status);
     appendReceipt(`${request.requester} received a local-only availability conflict return.`, "needs-reschedule");
-    confirmationText = timingReturnPayload.customerSafeStatus;
+    appendReceipt(capacityReceipt.summary, capacityReceipt.status);
+    confirmationText = waitlistEntry.customerSafeStatus;
   }
   saveLedger(state.ledger);
 
@@ -725,6 +865,9 @@ function bindControls() {
 
   const seriesButton = byId("generate-recurring-series");
   if (seriesButton) seriesButton.addEventListener("click", handleGenerateRecurringSeries);
+
+  const promoteButton = byId("promote-waitlist");
+  if (promoteButton) promoteButton.addEventListener("click", handlePromoteWaitlist);
 }
 
 renderAll();

@@ -23,7 +23,12 @@ const header = read("../native/epoch_core.h");
 const source = read("../native/epoch_core.c");
 const {
   createAvailabilityConflictDecisionForHandoff,
+  createAvailabilityCapacityReceiptForPromotion,
+  createAvailabilityCapacitySnapshotForWindow,
   createAvailabilityHoldForAcceptance,
+  createAvailabilityHoldReleaseForHold,
+  createAvailabilityPromotionCandidateForWaitlist,
+  createAvailabilityWaitlistEntryForRequest,
   createBookingConfirmationForHold,
   createBookingReceiptForConfirmation,
   createScheduleEntryForRequest,
@@ -43,6 +48,7 @@ const {
   providerGateReadyForToggle,
   revisedRulepackBlocksConversion,
   revisedRulepackReady,
+  selectFullAvailabilityWindow,
   selectOpenAvailabilityWindow
 } = await import("../web/shared/epoch-data.js");
 
@@ -52,7 +58,10 @@ for (const phrase of ["EPOCH App", "EPOCH Webportal", "EPOCH MONITOR"]) {
 
 if (!app.includes("EPOCH App")) fail("app missing EPOCH App identity");
 if (!portal.includes("EPOCH Webportal")) fail("portal missing EPOCH Webportal identity");
-if (!app.includes("epoch-monitor.html") || !portal.includes("epoch-monitor.html")) fail("app/webportal missing MONITOR route link");
+if (!app.includes("epoch-monitor.html")) fail("app missing MONITOR route link");
+if (portal.includes("epoch-monitor.html") || /MONITOR|raw admin|control surface/i.test(portal)) {
+  fail("webportal exposes MONITOR/admin/control language");
+}
 
 for (const phrase of [
   "Calendar, Scheduling, And Time Operations",
@@ -75,6 +84,11 @@ for (const phrase of [
   "Availability Conflict Decisions",
   "Schedule Request Acceptances",
   "Availability Holds",
+  "Capacity Snapshots",
+  "Availability Waitlist",
+  "Hold Releases",
+  "Promotion Candidates",
+  "Capacity Receipts",
   "Booking Confirmations",
   "Schedule Status Events",
   "Booking Receipts",
@@ -102,6 +116,9 @@ for (const phrase of [
   "Timing Handoff Status",
   "Availability Decision",
   "Availability Hold Status",
+  "Capacity Status",
+  "Waitlist Status",
+  "Promotion Status",
   "Booking Confirmation Status",
   "Schedule Status Updates",
   "Booking Receipts",
@@ -114,7 +131,7 @@ for (const phrase of [
   "Revised Calendar Status",
   "External Calendar Connection",
   "Shows provider status without enabling live provider calls",
-  "Does not expose raw admin or MONITOR controls"
+  "Keeps operational controls outside this customer portal"
 ]) {
   if (!portal.includes(phrase)) fail(`EPOCH webportal missing ${phrase}`);
 }
@@ -127,7 +144,7 @@ for (const path of [
   if (!root.includes(path)) fail(`root directory missing route ${path}`);
 }
 
-for (const phrase of ["epochSchedule", "availabilityWindows", "deadlineItems", "revisedMonths", "portalTimeline"]) {
+for (const phrase of ["epochSchedule", "availabilityWindows", "availabilityCapacitySnapshots", "availabilityWaitlistEntries", "availabilityHoldReleases", "availabilityPromotionCandidates", "availabilityCapacityReceipts", "deadlineItems", "revisedMonths", "portalTimeline"]) {
   if (!data.includes(phrase)) fail(`EPOCH data missing ${phrase}`);
 }
 
@@ -145,6 +162,11 @@ for (const phrase of [
   "bookingReceipts",
   "timingReturnPayloads",
   "timingReturnReceipts",
+  "availabilityCapacitySnapshots",
+  "availabilityWaitlistEntries",
+  "availabilityHoldReleases",
+  "availabilityPromotionCandidates",
+  "availabilityCapacityReceipts",
   "schedulingCoreReadiness",
   "reminderRules",
   "recurrenceCandidates",
@@ -161,6 +183,11 @@ for (const phrase of [
   "createAvailabilityConflictDecisionForHandoff",
   "createScheduleRequestAcceptanceForRequest",
   "createAvailabilityHoldForAcceptance",
+  "createAvailabilityCapacitySnapshotForWindow",
+  "createAvailabilityWaitlistEntryForRequest",
+  "createAvailabilityHoldReleaseForHold",
+  "createAvailabilityPromotionCandidateForWaitlist",
+  "createAvailabilityCapacityReceiptForPromotion",
   "createBookingConfirmationForHold",
   "createScheduleStatusEventForBooking",
   "createScheduleStatusEventForConflict",
@@ -172,6 +199,7 @@ for (const phrase of [
   "createRecurrenceConflictExceptionForInstance",
   "createRecurringSeriesReceiptForSeries",
   "selectOpenAvailabilityWindow",
+  "selectFullAvailabilityWindow",
   "providerGateReadyForToggle",
   "providerGateBlocksLiveCalls",
   "revisedRulepackReady",
@@ -191,6 +219,11 @@ for (const phrase of [
   "conflict-decision-list",
   "acceptance-list",
   "hold-list",
+  "capacity-snapshot-list",
+  "waitlist-list",
+  "hold-release-list",
+  "promotion-candidate-list",
+  "capacity-receipt-list",
   "booking-confirmation-list",
   "schedule-status-event-list",
   "booking-receipt-list",
@@ -200,6 +233,9 @@ for (const phrase of [
   "portal-timing-handoff-status",
   "portal-availability-decision",
   "portal-hold-status",
+  "portal-capacity-status",
+  "portal-waitlist-status",
+  "portal-promotion-status",
   "portal-booking-status",
   "portal-schedule-status-events",
   "portal-booking-receipts",
@@ -217,6 +253,7 @@ for (const phrase of [
   "portal-recurring-instance-status",
   "portal-recurring-exceptions",
   "generate-recurring-series",
+  "promote-waitlist",
   "revised-rulepack-status",
   "portal-revised-status",
   "reset-schedule-ledger"
@@ -231,6 +268,9 @@ for (const status of [
   "EPOCH_STATUS_CLEAR",
   "EPOCH_STATUS_ACCEPTED",
   "EPOCH_STATUS_HELD",
+  "EPOCH_STATUS_RELEASED",
+  "EPOCH_STATUS_WAITLISTED",
+  "EPOCH_STATUS_PROMOTED",
   "EPOCH_STATUS_CONFIRMED",
   "EPOCH_STATUS_NEEDS_RESCHEDULE",
   "EPOCH_STATUS_IN_PROGRESS",
@@ -240,7 +280,7 @@ for (const status of [
   if (!header.includes(status)) fail(`native header missing ${status}`);
 }
 
-for (const label of ["planned", "available", "queued", "clear", "accepted", "held", "confirmed", "needs-reschedule", "in-progress", "overdue", "complete"]) {
+for (const label of ["planned", "available", "queued", "clear", "accepted", "held", "released", "waitlisted", "promoted", "confirmed", "needs-reschedule", "in-progress", "overdue", "complete"]) {
   if (!source.includes(`"${label}"`)) fail(`native source missing label ${label}`);
 }
 
@@ -263,6 +303,11 @@ for (const type of [
   "EpochAvailabilityConflictDecision",
   "EpochScheduleRequestAcceptance",
   "EpochAvailabilityHold",
+  "EpochAvailabilityCapacitySnapshot",
+  "EpochAvailabilityWaitlistEntry",
+  "EpochAvailabilityHoldRelease",
+  "EpochAvailabilityPromotionCandidate",
+  "EpochAvailabilityCapacityReceipt",
   "EpochBookingConfirmation",
   "EpochScheduleStatusEvent",
   "EpochBookingReceipt",
@@ -295,6 +340,11 @@ for (const fn of [
   "epoch_availability_conflict_decision_is_customer_safe",
   "epoch_schedule_request_acceptance_is_ready",
   "epoch_availability_hold_is_ready",
+  "epoch_availability_capacity_snapshot_is_customer_safe",
+  "epoch_availability_waitlist_entry_is_customer_safe",
+  "epoch_availability_hold_release_is_ready",
+  "epoch_availability_promotion_candidate_is_ready",
+  "epoch_availability_capacity_receipt_is_customer_safe",
   "epoch_booking_confirmation_is_customer_safe",
   "epoch_schedule_status_event_is_customer_safe",
   "epoch_booking_receipt_is_customer_safe",
@@ -358,6 +408,18 @@ const conflictDecision = createAvailabilityConflictDecisionForHandoff(handoff, n
 const conflictStatusEvent = createScheduleStatusEventForConflict(conflictDecision, request);
 const conflictPayload = createTimingReturnPayloadForDecision(conflictDecision, request);
 const conflictReceipt = createTimingReturnReceiptForPayload(conflictPayload, conflictDecision);
+const fullWindow = selectFullAvailabilityWindow(initialEpochLedger.availabilityWindows);
+const waitlistEntry = createAvailabilityWaitlistEntryForRequest(request, conflictDecision, 2);
+const releaseSourceHold = initialEpochLedger.availabilityHolds.find((item) => item.status === "released");
+const holdRelease = createAvailabilityHoldReleaseForHold(releaseSourceHold, fullWindow);
+const promotionCandidate = createAvailabilityPromotionCandidateForWaitlist(waitlistEntry, fullWindow, holdRelease);
+const capacityReceipt = createAvailabilityCapacityReceiptForPromotion(promotionCandidate, holdRelease, waitlistEntry);
+const capacitySnapshot = createAvailabilityCapacitySnapshotForWindow(
+  fullWindow,
+  [waitlistEntry, ...initialEpochLedger.availabilityWaitlistEntries],
+  [holdRelease, ...initialEpochLedger.availabilityHoldReleases],
+  [promotionCandidate, ...initialEpochLedger.availabilityPromotionCandidates]
+);
 const recurrenceCandidate = initialEpochLedger.recurrenceCandidates.find((candidate) => candidate.createsFutureEntries);
 const recurringSeries = createRecurringBookingSeriesForRule(recurrenceCandidate, entry);
 const recurringInstance = createRecurringBookingInstanceForSeries(recurringSeries, 1, openWindow, entry);
@@ -409,6 +471,12 @@ if (conflictDecision.status !== "needs-reschedule" || conflictDecision.availabil
 if (conflictStatusEvent.state !== "needs-reschedule" || !conflictStatusEvent.customerSafeStatus.includes("new window")) fail("conflict status event is not customer-safe");
 if (conflictPayload.status !== "needs-reschedule" || conflictPayload.bookingConfirmationId || !conflictPayload.customerSafeStatus.includes("new window")) fail("conflict return payload did not create reschedule return");
 if (conflictReceipt.status !== "needs-reschedule" || !conflictReceipt.summary.includes("availability conflict")) fail("conflict return receipt did not preserve conflict proof");
+if (!fullWindow || fullWindow.id !== "EPOCH-WIN-004") fail("full availability selector did not choose the full seeded window");
+if (waitlistEntry.status !== "waitlisted" || waitlistEntry.providerGoLiveRequested || waitlistEntry.priority !== 2) fail("waitlist factory did not create safe local waitlist entry");
+if (holdRelease.status !== "released" || holdRelease.providerGoLiveRequested || holdRelease.availabilityWindowId !== fullWindow.id) fail("hold release factory did not create safe local release");
+if (promotionCandidate.status !== "promoted" || promotionCandidate.providerGoLiveRequested || promotionCandidate.waitlistEntryId !== waitlistEntry.id) fail("promotion factory did not create safe local promotion candidate");
+if (capacityReceipt.status !== "promoted" || capacityReceipt.kind !== "availability-capacity" || !capacityReceipt.summary.includes("without live provider calls")) fail("capacity receipt did not preserve local-only proof");
+if (capacitySnapshot.status !== "waitlisted" || capacitySnapshot.providerGoLiveRequested || capacitySnapshot.waitlistCount < 1 || capacitySnapshot.promotionCandidateCount < 1) fail("capacity snapshot did not summarize waitlist/promotion state");
 if (!recurrenceCandidate || recurrenceCandidate.calendarSystem !== "gregorian") fail("approved recurrence candidate missing for series generation");
 if (recurringSeries.status !== "confirmed" || recurringSeries.providerGoLiveRequested || !recurringSeries.customerSafeStatus.includes("generated locally")) fail("recurring series factory did not create safe local series");
 if (recurringInstance.status !== "confirmed" || recurringInstance.providerGoLiveRequested || !recurringInstance.bookingConfirmationId) fail("recurring instance factory did not create confirmed local instance");

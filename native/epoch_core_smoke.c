@@ -103,6 +103,59 @@ int main(void) {
         1,
         0,
     };
+    EpochAvailabilityCapacitySnapshot capacity_snapshot = {
+        "capacity-snapshot-001",
+        "win-001",
+        "One local availability window has a released hold and one waitlisted request is eligible for promotion.",
+        3,
+        2,
+        1,
+        1,
+        1,
+        EPOCH_STATUS_WAITLISTED,
+        1,
+        0,
+    };
+    EpochAvailabilityWaitlistEntry waitlist_entry = {
+        "waitlist-001",
+        "req-002",
+        "2026-06-04T18:00:00+09:00/2026-06-04T19:00:00+09:00",
+        "Asia/Tokyo",
+        "Requested timing is full; EPOCH has placed the request on the local waitlist.",
+        1,
+        EPOCH_STATUS_WAITLISTED,
+        1,
+        0,
+    };
+    EpochAvailabilityHoldRelease hold_release = {
+        "hold-release-001",
+        "hold-001",
+        "win-001",
+        "2026-06-04T12:00:00+09:00",
+        "A local hold was released and one waitlisted request can be promoted.",
+        1,
+        EPOCH_STATUS_RELEASED,
+        1,
+        0,
+    };
+    EpochAvailabilityPromotionCandidate promotion_candidate = {
+        "promotion-001",
+        "waitlist-001",
+        "win-001",
+        "hold-promoted-001",
+        "A waitlisted request can be promoted into a local availability hold.",
+        EPOCH_STATUS_PROMOTED,
+        1,
+        0,
+    };
+    EpochAvailabilityCapacityReceipt capacity_receipt = {
+        "capacity-receipt-001",
+        "availability-capacity",
+        "EPOCH released one local hold and promoted one waitlisted request without live provider calls.",
+        EPOCH_STATUS_PROMOTED,
+        1,
+        0,
+    };
     EpochBookingConfirmation booking = {
         "book-001",
         "accept-001",
@@ -326,6 +379,9 @@ int main(void) {
     assert(strcmp(epoch_status_label(EPOCH_STATUS_CLEAR), "clear") == 0);
     assert(strcmp(epoch_status_label(EPOCH_STATUS_ACCEPTED), "accepted") == 0);
     assert(strcmp(epoch_status_label(EPOCH_STATUS_HELD), "held") == 0);
+    assert(strcmp(epoch_status_label(EPOCH_STATUS_RELEASED), "released") == 0);
+    assert(strcmp(epoch_status_label(EPOCH_STATUS_WAITLISTED), "waitlisted") == 0);
+    assert(strcmp(epoch_status_label(EPOCH_STATUS_PROMOTED), "promoted") == 0);
     assert(strcmp(epoch_status_label(EPOCH_STATUS_CONFIRMED), "confirmed") == 0);
     assert(strcmp(epoch_status_label(EPOCH_STATUS_NEEDS_RESCHEDULE), "needs-reschedule") == 0);
     assert(epoch_status_from_label("reviewing", &status) == 1);
@@ -338,6 +394,8 @@ int main(void) {
     assert(status == EPOCH_STATUS_CONFIRMED);
     assert(epoch_status_from_label("needs-reschedule", &status) == 1);
     assert(status == EPOCH_STATUS_NEEDS_RESCHEDULE);
+    assert(epoch_status_from_label("waitlisted", &status) == 1);
+    assert(status == EPOCH_STATUS_WAITLISTED);
     assert(epoch_status_from_label("snoozed", &status) == 1);
     assert(status == EPOCH_STATUS_SNOOZED);
     assert(epoch_status_from_label("paid-recorded", &status) == 1);
@@ -378,6 +436,26 @@ int main(void) {
     hold.status = EPOCH_STATUS_CANCELED;
     assert(epoch_availability_hold_is_ready(&hold) == 0);
     hold.status = EPOCH_STATUS_HELD;
+    assert(epoch_availability_capacity_snapshot_is_customer_safe(&capacity_snapshot) == 1);
+    assert(epoch_availability_waitlist_entry_is_customer_safe(&waitlist_entry) == 1);
+    assert(epoch_availability_hold_release_is_ready(&hold_release) == 1);
+    assert(epoch_availability_promotion_candidate_is_ready(&promotion_candidate) == 1);
+    assert(epoch_availability_capacity_receipt_is_customer_safe(&capacity_receipt) == 1);
+    capacity_snapshot.holds = 4;
+    assert(epoch_availability_capacity_snapshot_is_customer_safe(&capacity_snapshot) == 0);
+    capacity_snapshot.holds = 2;
+    waitlist_entry.provider_go_live_requested = 1;
+    assert(epoch_availability_waitlist_entry_is_customer_safe(&waitlist_entry) == 0);
+    waitlist_entry.provider_go_live_requested = 0;
+    hold_release.status = EPOCH_STATUS_HELD;
+    assert(epoch_availability_hold_release_is_ready(&hold_release) == 0);
+    hold_release.status = EPOCH_STATUS_RELEASED;
+    promotion_candidate.promoted_hold_id = "";
+    assert(epoch_availability_promotion_candidate_is_ready(&promotion_candidate) == 0);
+    promotion_candidate.promoted_hold_id = "hold-promoted-001";
+    capacity_receipt.kind = "booking";
+    assert(epoch_availability_capacity_receipt_is_customer_safe(&capacity_receipt) == 0);
+    capacity_receipt.kind = "availability-capacity";
     assert(epoch_reminder_rule_is_sandbox_safe(&reminder) == 1);
     assert(epoch_recurrence_rule_is_sandbox_safe(&recurrence) == 1);
     assert(epoch_recurring_booking_series_is_customer_safe(&recurring_series) == 1);

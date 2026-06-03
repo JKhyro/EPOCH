@@ -23,6 +23,8 @@ EPOCH MONITOR should expose local operator sections for:
 - Booking acceptance, hold, confirmation, status-event, and receipt aggregates
 - Timing handoff, availability conflict, timing return, and return-receipt
   aggregates
+- Availability capacity, waitlist, hold-release, promotion, and capacity-receipt
+  aggregates
 - Safe Access
 - Calendar Provider Readiness
 - Reminder And Recurrence Readiness
@@ -98,3 +100,8 @@ confirmation, status-event, and receipt counts plus safe local receipts only.
 The timing handoff return workflow follows the same placement rule: EPOCH App
 and EPOCH Webportal expose the workflow, while EPOCH MONITOR reports aggregate
 handoff, conflict, return, and receipt counts only.
+
+The availability capacity workflow follows the same placement rule: EPOCH App
+and EPOCH Webportal expose local capacity, waitlist, release, and promotion
+status, while EPOCH MONITOR reports aggregate waitlist, release, promotion,
+capacity-risk, and receipt counts only.
