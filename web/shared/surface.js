@@ -7,7 +7,11 @@ import {
   createAvailabilityHoldReleaseForHold,
   createAvailabilityPromotionCandidateForWaitlist,
   createAvailabilityWaitlistEntryForRequest,
+  createBookingOptimizationRunForRequest,
+  createBookingOverloadWarningForWindow,
   createBookingConfirmationForHold,
+  createBookingRecommendationCandidateForWindow,
+  createBookingRecommendationReceiptForRun,
   createBookingReceiptForConfirmation,
   createDeadlineEscalationForExecution,
   createDeadlineExecutionForItem,
@@ -31,11 +35,12 @@ import {
   revisedRulepackBlocksConversion,
   revisedRulepackReady,
   revisedMonths,
+  rankAvailabilityWindowsForRequest,
   scheduleNeedLabel,
   scheduleNeedOptions,
   selectFullAvailabilityWindow,
   selectOpenAvailabilityWindow
-} from "./epoch-data.js?v=epoch-reminder-deadline-execution";
+} from "./epoch-data.js?v=epoch-availability-optimization-recommendations";
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
@@ -75,6 +80,10 @@ const mergeLedger = (stored) => {
     "availabilityHoldReleases",
     "availabilityPromotionCandidates",
     "availabilityCapacityReceipts",
+    "bookingOptimizationRuns",
+    "bookingRecommendationCandidates",
+    "bookingOverloadWarnings",
+    "bookingRecommendationReceipts",
     "deadlineItems",
     "reminderExecutions",
     "deadlineExecutions",
@@ -175,6 +184,10 @@ function renderStats() {
   setText("stat-hold-releases", String((state.ledger.availabilityHoldReleases || []).length));
   setText("stat-promotions", String((state.ledger.availabilityPromotionCandidates || []).length));
   setText("stat-capacity-receipts", String((state.ledger.availabilityCapacityReceipts || []).length));
+  setText("stat-optimization-runs", String((state.ledger.bookingOptimizationRuns || []).length));
+  setText("stat-recommendations", String((state.ledger.bookingRecommendationCandidates || []).length));
+  setText("stat-overload-warnings", String((state.ledger.bookingOverloadWarnings || []).length));
+  setText("stat-recommendation-receipts", String((state.ledger.bookingRecommendationReceipts || []).length));
   setText("stat-reminder-executions", String((state.ledger.reminderExecutions || []).length));
   setText("stat-deadline-executions", String((state.ledger.deadlineExecutions || []).length));
   setText("stat-deadline-escalations", String((state.ledger.deadlineEscalations || []).length));
@@ -256,6 +269,62 @@ function renderAvailability() {
     <article class="mini-row">
       <strong>${escapeHtml(item.id)}</strong>
       <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.summary)}</small>
+    </article>
+  `);
+
+  renderStack("booking-optimization-list", state.ledger.bookingOptimizationRuns || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.scheduleRequestId)}</strong>
+      <span>${escapeHtml(item.status)} - ${escapeHtml(item.candidateCount)} candidates</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("booking-recommendation-list", state.ledger.bookingRecommendationCandidates || [], (item) => `
+    <article class="mini-row">
+      <strong>#${escapeHtml(item.rank)} ${escapeHtml(item.label || item.availabilityWindowId)}</strong>
+      <span>${escapeHtml(item.status)} - score ${escapeHtml(item.score)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("booking-overload-warning-list", state.ledger.bookingOverloadWarnings || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.availabilityWindowId)}</strong>
+      <span>${escapeHtml(item.status)} - ${escapeHtml(item.loadRatioPercent)}% held</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("booking-recommendation-receipt-list", state.ledger.bookingRecommendationReceipts || [], (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.id)}</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.summary)}</small>
+    </article>
+  `);
+
+  renderStack("portal-booking-recommendations", (state.ledger.bookingRecommendationCandidates || []).filter((item) => item.customerVisible), (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.recommendationType === "best-fit" ? "Recommended window" : "Alternate window")}</strong>
+      <span>${escapeHtml(item.recommendedWindow || item.availabilityWindowId)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("portal-booking-overload-warnings", (state.ledger.bookingOverloadWarnings || []).filter((item) => item.customerVisible), (item) => `
+    <article class="mini-row">
+      <strong>Availability warning</strong>
+      <span>${escapeHtml(item.status)}</span>
+      <small>${escapeHtml(item.customerSafeStatus)}</small>
+    </article>
+  `);
+
+  renderStack("portal-booking-recommendation-receipts", (state.ledger.bookingRecommendationReceipts || []).filter((item) => item.customerVisible), (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.status)}</strong>
+      <span>${escapeHtml(item.generatedAt || "")}</span>
       <small>${escapeHtml(item.summary)}</small>
     </article>
   `);
@@ -633,6 +702,10 @@ function renderCoreReadiness() {
     ["Waitlist", core.waitlistValidation],
     ["Hold Release", core.holdReleaseValidation],
     ["Promotion", core.waitlistPromotionValidation],
+    ["Optimization", core.availabilityOptimizationValidation],
+    ["Recommendation", core.bookingRecommendationValidation],
+    ["Overload Warning", core.overloadWarningValidation],
+    ["Recommendation Proof", core.recommendationReceiptValidation],
     ["Deadline Health", core.deadlineHealthValidation],
     ["Reminder Execution", core.reminderExecutionValidation],
     ["Deadline Execution", core.deadlineExecutionValidation],
@@ -776,6 +849,48 @@ function handleGenerateRecurringSeries() {
 
   const confirmation = byId("series-confirmation");
   if (confirmation) confirmation.textContent = series.customerSafeStatus;
+  renderAll();
+}
+
+function handleGenerateBookingRecommendations() {
+  const confirmation = byId("booking-recommendation-confirmation");
+  const request = (state.ledger.scheduleRequests || []).find((item) =>
+    ["queued", "waitlisted", "needs-reschedule"].includes(item.status)
+  ) || (state.ledger.scheduleRequests || [])[0];
+  const windows = state.ledger.availabilityWindows || [];
+
+  if (!request || !windows.length) {
+    if (confirmation) confirmation.textContent = "No local schedule request and availability windows are ready for recommendation.";
+    return;
+  }
+
+  const run = createBookingOptimizationRunForRequest(request, windows);
+  const rankedWindows = rankAvailabilityWindowsForRequest(windows);
+  const candidates = rankedWindows
+    .slice(0, 3)
+    .map((window, index) => createBookingRecommendationCandidateForWindow(run, request, window, index + 1));
+  const warningWindows = rankedWindows.filter((window) =>
+    Number(window.capacity || 0) > 0 && Number(window.holds || 0) >= Number(window.capacity || 0)
+  );
+  const warnings = warningWindows.map((window) => createBookingOverloadWarningForWindow(run, window));
+  const receipt = createBookingRecommendationReceiptForRun(run, candidates, warnings);
+
+  state.ledger.bookingOptimizationRuns ||= [];
+  state.ledger.bookingRecommendationCandidates ||= [];
+  state.ledger.bookingOverloadWarnings ||= [];
+  state.ledger.bookingRecommendationReceipts ||= [];
+
+  run.candidateCount = candidates.length;
+  run.overloadWarningCount = warnings.length;
+  state.ledger.bookingOptimizationRuns.unshift(run);
+  state.ledger.bookingRecommendationCandidates.unshift(...candidates);
+  state.ledger.bookingOverloadWarnings.unshift(...warnings);
+  state.ledger.bookingRecommendationReceipts.unshift(receipt);
+  addTimeline("Booking recommendations generated", receipt.summary, receipt.status);
+  appendReceipt(receipt.summary, receipt.status);
+  saveLedger(state.ledger);
+
+  if (confirmation) confirmation.textContent = receipt.summary;
   renderAll();
 }
 
@@ -968,6 +1083,9 @@ function bindControls() {
 
   const seriesButton = byId("generate-recurring-series");
   if (seriesButton) seriesButton.addEventListener("click", handleGenerateRecurringSeries);
+
+  const recommendationButton = byId("generate-booking-recommendations");
+  if (recommendationButton) recommendationButton.addEventListener("click", handleGenerateBookingRecommendations);
 
   const promoteButton = byId("promote-waitlist");
   if (promoteButton) promoteButton.addEventListener("click", handlePromoteWaitlist);

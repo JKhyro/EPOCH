@@ -384,6 +384,75 @@ int epoch_availability_capacity_receipt_is_customer_safe(const EpochAvailability
             receipt->status == EPOCH_STATUS_NEEDS_RESCHEDULE);
 }
 
+int epoch_booking_optimization_run_is_customer_safe(const EpochBookingOptimizationRun *run) {
+    if (run == 0 || run->candidate_count <= 0 || run->overload_warning_count < 0) {
+        return 0;
+    }
+
+    return epoch_text_present(run->id) &&
+           epoch_text_present(run->schedule_request_id) &&
+           epoch_text_present(run->primary_availability_window_id) &&
+           epoch_text_present(run->customer_safe_status) &&
+           run->customer_visible &&
+           !run->provider_go_live_requested &&
+           (run->status == EPOCH_STATUS_COMPLETE ||
+            run->status == EPOCH_STATUS_IN_PROGRESS ||
+            run->status == EPOCH_STATUS_NEEDS_RESCHEDULE);
+}
+
+int epoch_booking_recommendation_candidate_is_customer_safe(const EpochBookingRecommendationCandidate *candidate) {
+    if (candidate == 0 || candidate->rank <= 0 || candidate->score <= 0) {
+        return 0;
+    }
+
+    return epoch_text_present(candidate->id) &&
+           epoch_text_present(candidate->optimization_run_id) &&
+           epoch_text_present(candidate->schedule_request_id) &&
+           epoch_text_present(candidate->availability_window_id) &&
+           epoch_text_present(candidate->recommendation_type) &&
+           epoch_text_present(candidate->customer_safe_status) &&
+           candidate->customer_visible &&
+           !candidate->provider_go_live_requested &&
+           (candidate->status == EPOCH_STATUS_AVAILABLE ||
+            candidate->status == EPOCH_STATUS_CONFIRMED ||
+            candidate->status == EPOCH_STATUS_NEEDS_RESCHEDULE ||
+            candidate->status == EPOCH_STATUS_WAITLISTED);
+}
+
+int epoch_booking_overload_warning_is_customer_safe(const EpochBookingOverloadWarning *warning) {
+    if (warning == 0 || warning->load_ratio_percent <= 0) {
+        return 0;
+    }
+
+    return epoch_text_present(warning->id) &&
+           epoch_text_present(warning->optimization_run_id) &&
+           epoch_text_present(warning->availability_window_id) &&
+           epoch_text_present(warning->customer_safe_status) &&
+           warning->customer_visible &&
+           !warning->provider_go_live_requested &&
+           (warning->status == EPOCH_STATUS_IN_PROGRESS ||
+            warning->status == EPOCH_STATUS_NEEDS_RESCHEDULE ||
+            warning->status == EPOCH_STATUS_UNAVAILABLE ||
+            warning->status == EPOCH_STATUS_WAITLISTED);
+}
+
+int epoch_booking_recommendation_receipt_is_customer_safe(const EpochBookingRecommendationReceipt *receipt) {
+    if (receipt == 0) {
+        return 0;
+    }
+
+    return epoch_text_present(receipt->id) &&
+           epoch_text_present(receipt->kind) &&
+           epoch_text_present(receipt->optimization_run_id) &&
+           epoch_text_present(receipt->summary) &&
+           receipt->customer_visible &&
+           !receipt->provider_go_live_requested &&
+           strcmp(receipt->kind, "booking-recommendation") == 0 &&
+           (receipt->status == EPOCH_STATUS_COMPLETE ||
+            receipt->status == EPOCH_STATUS_AVAILABLE ||
+            receipt->status == EPOCH_STATUS_NEEDS_RESCHEDULE);
+}
+
 int epoch_booking_confirmation_is_customer_safe(const EpochBookingConfirmation *confirmation) {
     if (confirmation == 0) {
         return 0;

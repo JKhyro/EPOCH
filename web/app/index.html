@@ -50,6 +50,10 @@
         <div><dt>Hold Releases</dt><dd id="stat-hold-releases">0</dd></div>
         <div><dt>Promotions</dt><dd id="stat-promotions">0</dd></div>
         <div><dt>Capacity Receipts</dt><dd id="stat-capacity-receipts">0</dd></div>
+        <div><dt>Optimization Runs</dt><dd id="stat-optimization-runs">0</dd></div>
+        <div><dt>Recommendations</dt><dd id="stat-recommendations">0</dd></div>
+        <div><dt>Overload Warnings</dt><dd id="stat-overload-warnings">0</dd></div>
+        <div><dt>Recommendation Receipts</dt><dd id="stat-recommendation-receipts">0</dd></div>
         <div><dt>Reminder Runs</dt><dd id="stat-reminder-executions">0</dd></div>
         <div><dt>Deadline Runs</dt><dd id="stat-deadline-executions">0</dd></div>
         <div><dt>Escalations</dt><dd id="stat-deadline-escalations">0</dd></div>
@@ -122,6 +126,40 @@
         <h2>Capacity Receipts</h2>
       </div>
       <div id="capacity-receipt-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Optimization</p>
+        <h2>Booking Optimization Runs</h2>
+      </div>
+      <div id="booking-optimization-list" class="item-stack compact-list"></div>
+      <button id="generate-booking-recommendations" class="secondary-button" type="button">Generate Booking Recommendations</button>
+      <p id="booking-recommendation-confirmation" class="confirmation" role="status"></p>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Recommendations</p>
+        <h2>Booking Recommendation Candidates</h2>
+      </div>
+      <div id="booking-recommendation-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Capacity Warning</p>
+        <h2>Booking Overload Warnings</h2>
+      </div>
+      <div id="booking-overload-warning-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Recommendation Proof</p>
+        <h2>Booking Recommendation Receipts</h2>
+      </div>
+      <div id="booking-recommendation-receipt-list" class="item-stack compact-list"></div>
     </section>
 
     <section class="panel">
@@ -350,6 +388,6 @@
     </section>
   </main>
 
-  <script type="module" src="../shared/surface.js?v=epoch-reminder-deadline-execution"></script>
+  <script type="module" src="../shared/surface.js?v=epoch-availability-optimization-recommendations"></script>
 </body>
 </html>

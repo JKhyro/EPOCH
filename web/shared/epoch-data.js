@@ -1,4 +1,4 @@
-export const EPOCH_LEDGER_KEY = "epoch.operatingLedger.v4";
+export const EPOCH_LEDGER_KEY = "epoch.operatingLedger.v5";
 
 export const scheduleNeedOptions = [
   { value: "diagnostic-call", label: "Diagnostic call", entryType: "request" },
@@ -9,8 +9,8 @@ export const scheduleNeedOptions = [
 ];
 
 export const initialEpochLedger = {
-  version: 4,
-  generatedAt: "2026-06-04T00:45:00+09:00",
+  version: 5,
+  generatedAt: "2026-06-04T02:20:00+09:00",
   schedulingCoreReadiness: {
     id: "EPOCH-CORE-SCHEDULING-001",
     nativeContract: "epoch_core",
@@ -21,6 +21,10 @@ export const initialEpochLedger = {
     waitlistValidation: "ready",
     holdReleaseValidation: "ready",
     waitlistPromotionValidation: "ready",
+    availabilityOptimizationValidation: "ready",
+    bookingRecommendationValidation: "ready",
+    overloadWarningValidation: "ready",
+    recommendationReceiptValidation: "ready",
     deadlineHealthValidation: "ready",
     reminderExecutionValidation: "ready",
     deadlineExecutionValidation: "ready",
@@ -425,6 +429,95 @@ export const initialEpochLedger = {
       generatedAt: "2026-06-03T10:27:00+09:00"
     }
   ],
+  bookingOptimizationRuns: [
+    {
+      id: "EPOCH-OPT-001",
+      scheduleRequestId: "EPOCH-REQ-WAITLIST-001",
+      primaryAvailabilityWindowId: "EPOCH-WIN-002",
+      candidateCount: 3,
+      overloadWarningCount: 1,
+      status: "complete",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "EPOCH ranked local availability options; no external calendar write was made.",
+      generatedAt: "2026-06-03T10:28:00+09:00"
+    }
+  ],
+  bookingRecommendationCandidates: [
+    {
+      id: "EPOCH-BOOK-REC-001",
+      optimizationRunId: "EPOCH-OPT-001",
+      scheduleRequestId: "EPOCH-REQ-WAITLIST-001",
+      availabilityWindowId: "EPOCH-WIN-002",
+      label: "Admin scheduling block",
+      requestedWindow: "2026-06-06 evening JST",
+      recommendedWindow: "Fri 09:00-11:00 JST",
+      recommendationType: "best-fit",
+      rank: 1,
+      score: 96,
+      status: "available",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Recommended local window: Fri 09:00-11:00 JST."
+    },
+    {
+      id: "EPOCH-BOOK-REC-002",
+      optimizationRunId: "EPOCH-OPT-001",
+      scheduleRequestId: "EPOCH-REQ-WAITLIST-001",
+      availabilityWindowId: "EPOCH-WIN-003",
+      label: "Async deadline pass",
+      requestedWindow: "2026-06-06 evening JST",
+      recommendedWindow: "Sun 16:00-18:00 JST",
+      recommendationType: "alternative",
+      rank: 2,
+      score: 84,
+      status: "available",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Alternate local window: Sun 16:00-18:00 JST."
+    },
+    {
+      id: "EPOCH-BOOK-REC-003",
+      optimizationRunId: "EPOCH-OPT-001",
+      scheduleRequestId: "EPOCH-REQ-WAITLIST-001",
+      availabilityWindowId: "EPOCH-WIN-004",
+      label: "Overflow cohort window",
+      requestedWindow: "2026-06-06 evening JST",
+      recommendedWindow: "Sat 18:00-19:00 JST",
+      recommendationType: "waitlist-fallback",
+      rank: 3,
+      score: 20,
+      status: "needs-reschedule",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "This window is full; choose an alternate local window or stay waitlisted."
+    }
+  ],
+  bookingOverloadWarnings: [
+    {
+      id: "EPOCH-OVERLOAD-001",
+      optimizationRunId: "EPOCH-OPT-001",
+      availabilityWindowId: "EPOCH-WIN-004",
+      loadRatioPercent: 100,
+      status: "needs-reschedule",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      customerSafeStatus: "Preferred window is full; choose an alternate local window or stay waitlisted.",
+      recordedAt: "2026-06-03T10:28:00+09:00"
+    }
+  ],
+  bookingRecommendationReceipts: [
+    {
+      id: "EPOCH-BOOK-REC-RECEIPT-001",
+      kind: "booking-recommendation",
+      optimizationRunId: "EPOCH-OPT-001",
+      status: "complete",
+      summary: "EPOCH generated ranked local booking recommendations and one overload warning without live provider calls.",
+      customerVisible: true,
+      providerGoLiveRequested: false,
+      generatedAt: "2026-06-03T10:28:00+09:00"
+    }
+  ],
   deadlineItems: [
     { id: "EPOCH-DUE-001", label: "Customer schedule confirmation", due: "2026-06-03 12:00 JST", state: "waiting", health: "at-risk", customerSafeStatus: "Confirmation is waiting for operator review." },
     { id: "EPOCH-DUE-002", label: "Reminder recurrence review", due: "2026-06-05 17:00 JST", state: "planned", health: "on-track", customerSafeStatus: "Reminder rule review is planned." },
@@ -713,6 +806,10 @@ export const availabilityWaitlistEntries = initialEpochLedger.availabilityWaitli
 export const availabilityHoldReleases = initialEpochLedger.availabilityHoldReleases;
 export const availabilityPromotionCandidates = initialEpochLedger.availabilityPromotionCandidates;
 export const availabilityCapacityReceipts = initialEpochLedger.availabilityCapacityReceipts;
+export const bookingOptimizationRuns = initialEpochLedger.bookingOptimizationRuns;
+export const bookingRecommendationCandidates = initialEpochLedger.bookingRecommendationCandidates;
+export const bookingOverloadWarnings = initialEpochLedger.bookingOverloadWarnings;
+export const bookingRecommendationReceipts = initialEpochLedger.bookingRecommendationReceipts;
 export const deadlineItems = initialEpochLedger.deadlineItems;
 export const reminderExecutions = initialEpochLedger.reminderExecutions;
 export const deadlineExecutions = initialEpochLedger.deadlineExecutions;
@@ -818,6 +915,118 @@ export function selectOpenAvailabilityWindow(windows = initialEpochLedger.availa
 
 export function selectFullAvailabilityWindow(windows = initialEpochLedger.availabilityWindows) {
   return windows.find((window) => Number(window.holds || 0) >= Number(window.capacity || 0)) || null;
+}
+
+export function availabilityWindowOpenSlots(window) {
+  return Math.max(0, Number(window?.capacity || 0) - Number(window?.holds || 0));
+}
+
+function bookingRecommendationScore(window) {
+  const capacity = Math.max(1, Number(window?.capacity || 0));
+  const holds = Math.max(0, Number(window?.holds || 0));
+  const openSlots = availabilityWindowOpenSlots(window);
+  const liveLocalWindow = window?.status === "available";
+  const loadPenalty = Math.round((holds / capacity) * 20);
+  const base = liveLocalWindow ? 70 : 20;
+  return Math.max(1, Math.min(99, base + Math.min(openSlots, 5) * 8 - loadPenalty));
+}
+
+export function rankAvailabilityWindowsForRequest(windows = initialEpochLedger.availabilityWindows) {
+  return [...windows]
+    .map((window) => ({
+      ...window,
+      openSlots: availabilityWindowOpenSlots(window),
+      score: bookingRecommendationScore(window)
+    }))
+    .sort((left, right) => {
+      const leftOpen = left.status === "available" && left.openSlots > 0 ? 1 : 0;
+      const rightOpen = right.status === "available" && right.openSlots > 0 ? 1 : 0;
+      if (leftOpen !== rightOpen) return rightOpen - leftOpen;
+      if (right.score !== left.score) return right.score - left.score;
+      return String(left.startIso || left.id).localeCompare(String(right.startIso || right.id));
+    });
+}
+
+export function createBookingOptimizationRunForRequest(request, windows = initialEpochLedger.availabilityWindows) {
+  const ranked = rankAvailabilityWindowsForRequest(windows);
+  const openCandidates = ranked.filter((window) => window.status === "available" && window.openSlots > 0);
+  const overloaded = ranked.filter((window) => Number(window.capacity || 0) > 0 && Number(window.holds || 0) >= Number(window.capacity || 0));
+  const primaryWindow = openCandidates[0] || ranked[0] || null;
+  return {
+    id: makeId("EPOCH-OPT"),
+    scheduleRequestId: request?.id || "",
+    primaryAvailabilityWindowId: primaryWindow?.id || "",
+    candidateCount: ranked.length,
+    overloadWarningCount: overloaded.length,
+    status: openCandidates.length ? "complete" : "needs-reschedule",
+    customerVisible: true,
+    providerGoLiveRequested: false,
+    customerSafeStatus: openCandidates.length
+      ? "EPOCH generated local booking recommendations; no external calendar write was made."
+      : "No local availability is open; a new window is needed.",
+    generatedAt: new Date().toISOString()
+  };
+}
+
+export function createBookingRecommendationCandidateForWindow(run, request, window, rank = 1) {
+  const openSlots = availabilityWindowOpenSlots(window);
+  const locallyAvailable = window?.status === "available" && openSlots > 0;
+  const recommendedWindow = window?.time || window?.label || "window pending";
+  const recommendationType = locallyAvailable
+    ? (Number(rank || 1) === 1 ? "best-fit" : "alternative")
+    : "waitlist-fallback";
+  return {
+    id: makeId("EPOCH-BOOK-REC"),
+    optimizationRunId: run?.id || "",
+    scheduleRequestId: request?.id || run?.scheduleRequestId || "",
+    availabilityWindowId: window?.id || "",
+    label: window?.label || "Availability window",
+    requestedWindow: request?.requestedWindow || "",
+    recommendedWindow,
+    recommendationType,
+    rank: Number(rank || 1),
+    score: bookingRecommendationScore(window),
+    status: locallyAvailable ? "available" : "needs-reschedule",
+    customerVisible: true,
+    providerGoLiveRequested: false,
+    customerSafeStatus: locallyAvailable
+      ? `${Number(rank || 1) === 1 ? "Recommended" : "Alternate"} local window: ${recommendedWindow}.`
+      : "This window is full; choose an alternate local window or stay waitlisted."
+  };
+}
+
+export function createBookingOverloadWarningForWindow(run, window) {
+  const capacity = Math.max(1, Number(window?.capacity || 0));
+  const holds = Math.max(0, Number(window?.holds || 0));
+  const ratio = Math.round((holds / capacity) * 100);
+  return {
+    id: makeId("EPOCH-OVERLOAD"),
+    optimizationRunId: run?.id || "",
+    availabilityWindowId: window?.id || "",
+    loadRatioPercent: ratio,
+    status: ratio >= 100 ? "needs-reschedule" : "in-progress",
+    customerVisible: true,
+    providerGoLiveRequested: false,
+    customerSafeStatus: ratio >= 100
+      ? "Preferred window is full; choose an alternate local window or stay waitlisted."
+      : "Preferred window is nearly full; EPOCH is checking alternate local windows.",
+    recordedAt: new Date().toISOString()
+  };
+}
+
+export function createBookingRecommendationReceiptForRun(run, candidates = [], warnings = []) {
+  const readyCandidateCount = candidates.filter((candidate) => candidate.status === "available").length;
+  const warningWord = warnings.length === 1 ? "warning" : "warnings";
+  return {
+    id: makeId("EPOCH-BOOK-REC-RECEIPT"),
+    kind: "booking-recommendation",
+    optimizationRunId: run?.id || "",
+    status: readyCandidateCount ? "complete" : "needs-reschedule",
+    summary: `${candidates.length} local booking recommendations generated with ${warnings.length} overload ${warningWord} without live provider calls.`,
+    customerVisible: true,
+    providerGoLiveRequested: false,
+    generatedAt: new Date().toISOString()
+  };
 }
 
 export function createTimingHandoffForRequest(request, sourceProduct = "EPOCH") {
