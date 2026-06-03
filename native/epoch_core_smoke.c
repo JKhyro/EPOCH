@@ -319,6 +319,53 @@ int main(void) {
         EPOCH_STATUS_PLANNED,
         1,
     };
+    EpochReminderExecution reminder_execution = {
+        "rem-exec-001",
+        "rem-001",
+        "EPOCH-SCH-001",
+        "2026-06-05T09:00:00+09:00",
+        "2026-06-05T09:00:10+09:00",
+        "local-status",
+        "Reminder status was recorded locally; no notification was sent.",
+        EPOCH_STATUS_DISPATCHED,
+        1,
+        1,
+        0,
+        0,
+    };
+    EpochDeadlineExecution deadline_execution = {
+        "due-exec-001",
+        "due-001",
+        "EPOCH-SCH-001",
+        "2026-06-05T17:00:00+09:00",
+        "2026-06-05T09:01:00+09:00",
+        "Deadline is at risk; EPOCH escalated the local timing check.",
+        EPOCH_DEADLINE_AT_RISK,
+        EPOCH_STATUS_RETRY_READY,
+        1,
+        0,
+    };
+    EpochDeadlineEscalation deadline_escalation = {
+        "due-esc-001",
+        "due-exec-001",
+        "rem-exec-001",
+        "EPOCH operator",
+        "Operator follow-up is queued locally; no external reminder was sent.",
+        1,
+        EPOCH_STATUS_ACKNOWLEDGED,
+        1,
+        0,
+        0,
+    };
+    EpochReminderDeadlineReceipt reminder_deadline_receipt = {
+        "rem-due-receipt-001",
+        "reminder-deadline-execution",
+        "EPOCH recorded reminder execution, deadline evaluation, and escalation status without live notification sends.",
+        EPOCH_STATUS_COMPLETE,
+        1,
+        0,
+        0,
+    };
     EpochRevisedCalendarRulepack draft_rulepack = {
         "rulepack-draft",
         "owner-approved-rulepack-required",
@@ -473,6 +520,22 @@ int main(void) {
     assert(epoch_recurrence_conflict_exception_is_customer_safe(&recurrence_exception) == 0);
     recurrence_exception.provider_go_live_requested = 0;
     assert(epoch_deadline_rule_is_customer_safe(&deadline) == 1);
+    assert(epoch_reminder_execution_is_customer_safe(&reminder_execution) == 1);
+    assert(epoch_deadline_execution_is_customer_safe(&deadline_execution) == 1);
+    assert(epoch_deadline_escalation_is_customer_safe(&deadline_escalation) == 1);
+    assert(epoch_reminder_deadline_receipt_is_customer_safe(&reminder_deadline_receipt) == 1);
+    reminder_execution.notification_send_enabled = 1;
+    assert(epoch_reminder_execution_is_customer_safe(&reminder_execution) == 0);
+    reminder_execution.notification_send_enabled = 0;
+    deadline_execution.provider_go_live_requested = 1;
+    assert(epoch_deadline_execution_is_customer_safe(&deadline_execution) == 0);
+    deadline_execution.provider_go_live_requested = 0;
+    deadline_escalation.escalation_level = 0;
+    assert(epoch_deadline_escalation_is_customer_safe(&deadline_escalation) == 0);
+    deadline_escalation.escalation_level = 1;
+    reminder_deadline_receipt.kind = "reminder";
+    assert(epoch_reminder_deadline_receipt_is_customer_safe(&reminder_deadline_receipt) == 0);
+    reminder_deadline_receipt.kind = "reminder-deadline-execution";
     assert(epoch_revised_calendar_rulepack_has_required_approvals(&draft_rulepack) == 0);
     assert(epoch_revised_calendar_rulepack_conversion_ready(&draft_rulepack) == 0);
     assert(epoch_revised_calendar_rulepack_blocks_conversion(&draft_rulepack) == 1);

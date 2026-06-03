@@ -31,6 +31,10 @@ const {
   createAvailabilityWaitlistEntryForRequest,
   createBookingConfirmationForHold,
   createBookingReceiptForConfirmation,
+  createDeadlineEscalationForExecution,
+  createDeadlineExecutionForItem,
+  createReminderDeadlineReceiptForEscalation,
+  createReminderExecutionForRule,
   createScheduleEntryForRequest,
   createScheduleRequestRecord,
   createScheduleRequestAcceptanceForRequest,
@@ -77,6 +81,10 @@ for (const phrase of [
   "Calendar Board",
   "Open Windows",
   "Schedule-Bound Work",
+  "Local Reminder Runs",
+  "Deadline Evaluations",
+  "Deadline Escalations",
+  "Reminder Deadline Receipts",
   "Local Schedule Ledger",
   "Calendar Provider Readiness",
   "No-Live Provider Proof",
@@ -121,6 +129,9 @@ for (const phrase of [
   "Promotion Status",
   "Booking Confirmation Status",
   "Schedule Status Updates",
+  "Reminder Execution Status",
+  "Deadline Execution Status",
+  "Deadline Escalation Status",
   "Booking Receipts",
   "Timing Return Status",
   "Timing Return Receipts",
@@ -144,7 +155,7 @@ for (const path of [
   if (!root.includes(path)) fail(`root directory missing route ${path}`);
 }
 
-for (const phrase of ["epochSchedule", "availabilityWindows", "availabilityCapacitySnapshots", "availabilityWaitlistEntries", "availabilityHoldReleases", "availabilityPromotionCandidates", "availabilityCapacityReceipts", "deadlineItems", "revisedMonths", "portalTimeline"]) {
+for (const phrase of ["epochSchedule", "availabilityWindows", "availabilityCapacitySnapshots", "availabilityWaitlistEntries", "availabilityHoldReleases", "availabilityPromotionCandidates", "availabilityCapacityReceipts", "deadlineItems", "reminderExecutions", "deadlineExecutions", "deadlineEscalations", "reminderDeadlineReceipts", "revisedMonths", "portalTimeline"]) {
   if (!data.includes(phrase)) fail(`EPOCH data missing ${phrase}`);
 }
 
@@ -167,6 +178,10 @@ for (const phrase of [
   "availabilityHoldReleases",
   "availabilityPromotionCandidates",
   "availabilityCapacityReceipts",
+  "reminderExecutions",
+  "deadlineExecutions",
+  "deadlineEscalations",
+  "reminderDeadlineReceipts",
   "schedulingCoreReadiness",
   "reminderRules",
   "recurrenceCandidates",
@@ -194,6 +209,10 @@ for (const phrase of [
   "createBookingReceiptForConfirmation",
   "createTimingReturnPayloadForDecision",
   "createTimingReturnReceiptForPayload",
+  "createReminderExecutionForRule",
+  "createDeadlineExecutionForItem",
+  "createDeadlineEscalationForExecution",
+  "createReminderDeadlineReceiptForEscalation",
   "createRecurringBookingSeriesForRule",
   "createRecurringBookingInstanceForSeries",
   "createRecurrenceConflictExceptionForInstance",
@@ -229,6 +248,10 @@ for (const phrase of [
   "booking-receipt-list",
   "timing-return-list",
   "timing-return-receipt-list",
+  "reminder-execution-list",
+  "deadline-execution-list",
+  "deadline-escalation-list",
+  "reminder-deadline-receipt-list",
   "portal-acceptance-status",
   "portal-timing-handoff-status",
   "portal-availability-decision",
@@ -241,6 +264,9 @@ for (const phrase of [
   "portal-booking-receipts",
   "portal-timing-return-status",
   "portal-timing-return-receipts",
+  "portal-reminder-execution-status",
+  "portal-deadline-execution-status",
+  "portal-deadline-escalation-status",
   "portal-provider-status",
   "provider-check-list",
   "native-core-readiness",
@@ -254,6 +280,7 @@ for (const phrase of [
   "portal-recurring-exceptions",
   "generate-recurring-series",
   "promote-waitlist",
+  "run-reminder-deadline-pass",
   "revised-rulepack-status",
   "portal-revised-status",
   "reset-schedule-ledger"
@@ -320,6 +347,10 @@ for (const type of [
   "EpochRecurrenceConflictException",
   "EpochRecurringSeriesReceipt",
   "EpochDeadlineRule",
+  "EpochReminderExecution",
+  "EpochDeadlineExecution",
+  "EpochDeadlineEscalation",
+  "EpochReminderDeadlineReceipt",
   "EpochRevisedCalendarRulepack",
   "EpochCalendarSystem",
   "EpochDeadlineHealth",
@@ -357,6 +388,10 @@ for (const fn of [
   "epoch_recurrence_conflict_exception_is_customer_safe",
   "epoch_recurring_series_receipt_is_customer_safe",
   "epoch_deadline_rule_is_customer_safe",
+  "epoch_reminder_execution_is_customer_safe",
+  "epoch_deadline_execution_is_customer_safe",
+  "epoch_deadline_escalation_is_customer_safe",
+  "epoch_reminder_deadline_receipt_is_customer_safe",
   "epoch_revised_calendar_rulepack_conversion_ready",
   "epoch_revised_calendar_rulepack_blocks_conversion",
   "epoch_calendar_provider_gate_ready_for_live_toggle",
@@ -404,6 +439,12 @@ const statusEvent = createScheduleStatusEventForBooking(booking, request);
 const bookingReceipt = createBookingReceiptForConfirmation(booking, statusEvent);
 const timingReturnPayload = createTimingReturnPayloadForDecision(clearDecision, request, booking);
 const timingReturnReceipt = createTimingReturnReceiptForPayload(timingReturnPayload, clearDecision);
+const reminderRule = initialEpochLedger.reminderRules[0];
+const deadlineItem = initialEpochLedger.deadlineItems.find((item) => item.health === "at-risk");
+const reminderExecution = createReminderExecutionForRule(reminderRule, entry);
+const deadlineExecution = createDeadlineExecutionForItem(deadlineItem);
+const deadlineEscalation = createDeadlineEscalationForExecution(deadlineExecution, reminderExecution);
+const reminderDeadlineReceipt = createReminderDeadlineReceiptForEscalation(deadlineEscalation, deadlineExecution, reminderExecution);
 const conflictDecision = createAvailabilityConflictDecisionForHandoff(handoff, null);
 const conflictStatusEvent = createScheduleStatusEventForConflict(conflictDecision, request);
 const conflictPayload = createTimingReturnPayloadForDecision(conflictDecision, request);
@@ -467,6 +508,11 @@ if (bookingReceipt.status !== "ready" || !bookingReceipt.summary.includes("witho
 if (timingReturnPayload.status !== "returned" || timingReturnPayload.providerGoLiveRequested || !timingReturnPayload.bookingConfirmationId) fail("timing return payload did not create confirmed return");
 if (timingReturnPayload.requester !== request.requester || timingReturnPayload.requestedWindow !== request.requestedWindow) fail("timing return payload did not preserve requester/window context");
 if (timingReturnReceipt.status !== "ready" || !timingReturnReceipt.summary.includes("without live provider calls")) fail("timing return receipt did not preserve local-only proof");
+if (reminderExecution.status !== "dispatched" || reminderExecution.notificationSendEnabled || reminderExecution.providerGoLiveRequested) fail("reminder execution did not stay local-only");
+if (!reminderExecution.customerSafeStatus.includes("no notification was sent")) fail("reminder execution did not expose customer-safe no-send status");
+if (deadlineExecution.status !== "retry-ready" || deadlineExecution.providerGoLiveRequested || deadlineExecution.health !== "at-risk") fail("deadline execution did not create at-risk local evaluation");
+if (deadlineEscalation.escalationLevel !== 1 || deadlineEscalation.notificationSendEnabled || deadlineEscalation.providerGoLiveRequested) fail("deadline escalation did not stay local-only");
+if (reminderDeadlineReceipt.kind !== "reminder-deadline-execution" || reminderDeadlineReceipt.notificationSendEnabled || !reminderDeadlineReceipt.summary.includes("without live notification sends")) fail("reminder deadline receipt did not preserve local-only proof");
 if (conflictDecision.status !== "needs-reschedule" || conflictDecision.availabilityWindowId || !conflictDecision.customerSafeStatus.includes("new window")) fail("conflict decision did not create reschedule decision");
 if (conflictStatusEvent.state !== "needs-reschedule" || !conflictStatusEvent.customerSafeStatus.includes("new window")) fail("conflict status event is not customer-safe");
 if (conflictPayload.status !== "needs-reschedule" || conflictPayload.bookingConfirmationId || !conflictPayload.customerSafeStatus.includes("new window")) fail("conflict return payload did not create reschedule return");

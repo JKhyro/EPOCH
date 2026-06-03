@@ -364,6 +364,57 @@ typedef struct EpochDeadlineRule {
     int customer_visible;
 } EpochDeadlineRule;
 
+typedef struct EpochReminderExecution {
+    const char *id;
+    const char *reminder_rule_id;
+    const char *schedule_entry_id;
+    const char *scheduled_for_iso;
+    const char *executed_at_iso;
+    const char *channel;
+    const char *customer_safe_status;
+    EpochOperatingStatus status;
+    int sandbox_only;
+    int customer_visible;
+    int provider_go_live_requested;
+    int notification_send_enabled;
+} EpochReminderExecution;
+
+typedef struct EpochDeadlineExecution {
+    const char *id;
+    const char *deadline_rule_id;
+    const char *linked_entry_id;
+    const char *due_iso;
+    const char *evaluated_at_iso;
+    const char *customer_safe_status;
+    EpochDeadlineHealth health;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int provider_go_live_requested;
+} EpochDeadlineExecution;
+
+typedef struct EpochDeadlineEscalation {
+    const char *id;
+    const char *deadline_execution_id;
+    const char *reminder_execution_id;
+    const char *owner;
+    const char *customer_safe_status;
+    int escalation_level;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int provider_go_live_requested;
+    int notification_send_enabled;
+} EpochDeadlineEscalation;
+
+typedef struct EpochReminderDeadlineReceipt {
+    const char *id;
+    const char *kind;
+    const char *summary;
+    EpochOperatingStatus status;
+    int customer_visible;
+    int provider_go_live_requested;
+    int notification_send_enabled;
+} EpochReminderDeadlineReceipt;
+
 typedef struct EpochRevisedCalendarRulepack {
     const char *id;
     const char *version_id;
@@ -439,6 +490,10 @@ int epoch_recurring_booking_instance_is_customer_safe(const EpochRecurringBookin
 int epoch_recurrence_conflict_exception_is_customer_safe(const EpochRecurrenceConflictException *exception);
 int epoch_recurring_series_receipt_is_customer_safe(const EpochRecurringSeriesReceipt *receipt);
 int epoch_deadline_rule_is_customer_safe(const EpochDeadlineRule *rule);
+int epoch_reminder_execution_is_customer_safe(const EpochReminderExecution *execution);
+int epoch_deadline_execution_is_customer_safe(const EpochDeadlineExecution *execution);
+int epoch_deadline_escalation_is_customer_safe(const EpochDeadlineEscalation *escalation);
+int epoch_reminder_deadline_receipt_is_customer_safe(const EpochReminderDeadlineReceipt *receipt);
 int epoch_revised_calendar_rulepack_has_required_approvals(const EpochRevisedCalendarRulepack *rulepack);
 int epoch_revised_calendar_rulepack_conversion_ready(const EpochRevisedCalendarRulepack *rulepack);
 int epoch_revised_calendar_rulepack_blocks_conversion(const EpochRevisedCalendarRulepack *rulepack);

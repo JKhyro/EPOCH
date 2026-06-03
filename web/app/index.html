@@ -50,6 +50,10 @@
         <div><dt>Hold Releases</dt><dd id="stat-hold-releases">0</dd></div>
         <div><dt>Promotions</dt><dd id="stat-promotions">0</dd></div>
         <div><dt>Capacity Receipts</dt><dd id="stat-capacity-receipts">0</dd></div>
+        <div><dt>Reminder Runs</dt><dd id="stat-reminder-executions">0</dd></div>
+        <div><dt>Deadline Runs</dt><dd id="stat-deadline-executions">0</dd></div>
+        <div><dt>Escalations</dt><dd id="stat-deadline-escalations">0</dd></div>
+        <div><dt>Run Receipts</dt><dd id="stat-reminder-deadline-receipts">0</dd></div>
       </dl>
       <button id="reset-schedule-ledger" class="secondary-button" type="button">Reset Local Ledger</button>
     </section>
@@ -206,6 +210,40 @@
         <h2>Sandbox Reminder Rules</h2>
       </div>
       <div id="reminder-rule-list" class="item-stack compact-list"></div>
+      <button id="run-reminder-deadline-pass" class="secondary-button" type="button">Run Local Reminder Deadline Pass</button>
+      <p id="reminder-deadline-confirmation" class="confirmation" role="status"></p>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Reminder Execution</p>
+        <h2>Local Reminder Runs</h2>
+      </div>
+      <div id="reminder-execution-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Deadline Execution</p>
+        <h2>Deadline Evaluations</h2>
+      </div>
+      <div id="deadline-execution-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Escalation</p>
+        <h2>Deadline Escalations</h2>
+      </div>
+      <div id="deadline-escalation-list" class="item-stack compact-list"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Execution Proof</p>
+        <h2>Reminder Deadline Receipts</h2>
+      </div>
+      <div id="reminder-deadline-receipt-list" class="item-stack compact-list"></div>
     </section>
 
     <section class="panel">
@@ -312,6 +350,6 @@
     </section>
   </main>
 
-  <script type="module" src="../shared/surface.js?v=epoch-capacity-waitlist-context"></script>
+  <script type="module" src="../shared/surface.js?v=epoch-reminder-deadline-execution"></script>
 </body>
 </html>

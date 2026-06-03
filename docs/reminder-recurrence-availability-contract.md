@@ -13,6 +13,14 @@ invitations, syncing external calendars, or delivering automated reminders.
 
 - `reminderRules`: operator-facing reminder rules tied to sessions,
   assignments, submissions, reviews, follow-ups, quotes, deliveries, or handoffs.
+- `reminderExecutions`: local reminder execution rows that record schedule-bound
+  reminder status without sending customer notifications.
+- `deadlineExecutions`: local deadline evaluation rows that record due-state,
+  health, and customer-safe timing status.
+- `deadlineEscalations`: local escalation rows that queue operator follow-up
+  without external notification sends.
+- `reminderDeadlineReceipts`: customer-safe/local proof rows for reminder,
+  deadline, and escalation execution.
 - `recurrenceCandidates`: repeatable service patterns that require operator
   approval before creating future sessions.
 - `availabilityWindows`: provider/operator availability and blocked windows for
@@ -26,6 +34,10 @@ invitations, syncing external calendars, or delivering automated reminders.
 future schedule entries, has a valid RRULE, and is not failed, blocked, or
 canceled. Revised-calendar recurrence additionally requires operator approval
 because the 13-month rulepack is not yet owner-approved.
+
+Reminder/deadline execution guards require local-only customer-safe status,
+disabled provider go-live flags, and disabled notification-send flags. Escalation
+records may queue operator follow-up, but they do not send external reminders.
 
 ## Visibility
 
