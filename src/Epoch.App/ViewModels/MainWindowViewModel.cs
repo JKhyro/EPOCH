@@ -30,7 +30,10 @@ public sealed class MainWindowViewModel
         string lifecycleReceiptPath,
         EpochScheduleLifecycleStatusRecord? lifecycleStatus,
         IReadOnlyList<EpochScheduleLifecycleStatusRecord> lifecycleStatuses,
-        string lifecycleStatusPath)
+        string lifecycleStatusPath,
+        EpochRevisedCalendarTimingExport? revisedTimingExport,
+        IReadOnlyList<EpochRevisedCalendarTimingExport> revisedTimingExports,
+        string revisedTimingExportPath)
     {
         ProductName = snapshot.ProductName;
         CoreStatus = snapshot.CoreStatus;
@@ -127,6 +130,12 @@ public sealed class MainWindowViewModel
         ScheduleLifecycleStatusMessage = lifecycleStatus is not null
             ? lifecycleStatus.CustomerSafeMessage
             : "The schedule lifecycle Webportal status loop is waiting for a linked lifecycle action and native execution.";
+        RevisedTimingExportCount = revisedTimingExports.Count;
+        RevisedTimingExportSummary = $"{revisedTimingExports.Count} EPOCH revised timing export payload(s) available for WORKSHOP timing-provider consumption.";
+        RevisedTimingExportLocation = revisedTimingExportPath;
+        RevisedTimingExportStatus = revisedTimingExport is not null
+            ? $"Latest export {revisedTimingExport.PayloadId}: {revisedTimingExport.CalendarSystemLabel}; customer-safe: {revisedTimingExport.CustomerSafe.ToString().ToLowerInvariant()}; WORKSHOP calendar ownership: {revisedTimingExport.WorkshopCalendarOwnership.ToString().ToLowerInvariant()}."
+            : "No EPOCH revised timing export was written in this shell load.";
     }
 
     public string ProductName { get; }
@@ -189,6 +198,10 @@ public sealed class MainWindowViewModel
     public string ScheduleLifecycleStatusLocation { get; }
     public string ScheduleLifecycleStatusStatus { get; }
     public string ScheduleLifecycleStatusMessage { get; }
+    public int RevisedTimingExportCount { get; }
+    public string RevisedTimingExportSummary { get; }
+    public string RevisedTimingExportLocation { get; }
+    public string RevisedTimingExportStatus { get; }
 
     public static MainWindowViewModel Load()
     {
@@ -275,8 +288,16 @@ public sealed class MainWindowViewModel
         IReadOnlyList<EpochScheduleLifecycleStatusRecord> lifecycleStatuses =
             EpochScheduleLifecycleStatusStore.Load();
 
+        EpochShellSnapshot snapshot = EpochNative.LoadSnapshotOrFallback();
+        EpochRevisedCalendarTimingExport? revisedTimingExport = null;
+        EpochRevisedCalendarTimingExportStore.TryEnsureDefaultExport(
+            snapshot,
+            out revisedTimingExport);
+        IReadOnlyList<EpochRevisedCalendarTimingExport> revisedTimingExports =
+            EpochRevisedCalendarTimingExportStore.Load();
+
         return new MainWindowViewModel(
-            EpochNative.LoadSnapshotOrFallback(),
+            snapshot,
             EpochNative.LoadScheduleCommandOrFallback(),
             execution,
             historyEntry,
@@ -300,7 +321,10 @@ public sealed class MainWindowViewModel
             EpochScheduleLifecycleReceiptStore.ReceiptPath,
             lifecycleStatus,
             lifecycleStatuses,
-            EpochScheduleLifecycleStatusStore.StatusPath);
+            EpochScheduleLifecycleStatusStore.StatusPath,
+            revisedTimingExport,
+            revisedTimingExports,
+            EpochRevisedCalendarTimingExportStore.ExportPath);
     }
 
     private static EpochScheduleExecutionReceipt ExecuteNativeOrFallback(string intentKind)

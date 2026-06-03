@@ -236,3 +236,22 @@ only where the host, UI framework, or platform integration makes it necessary.
   are customer-safe, Webportal-ready, provider-off, and MONITOR-off. It renders
   schedule change status only and does not expose operator controls, native
   execution internals, or MONITOR workflow state.
+
+## Local EPOCH revised timing export slice
+
+- `EpochRevisedCalendarTimingExportStore` persists App-owned revised-calendar
+  timing context in `epoch-revised-calendar-timing.json` under the same local
+  EPOCH App state directory and `EPOCH_APP_STATE_DIR` override used by the
+  other scheduling ledgers.
+- The export is customer-safe timing-provider context for WORKSHOP timing
+  consumption only. It describes the EPOCH-owned revised 13-month projection,
+  the conversion gate reason, and the customer-safe status returned from EPOCH.
+- WORKSHOP timing-provider consumption is limited to customer-safe schedule
+  context; EPOCH remains the calendar and revised-calendar authority.
+- Provider go-live remains false, WORKSHOP calendar ownership remains false,
+  and MONITOR workflow exposure remains false. The export does not give
+  WORKSHOP permission to mutate EPOCH calendar state or implement revised
+  calendar conversion.
+- The Avalonia Revised Calendar Lab renders the export count, latest export
+  status, and export path so the operator can see the bridge artifact without
+  moving the workflow into MONITOR.

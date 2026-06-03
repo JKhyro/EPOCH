@@ -111,6 +111,14 @@
               <TextBlock Text="{Binding RevisedCalendarAnchor}" TextWrapping="Wrap" Foreground="#526071" />
               <TextBlock Text="{Binding RevisedCalendarIntercalaryPolicy}" TextWrapping="Wrap" Foreground="#526071" />
               <TextBlock Text="{Binding RevisedCalendarGateReason}" TextWrapping="Wrap" Foreground="#526071" />
+              <Border Padding="12" CornerRadius="8" Background="#f7fbff" BorderBrush="#d6e4f3" BorderThickness="1">
+                <StackPanel Spacing="5">
+                  <TextBlock Text="WORKSHOP Timing Export" FontWeight="SemiBold" Foreground="#172033" />
+                  <TextBlock Text="{Binding RevisedTimingExportSummary}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedTimingExportStatus}" TextWrapping="Wrap" Foreground="#526071" />
+                  <TextBlock Text="{Binding RevisedTimingExportLocation}" TextWrapping="Wrap" FontSize="11" Foreground="#687588" />
+                </StackPanel>
+              </Border>
             </StackPanel>
           </Border>
 

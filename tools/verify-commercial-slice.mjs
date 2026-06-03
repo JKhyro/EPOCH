@@ -33,8 +33,10 @@ const appXaml = read("../src/Epoch.App/MainWindow.axaml");
 const appNative = read("../src/Epoch.App/Native/EpochNative.cs");
 const appViewModel = read("../src/Epoch.App/ViewModels/MainWindowViewModel.cs");
 const appSnapshot = read("../src/Epoch.App/Models/EpochShellSnapshot.cs");
+const appRevisedTimingExport = read("../src/Epoch.App/Models/EpochRevisedCalendarTimingExport.cs");
 const appHistoryEntry = read("../src/Epoch.App/Models/EpochScheduleExecutionHistoryEntry.cs");
 const appHistoryStore = read("../src/Epoch.App/Services/EpochScheduleExecutionHistoryStore.cs");
+const appRevisedTimingExportStore = read("../src/Epoch.App/Services/EpochRevisedCalendarTimingExportStore.cs");
 const appRequestInboxEntry = read("../src/Epoch.App/Models/EpochWebportalScheduleRequest.cs");
 const appRequestInboxStore = read("../src/Epoch.App/Services/EpochScheduleRequestInboxStore.cs");
 const appRequestCommandReceipt = read("../src/Epoch.App/Models/EpochRequestScheduleCommandReceipt.cs");
@@ -653,6 +655,10 @@ for (const phrase of [
   "ScheduleLifecycleStatusStatus",
   "ScheduleLifecycleStatusMessage",
   "ScheduleLifecycleStatusLocation",
+  "WORKSHOP Timing Export",
+  "RevisedTimingExportSummary",
+  "RevisedTimingExportStatus",
+  "RevisedTimingExportLocation",
   "RevisedCalendarBoundaryPolicies",
   "RevisedCalendarAnchor",
   "RevisedCalendarIntercalaryPolicy",
@@ -706,6 +712,19 @@ for (const phrase of [
 }
 
 for (const phrase of [
+  "EpochRevisedCalendarTimingExport",
+  "FromSnapshot",
+  "EPOCH.App.RevisedTimingProjectionExport",
+  "ProviderGoLiveRequested",
+  "EpochTimingProviderOnly",
+  "WorkshopCalendarOwnership",
+  "MonitorWorkflowExposed",
+  "WORKSHOP keeps service delivery ownership only"
+]) {
+  if (!appRevisedTimingExport.includes(phrase)) fail(`Avalonia revised timing export missing ${phrase}`);
+}
+
+for (const phrase of [
   "EpochNative.LoadSnapshotOrFallback",
   "EpochNative.LoadScheduleCommandOrFallback",
   "EpochNative.ExecuteScheduleCommandOrFallback",
@@ -725,6 +744,8 @@ for (const phrase of [
   "EpochScheduleLifecycleReceiptStore.Load",
   "EpochScheduleLifecycleStatusStore.TryAppend",
   "EpochScheduleLifecycleStatusStore.Load",
+  "EpochRevisedCalendarTimingExportStore.TryEnsureDefaultExport",
+  "EpochRevisedCalendarTimingExportStore.Load",
   "OperationsBoardStatus",
   "OperationsBoardNextAction",
   "OperationsBoardQueueSummary",
@@ -735,10 +756,15 @@ for (const phrase of [
   "ScheduleLifecycleReceiptSummary",
   "ScheduleLifecycleStatusSummary",
   "ScheduleLifecycleStatusLocation",
+  "RevisedTimingExportSummary",
+  "RevisedTimingExportStatus",
+  "RevisedTimingExportLocation",
   "customer-safe schedule status export(s)",
   "customer-safe schedule lifecycle action(s)",
   "schedule lifecycle receipt(s)",
   "customer-safe schedule lifecycle status export(s)",
+  "EPOCH revised timing export payload(s)",
+  "WORKSHOP calendar ownership",
   "Webportal export ready",
   "native scheduling command ready",
   "native execution receipt ready",
@@ -858,6 +884,21 @@ for (const phrase of [
   "App"
 ]) {
   if (!appHistoryStore.includes(phrase)) fail(`Avalonia history store missing ${phrase}`);
+}
+
+for (const phrase of [
+  "epoch-revised-calendar-timing.json",
+  "ExportPath",
+  "EnsureDefaultExport",
+  "TryEnsureDefaultExport",
+  "ArchiveInvalidExports",
+  "StateDirectoryEnvironmentVariable",
+  "Environment.SpecialFolder.LocalApplicationData",
+  "KHYRON",
+  "EPOCH",
+  "App"
+]) {
+  if (!appRevisedTimingExportStore.includes(phrase)) fail(`Avalonia revised timing export store missing ${phrase}`);
 }
 
 for (const phrase of [
@@ -1003,15 +1044,21 @@ for (const phrase of [
   "EpochScheduleLifecycleReceiptStore.Load",
   "EpochScheduleLifecycleStatusStore.Append",
   "EpochScheduleLifecycleStatusStore.Load",
+  "EpochRevisedCalendarTimingExportStore.EnsureDefaultExport",
+  "EpochRevisedCalendarTimingExportStore.Load",
   "lifecycleActions.Count != 1",
   "lifecycleActions[0].AppOwnedLifecycleState",
   "lifecycleReceipts.Count != 1",
   "lifecycleReceipts[0].RequestCommandReceiptId",
   "lifecycleStatuses.Count != 1",
   "lifecycleStatuses[0].WebportalExportReady",
+  "revisedTimingExports.Count != 1",
+  "revisedTimingExports[0].CalendarSystemLabel != \"revised-13-month\"",
+  "revisedTimingExports[0].WorkshopCalendarOwnership",
   "File.Exists(EpochScheduleLifecycleActionStore.ActionPath)",
   "File.Exists(EpochScheduleLifecycleReceiptStore.ReceiptPath)",
   "File.Exists(EpochScheduleLifecycleStatusStore.StatusPath)",
+  "File.Exists(EpochRevisedCalendarTimingExportStore.ExportPath)",
   "File.Exists(EpochScheduleExecutionHistoryStore.HistoryPath)",
   "File.Exists(EpochScheduleRequestInboxStore.InboxPath)",
   "File.Exists(EpochRequestScheduleCommandReceiptStore.ReceiptPath)",
@@ -1058,7 +1105,14 @@ for (const phrase of [
   "EpochScheduleLifecycleStatusStore",
   "schedule-lifecycle-status.json",
   "Webportal lifecycle status reader",
-  "provider-off, and MONITOR-off"
+  "provider-off, and MONITOR-off",
+  "Local EPOCH revised timing export slice",
+  "EpochRevisedCalendarTimingExportStore",
+  "epoch-revised-calendar-timing.json",
+  "WORKSHOP timing-provider consumption",
+  "Provider go-live remains false",
+  "WORKSHOP calendar ownership remains false",
+  "MONITOR workflow exposure remains false"
 ]) {
   if (!runtime.includes(phrase)) fail(`runtime docs missing scheduling command phrase ${phrase}`);
 }

@@ -50,6 +50,11 @@ exposure is part of this integration checkpoint.
   13-month structure, intercalary-day policy, measured spring anchor method,
   and conversion gate reason are executable product state while authoritative
   conversion stays blocked.
+- `codex/local-epoch-revised-timing-export` adds the App-owned
+  `epoch-revised-calendar-timing.json` export so WORKSHOP can consume
+  customer-safe revised timing context while EPOCH retains calendar authority,
+  provider go-live stays disabled, and MONITOR remains development evidence
+  only.
 
 ## Boundary Status
 

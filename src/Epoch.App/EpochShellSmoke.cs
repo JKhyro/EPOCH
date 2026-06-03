@@ -57,6 +57,10 @@ internal static class EpochShellSmoke
                 EpochScheduleLifecycleStatusStore.Append(lifecycleAction, lifecycleReceipt);
             IReadOnlyList<EpochScheduleLifecycleStatusRecord> lifecycleStatuses =
                 EpochScheduleLifecycleStatusStore.Load();
+            EpochRevisedCalendarTimingExport revisedTimingExport =
+                EpochRevisedCalendarTimingExportStore.EnsureDefaultExport(snapshot);
+            IReadOnlyList<EpochRevisedCalendarTimingExport> revisedTimingExports =
+                EpochRevisedCalendarTimingExportStore.Load();
 
             if (snapshot.ProductName != "EPOCH" ||
                 snapshot.CoreStatus != "native-core-ready" ||
@@ -147,7 +151,17 @@ internal static class EpochShellSmoke
                 lifecycleStatuses[0].ProviderCallsEnabled ||
                 lifecycleStatuses[0].MonitorWorkflowExposed ||
                 !lifecycleStatuses[0].CustomerSafeMessage.Contains("External calendar provider calls remain disabled", StringComparison.Ordinal) ||
-                !File.Exists(EpochScheduleLifecycleStatusStore.StatusPath))
+                !File.Exists(EpochScheduleLifecycleStatusStore.StatusPath) ||
+                revisedTimingExports.Count != 1 ||
+                revisedTimingExports[0].PayloadId != revisedTimingExport.PayloadId ||
+                revisedTimingExports[0].CalendarSystemLabel != "revised-13-month" ||
+                revisedTimingExports[0].ProviderGoLiveRequested ||
+                !revisedTimingExports[0].EpochTimingProviderOnly ||
+                revisedTimingExports[0].WorkshopCalendarOwnership ||
+                revisedTimingExports[0].MonitorWorkflowExposed ||
+                !revisedTimingExports[0].CustomerSafe ||
+                !revisedTimingExports[0].ConversionGateReason.Contains("owner-approved physical spring anchor", StringComparison.Ordinal) ||
+                !File.Exists(EpochRevisedCalendarTimingExportStore.ExportPath))
             {
                 return 2;
             }
