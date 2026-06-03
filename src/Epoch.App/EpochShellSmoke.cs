@@ -9,13 +9,18 @@ internal static class EpochShellSmoke
         try
         {
             EpochShellSnapshot snapshot = EpochNative.LoadSnapshot();
+            EpochScheduleCommandResult command = EpochNative.LoadScheduleCommand();
 
             if (snapshot.ProductName != "EPOCH" ||
                 snapshot.CoreStatus != "native-core-ready" ||
                 snapshot.RevisedMonthCount != 13 ||
                 snapshot.RevisedDaysPerMonth != 28 ||
                 snapshot.RevisedConversionReady ||
-                !snapshot.MonitorBoundaryEnforced)
+                !snapshot.MonitorBoundaryEnforced ||
+                !command.NativeCommandReady ||
+                command.TimingReturnStatus != "returned" ||
+                command.BookingConfirmationId != "epoch-command-booking-001" ||
+                command.ReceiptId != "epoch-command-receipt-001")
             {
                 return 2;
             }

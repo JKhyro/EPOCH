@@ -8,7 +8,7 @@
     MinWidth="860"
     MinHeight="560"
     Background="#f7f8fb">
-  <Grid RowDefinitions="Auto,*" Margin="28">
+  <Grid RowDefinitions="Auto,*,Auto" Margin="28">
     <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,22">
       <StackPanel Spacing="6">
         <TextBlock Text="EPOCH App" FontSize="30" FontWeight="SemiBold" Foreground="#172033" />
@@ -55,5 +55,19 @@
         </StackPanel>
       </Border>
     </Grid>
+
+    <Border Grid.Row="2" Margin="0,18,0,0" Padding="18" CornerRadius="8" Background="#fffdf4" BorderBrush="#e4d48a" BorderThickness="1">
+      <Grid ColumnDefinitions="1.1*,1.1*,1.4*" ColumnSpacing="18">
+        <StackPanel Spacing="6">
+          <TextBlock Text="Native Scheduling Command" FontSize="18" FontWeight="SemiBold" Foreground="#172033" />
+          <TextBlock Text="{Binding CommandReadiness}" FontSize="16" FontWeight="SemiBold" Foreground="#7a4b12" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Spacing="6">
+          <TextBlock Text="{Binding CommandSummary}" TextWrapping="Wrap" Foreground="#526071" />
+          <TextBlock Text="{Binding CommandReceiptStatus}" TextWrapping="Wrap" Foreground="#526071" />
+        </StackPanel>
+        <TextBlock Grid.Column="2" Text="{Binding CommandCustomerSafeStatus}" TextWrapping="Wrap" Foreground="#526071" />
+      </Grid>
+    </Border>
   </Grid>
 </Window>

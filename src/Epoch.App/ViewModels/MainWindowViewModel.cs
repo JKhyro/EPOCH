@@ -4,7 +4,7 @@ namespace Epoch.App.ViewModels;
 
 public sealed class MainWindowViewModel
 {
-    private MainWindowViewModel(EpochShellSnapshot snapshot)
+    private MainWindowViewModel(EpochShellSnapshot snapshot, EpochScheduleCommandResult command)
     {
         ProductName = snapshot.ProductName;
         CoreStatus = snapshot.CoreStatus;
@@ -15,6 +15,19 @@ public sealed class MainWindowViewModel
         ModuleSummary = $"{snapshot.ScheduleModuleCount} scheduling product modules are native-bridge visible: audit, receipts, log, search, and templates.";
         RevisedCalendarShape = $"{snapshot.RevisedMonthCount} months x {snapshot.RevisedDaysPerMonth} days, with conversion ready: {snapshot.RevisedConversionReady.ToString().ToLowerInvariant()}.";
         BoundaryStatus = snapshot.MonitorBoundaryEnforced ? "monitor boundary enforced" : "monitor boundary blocked";
+        CommandSummary = $"{command.RequestId} -> {command.BookingConfirmationId} via {command.AvailabilityWindowId}";
+        CommandReceiptStatus = $"Receipt {command.ReceiptId}; timing return status: {command.TimingReturnStatus}.";
+        CommandCustomerSafeStatus = command.CustomerSafeStatus;
+        CommandReadiness = command.NativeCommandReady &&
+            command.RequestCustomerSafe &&
+            command.AvailabilityHasCapacity &&
+            command.AcceptanceReady &&
+            command.HoldReady &&
+            command.BookingCustomerSafe &&
+            command.ReceiptCustomerSafe &&
+            command.TimingReturnCustomerSafe
+                ? "native scheduling command ready"
+                : "native scheduling command blocked";
     }
 
     public string ProductName { get; }
@@ -26,9 +39,15 @@ public sealed class MainWindowViewModel
     public string ModuleSummary { get; }
     public string RevisedCalendarShape { get; }
     public string BoundaryStatus { get; }
+    public string CommandSummary { get; }
+    public string CommandReceiptStatus { get; }
+    public string CommandCustomerSafeStatus { get; }
+    public string CommandReadiness { get; }
 
     public static MainWindowViewModel Load()
     {
-        return new MainWindowViewModel(EpochNative.LoadSnapshotOrFallback());
+        return new MainWindowViewModel(
+            EpochNative.LoadSnapshotOrFallback(),
+            EpochNative.LoadScheduleCommandOrFallback());
     }
 }

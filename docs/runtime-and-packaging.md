@@ -103,3 +103,14 @@ only where the host, UI framework, or platform integration makes it necessary.
   managed smoke check after the native bridge has been built into `build`.
 - Product modules stay in EPOCH App/Webportal. MONITOR may report readiness for
   those modules, but it does not host the scheduling workflows.
+
+## Native-backed scheduling command slice
+
+- `epoch_app_bridge_preview_schedule_command` previews a validated native
+  command chain: request, EPOCH-owned availability window, timing handoff,
+  acceptance, local hold, booking confirmation, schedule status event, booking
+  receipt, and timing return payload.
+- The Avalonia shell renders that command chain in the Native Scheduling
+  Command panel.
+- The command preview remains local-only and customer-safe. It does not enable
+  provider calls and does not expose WORKSHOP service or CRM internals.

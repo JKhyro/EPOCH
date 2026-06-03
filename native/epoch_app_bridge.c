@@ -77,7 +77,7 @@ static int epoch_app_bridge_schedule_surface_ready(void) {
     EpochLocalWorktreeStatus worktree = {
         "epoch-app-worktree-001",
         "C:\\KHYRON\\apps\\EPOCH",
-        "codex/local-epoch-avalonia-shell-boundary",
+        "codex/local-epoch-avalonia-scheduling-module",
         "local-head",
         0,
         0,
@@ -140,4 +140,181 @@ int epoch_app_bridge_get_snapshot(EpochAppBridgeSnapshot *out_snapshot) {
     out_snapshot->monitor_boundary_enforced = epoch_app_bridge_monitor_boundary_enforced();
 
     return epoch_app_bridge_core_ready();
+}
+
+int epoch_app_bridge_preview_schedule_command(EpochAppBridgeScheduleCommandResult *out_result) {
+    EpochScheduleRequest request = {
+        "epoch-command-request-001",
+        "owner",
+        "2026-06-07T10:00:00+09:00/2026-06-07T11:00:00+09:00",
+        "Asia/Tokyo",
+        "Schedule command preview is queued locally and customer-safe.",
+        EPOCH_STATUS_QUEUED,
+        1,
+        1,
+        0,
+    };
+    EpochScheduleEntry entry = {
+        "epoch-command-entry-001",
+        "Native command schedule preview",
+        "Created by the Avalonia scheduling command module through the C bridge.",
+        "2026-06-07T10:00:00+09:00",
+        "2026-06-07T11:00:00+09:00",
+        "Asia/Tokyo",
+        EPOCH_STATUS_QUEUED,
+    };
+    EpochAvailabilityWindow window = {
+        "epoch-command-window-001",
+        "Owner command window",
+        "2026-06-07T10:00:00+09:00",
+        "2026-06-07T12:00:00+09:00",
+        "Asia/Tokyo",
+        2,
+        0,
+        EPOCH_STATUS_AVAILABLE,
+    };
+    EpochTimingHandoff handoff = {
+        "epoch-command-handoff-001",
+        "WORKSHOP",
+        "workshop-command-handoff-001",
+        "epoch-command-request-001",
+        "2026-06-07T10:00:00+09:00/2026-06-07T11:00:00+09:00",
+        "Asia/Tokyo",
+        "WORKSHOP timing handoff is accepted into EPOCH scheduling ownership.",
+        EPOCH_STATUS_ACCEPTED,
+        1,
+        0,
+    };
+    EpochAvailabilityConflictDecision clear_decision = {
+        "epoch-command-conflict-001",
+        "epoch-command-handoff-001",
+        "epoch-command-request-001",
+        "epoch-command-window-001",
+        "capacity-clear",
+        "Availability is clear for a local scheduling command preview.",
+        EPOCH_STATUS_CLEAR,
+        1,
+        1,
+        0,
+    };
+    EpochScheduleRequestAcceptance acceptance = {
+        "epoch-command-acceptance-001",
+        "epoch-command-request-001",
+        "epoch-command-window-001",
+        "Schedule request accepted into a local availability hold.",
+        EPOCH_STATUS_ACCEPTED,
+        1,
+        1,
+        0,
+    };
+    EpochAvailabilityHold hold = {
+        "epoch-command-hold-001",
+        "epoch-command-acceptance-001",
+        "epoch-command-request-001",
+        "epoch-command-window-001",
+        "2026-06-07T10:00:00+09:00",
+        "2026-06-07T11:00:00+09:00",
+        "Asia/Tokyo",
+        EPOCH_STATUS_HELD,
+        1,
+        0,
+    };
+    EpochBookingConfirmation booking = {
+        "epoch-command-booking-001",
+        "epoch-command-acceptance-001",
+        "epoch-command-hold-001",
+        "epoch-command-entry-001",
+        "epoch-command-request-001",
+        "2026-06-07T10:00:00+09:00/2026-06-07T11:00:00+09:00",
+        "Asia/Tokyo",
+        "Native scheduling command preview confirms a local booking without provider calls.",
+        EPOCH_STATUS_CONFIRMED,
+        1,
+        0,
+    };
+    EpochScheduleStatusEvent status_event = {
+        "epoch-command-status-001",
+        "epoch-command-booking-001",
+        "epoch-command-request-001",
+        "confirmed",
+        "Schedule command preview confirmed locally; external calendar calls remain disabled.",
+        EPOCH_STATUS_CONFIRMED,
+        1,
+    };
+    EpochBookingReceipt receipt = {
+        "epoch-command-receipt-001",
+        "epoch-command-booking-001",
+        "epoch-command-status-001",
+        "Native command preview produced request, acceptance, hold, booking, status, and receipt evidence.",
+        EPOCH_STATUS_COMPLETE,
+        1,
+        0,
+    };
+    EpochTimingReturnPayload timing_return = {
+        "epoch-command-return-001",
+        "epoch-command-handoff-001",
+        "epoch-command-conflict-001",
+        "epoch-command-booking-001",
+        "epoch-command-request-001",
+        "booking-confirmed",
+        "Confirmed timing returned to the requesting workflow without sharing calendar internals.",
+        EPOCH_STATUS_RETURNED,
+        1,
+        0,
+    };
+    int request_safe;
+    int window_ready;
+    int handoff_safe;
+    int decision_safe;
+    int acceptance_ready;
+    int hold_ready;
+    int booking_safe;
+    int status_safe;
+    int receipt_safe;
+    int return_safe;
+    int ready;
+
+    if (out_result == 0) {
+        return 0;
+    }
+
+    request_safe = epoch_schedule_request_is_customer_safe(&request);
+    window_ready = epoch_availability_window_has_capacity(&window);
+    handoff_safe = epoch_timing_handoff_is_sandbox_safe(&handoff);
+    decision_safe = epoch_availability_conflict_decision_is_customer_safe(&clear_decision);
+    acceptance_ready = epoch_schedule_request_acceptance_is_ready(&acceptance);
+    hold_ready = epoch_availability_hold_is_ready(&hold);
+    booking_safe = epoch_booking_confirmation_is_customer_safe(&booking);
+    status_safe = epoch_schedule_status_event_is_customer_safe(&status_event);
+    receipt_safe = epoch_booking_receipt_is_customer_safe(&receipt);
+    return_safe = epoch_timing_return_payload_is_customer_safe(&timing_return);
+    ready = request_safe &&
+            window_ready &&
+            handoff_safe &&
+            decision_safe &&
+            acceptance_ready &&
+            hold_ready &&
+            booking_safe &&
+            status_safe &&
+            receipt_safe &&
+            return_safe;
+
+    memset(out_result, 0, sizeof(*out_result));
+    out_result->request_id = request.id;
+    out_result->schedule_entry_id = entry.id;
+    out_result->availability_window_id = window.id;
+    out_result->booking_confirmation_id = booking.id;
+    out_result->receipt_id = receipt.id;
+    out_result->timing_return_status = epoch_status_label(timing_return.status);
+    out_result->customer_safe_status = timing_return.customer_safe_status;
+    out_result->request_customer_safe = request_safe;
+    out_result->availability_has_capacity = window_ready;
+    out_result->acceptance_ready = acceptance_ready;
+    out_result->hold_ready = hold_ready;
+    out_result->booking_customer_safe = booking_safe;
+    out_result->receipt_customer_safe = receipt_safe;
+    out_result->timing_return_customer_safe = return_safe;
+    out_result->native_command_ready = ready;
+
+    return ready;
 }

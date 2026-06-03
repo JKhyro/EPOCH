@@ -423,7 +423,9 @@ for (const phrase of [
 
 for (const phrase of [
   "EpochAppBridgeSnapshot",
+  "EpochAppBridgeScheduleCommandResult",
   "epoch_app_bridge_get_snapshot",
+  "epoch_app_bridge_preview_schedule_command",
   "epoch_app_bridge_core_ready",
   "epoch_app_bridge_revised_conversion_ready",
   "epoch_app_bridge_monitor_boundary_enforced"
@@ -434,11 +436,21 @@ for (const phrase of [
 
 for (const phrase of [
   "EpochRevisedCalendarRulepack",
+  "EpochScheduleRequestAcceptance",
+  "EpochAvailabilityHold",
+  "EpochBookingConfirmation",
+  "EpochBookingReceipt",
+  "EpochTimingReturnPayload",
   "epoch_revised_calendar_rulepack_represents_owner_structure",
   "epoch_schedule_request_is_customer_safe",
+  "epoch_schedule_request_acceptance_is_ready",
+  "epoch_availability_hold_is_ready",
+  "epoch_booking_confirmation_is_customer_safe",
+  "epoch_timing_return_payload_is_customer_safe",
   "epoch_schedule_template_is_ready",
   "epoch_scheduler_log_entry_is_product_log",
-  "codex/local-epoch-avalonia-shell-boundary",
+  "codex/local-epoch-avalonia-scheduling-module",
+  "epoch-command-booking-001",
   "structure-ready-conversion-gated",
   "MONITOR remains development/control only"
 ]) {
@@ -453,6 +465,16 @@ for (const phrase of [
   "snapshot.monitor_boundary_enforced == 1"
 ]) {
   if (!appBridgeSmoke.includes(phrase)) fail(`app bridge smoke missing ${phrase}`);
+}
+
+for (const phrase of [
+  "epoch_app_bridge_preview_schedule_command(&command) == 1",
+  "command.booking_confirmation_id",
+  "command.receipt_id",
+  "command.timing_return_status",
+  "command.native_command_ready == 1"
+]) {
+  if (!appBridgeSmoke.includes(phrase)) fail(`app bridge command smoke missing ${phrase}`);
 }
 
 for (const phrase of [
@@ -485,6 +507,9 @@ for (const phrase of [
   "Schedule Queue",
   "Revised Calendar Lab",
   "Boundary Contract",
+  "Native Scheduling Command",
+  "CommandReadiness",
+  "CommandReceiptStatus",
   "MONITOR owns development/control status",
   "WORKSHOP may request timing"
 ]) {
@@ -495,8 +520,10 @@ for (const phrase of [
   "NativeLibrary.SetDllImportResolver",
   "DllImport",
   "epoch_app_bridge_get_snapshot",
+  "epoch_app_bridge_preview_schedule_command",
   "epoch_app_bridge.dll",
   "LoadSnapshotOrFallback",
+  "LoadScheduleCommandOrFallback",
   "structure-ready-conversion-gated"
 ]) {
   if (!appNative.includes(phrase)) fail(`Avalonia native interop missing ${phrase}`);
@@ -504,10 +531,21 @@ for (const phrase of [
 
 for (const phrase of [
   "EpochNative.LoadSnapshotOrFallback",
+  "EpochNative.LoadScheduleCommandOrFallback",
+  "native scheduling command ready",
   "audit, receipts, log, search, and templates",
   "monitor boundary enforced"
 ]) {
   if (!appViewModel.includes(phrase)) fail(`Avalonia view model missing ${phrase}`);
+}
+
+for (const phrase of [
+  "Native-backed scheduling command slice",
+  "epoch_app_bridge_preview_schedule_command",
+  "request, EPOCH-owned availability window",
+  "does not expose WORKSHOP service or CRM internals"
+]) {
+  if (!runtime.includes(phrase)) fail(`runtime docs missing scheduling command phrase ${phrase}`);
 }
 
 for (const type of [

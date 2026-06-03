@@ -25,9 +25,28 @@ typedef struct EpochAppBridgeSnapshot {
     int monitor_boundary_enforced;
 } EpochAppBridgeSnapshot;
 
+typedef struct EpochAppBridgeScheduleCommandResult {
+    const char *request_id;
+    const char *schedule_entry_id;
+    const char *availability_window_id;
+    const char *booking_confirmation_id;
+    const char *receipt_id;
+    const char *timing_return_status;
+    const char *customer_safe_status;
+    int request_customer_safe;
+    int availability_has_capacity;
+    int acceptance_ready;
+    int hold_ready;
+    int booking_customer_safe;
+    int receipt_customer_safe;
+    int timing_return_customer_safe;
+    int native_command_ready;
+} EpochAppBridgeScheduleCommandResult;
+
 EPOCH_APP_BRIDGE_API const char *epoch_app_bridge_product_name(void);
 EPOCH_APP_BRIDGE_API const char *epoch_app_bridge_core_status(void);
 EPOCH_APP_BRIDGE_API int epoch_app_bridge_get_snapshot(EpochAppBridgeSnapshot *out_snapshot);
+EPOCH_APP_BRIDGE_API int epoch_app_bridge_preview_schedule_command(EpochAppBridgeScheduleCommandResult *out_result);
 EPOCH_APP_BRIDGE_API int epoch_app_bridge_core_ready(void);
 EPOCH_APP_BRIDGE_API int epoch_app_bridge_revised_conversion_ready(void);
 EPOCH_APP_BRIDGE_API int epoch_app_bridge_monitor_boundary_enforced(void);
