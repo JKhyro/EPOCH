@@ -72,6 +72,11 @@ public sealed class MainWindowViewModel
         RevisedCalendarGateReason = $"{snapshot.RevisedConversionGateReason}; conversion ready: {snapshot.RevisedConversionReady.ToString().ToLowerInvariant()}; customer-safe constraints: {snapshot.RevisedConstraintsCustomerSafe.ToString().ToLowerInvariant()}.";
         RevisedCalendarBoundaryPolicies = $"{snapshot.RevisedYearOpeningPolicy}; {snapshot.RevisedLeapDayPolicy}.";
         BoundaryStatus = snapshot.MonitorBoundaryEnforced ? "monitor boundary enforced" : "monitor boundary blocked";
+        NativeSchedulerRelationshipSummary = "Native scheduler map keeps requests, availability, holds, bookings, reminders, recurrence, timing returns, and receipts connected in the Avalonia operator shell.";
+        NativeSchedulerRequestRelationship = $"Request {command.RequestId} links to availability {command.AvailabilityWindowId}, hold {execution.HoldId}, booking {command.BookingConfirmationId}, and receipt {command.ReceiptId}.";
+        NativeSchedulerAvailabilityRelationship = "Availability connects to capacity snapshots, waitlist state, hold releases, booking candidates, overload warnings, and customer-safe options.";
+        NativeSchedulerRecurrenceRelationship = "Recurring schedules connect to exceptions, revised availability, reminder/deadline execution, rulepack decisions, and approval receipts.";
+        NativeSchedulerPortalRelationship = "Webportal exports remain customer-safe: schedule status, booking options, waitlist/capacity, reminders/deadlines, recurring schedule, and receipts/imports only.";
         CommandSummary = $"{command.RequestId} -> {command.BookingConfirmationId} via {command.AvailabilityWindowId}";
         CommandReceiptStatus = $"Receipt {command.ReceiptId}; timing return status: {command.TimingReturnStatus}.";
         CommandCustomerSafeStatus = command.CustomerSafeStatus;
@@ -232,6 +237,11 @@ public sealed class MainWindowViewModel
     public string RevisedCalendarGateReason { get; }
     public string RevisedCalendarBoundaryPolicies { get; }
     public string BoundaryStatus { get; }
+    public string NativeSchedulerRelationshipSummary { get; }
+    public string NativeSchedulerRequestRelationship { get; }
+    public string NativeSchedulerAvailabilityRelationship { get; }
+    public string NativeSchedulerRecurrenceRelationship { get; }
+    public string NativeSchedulerPortalRelationship { get; }
     public string CommandSummary { get; }
     public string CommandReceiptStatus { get; }
     public string CommandCustomerSafeStatus { get; }

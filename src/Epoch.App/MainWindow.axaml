@@ -33,6 +33,16 @@
               </Border>
             </Grid>
             <TextBlock Text="{Binding OperationsBoardNextAction}" TextWrapping="Wrap" Foreground="#526071" />
+            <Border Padding="14" CornerRadius="8" Background="#f4fbff" BorderBrush="#c5ddeb" BorderThickness="1">
+              <StackPanel Spacing="6">
+                <TextBlock Text="Native Scheduler Relationship Map" FontWeight="SemiBold" Foreground="#172033" />
+                <TextBlock Text="{Binding NativeSchedulerRelationshipSummary}" TextWrapping="Wrap" Foreground="#526071" />
+                <TextBlock Text="{Binding NativeSchedulerRequestRelationship}" TextWrapping="Wrap" Foreground="#526071" />
+                <TextBlock Text="{Binding NativeSchedulerAvailabilityRelationship}" TextWrapping="Wrap" Foreground="#526071" />
+                <TextBlock Text="{Binding NativeSchedulerRecurrenceRelationship}" TextWrapping="Wrap" Foreground="#526071" />
+                <TextBlock Text="{Binding NativeSchedulerPortalRelationship}" TextWrapping="Wrap" Foreground="#526071" />
+              </StackPanel>
+            </Border>
             <Border Padding="14" CornerRadius="8" Background="#f7fbff" BorderBrush="#d6e4f3" BorderThickness="1">
               <StackPanel Spacing="6">
                 <TextBlock Text="Customer-Safe Status Feedback" FontWeight="SemiBold" Foreground="#172033" />
