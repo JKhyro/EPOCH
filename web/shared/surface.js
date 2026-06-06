@@ -484,6 +484,25 @@ const setText = (id, value) => {
 
 const moduleRoute = (moduleId, focusId = "") => `#/${encodeURIComponent(moduleId)}${focusId ? `?focus=${encodeURIComponent(focusId)}` : ""}`;
 
+const relationshipCue = (enabled, label, moduleId, focusId = "", detail = "") => enabled
+  ? { label, moduleId, focusId, detail }
+  : null;
+
+const renderRelationshipCues = (cues, label = "Related records") => {
+  const visibleCues = cues.filter(Boolean);
+  if (!visibleCues.length) return "";
+  return `
+    <nav class="relationship-cues" aria-label="${escapeHtml(label)}">
+      <span>${escapeHtml(label)}</span>
+      ${visibleCues.map((cue) => `
+        <a class="relationship-cue" href="${escapeHtml(moduleRoute(cue.moduleId, cue.focusId))}" title="${escapeHtml(cue.detail || cue.label)}">
+          ${escapeHtml(cue.label)}
+        </a>
+      `).join("")}
+    </nav>
+  `;
+};
+
 const EPOCH_APP_MODULE_STORAGE_KEY = "epoch.app.activeModule.v1";
 
 const EPOCH_APP_MODULES = [
@@ -1170,6 +1189,12 @@ function renderScheduleQueue() {
         <strong>${escapeHtml(item.title)}</strong>
         <p>${escapeHtml(item.detail)}</p>
         <small>${escapeHtml(item.customerSafeStatus)}</small>
+        ${renderRelationshipCues([
+          relationshipCue(true, "Calendar board", "calendar-board", "calendar-board", "Open the visible calendar block."),
+          relationshipCue(true, "Availability", "availability-holds", "availability-list", "Open windows, capacity, and holds."),
+          relationshipCue(true, "Booking options", "bookings-recommendations", "booking-recommendation-list", "Open recommendations and confirmations."),
+          relationshipCue(true, "Receipts", "receipts-audit", "schedule-receipts-list", "Open schedule receipts and audit rows.")
+        ])}
       </div>
       <div class="item-meta">
         ${chip(item.status)}
@@ -1187,6 +1212,12 @@ function renderCalendarBoard() {
       <span>${escapeHtml(item.time)}</span>
       <strong>${escapeHtml(item.title)}</strong>
       <small>${escapeHtml(item.status)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Schedule request", "schedule-requests", "schedule-queue", "Open schedule request state."),
+        relationshipCue(true, "Availability", "availability-holds", "availability-list", "Open availability and holds."),
+        relationshipCue(true, "Booking", "bookings-recommendations", "booking-confirmation-list", "Open booking status."),
+        relationshipCue(true, "Receipts", "receipts-audit", "schedule-receipts-list", "Open receipts and audit.")
+      ])}
     </article>
   `).join("");
 }
@@ -1205,6 +1236,11 @@ function renderProductModules() {
       <strong>${escapeHtml(item.action)}</strong>
       <span>${escapeHtml(item.status)} - ${escapeHtml(item.scheduleEntryId)}</span>
       <small>${escapeHtml(item.summary)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(Boolean(item.scheduleEntryId), "Calendar board", "calendar-board", "calendar-board", "Open calendar board."),
+        relationshipCue(true, "Schedule request", "schedule-requests", "schedule-queue", "Open schedule requests."),
+        relationshipCue(true, "Receipts", "receipts-audit", "schedule-receipts-list", "Open related receipts.")
+      ])}
     </article>
   `);
 
@@ -1213,6 +1249,11 @@ function renderProductModules() {
       <strong>${escapeHtml(item.kind)}</strong>
       <span>${escapeHtml(item.status)} - ${escapeHtml(item.linkedRecordId)}</span>
       <small>${escapeHtml(item.summary)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Schedule request", "schedule-requests", "schedule-queue", "Open schedule requests."),
+        relationshipCue(true, "Bookings", "bookings-recommendations", "booking-confirmation-list", "Open booking confirmations."),
+        relationshipCue(true, "Audit", "receipts-audit", "schedule-audit-list", "Open schedule audit.")
+      ])}
     </article>
   `);
 
@@ -1221,6 +1262,10 @@ function renderProductModules() {
       <strong>${escapeHtml(item.eventKind)}</strong>
       <span>${escapeHtml(item.status)} - ${escapeHtml(item.recordedAt)}</span>
       <small>${escapeHtml(item.summary)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Schedule request", "schedule-requests", "schedule-queue", "Open schedule requests."),
+        relationshipCue(true, "Receipts", "receipts-audit", "schedule-receipts-list", "Open schedule receipts.")
+      ])}
     </article>
   `);
 
@@ -1303,16 +1348,40 @@ function renderAvailability() {
       <strong>${escapeHtml(item.label)}</strong>
       <span>${escapeHtml(item.time)}</span>
       <small>${escapeHtml(item.capacity - item.holds)} open of ${escapeHtml(item.capacity)} · ${escapeHtml(item.status)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Holds", "availability-holds", "hold-list", "Open holds for available windows."),
+        relationshipCue(true, "Capacity", "availability-holds", "capacity-snapshot-list", "Open capacity snapshots."),
+        relationshipCue(true, "Booking options", "bookings-recommendations", "booking-recommendation-list", "Open booking recommendations."),
+        relationshipCue(true, "Calendar board", "calendar-board", "calendar-board", "Open calendar board.")
+      ])}
+    </article>
+  `;
+  const renderPortalWindow = (item) => `
+    <article class="mini-row">
+      <strong>${escapeHtml(item.label)}</strong>
+      <span>${escapeHtml(item.time)}</span>
+      <small>${escapeHtml(item.capacity - item.holds)} open of ${escapeHtml(item.capacity)} · ${escapeHtml(item.status)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Schedule status", "schedule-status", "portal-timeline", "Open schedule status."),
+        relationshipCue(true, "Booking options", "booking-options", "portal-booking-recommendations", "Open customer-safe booking options."),
+        relationshipCue(true, "Waitlist", "waitlist-capacity", "portal-waitlist-status", "Open waitlist and capacity status.")
+      ])}
     </article>
   `;
   renderStack("availability-list", state.ledger.availabilityWindows, renderWindow);
-  renderStack("portal-availability", state.ledger.availabilityWindows, renderWindow);
+  renderStack("portal-availability", state.ledger.availabilityWindows, renderPortalWindow);
 
   renderStack("capacity-snapshot-list", state.ledger.availabilityCapacitySnapshots || [], (item) => `
     <article class="mini-row">
       <strong>${escapeHtml(item.availabilityWindowId)}</strong>
       <span>${escapeHtml(item.status)} - ${escapeHtml(item.holds)} of ${escapeHtml(item.capacity)} held</span>
       <small>${escapeHtml(item.waitlistCount)} waitlisted / ${escapeHtml(item.promotionCandidateCount)} promotions - ${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(Boolean(item.availabilityWindowId), "Window", "availability-holds", "availability-list", "Open availability windows."),
+        relationshipCue((state.ledger.availabilityWaitlistEntries || []).some((entry) => entry.availabilityWindowId === item.availabilityWindowId), "Waitlist", "availability-holds", "waitlist-list", "Open waitlist entries."),
+        relationshipCue(true, "Booking options", "bookings-recommendations", "booking-recommendation-list", "Open booking candidates."),
+        relationshipCue(true, "Capacity receipt", "availability-holds", "capacity-receipt-list", "Open capacity receipts.")
+      ])}
     </article>
   `);
 
@@ -1321,6 +1390,12 @@ function renderAvailability() {
       <strong>${escapeHtml(item.scheduleRequestId)}</strong>
       <span>${escapeHtml(item.status)} - priority ${escapeHtml(item.priority)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(Boolean(item.scheduleRequestId), "Schedule request", "schedule-requests", "schedule-queue", "Open schedule request state."),
+        relationshipCue(Boolean(item.availabilityWindowId), "Capacity", "availability-holds", "capacity-snapshot-list", "Open capacity snapshot."),
+        relationshipCue(true, "Booking options", "bookings-recommendations", "booking-recommendation-list", "Open booking options."),
+        relationshipCue(true, "Promotion", "availability-holds", "promotion-candidate-list", "Open promotion candidates.")
+      ])}
     </article>
   `);
 
@@ -1329,6 +1404,11 @@ function renderAvailability() {
       <strong>${escapeHtml(item.availabilityHoldId)}</strong>
       <span>${escapeHtml(item.status)} - ${escapeHtml(item.availabilityWindowId)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(Boolean(item.availabilityHoldId), "Hold", "availability-holds", "hold-list", "Open availability holds."),
+        relationshipCue(Boolean(item.availabilityWindowId), "Window", "availability-holds", "availability-list", "Open availability windows."),
+        relationshipCue(true, "Receipts", "receipts-audit", "schedule-receipts-list", "Open schedule receipts.")
+      ])}
     </article>
   `);
 
@@ -1337,6 +1417,11 @@ function renderAvailability() {
       <strong>${escapeHtml(item.waitlistEntryId)}</strong>
       <span>${escapeHtml(item.status)} - ${escapeHtml(item.availabilityWindowId)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(Boolean(item.waitlistEntryId), "Waitlist", "availability-holds", "waitlist-list", "Open waitlist entries."),
+        relationshipCue(Boolean(item.availabilityWindowId), "Window", "availability-holds", "availability-list", "Open availability windows."),
+        relationshipCue(true, "Booking options", "bookings-recommendations", "booking-recommendation-list", "Open booking recommendations.")
+      ])}
     </article>
   `);
 
@@ -1345,6 +1430,11 @@ function renderAvailability() {
       <strong>${escapeHtml(item.id)}</strong>
       <span>${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.summary)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Capacity", "availability-holds", "capacity-snapshot-list", "Open capacity snapshots."),
+        relationshipCue(true, "Waitlist", "availability-holds", "waitlist-list", "Open waitlist state."),
+        relationshipCue(true, "Receipts", "receipts-audit", "schedule-receipts-list", "Open audit receipts.")
+      ])}
     </article>
   `);
 
@@ -1353,6 +1443,12 @@ function renderAvailability() {
       <strong>${escapeHtml(item.scheduleRequestId)}</strong>
       <span>${escapeHtml(item.status)} - ${escapeHtml(item.candidateCount)} candidates</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(Boolean(item.scheduleRequestId), "Schedule request", "schedule-requests", "schedule-queue", "Open schedule request."),
+        relationshipCue(true, "Availability", "availability-holds", "availability-list", "Open availability windows."),
+        relationshipCue(true, "Recommendations", "bookings-recommendations", "booking-recommendation-list", "Open ranked candidates."),
+        relationshipCue(true, "Receipts", "bookings-recommendations", "booking-recommendation-receipt-list", "Open recommendation receipts.")
+      ])}
     </article>
   `);
 
@@ -1361,6 +1457,12 @@ function renderAvailability() {
       <strong>#${escapeHtml(item.rank)} ${escapeHtml(item.label || item.availabilityWindowId)}</strong>
       <span>${escapeHtml(item.status)} - score ${escapeHtml(item.score)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(Boolean(item.scheduleRequestId), "Schedule request", "schedule-requests", "schedule-queue", "Open schedule request."),
+        relationshipCue(Boolean(item.availabilityWindowId), "Availability", "availability-holds", "availability-list", "Open availability window."),
+        relationshipCue(true, "Confirmation", "bookings-recommendations", "booking-confirmation-list", "Open booking confirmations."),
+        relationshipCue(true, "Receipts", "bookings-recommendations", "booking-recommendation-receipt-list", "Open recommendation receipts.")
+      ])}
     </article>
   `);
 
@@ -1369,6 +1471,11 @@ function renderAvailability() {
       <strong>${escapeHtml(item.availabilityWindowId)}</strong>
       <span>${escapeHtml(item.status)} - ${escapeHtml(item.loadRatioPercent)}% held</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(Boolean(item.availabilityWindowId), "Availability", "availability-holds", "availability-list", "Open availability window."),
+        relationshipCue(true, "Capacity", "availability-holds", "capacity-snapshot-list", "Open capacity snapshot."),
+        relationshipCue(true, "Alternatives", "bookings-recommendations", "booking-recommendation-list", "Open alternate booking candidates.")
+      ])}
     </article>
   `);
 
@@ -1377,6 +1484,11 @@ function renderAvailability() {
       <strong>${escapeHtml(item.id)}</strong>
       <span>${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.summary)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Schedule request", "schedule-requests", "schedule-queue", "Open schedule requests."),
+        relationshipCue(true, "Recommendations", "bookings-recommendations", "booking-recommendation-list", "Open booking recommendations."),
+        relationshipCue(true, "Receipts", "receipts-audit", "schedule-receipts-list", "Open audit receipts.")
+      ])}
     </article>
   `);
 
@@ -1385,6 +1497,11 @@ function renderAvailability() {
       <strong>${escapeHtml(item.recommendationType === "best-fit" ? "Recommended window" : "Alternate window")}</strong>
       <span>${escapeHtml(item.recommendedWindow || item.availabilityWindowId)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Schedule status", "schedule-status", "portal-booking-status", "Open booking status."),
+        relationshipCue(true, "Capacity", "waitlist-capacity", "portal-capacity-status", "Open capacity status."),
+        relationshipCue(true, "Receipts", "receipts-imports", "portal-booking-receipts", "Open booking receipts.")
+      ])}
     </article>
   `);
 
@@ -1393,6 +1510,10 @@ function renderAvailability() {
       <strong>Availability warning</strong>
       <span>${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Booking options", "booking-options", "portal-booking-recommendations", "Open booking options."),
+        relationshipCue(true, "Capacity", "waitlist-capacity", "portal-capacity-status", "Open capacity status.")
+      ])}
     </article>
   `);
 
@@ -1401,6 +1522,10 @@ function renderAvailability() {
       <strong>${escapeHtml(item.status)}</strong>
       <span>${escapeHtml(item.generatedAt || "")}</span>
       <small>${escapeHtml(item.summary)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Booking options", "booking-options", "portal-booking-recommendations", "Open booking options."),
+        relationshipCue(true, "Receipts", "receipts-imports", "portal-booking-receipts", "Open booking receipts.")
+      ])}
     </article>
   `);
 
@@ -1409,6 +1534,11 @@ function renderAvailability() {
       <strong>Waitlist priority ${escapeHtml(item.priority)}</strong>
       <span>${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Schedule status", "schedule-status", "portal-timeline", "Open schedule status."),
+        relationshipCue(true, "Booking options", "booking-options", "portal-booking-recommendations", "Open booking options."),
+        relationshipCue(true, "Capacity", "waitlist-capacity", "portal-capacity-status", "Open capacity status.")
+      ])}
     </article>
   `);
 
@@ -1417,6 +1547,10 @@ function renderAvailability() {
       <strong>${escapeHtml(item.availabilityWindowId)}</strong>
       <span>${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Booking options", "booking-options", "portal-booking-recommendations", "Open booking options."),
+        relationshipCue(true, "Waitlist", "waitlist-capacity", "portal-waitlist-status", "Open waitlist status.")
+      ])}
     </article>
   `);
 
@@ -1425,6 +1559,10 @@ function renderAvailability() {
       <strong>Waitlist promotion</strong>
       <span>${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Waitlist", "waitlist-capacity", "portal-waitlist-status", "Open waitlist status."),
+        relationshipCue(true, "Booking options", "booking-options", "portal-booking-recommendations", "Open booking options.")
+      ])}
     </article>
   `);
 }
@@ -1435,6 +1573,12 @@ function renderBookingWorkflow() {
       <strong>${escapeHtml(item.sourceProduct)} timing handoff</strong>
       <span>${escapeHtml(item.status)} - ${escapeHtml(item.requestedWindow)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Schedule request", "schedule-requests", "schedule-queue", "Open schedule request."),
+        relationshipCue(true, "Availability", "availability-holds", "availability-list", "Open availability decisions."),
+        relationshipCue(true, "Booking options", "bookings-recommendations", "booking-recommendation-list", "Open booking options."),
+        relationshipCue(true, "Timing return", "bookings-recommendations", "timing-return-list", "Open timing return payloads.")
+      ])}
     </article>
   `);
 
@@ -1443,6 +1587,11 @@ function renderBookingWorkflow() {
       <strong>${escapeHtml(item.conflictType)}</strong>
       <span>${escapeHtml(item.status)} - ${escapeHtml(item.availabilityWindowId || "no window")}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Schedule request", "schedule-requests", "schedule-queue", "Open schedule request."),
+        relationshipCue(Boolean(item.availabilityWindowId), "Availability", "availability-holds", "availability-list", "Open availability window."),
+        relationshipCue(true, "Timing return", "bookings-recommendations", "timing-return-list", "Open timing return state.")
+      ])}
     </article>
   `);
 
@@ -1451,6 +1600,12 @@ function renderBookingWorkflow() {
       <strong>${escapeHtml(item.requester)}</strong>
       <span>${escapeHtml(item.status)} - ${escapeHtml(item.availabilityWindowId || "window pending")}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Schedule request", "schedule-requests", "schedule-queue", "Open schedule request."),
+        relationshipCue(Boolean(item.availabilityWindowId), "Hold", "availability-holds", "hold-list", "Open hold state."),
+        relationshipCue(true, "Booking", "bookings-recommendations", "booking-confirmation-list", "Open booking confirmations."),
+        relationshipCue(true, "Receipts", "receipts-audit", "schedule-receipts-list", "Open schedule receipts.")
+      ])}
     </article>
   `);
 
@@ -1459,6 +1614,12 @@ function renderBookingWorkflow() {
       <strong>${escapeHtml(item.availabilityWindowId || "operator-selected window")}</strong>
       <span>${escapeHtml(item.status)} - ${escapeHtml(item.timezone)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Schedule request", "schedule-requests", "schedule-queue", "Open schedule request."),
+        relationshipCue(Boolean(item.availabilityWindowId), "Availability", "availability-holds", "availability-list", "Open availability window."),
+        relationshipCue(true, "Confirmation", "bookings-recommendations", "booking-confirmation-list", "Open booking confirmations."),
+        relationshipCue(true, "Hold release", "availability-holds", "hold-release-list", "Open hold releases.")
+      ])}
     </article>
   `);
 
@@ -1468,6 +1629,12 @@ function renderBookingWorkflow() {
         <strong>${escapeHtml(item.requester)}</strong>
         <p>${escapeHtml(item.customerSafeStatus)}</p>
         <small>${escapeHtml(item.scheduleEntryId || "local entry pending")}</small>
+        ${renderRelationshipCues([
+          relationshipCue(true, "Schedule request", "schedule-requests", "schedule-queue", "Open schedule request."),
+          relationshipCue(true, "Availability hold", "availability-holds", "hold-list", "Open hold state."),
+          relationshipCue(true, "Booking receipt", "bookings-recommendations", "booking-receipt-list", "Open booking receipts."),
+          relationshipCue(true, "Timing return", "bookings-recommendations", "timing-return-list", "Open timing return payloads.")
+        ])}
       </div>
       <div class="item-meta">
         ${chip(item.status)}
@@ -1481,6 +1648,11 @@ function renderBookingWorkflow() {
       <strong>${escapeHtml(item.label)}</strong>
       <span>${escapeHtml(item.state)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Schedule request", "schedule-requests", "schedule-queue", "Open schedule request."),
+        relationshipCue(true, "Booking", "bookings-recommendations", "booking-confirmation-list", "Open booking state."),
+        relationshipCue(true, "Receipts", "receipts-audit", "schedule-receipts-list", "Open schedule receipts.")
+      ])}
     </article>
   `);
 
@@ -1489,6 +1661,11 @@ function renderBookingWorkflow() {
       <strong>${escapeHtml(item.id)}</strong>
       <span>${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.summary)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Booking", "bookings-recommendations", "booking-confirmation-list", "Open booking confirmations."),
+        relationshipCue(true, "Timing return", "bookings-recommendations", "timing-return-list", "Open timing return state."),
+        relationshipCue(true, "Receipts", "receipts-audit", "schedule-receipts-list", "Open audit receipts.")
+      ])}
     </article>
   `);
 
@@ -1498,6 +1675,12 @@ function renderBookingWorkflow() {
         <strong>${escapeHtml(item.returnType)} - ${escapeHtml(item.requester || item.scheduleRequestId)}</strong>
         <p>${escapeHtml(item.customerSafeStatus)}</p>
         <small>${escapeHtml(item.timingHandoffId)}</small>
+        ${renderRelationshipCues([
+          relationshipCue(Boolean(item.scheduleRequestId), "Schedule request", "schedule-requests", "schedule-queue", "Open schedule request."),
+          relationshipCue(Boolean(item.timingHandoffId), "Timing handoff", "schedule-requests", "timing-handoff-list", "Open timing handoff."),
+          relationshipCue(true, "Booking", "bookings-recommendations", "booking-confirmation-list", "Open booking confirmations."),
+          relationshipCue(true, "Receipts", "bookings-recommendations", "timing-return-receipt-list", "Open timing return receipts.")
+        ])}
       </div>
       <div class="item-meta">
         ${chip(item.status)}
@@ -1511,6 +1694,11 @@ function renderBookingWorkflow() {
       <strong>${escapeHtml(item.id)}</strong>
       <span>${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.summary)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Timing return", "bookings-recommendations", "timing-return-list", "Open timing return payloads."),
+        relationshipCue(true, "Booking", "bookings-recommendations", "booking-confirmation-list", "Open booking confirmations."),
+        relationshipCue(true, "Receipts", "receipts-audit", "schedule-receipts-list", "Open audit receipts.")
+      ])}
     </article>
   `);
 
@@ -1519,6 +1707,11 @@ function renderBookingWorkflow() {
       <strong>${escapeHtml(item.sourceProduct)} timing</strong>
       <span>${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Schedule status", "schedule-status", "portal-timeline", "Open schedule status."),
+        relationshipCue(true, "Booking options", "booking-options", "portal-booking-recommendations", "Open booking options."),
+        relationshipCue(true, "Receipts", "receipts-imports", "portal-timing-return-receipts", "Open timing receipts.")
+      ])}
     </article>
   `);
 
@@ -1527,6 +1720,11 @@ function renderBookingWorkflow() {
       <strong>${escapeHtml(item.status === "clear" ? "Availability clear" : "New window needed")}</strong>
       <span>${escapeHtml(item.conflictType)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Schedule status", "schedule-status", "portal-timeline", "Open schedule status."),
+        relationshipCue(true, "Capacity", "waitlist-capacity", "portal-capacity-status", "Open capacity status."),
+        relationshipCue(true, "Booking options", "booking-options", "portal-booking-recommendations", "Open booking options.")
+      ])}
     </article>
   `);
 
@@ -1535,6 +1733,11 @@ function renderBookingWorkflow() {
       <strong>${escapeHtml(item.requester)}</strong>
       <span>${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Schedule status", "schedule-status", "portal-timeline", "Open schedule status."),
+        relationshipCue(true, "Hold status", "schedule-status", "portal-hold-status", "Open hold status."),
+        relationshipCue(true, "Booking options", "booking-options", "portal-booking-recommendations", "Open booking options.")
+      ])}
     </article>
   `);
 
@@ -1543,6 +1746,11 @@ function renderBookingWorkflow() {
       <strong>Availability hold</strong>
       <span>${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Schedule status", "schedule-status", "portal-timeline", "Open schedule status."),
+        relationshipCue(true, "Capacity", "waitlist-capacity", "portal-capacity-status", "Open capacity status."),
+        relationshipCue(true, "Booking status", "schedule-status", "portal-booking-status", "Open booking status.")
+      ])}
     </article>
   `);
 
@@ -1551,6 +1759,11 @@ function renderBookingWorkflow() {
       <strong>${escapeHtml(item.requester)}</strong>
       <span>${escapeHtml(item.confirmedWindow)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Booking options", "booking-options", "portal-booking-recommendations", "Open booking options."),
+        relationshipCue(true, "Reminders", "reminders-deadlines", "portal-reminder-execution-status", "Open reminders and deadlines."),
+        relationshipCue(true, "Receipts", "receipts-imports", "portal-booking-receipts", "Open booking receipts.")
+      ])}
     </article>
   `);
 
@@ -1559,6 +1772,11 @@ function renderBookingWorkflow() {
       <strong>${escapeHtml(item.label)}</strong>
       <span>${escapeHtml(item.state)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Schedule status", "schedule-status", "portal-timeline", "Open schedule status."),
+        relationshipCue(true, "Booking status", "schedule-status", "portal-booking-status", "Open booking status."),
+        relationshipCue(true, "Receipts", "receipts-imports", "portal-schedule-receipts", "Open schedule receipts.")
+      ])}
     </article>
   `);
 
@@ -1567,6 +1785,10 @@ function renderBookingWorkflow() {
       <strong>${escapeHtml(item.status)}</strong>
       <span>${escapeHtml(item.generatedAt || "")}</span>
       <small>${escapeHtml(item.summary)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Booking status", "schedule-status", "portal-booking-status", "Open booking status."),
+        relationshipCue(true, "Receipts", "receipts-imports", "portal-schedule-receipts", "Open schedule receipts.")
+      ])}
     </article>
   `);
 
@@ -1575,6 +1797,11 @@ function renderBookingWorkflow() {
       <strong>${escapeHtml(item.returnType)}</strong>
       <span>${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Schedule status", "schedule-status", "portal-timing-handoff-status", "Open timing handoff status."),
+        relationshipCue(true, "Booking status", "schedule-status", "portal-booking-status", "Open booking status."),
+        relationshipCue(true, "Receipts", "receipts-imports", "portal-timing-return-receipts", "Open timing receipts.")
+      ])}
     </article>
   `);
 
@@ -1583,6 +1810,10 @@ function renderBookingWorkflow() {
       <strong>${escapeHtml(item.status)}</strong>
       <span>${escapeHtml(item.generatedAt || "")}</span>
       <small>${escapeHtml(item.summary)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Timing status", "receipts-imports", "portal-timing-return-status", "Open timing status."),
+        relationshipCue(true, "Booking status", "schedule-status", "portal-booking-status", "Open booking status.")
+      ])}
     </article>
   `);
 }
@@ -1593,6 +1824,11 @@ function renderDeadlinesAndReminders() {
       <strong>${escapeHtml(item.label)}</strong>
       <span>${escapeHtml(item.due)}</span>
       <small>${escapeHtml(item.health || "unscored")} - ${escapeHtml(item.customerSafeStatus || item.state)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Schedule request", "schedule-requests", "schedule-queue", "Open schedule request state."),
+        relationshipCue(true, "Reminder rules", "reminders-deadlines", "reminder-rule-list", "Open reminder rules."),
+        relationshipCue(true, "Escalations", "reminders-deadlines", "deadline-escalation-list", "Open escalation state.")
+      ])}
     </article>
   `);
 
@@ -1601,6 +1837,11 @@ function renderDeadlinesAndReminders() {
       <strong>${escapeHtml(item.reminderRuleId)}</strong>
       <span>${escapeHtml(item.status)} - ${escapeHtml(item.channel)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Reminder rule", "reminders-deadlines", "reminder-rule-list", "Open reminder rule."),
+        relationshipCue(true, "Deadline", "reminders-deadlines", "deadline-list", "Open related deadline."),
+        relationshipCue(true, "Receipts", "reminders-deadlines", "reminder-deadline-receipt-list", "Open reminder/deadline receipts.")
+      ])}
     </article>
   `);
 
@@ -1609,6 +1850,11 @@ function renderDeadlinesAndReminders() {
       <strong>${escapeHtml(item.deadlineItemId)}</strong>
       <span>${escapeHtml(item.health)} - ${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(Boolean(item.deadlineItemId), "Deadline", "reminders-deadlines", "deadline-list", "Open deadline item."),
+        relationshipCue(true, "Escalation", "reminders-deadlines", "deadline-escalation-list", "Open escalation state."),
+        relationshipCue(true, "Receipts", "reminders-deadlines", "reminder-deadline-receipt-list", "Open reminder/deadline receipts.")
+      ])}
     </article>
   `);
 
@@ -1617,6 +1863,11 @@ function renderDeadlinesAndReminders() {
       <strong>${escapeHtml(item.owner)}</strong>
       <span>Level ${escapeHtml(item.escalationLevel)} - ${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Deadline", "reminders-deadlines", "deadline-list", "Open deadline item."),
+        relationshipCue(true, "Reminder", "reminders-deadlines", "reminder-execution-list", "Open reminder executions."),
+        relationshipCue(true, "Receipts", "reminders-deadlines", "reminder-deadline-receipt-list", "Open reminder/deadline receipts.")
+      ])}
     </article>
   `);
 
@@ -1625,6 +1876,11 @@ function renderDeadlinesAndReminders() {
       <strong>${escapeHtml(item.id)}</strong>
       <span>${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.summary)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Deadline", "reminders-deadlines", "deadline-list", "Open deadlines."),
+        relationshipCue(true, "Reminder", "reminders-deadlines", "reminder-execution-list", "Open reminders."),
+        relationshipCue(true, "Receipts", "receipts-audit", "schedule-receipts-list", "Open audit receipts.")
+      ])}
     </article>
   `);
 
@@ -1633,6 +1889,11 @@ function renderDeadlinesAndReminders() {
       <strong>${escapeHtml(item.label)}</strong>
       <span>${escapeHtml(item.rrule)} - ${escapeHtml(item.calendarSystem)}</span>
       <small>${item.createsFutureEntries ? "future creation enabled" : "preview only"} - ${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Recurring series", "recurring-schedules", "recurring-series-list", "Open recurring series."),
+        relationshipCue(true, "Availability", "availability-holds", "availability-list", "Open availability windows."),
+        relationshipCue(true, "Rules", "rules-integrations", "revised-rulepack-status", "Open calendar rules.")
+      ])}
     </article>
   `);
 
@@ -1642,6 +1903,12 @@ function renderDeadlinesAndReminders() {
         <strong>${escapeHtml(item.title)}</strong>
         <p>${escapeHtml(item.customerSafeStatus)}</p>
         <small>${escapeHtml(item.rrule)} - ${escapeHtml(item.calendarSystem)} - ${escapeHtml(item.timezone)}</small>
+        ${renderRelationshipCues([
+          relationshipCue(true, "Instances", "recurring-schedules", "recurring-instance-list", "Open recurring instances."),
+          relationshipCue(true, "Exceptions", "recurring-schedules", "recurrence-exception-list", "Open recurring exceptions."),
+          relationshipCue(true, "Reminders", "reminders-deadlines", "reminder-execution-list", "Open reminders and deadlines."),
+          relationshipCue(true, "Receipts", "recurring-schedules", "recurring-series-receipt-list", "Open recurring receipts.")
+        ])}
       </div>
       <div class="item-meta">
         ${chip(item.status)}
@@ -1655,6 +1922,11 @@ function renderDeadlinesAndReminders() {
       <strong>${escapeHtml(item.seriesId)} #${escapeHtml(item.occurrenceIndex)}</strong>
       <span>${escapeHtml(item.status)} - ${escapeHtml(item.startIso || "window pending")}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(Boolean(item.seriesId), "Series", "recurring-schedules", "recurring-series-list", "Open recurring series."),
+        relationshipCue(true, "Exceptions", "recurring-schedules", "recurrence-exception-list", "Open exceptions."),
+        relationshipCue(true, "Booking", "bookings-recommendations", "booking-confirmation-list", "Open booking confirmations.")
+      ])}
     </article>
   `);
 
@@ -1663,6 +1935,11 @@ function renderDeadlinesAndReminders() {
       <strong>${escapeHtml(item.conflictType)}</strong>
       <span>${escapeHtml(item.status)} - ${escapeHtml(item.requestedWindow)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Recurring series", "recurring-schedules", "recurring-series-list", "Open recurring series."),
+        relationshipCue(true, "Availability", "availability-holds", "availability-list", "Open availability windows."),
+        relationshipCue(true, "Timing return", "bookings-recommendations", "timing-return-list", "Open timing return state.")
+      ])}
     </article>
   `);
 
@@ -1671,6 +1948,11 @@ function renderDeadlinesAndReminders() {
       <strong>${escapeHtml(item.status)}</strong>
       <span>${escapeHtml(item.recurringSeriesId)} / ${escapeHtml(item.availabilityWindowId || "window pending")}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(Boolean(item.recurringSeriesId), "Series", "recurring-schedules", "recurring-series-list", "Open recurring series."),
+        relationshipCue(Boolean(item.availabilityWindowId), "Availability", "availability-holds", "availability-list", "Open availability window."),
+        relationshipCue(true, "Receipts", "recurring-schedules", "revised-availability-exception-receipt-list", "Open revised availability receipts.")
+      ])}
     </article>
   `);
 
@@ -1679,6 +1961,11 @@ function renderDeadlinesAndReminders() {
       <strong>${escapeHtml(item.status)}</strong>
       <span>${escapeHtml(item.requestId)} / ${escapeHtml(item.kind)}</span>
       <small>${escapeHtml(item.customerSafeMessage || item.summary)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(Boolean(item.requestId), "Schedule request", "schedule-requests", "schedule-queue", "Open schedule request."),
+        relationshipCue(true, "Revised exception", "recurring-schedules", "revised-availability-exception-list", "Open revised availability exceptions."),
+        relationshipCue(true, "Receipts", "receipts-audit", "schedule-receipts-list", "Open audit receipts.")
+      ])}
     </article>
   `);
 
@@ -1687,6 +1974,11 @@ function renderDeadlinesAndReminders() {
       <strong>${escapeHtml(item.id)}</strong>
       <span>${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.summary)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Recurring series", "recurring-schedules", "recurring-series-list", "Open recurring series."),
+        relationshipCue(true, "Instances", "recurring-schedules", "recurring-instance-list", "Open recurring instances."),
+        relationshipCue(true, "Receipts", "receipts-audit", "schedule-receipts-list", "Open audit receipts.")
+      ])}
     </article>
   `);
 
@@ -1695,6 +1987,11 @@ function renderDeadlinesAndReminders() {
       <strong>${escapeHtml(item.title)}</strong>
       <span>${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Instances", "recurring-schedule", "portal-recurring-instance-status", "Open recurring instances."),
+        relationshipCue(true, "Reminders", "reminders-deadlines", "portal-reminder-execution-status", "Open reminders."),
+        relationshipCue(true, "Receipts", "receipts-imports", "portal-schedule-receipts", "Open receipts.")
+      ])}
     </article>
   `);
 
@@ -1703,6 +2000,11 @@ function renderDeadlinesAndReminders() {
       <strong>Occurrence ${escapeHtml(item.occurrenceIndex)}</strong>
       <span>${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Recurring schedule", "recurring-schedule", "portal-recurring-series-status", "Open recurring schedule."),
+        relationshipCue(true, "Exceptions", "recurring-schedule", "portal-recurring-exceptions", "Open exceptions."),
+        relationshipCue(true, "Booking status", "schedule-status", "portal-booking-status", "Open booking status.")
+      ])}
     </article>
   `);
 
@@ -1711,6 +2013,11 @@ function renderDeadlinesAndReminders() {
       <strong>New window needed</strong>
       <span>${escapeHtml(item.conflictType)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Recurring schedule", "recurring-schedule", "portal-recurring-series-status", "Open recurring schedule."),
+        relationshipCue(true, "Booking options", "booking-options", "portal-booking-recommendations", "Open booking options."),
+        relationshipCue(true, "Receipts", "receipts-imports", "portal-timing-return-receipts", "Open timing receipts.")
+      ])}
     </article>
   `);
 
@@ -1719,6 +2026,11 @@ function renderDeadlinesAndReminders() {
       <strong>Revised availability review</strong>
       <span>${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Recurring schedule", "recurring-schedule", "portal-recurring-series-status", "Open recurring schedule."),
+        relationshipCue(true, "Capacity", "waitlist-capacity", "portal-capacity-status", "Open capacity status."),
+        relationshipCue(true, "Receipts", "receipts-imports", "portal-revised-availability-exception-receipts", "Open revised availability receipts.")
+      ])}
     </article>
   `);
 
@@ -1727,6 +2039,11 @@ function renderDeadlinesAndReminders() {
       <strong>${escapeHtml(item.status)}</strong>
       <span>${escapeHtml(item.requestId)} / ${escapeHtml(item.availabilityWindowId || "window pending")}</span>
       <small>${escapeHtml(item.customerSafeMessage || item.summary)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Recurring schedule", "recurring-schedule", "portal-recurring-series-status", "Open recurring schedule."),
+        relationshipCue(true, "Schedule status", "schedule-status", "portal-timeline", "Open schedule status."),
+        relationshipCue(true, "Receipts", "receipts-imports", "portal-schedule-receipts", "Open schedule receipts.")
+      ])}
     </article>
   `);
 
@@ -1742,6 +2059,11 @@ function renderDeadlinesAndReminders() {
       <strong>Reminder status</strong>
       <span>${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Schedule status", "schedule-status", "portal-timeline", "Open schedule status."),
+        relationshipCue(true, "Deadlines", "reminders-deadlines", "portal-deadline-execution-status", "Open deadlines."),
+        relationshipCue(true, "Receipts", "receipts-imports", "portal-schedule-receipts", "Open schedule receipts.")
+      ])}
     </article>
   `);
 
@@ -1750,6 +2072,11 @@ function renderDeadlinesAndReminders() {
       <strong>${escapeHtml(item.deadlineItemId)}</strong>
       <span>${escapeHtml(item.health)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Reminders", "reminders-deadlines", "portal-reminder-execution-status", "Open reminders."),
+        relationshipCue(true, "Escalations", "reminders-deadlines", "portal-deadline-escalation-status", "Open escalations."),
+        relationshipCue(true, "Receipts", "receipts-imports", "portal-schedule-receipts", "Open schedule receipts.")
+      ])}
     </article>
   `);
 
@@ -1758,6 +2085,11 @@ function renderDeadlinesAndReminders() {
       <strong>Deadline follow-up</strong>
       <span>${escapeHtml(item.status)}</span>
       <small>${escapeHtml(item.customerSafeStatus)}</small>
+      ${renderRelationshipCues([
+        relationshipCue(true, "Deadlines", "reminders-deadlines", "portal-deadline-execution-status", "Open deadlines."),
+        relationshipCue(true, "Schedule status", "schedule-status", "portal-timeline", "Open schedule status."),
+        relationshipCue(true, "Receipts", "receipts-imports", "portal-schedule-receipts", "Open schedule receipts.")
+      ])}
     </article>
   `);
 }
@@ -1783,6 +2115,12 @@ function renderRevisedCalendar() {
         <strong>${escapeHtml(item.id || "rulepack")}</strong>
         <p>${escapeHtml(item.customerSafeStatus || "Rulepack status unavailable.")}</p>
         <small>${missing.slice(0, 5).map(escapeHtml).join(", ")}${missing.length > 5 ? "..." : ""}</small>
+        ${renderRelationshipCues([
+          relationshipCue(true, "Constraints", "rules-integrations", "revised-constraint-projection", "Open constraint projection."),
+          relationshipCue(true, "Owner decisions", "rules-integrations", "revised-rulepack-owner-decision-list", "Open owner decisions."),
+          relationshipCue(true, "Approval receipts", "rules-integrations", "revised-rulepack-approval-receipt-list", "Open approval receipts."),
+          relationshipCue(true, "Recurring schedules", "recurring-schedules", "recurring-series-list", "Open recurring schedules.")
+        ])}
       </div>
       <div class="item-meta">
         ${chip(blocked ? "conversion held" : "conversion ready")}
@@ -1798,6 +2136,11 @@ function renderRevisedCalendar() {
         <p>${escapeHtml(item.yearOpeningDayPolicy)} ${escapeHtml(item.leapDayPolicy)}</p>
         <small>${escapeHtml(item.anchorMethod)}; source: ${escapeHtml(item.anchorSource)}</small>
         <small>${escapeHtml(item.intercalaryPolicy)}</small>
+        ${renderRelationshipCues([
+          relationshipCue(true, "Rulepack", "rules-integrations", "revised-rulepack-status", "Open rulepack status."),
+          relationshipCue(true, "Owner decisions", "rules-integrations", "revised-rulepack-owner-decision-list", "Open owner decisions."),
+          relationshipCue(true, "Approval receipts", "rules-integrations", "revised-rulepack-approval-receipt-list", "Open approval receipts.")
+        ])}
       </div>
       <div class="item-meta">
         ${chip(item.customerSafe ? "customer-safe constraints" : "constraints blocked")}
@@ -1830,6 +2173,11 @@ function renderRevisedCalendar() {
         <strong>${escapeHtml(item.status || "owner-decision-required")}</strong>
         <p>${escapeHtml(item.customerSafeStatus || item.decisionSummary || "Rulepack owner decisions are pending.")}</p>
         <small>${escapeHtml(item.missingApprovalSummary || "Owner approvals are still required.")}</small>
+        ${renderRelationshipCues([
+          relationshipCue(true, "Rulepack", "rules-integrations", "revised-rulepack-status", "Open rulepack status."),
+          relationshipCue(true, "Constraints", "rules-integrations", "revised-constraint-projection", "Open constraint projection."),
+          relationshipCue(true, "Approval receipts", "rules-integrations", "revised-rulepack-approval-receipt-list", "Open approval receipts.")
+        ])}
       </div>
       <div class="item-meta">
         ${chip(item.conversionReady ? "conversion ready" : "conversion held")}
@@ -1844,6 +2192,11 @@ function renderRevisedCalendar() {
         <strong>${escapeHtml(item.receiptId || item.id || "approval receipt")}</strong>
         <p>${escapeHtml(item.summary || "Rulepack approval receipt is ready.")}</p>
         <small>${escapeHtml(item.nextAction || "Review owner approval decisions before conversion.")}</small>
+        ${renderRelationshipCues([
+          relationshipCue(true, "Rulepack", "rules-integrations", "revised-rulepack-status", "Open rulepack status."),
+          relationshipCue(true, "Owner decisions", "rules-integrations", "revised-rulepack-owner-decision-list", "Open owner decisions."),
+          relationshipCue(true, "Receipts", "receipts-audit", "schedule-receipts-list", "Open schedule receipts.")
+        ])}
       </div>
       <div class="item-meta">
         ${chip(item.status || "approval-held")}

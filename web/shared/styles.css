@@ -212,6 +212,51 @@ button {
   margin: 0;
 }
 
+.relationship-cues {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  margin-top: 8px;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.relationship-cues > span {
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.relationship-cue {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 28px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 800;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.relationship-cue:hover,
+.relationship-cue:focus-visible {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(49, 95, 145, 0.14);
+  outline: none;
+}
+
+.portal-surface .relationship-cue {
+  border-color: rgba(49, 95, 145, 0.28);
+}
+
 .header-actions a {
   background: #fff;
   color: var(--ink);
