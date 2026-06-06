@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>EPOCH Webportal</title>
-  <link rel="stylesheet" href="../shared/styles.css" />
+  <link rel="stylesheet" href="../shared/styles.css?v=epoch-module-layout-shells" />
 </head>
 <body class="surface-shell portal-surface">
   <header class="topbar compact">
@@ -18,6 +18,16 @@
       <a href="../app/index.html">App</a>
     </nav>
   </header>
+
+  <section class="crm-module-shell portal-module-shell" aria-label="EPOCH Webportal modules">
+    <div class="crm-module-copy">
+      <p class="eyebrow">Scheduling Portal</p>
+      <h2 id="epoch-webportal-module-title">Ask For A Time</h2>
+      <p id="epoch-webportal-module-description">Request timing, review booking status, choose options, and keep receipts separate from the main flow.</p>
+    </div>
+    <nav id="epoch-webportal-module-nav" class="crm-module-nav" aria-label="EPOCH Webportal module navigation"></nav>
+    <p id="epoch-webportal-module-related" class="crm-module-related">Related scheduling modules appear here.</p>
+  </section>
 
   <main class="portal-grid">
     <section class="panel request-panel">
@@ -81,6 +91,15 @@
         <h2>Customer-Safe Timeline</h2>
       </div>
       <div id="portal-timeline" class="item-stack"></div>
+    </section>
+
+    <section id="epoch-portal-help-context" class="panel">
+      <div class="section-title">
+        <p class="eyebrow">Help</p>
+        <h2>Portal Help</h2>
+      </div>
+      <p>This portal keeps timing requests, booking options, waitlist state, reminders, recurring schedule changes, and receipts in customer-safe language.</p>
+      <p>Internal calendar rules, native runtime diagnostics, and operator-only ledger controls stay in the EPOCH App.</p>
     </section>
 
     <section class="panel">
@@ -458,6 +477,6 @@
     </section>
   </main>
 
-  <script type="module" src="../shared/surface.js?v=epoch-revised-rulepack-owner-decisions"></script>
+  <script type="module" src="../shared/surface.js?v=epoch-module-layout-shells"></script>
 </body>
 </html>

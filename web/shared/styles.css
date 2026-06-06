@@ -138,6 +138,80 @@ button {
   cursor: pointer;
 }
 
+.crm-module-shell {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.55fr) minmax(0, 1.45fr);
+  gap: 16px;
+  align-items: start;
+  max-width: 1220px;
+  margin: 0 auto 18px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.crm-module-copy {
+  min-width: 0;
+}
+
+.crm-module-copy h2 {
+  margin: 4px 0 8px;
+  font-size: 24px;
+}
+
+.crm-module-nav {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.crm-module-link {
+  display: grid;
+  gap: 5px;
+  justify-content: stretch;
+  min-height: 88px;
+  padding: 10px;
+  border-color: var(--line);
+  background: #f7f8f4;
+  color: var(--ink);
+  text-align: left;
+}
+
+.crm-module-link strong,
+.crm-module-link small,
+.crm-module-related {
+  overflow-wrap: anywhere;
+}
+
+.crm-module-link strong {
+  font-size: 14px;
+}
+
+.crm-module-link small,
+.crm-module-related {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.crm-module-link:hover,
+.crm-module-link:focus-visible {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(49, 95, 145, 0.14);
+  outline: none;
+}
+
+.crm-module-link[aria-current="page"] {
+  border-color: var(--green);
+  background: #eef6ef;
+}
+
+.crm-module-related {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 .header-actions a {
   background: #fff;
   color: var(--ink);
@@ -161,6 +235,7 @@ button {
   display: grid;
   gap: 18px;
   max-width: 1220px;
+  min-width: 0;
   margin: 0 auto;
 }
 
@@ -178,6 +253,7 @@ button {
 
 .surface-card,
 .panel {
+  min-width: 0;
   padding: 20px;
   box-shadow: var(--shadow);
 }
@@ -245,6 +321,8 @@ button {
 
 .section-title {
   display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
   gap: 14px;
@@ -254,6 +332,16 @@ button {
 
 .section-title .eyebrow {
   white-space: nowrap;
+}
+
+.section-title h2,
+.item-card,
+.mini-row,
+.mini-row strong,
+.mini-row span,
+.mini-row small {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .item-stack {
@@ -386,6 +474,114 @@ button {
   font-weight: 800;
 }
 
+.command-center-panel {
+  border-top: 5px solid var(--green);
+}
+
+.command-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.command-kpi,
+.command-block,
+.command-row {
+  border: 1px solid var(--line);
+}
+
+.command-kpi {
+  display: grid;
+  gap: 7px;
+  align-content: start;
+  min-height: 112px;
+  padding: 12px;
+  background: #f7f8f4;
+}
+
+.command-kpi span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+}
+
+.command-kpi strong {
+  font-size: 20px;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.command-kpi small,
+.command-row p,
+.command-boundary {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.command-center-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.command-block {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 14px;
+  background: #f7f8f4;
+}
+
+.command-block h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.command-list {
+  display: grid;
+  gap: 8px;
+}
+
+.command-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+  padding: 12px;
+  background: #fff;
+  color: inherit;
+  text-decoration: none;
+}
+
+.command-row:hover,
+.command-row:focus-visible {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(49, 95, 145, 0.14);
+  outline: none;
+}
+
+.command-row strong,
+.command-row p {
+  overflow-wrap: anywhere;
+}
+
+.command-row p {
+  margin: 5px 0 0;
+  font-size: 13px;
+}
+
+.command-row-secondary {
+  background: #f7f8f4;
+}
+
+.command-boundary {
+  margin: 14px 0 0;
+  font-size: 13px;
+}
+
 .surface-form {
   display: grid;
   gap: 12px;
@@ -431,6 +627,7 @@ select {
   .directory-layout,
   .workspace-grid,
   .portal-grid,
+  .crm-module-shell,
   .topbar {
     grid-template-columns: 1fr;
   }
@@ -441,6 +638,11 @@ select {
 
   .month-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .command-kpi-grid,
+  .crm-module-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .wide-panel {
@@ -454,6 +656,13 @@ select {
   }
 
   .calendar-board {
+    grid-template-columns: 1fr;
+  }
+
+  .command-kpi-grid,
+  .command-center-grid,
+  .command-row,
+  .crm-module-nav {
     grid-template-columns: 1fr;
   }
 

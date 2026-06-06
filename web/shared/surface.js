@@ -467,6 +467,7 @@ const revisedRulepackApprovalReceiptExportState = {
 const byId = (id) => document.getElementById(id);
 
 const chip = (value) => `<span class="state-chip">${escapeHtml(value)}</span>`;
+const formatCountLabel = (count, singular, plural = `${singular}s`) => `${count} ${count === 1 ? singular : plural}`;
 
 const renderStack = (targetId, items, renderItem, emptyText = "No records yet.") => {
   const target = byId(targetId);
@@ -480,6 +481,504 @@ const setText = (id, value) => {
   const target = byId(id);
   if (target) target.textContent = value;
 };
+
+const moduleRoute = (moduleId, focusId = "") => `#/${encodeURIComponent(moduleId)}${focusId ? `?focus=${encodeURIComponent(focusId)}` : ""}`;
+
+const EPOCH_APP_MODULE_STORAGE_KEY = "epoch.app.activeModule.v1";
+
+const EPOCH_APP_MODULES = [
+  {
+    id: "calendar-command",
+    label: "Calendar Command",
+    description: "Current schedule pressure, top timing decisions, and next scheduling actions.",
+    sectionIds: ["epoch-calendar-command"],
+    related: ["schedule-requests", "calendar-board", "availability-holds"]
+  },
+  {
+    id: "calendar-board",
+    label: "Calendar Board",
+    description: "Calendar grid, current visible blocks, and display mode state.",
+    sectionIds: ["calendar-board", "calendar-display-mode-list"],
+    related: ["calendar-command", "availability-holds", "schedule-requests"]
+  },
+  {
+    id: "schedule-requests",
+    label: "Schedule Requests",
+    description: "Incoming timing asks, request acceptance, handoffs, decisions, holds, and customer-safe status.",
+    sectionIds: [
+      "schedule-queue",
+      "timing-handoff-list",
+      "conflict-decision-list",
+      "acceptance-list",
+      "hold-list",
+      "schedule-status-event-list",
+      "timing-return-list",
+      "timing-return-receipt-list"
+    ],
+    related: ["calendar-command", "calendar-board", "availability-holds"]
+  },
+  {
+    id: "availability-holds",
+    label: "Availability And Holds",
+    description: "Open windows, capacity, waitlist, holds, releases, promotions, and capacity receipts.",
+    sectionIds: [
+      "availability-list",
+      "capacity-snapshot-list",
+      "waitlist-list",
+      "hold-release-list",
+      "promotion-candidate-list",
+      "capacity-receipt-list",
+      "conflict-decision-list",
+      "hold-list"
+    ],
+    related: ["calendar-board", "bookings-recommendations", "recurring-schedules"]
+  },
+  {
+    id: "bookings-recommendations",
+    label: "Bookings And Recommendations",
+    description: "Optimization runs, recommended windows, overload warnings, confirmations, and booking receipts.",
+    sectionIds: [
+      "booking-optimization-list",
+      "booking-recommendation-list",
+      "booking-overload-warning-list",
+      "booking-recommendation-receipt-list",
+      "booking-confirmation-list",
+      "booking-receipt-list",
+      "timing-return-list",
+      "timing-return-receipt-list"
+    ],
+    related: ["calendar-board", "availability-holds", "receipts-audit"]
+  },
+  {
+    id: "recurring-schedules",
+    label: "Recurring Schedules",
+    description: "Recurring candidates, series, instances, exceptions, revised exceptions, and series receipts.",
+    sectionIds: [
+      "recurrence-candidate-list",
+      "recurring-series-list",
+      "recurring-instance-list",
+      "recurrence-exception-list",
+      "revised-availability-exception-list",
+      "revised-availability-exception-receipt-list",
+      "app-revised-availability-exception-receipt-export",
+      "recurring-series-receipt-list"
+    ],
+    related: ["availability-holds", "rules-integrations", "receipts-audit"]
+  },
+  {
+    id: "reminders-deadlines",
+    label: "Reminders And Deadlines",
+    description: "Deadline items, reminder rules, executions, escalations, and reminder/deadline receipts.",
+    sectionIds: [
+      "deadline-list",
+      "reminder-rule-list",
+      "reminder-execution-list",
+      "deadline-execution-list",
+      "deadline-escalation-list",
+      "reminder-deadline-receipt-list",
+      "app-revised-reminder-deadline-receipts"
+    ],
+    related: ["schedule-requests", "recurring-schedules", "receipts-audit"]
+  },
+  {
+    id: "rules-integrations",
+    label: "Rules And Integrations",
+    description: "Native core readiness, provider gates, revised calendar rules, constraints, and owner decisions.",
+    sectionIds: [
+      "native-core-readiness",
+      "provider-readiness-list",
+      "provider-check-list",
+      "revised-calendar",
+      "revised-rulepack-status",
+      "revised-constraint-projection",
+      "revised-rulepack-owner-decision-list",
+      "revised-rulepack-approval-receipt-list",
+      "app-revised-rulepack-approval-receipt-export"
+    ],
+    related: ["calendar-command", "recurring-schedules", "receipts-audit"]
+  },
+  {
+    id: "receipts-audit",
+    label: "Receipts And Audit",
+    description: "Audits, receipts, scheduler log, search, templates, and proof history.",
+    sectionIds: [
+      "schedule-audit-list",
+      "schedule-receipts-list",
+      "scheduler-log-list",
+      "calendar-search-query-list",
+      "calendar-search-list",
+      "schedule-template-list",
+      "receipt-list"
+    ],
+    related: ["calendar-command", "rules-integrations", "settings-ledger"]
+  },
+  {
+    id: "settings-ledger",
+    label: "Settings And Ledger",
+    description: "Local ledger reset, runtime boundary, native app state, and diagnostic metadata.",
+    sectionIds: [
+      "stat-schedule-requests",
+      "reset-schedule-ledger",
+      "receipt-list",
+      "avalonia-shell-readiness"
+    ],
+    related: ["calendar-command", "rules-integrations", "schedule-requests"]
+  }
+];
+
+const EPOCH_WEBPORTAL_MODULE_STORAGE_KEY = "epoch.webportal.activeModule.v1";
+
+const EPOCH_WEBPORTAL_MODULES = [
+  {
+    id: "ask-time",
+    label: "Ask For A Time",
+    description: "Submit or update a customer-safe schedule request.",
+    sectionIds: ["schedule-request-form", "schedule-lifecycle-action-form", "portal-schedule-lifecycle-actions"],
+    related: ["schedule-status", "booking-options", "receipts-imports"]
+  },
+  {
+    id: "schedule-status",
+    label: "My Schedule Status",
+    description: "Review accepted requests, timing handoffs, holds, confirmations, lifecycle status, and schedule updates.",
+    sectionIds: [
+      "portal-timeline",
+      "customer-status-list",
+      "portal-customer-schedule-status-export",
+      "portal-schedule-lifecycle-status-export",
+      "portal-acceptance-status",
+      "portal-timing-handoff-status",
+      "portal-availability-decision",
+      "portal-hold-status",
+      "portal-booking-status",
+      "portal-schedule-status-events",
+      "portal-provider-status",
+      "portal-revised-status",
+      "portal-revised-constraints",
+      "portal-revised-rulepack-approval-status"
+    ],
+    related: ["ask-time", "booking-options", "receipts-imports"]
+  },
+  {
+    id: "booking-options",
+    label: "Booking Options",
+    description: "Recommended windows, booking alternatives, overload explanations, and recommendation receipts.",
+    sectionIds: [
+      "portal-booking-recommendations",
+      "portal-booking-overload-warnings",
+      "portal-booking-recommendation-receipts",
+      "portal-booking-status",
+      "portal-booking-receipts"
+    ],
+    related: ["schedule-status", "waitlist-capacity", "receipts-imports"]
+  },
+  {
+    id: "waitlist-capacity",
+    label: "Waitlist And Capacity",
+    description: "Open windows, capacity status, waitlist state, and promotion status.",
+    sectionIds: ["portal-availability", "portal-capacity-status", "portal-waitlist-status", "portal-promotion-status"],
+    related: ["booking-options", "recurring-schedule", "schedule-status"]
+  },
+  {
+    id: "reminders-deadlines",
+    label: "Reminders And Deadlines",
+    description: "Reminder execution, deadline execution, escalation status, and revised deadline receipts.",
+    sectionIds: [
+      "portal-reminder-execution-status",
+      "portal-deadline-execution-status",
+      "portal-deadline-escalation-status",
+      "portal-revised-reminder-deadline-receipts"
+    ],
+    related: ["schedule-status", "recurring-schedule", "receipts-imports"]
+  },
+  {
+    id: "recurring-schedule",
+    label: "Recurring Schedule",
+    description: "Recurring series, instances, exceptions, revised availability exceptions, and related receipts.",
+    sectionIds: [
+      "portal-recurring-series-status",
+      "portal-recurring-instance-status",
+      "portal-recurring-exceptions",
+      "portal-revised-availability-exceptions",
+      "portal-revised-availability-exception-receipts",
+      "portal-revised-availability-exception-receipt-export"
+    ],
+    related: ["waitlist-capacity", "reminders-deadlines", "receipts-imports"]
+  },
+  {
+    id: "receipts-imports",
+    label: "Receipts And Imports",
+    description: "Customer-safe status imports, receipts, timing returns, audit rows, logs, search, and templates.",
+    sectionIds: [
+      "customer-schedule-status-import-form",
+      "schedule-lifecycle-status-import-form",
+      "revised-reminder-deadline-receipt-import-form",
+      "revised-availability-exception-receipt-import-form",
+      "revised-rulepack-approval-receipt-import-form",
+      "portal-schedule-audit",
+      "portal-schedule-receipts",
+      "portal-scheduler-log",
+      "portal-calendar-search",
+      "portal-schedule-template",
+      "portal-booking-receipts",
+      "portal-timing-return-status",
+      "portal-timing-return-receipts",
+      "portal-revised-rulepack-approval-status",
+      "portal-revised-rulepack-approval-receipt-export"
+    ],
+    related: ["schedule-status", "booking-options", "portal-help"]
+  },
+  {
+    id: "portal-help",
+    label: "Portal Help",
+    description: "Understand what the scheduling portal handles and what stays internal.",
+    sectionIds: ["epoch-portal-help-context"],
+    related: ["ask-time", "schedule-status", "booking-options"]
+  }
+];
+
+const makeModuleById = (modules) => new Map(modules.map((module) => [module.id, module]));
+const makeSectionModuleLookup = (modules) => {
+  const lookup = new Map();
+  for (const module of modules) {
+    for (const sectionId of module.sectionIds) {
+      if (!lookup.has(sectionId)) lookup.set(sectionId, module.id);
+    }
+  }
+  return lookup;
+};
+
+const epochAppModuleById = makeModuleById(EPOCH_APP_MODULES);
+const epochAppSectionModuleLookup = makeSectionModuleLookup(EPOCH_APP_MODULES);
+const epochWebportalModuleById = makeModuleById(EPOCH_WEBPORTAL_MODULES);
+const epochWebportalSectionModuleLookup = makeSectionModuleLookup(EPOCH_WEBPORTAL_MODULES);
+
+const epochAppRouteAliases = new Map([
+  ["command", "calendar-command"],
+  ["calendar", "calendar-command"],
+  ["calendar-board", "calendar-board"],
+  ["board", "calendar-board"],
+  ["requests", "schedule-requests"],
+  ["availability", "availability-holds"],
+  ["holds", "availability-holds"],
+  ["bookings", "bookings-recommendations"],
+  ["recommendations", "bookings-recommendations"],
+  ["recurring", "recurring-schedules"],
+  ["reminders", "reminders-deadlines"],
+  ["deadlines", "reminders-deadlines"],
+  ["rules", "rules-integrations"],
+  ["integrations", "rules-integrations"],
+  ["receipts", "receipts-audit"],
+  ["audit", "receipts-audit"],
+  ["settings", "settings-ledger"],
+  ["ledger", "settings-ledger"]
+]);
+
+const epochWebportalRouteAliases = new Map([
+  ["request", "ask-time"],
+  ["ask", "ask-time"],
+  ["status", "schedule-status"],
+  ["my-schedule-status", "schedule-status"],
+  ["booking", "booking-options"],
+  ["bookings", "booking-options"],
+  ["options", "booking-options"],
+  ["waitlist", "waitlist-capacity"],
+  ["capacity", "waitlist-capacity"],
+  ["reminders", "reminders-deadlines"],
+  ["deadlines", "reminders-deadlines"],
+  ["recurring", "recurring-schedule"],
+  ["receipts", "receipts-imports"],
+  ["imports", "receipts-imports"],
+  ["help", "portal-help"]
+]);
+
+const resolveModuleId = (moduleId, moduleById, routeAliases, fallbackModuleId) => {
+  if (moduleById.has(moduleId)) return moduleId;
+  const alias = routeAliases.get(moduleId);
+  return moduleById.has(alias) ? alias : fallbackModuleId;
+};
+
+const getPanelForSectionId = (sectionId) => {
+  const target = byId(sectionId);
+  if (!target) return null;
+  return target.classList.contains("panel") ? target : target.closest(".panel");
+};
+
+function getModuleRouteState(storageKey, moduleById, sectionModuleLookup, routeAliases, fallbackId) {
+  const storage = getStorage();
+  const savedModule = storage?.getItem(storageKey) || fallbackId;
+  const fallbackModuleId = moduleById.has(savedModule) ? savedModule : fallbackId;
+  const cleanHash = decodeURIComponent((window.location.hash || "").replace(/^#/, ""));
+  if (!cleanHash) return { moduleId: fallbackModuleId, focusId: "" };
+
+  if (cleanHash.startsWith("/")) {
+    const [routePart, query = ""] = cleanHash.slice(1).split("?");
+    const params = new URLSearchParams(query);
+    const moduleId = resolveModuleId(routePart, moduleById, routeAliases, fallbackModuleId);
+    return { moduleId, focusId: params.get("focus") || "" };
+  }
+
+  return {
+    moduleId: sectionModuleLookup.get(cleanHash) || fallbackModuleId,
+    focusId: cleanHash
+  };
+}
+
+function renderModuleNav(navId, modules, linkAttribute) {
+  const nav = byId(navId);
+  if (!nav) return;
+  nav.innerHTML = modules.map((module) => `
+    <button class="crm-module-link" type="button" ${linkAttribute}="${escapeHtml(module.id)}">
+      <strong>${escapeHtml(module.label)}</strong>
+      <small>${escapeHtml(module.description)}</small>
+    </button>
+  `).join("");
+}
+
+function mountModulePanels(modules, panelSelector, moduleDataAttribute, fallbackModuleId) {
+  const assignedPanels = new Set();
+  for (const module of modules) {
+    for (const sectionId of module.sectionIds) {
+      const panel = getPanelForSectionId(sectionId);
+      if (!panel || assignedPanels.has(panel)) continue;
+      panel.dataset[moduleDataAttribute] = module.id;
+      panel.classList.add("crm-module-panel");
+      assignedPanels.add(panel);
+    }
+  }
+
+  for (const panel of document.querySelectorAll(panelSelector)) {
+    if (assignedPanels.has(panel)) continue;
+    panel.dataset[moduleDataAttribute] = fallbackModuleId;
+    panel.classList.add("crm-module-panel");
+  }
+}
+
+function activateModule({
+  moduleId,
+  focusId = "",
+  moduleById,
+  fallbackModuleId,
+  storageKey,
+  bodyDataAttribute,
+  titleId,
+  descriptionId,
+  relatedId,
+  panelSelector,
+  moduleDataAttribute,
+  linkSelector,
+  relatedPrefix
+}) {
+  const module = moduleById.get(moduleId) || moduleById.get(fallbackModuleId);
+  const activeModuleId = module.id;
+  const storage = getStorage();
+  if (storage) storage.setItem(storageKey, activeModuleId);
+  document.body.dataset[bodyDataAttribute] = activeModuleId;
+
+  setText(titleId, module.label);
+  setText(descriptionId, module.description);
+  const relatedLabels = module.related
+    .map((id) => moduleById.get(id)?.label)
+    .filter(Boolean);
+  setText(relatedId, relatedLabels.length
+    ? `${relatedPrefix}: ${relatedLabels.join(", ")}.`
+    : `${relatedPrefix} appear here.`);
+
+  for (const panel of document.querySelectorAll(panelSelector)) {
+    panel.hidden = panel.dataset[moduleDataAttribute] !== activeModuleId;
+  }
+
+  for (const link of document.querySelectorAll(linkSelector)) {
+    const current = link.getAttribute(linkSelector.match(/\[(.+)\]/)?.[1] || "") === activeModuleId;
+    link.setAttribute("aria-current", current ? "page" : "false");
+  }
+
+  if (focusId) {
+    const panel = getPanelForSectionId(focusId);
+    if (panel && panel.dataset[moduleDataAttribute] === activeModuleId) {
+      window.requestAnimationFrame(() => panel.scrollIntoView({ block: "start" }));
+    }
+  }
+}
+
+function initializeEpochAppModuleShell() {
+  if (!document.body?.classList.contains("app-surface") || !byId("epoch-app-module-nav")) return;
+  renderModuleNav("epoch-app-module-nav", EPOCH_APP_MODULES, "data-epoch-app-module-link");
+  mountModulePanels(EPOCH_APP_MODULES, ".workspace-grid > .panel", "epochAppModule", "receipts-audit");
+
+  byId("epoch-app-module-nav")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-epoch-app-module-link]");
+    if (!button) return;
+    const moduleId = button.getAttribute("data-epoch-app-module-link");
+    if (!epochAppModuleById.has(moduleId)) return;
+    window.location.hash = `/${moduleId}`;
+    activateEpochAppModule(moduleId);
+  });
+
+  const routeState = getModuleRouteState(EPOCH_APP_MODULE_STORAGE_KEY, epochAppModuleById, epochAppSectionModuleLookup, epochAppRouteAliases, "calendar-command");
+  activateEpochAppModule(routeState.moduleId, routeState.focusId);
+  window.addEventListener("hashchange", () => {
+    const nextRouteState = getModuleRouteState(EPOCH_APP_MODULE_STORAGE_KEY, epochAppModuleById, epochAppSectionModuleLookup, epochAppRouteAliases, "calendar-command");
+    activateEpochAppModule(nextRouteState.moduleId, nextRouteState.focusId);
+  });
+}
+
+function activateEpochAppModule(moduleId, focusId = "") {
+  activateModule({
+    moduleId,
+    focusId,
+    moduleById: epochAppModuleById,
+    fallbackModuleId: "calendar-command",
+    storageKey: EPOCH_APP_MODULE_STORAGE_KEY,
+    bodyDataAttribute: "epochAppModule",
+    titleId: "epoch-app-module-title",
+    descriptionId: "epoch-app-module-description",
+    relatedId: "epoch-app-module-related",
+    panelSelector: ".crm-module-panel",
+    moduleDataAttribute: "epochAppModule",
+    linkSelector: "[data-epoch-app-module-link]",
+    relatedPrefix: "Related schedule modules"
+  });
+}
+
+function initializeEpochWebportalModuleShell() {
+  if (!document.body?.classList.contains("portal-surface") || !byId("epoch-webportal-module-nav")) return;
+  renderModuleNav("epoch-webportal-module-nav", EPOCH_WEBPORTAL_MODULES, "data-epoch-webportal-module-link");
+  mountModulePanels(EPOCH_WEBPORTAL_MODULES, ".portal-grid > .panel", "epochWebportalModule", "receipts-imports");
+
+  byId("epoch-webportal-module-nav")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-epoch-webportal-module-link]");
+    if (!button) return;
+    const moduleId = button.getAttribute("data-epoch-webportal-module-link");
+    if (!epochWebportalModuleById.has(moduleId)) return;
+    window.location.hash = `/${moduleId}`;
+    activateEpochWebportalModule(moduleId);
+  });
+
+  const routeState = getModuleRouteState(EPOCH_WEBPORTAL_MODULE_STORAGE_KEY, epochWebportalModuleById, epochWebportalSectionModuleLookup, epochWebportalRouteAliases, "ask-time");
+  activateEpochWebportalModule(routeState.moduleId, routeState.focusId);
+  window.addEventListener("hashchange", () => {
+    const nextRouteState = getModuleRouteState(EPOCH_WEBPORTAL_MODULE_STORAGE_KEY, epochWebportalModuleById, epochWebportalSectionModuleLookup, epochWebportalRouteAliases, "ask-time");
+    activateEpochWebportalModule(nextRouteState.moduleId, nextRouteState.focusId);
+  });
+}
+
+function activateEpochWebportalModule(moduleId, focusId = "") {
+  activateModule({
+    moduleId,
+    focusId,
+    moduleById: epochWebportalModuleById,
+    fallbackModuleId: "ask-time",
+    storageKey: EPOCH_WEBPORTAL_MODULE_STORAGE_KEY,
+    bodyDataAttribute: "epochWebportalModule",
+    titleId: "epoch-webportal-module-title",
+    descriptionId: "epoch-webportal-module-description",
+    relatedId: "epoch-webportal-module-related",
+    panelSelector: ".crm-module-panel",
+    moduleDataAttribute: "epochWebportalModule",
+    linkSelector: "[data-epoch-webportal-module-link]",
+    relatedPrefix: "Related scheduling modules"
+  });
+}
 
 const renderNeedOptions = () => {
   const target = byId("schedule-need-select");
@@ -541,6 +1040,127 @@ function renderStats() {
   setText("stat-scheduler-log", String((state.ledger.schedulerLogEntries || []).length));
   setText("stat-calendar-search", String((state.ledger.calendarSearchResults || []).length));
   setText("stat-schedule-templates", String((state.ledger.scheduleTemplates || []).length));
+}
+
+function renderEpochCommandCenter() {
+  const target = byId("epoch-command-kpi-grid");
+  if (!target) return;
+
+  const ledger = state.ledger;
+  const openWindows = (ledger.availabilityWindows || []).filter((item) => item.holds < item.capacity);
+  const activeHolds = (ledger.availabilityHolds || []).filter((hold) => hold.status !== "released");
+  const waitlisted = (ledger.availabilityWaitlistEntries || []).filter((entry) => entry.status === "waitlisted");
+  const conflicts = (ledger.availabilityConflictDecisions || []).filter((decision) => decision.status !== "clear");
+  const remindersDue = (ledger.reminderExecutions || []).filter((item) => item.customerVisible).length +
+    (ledger.deadlineExecutions || []).filter((item) => item.customerVisible).length +
+    (ledger.deadlineEscalations || []).filter((item) => item.customerVisible).length;
+  const recurringPressure = (ledger.recurringBookingSeries || []).length +
+    (ledger.recurringBookingInstances || []).length +
+    (ledger.recurrenceConflictExceptions || []).length +
+    (ledger.revisedAvailabilityExceptions || []).length;
+  const recommendationPressure = (ledger.bookingRecommendationCandidates || []).length +
+    (ledger.bookingOverloadWarnings || []).length +
+    (ledger.bookingRecommendationReceipts || []).length;
+  const rulePressure = (ledger.revisedRulepackOwnerDecisions || []).length +
+    (ledger.revisedRulepackApprovalReceipts || []).length +
+    (revisedRulepackReady(ledger.revisedCalendarRulepack) ? 0 : 1);
+
+  const kpis = [
+    ["Schedule requests", String((ledger.scheduleRequests || []).length), "Customer timing asks in the local schedule queue."],
+    ["Open windows", String(openWindows.length), "Available windows that can still absorb holds or bookings."],
+    ["Active holds", String(activeHolds.length), "Held windows awaiting confirmation, release, or booking."],
+    ["Waitlist", String(waitlisted.length), "Requests waiting for capacity or promotion."],
+    ["Booking signals", String(recommendationPressure), "Recommendations, alternatives, and recommendation proof rows."],
+    ["Recurring pressure", String(recurringPressure), "Series, instances, exceptions, and revised exception rows."],
+    ["Reminder/deadline", String(remindersDue), "Customer-visible reminder, deadline, and escalation rows."],
+    ["Rules", String(rulePressure), "Rulepack decisions, approval receipts, or held rule status."]
+  ];
+
+  target.innerHTML = kpis.map(([label, value, detail]) => `
+    <article class="command-kpi">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+      <small>${escapeHtml(detail)}</small>
+    </article>
+  `).join("");
+
+  setText(
+    "epoch-command-summary",
+    `${formatCountLabel((ledger.scheduleRequests || []).length, "schedule request")} with ${formatCountLabel(openWindows.length, "open window")} and ${formatCountLabel(activeHolds.length, "active hold")}. EPOCH owns timing decisions; WORKSHOP stays revenue and delivery.`
+  );
+
+  const priorityWork = [
+    (ledger.scheduleRequests || []).length && {
+      label: "Schedule requests",
+      detail: `${formatCountLabel((ledger.scheduleRequests || []).length, "request")} need acceptance, handoff, conflict, hold, or booking review.`,
+      status: "request queue",
+      moduleId: "schedule-requests",
+      focusId: "schedule-queue"
+    },
+    openWindows.length && {
+      label: "Availability and holds",
+      detail: `${formatCountLabel(openWindows.length, "open window")} can support capacity, waitlist, hold, or promotion decisions.`,
+      status: "capacity",
+      moduleId: "availability-holds",
+      focusId: "availability-list"
+    },
+    recommendationPressure && {
+      label: "Booking recommendations",
+      detail: `${formatCountLabel(recommendationPressure, "booking signal")} are ready for recommendation or alternative review.`,
+      status: "booking",
+      moduleId: "bookings-recommendations",
+      focusId: "booking-recommendation-list"
+    },
+    recurringPressure && {
+      label: "Recurring schedules",
+      detail: `${formatCountLabel(recurringPressure, "recurring signal")} need series, instance, exception, or revised availability review.`,
+      status: "recurring",
+      moduleId: "recurring-schedules",
+      focusId: "recurring-series-list"
+    },
+    remindersDue && {
+      label: "Reminders and deadlines",
+      detail: `${formatCountLabel(remindersDue, "customer-visible reminder/deadline row")} are staged for follow-up review.`,
+      status: "deadline",
+      moduleId: "reminders-deadlines",
+      focusId: "reminder-execution-list"
+    },
+    rulePressure && {
+      label: "Rules and integrations",
+      detail: "Rulepack, revised calendar, native core, and provider gates should stay controlled before live scheduling.",
+      status: "rules",
+      moduleId: "rules-integrations",
+      focusId: "revised-rulepack-status"
+    }
+  ].filter(Boolean).slice(0, 6);
+
+  renderStack("epoch-command-urgent-list", priorityWork, (item) => `
+    <a class="command-row" href="${escapeHtml(moduleRoute(item.moduleId, item.focusId))}">
+      <div>
+        <strong>${escapeHtml(item.label)}</strong>
+        <p>${escapeHtml(item.detail)}</p>
+      </div>
+      ${chip(item.status)}
+    </a>
+  `, "No urgent timing decisions are staged.");
+
+  const nextActions = [
+    ["schedule-requests", "schedule-queue", "Review timing requests", "Open request acceptance, handoff, conflict, and hold state."],
+    ["availability-holds", "availability-list", "Check open capacity", "Open windows, waitlist, capacity, holds, releases, and promotions."],
+    ["bookings-recommendations", "booking-recommendation-list", "Compare booking options", "Open optimization runs, recommended windows, alternatives, and receipts."],
+    ["recurring-schedules", "recurring-series-list", "Review recurring schedules", "Open recurring series, instances, exceptions, and revised availability."],
+    ["rules-integrations", "revised-rulepack-status", "Confirm rule constraints", "Open provider gates, rulepack decisions, constraints, and core readiness."]
+  ];
+
+  renderStack("epoch-command-next-actions", nextActions, ([moduleId, focusId, label, detail]) => `
+    <a class="command-row command-row-secondary" href="${escapeHtml(moduleRoute(moduleId, focusId))}">
+      <div>
+        <strong>${escapeHtml(label)}</strong>
+        <p>${escapeHtml(detail)}</p>
+      </div>
+      <span class="state-chip">open</span>
+    </a>
+  `, "No next actions are configured.");
 }
 
 function renderScheduleQueue() {
@@ -1721,6 +2341,7 @@ function renderAll() {
   renderNeedOptions();
   renderLifecycleActionOptions();
   renderStats();
+  renderEpochCommandCenter();
   renderScheduleQueue();
   renderCalendarBoard();
   renderProductModules();
@@ -2080,5 +2701,7 @@ function bindControls() {
   if (reminderDeadlineButton) reminderDeadlineButton.addEventListener("click", handleRunReminderDeadlinePass);
 }
 
+initializeEpochAppModuleShell();
+initializeEpochWebportalModuleShell();
 renderAll();
 bindControls();

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>EPOCH App</title>
-  <link rel="stylesheet" href="../shared/styles.css" />
+  <link rel="stylesheet" href="../shared/styles.css?v=epoch-module-layout-shells" />
 </head>
 <body class="surface-shell app-surface">
   <header class="topbar compact">
@@ -20,7 +20,37 @@
     </nav>
   </header>
 
+  <section class="crm-module-shell" aria-label="EPOCH App modules">
+    <div class="crm-module-copy">
+      <p class="eyebrow">Scheduler Workspace</p>
+      <h2 id="epoch-app-module-title">Calendar Command</h2>
+      <p id="epoch-app-module-description">Start with current timing pressure, then move into the schedule module that owns the decision.</p>
+    </div>
+    <nav id="epoch-app-module-nav" class="crm-module-nav" aria-label="EPOCH App module navigation"></nav>
+    <p id="epoch-app-module-related" class="crm-module-related">Related schedule modules appear here.</p>
+  </section>
+
   <main class="workspace-grid">
+    <section id="epoch-calendar-command" class="panel command-center-panel wide-panel">
+      <div class="section-title">
+        <p class="eyebrow">Calendar Command</p>
+        <h2>Today In EPOCH</h2>
+      </div>
+      <p id="epoch-command-summary" class="boundary-copy">EPOCH owns timing, scheduling, availability, booking windows, recurrence, reminders, and calendar constraints.</p>
+      <div id="epoch-command-kpi-grid" class="command-kpi-grid" aria-label="EPOCH command counters"></div>
+      <div class="command-center-grid">
+        <section class="command-block" aria-labelledby="epoch-command-urgent-heading">
+          <h3 id="epoch-command-urgent-heading">Timing Decisions</h3>
+          <div id="epoch-command-urgent-list" class="command-list"></div>
+        </section>
+        <section class="command-block" aria-labelledby="epoch-command-next-heading">
+          <h3 id="epoch-command-next-heading">Next Actions</h3>
+          <div id="epoch-command-next-actions" class="command-list"></div>
+        </section>
+      </div>
+      <p class="command-boundary">WORKSHOP owns revenue and delivery. EPOCH stays the timing provider for requests, holds, bookings, reminders, waitlists, and recurrence.</p>
+    </section>
+
     <section class="panel status-panel">
       <div class="section-title">
         <p class="eyebrow">Operating State</p>
@@ -504,6 +534,6 @@
     </section>
   </main>
 
-  <script type="module" src="../shared/surface.js?v=epoch-revised-rulepack-owner-decisions"></script>
+  <script type="module" src="../shared/surface.js?v=epoch-module-layout-shells"></script>
 </body>
 </html>
